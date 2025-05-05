@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["packages/shared/*"],
+      "shared/types/*": ["packages/shared/types/*"],
+      "shared/constants/*": ["packages/shared/constants/*"],
+      "shared/*": ["packages/shared/*"]
+    },
+    "target": "es2020",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["packages/**/*", "apps/**/*"]
+}

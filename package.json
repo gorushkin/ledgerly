@@ -1,0 +1,21 @@
+{
+  "name": "money-manager",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.15.3"
+  },
+  "scripts": {
+    "fe": "pnpm --filter frontend dev",
+    "be": "pnpm --filter backend dev",
+    "build": "pnpm --filter frontend build",
+    "lint": "pnpm --filter frontend lint",
+    "postinstall": "pnpm rebuild better-sqlite3 || true"
+  },
+  "dependencies": {
+    "tsconfig-paths": "^4.2.0"
+  }
+}
