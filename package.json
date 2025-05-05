@@ -1,5 +1,5 @@
 {
-  "name": "money-manager",
+  "name": "ledgerly",
   "private": true,
   "workspaces": [
     "apps/*",
