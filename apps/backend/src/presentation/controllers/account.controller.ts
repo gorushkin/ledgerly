@@ -1,6 +1,7 @@
 import { db } from "../../db";
 import { accounts } from "../../db/accounts";
 import { eq } from "drizzle-orm";
+import { NewAccount } from "../../../../packages/shared/types/account";
 
 export async function getAllAccounts() {
   try {
@@ -23,5 +24,19 @@ export async function getAccountById(id: number) {
   } catch (error) {
     console.error("Error fetching account by ID:", error);
     throw new Error("Failed to fetch account");
+  }
+}
+
+export async function createAccount(newAccount: NewAccount) {
+  try {
+    const result = await db
+      .insert(accounts)
+      .values(newAccount)
+      .returning()
+      .get();
+    return result;
+  } catch (error) {
+    console.error("Error creating account:", error);
+    throw new Error("Failed to create account");
   }
 }

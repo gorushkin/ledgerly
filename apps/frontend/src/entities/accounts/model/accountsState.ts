@@ -1,5 +1,5 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import { Account } from "shared/types/account";
+import { Account, AccountFormValues } from "shared/types/account";
 import { accountActions } from "../api/accountActions";
 
 class AccountsState {
@@ -19,6 +19,10 @@ class AccountsState {
         console.error(response.error);
       }
     });
+  };
+
+  create = async (account: AccountFormValues) => {
+    console.log("account: ", account);
   };
 }
 

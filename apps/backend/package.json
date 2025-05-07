@@ -23,8 +23,7 @@
     "drizzle-orm": "^0.43.1",
     "fastify": "^5.3.2",
     "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
-    "zod": "^3.24.3"
+    "ts-node-dev": "^2.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
