@@ -51,7 +51,7 @@ async function seed() {
   }
 
   const transactionId = insertedTransactions[0].id;
-  const walletId = insertedWallets[0].id;
+  const walletId = Number(insertedWallets[0].id);
   const catGrocery = insertedCategories.find((c) => c.name === "Продукты")?.id;
   const catHousehold = insertedCategories.find((c) => c.name === "Жильё")?.id;
 
@@ -130,14 +130,14 @@ async function seed() {
       amount: -100,
       date: "2025-05-10",
       transactionId: exchangeTx[0].id,
-      walletId: insertedWallets[1].id, // USD
+      walletId: Number(insertedWallets[1].id), // USD
     },
     {
       description: "-> RUB",
       amount: 9300,
       date: "2025-05-10",
       transactionId: exchangeTx[0].id,
-      walletId: insertedWallets[0].id, // RUB
+      walletId: Number(insertedWallets[0].id), // RUB
     },
   ]);
 

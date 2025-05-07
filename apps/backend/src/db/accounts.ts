@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { CURRENCIES } from "../../../../packages/shared/constants/currencies";
 import { ACCOUNT_TYPES } from "../../../../packages/shared/constants/accountTypes";
 
@@ -11,7 +11,9 @@ export function isValidAccountType(type: string): boolean {
 }
 
 export const accounts = sqliteTable("wallets", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()), // Use crypto.randomUUID() for default UUID generation
   name: text("name").notNull(),
   // Validate currency_code against the shared CURRENCIES list
   currency_code: text("currency_code").notNull(),

@@ -22,7 +22,16 @@ class AccountsState {
   };
 
   create = async (account: AccountFormValues) => {
-    console.log("account: ", account);
+    const response = await accountActions.create(account);
+
+    runInAction(() => {
+      if (response.ok) {
+        this.data.push(response.data);
+        console.log("Account created successfully: ", response.data);
+      } else {
+        console.error(response.error);
+      }
+    });
   };
 }
 

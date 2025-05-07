@@ -56,15 +56,15 @@ export const fetchWrapper = async <T>(
   }
 };
 
-export type BaseActions<T> = {
-  create: (data: T) => Promise<Response<T>>;
+export type BaseActions<T, D = T> = {
+  create: (data: D) => Promise<Response<T>>;
   read: () => Promise<Response<T[]>>;
-  update: (id: string, data: T) => Promise<Response<T>>;
+  update: (id: string, data: D) => Promise<Response<T>>;
   delete: (id: string) => Promise<Response<T>>;
 };
 
-export const baseActions = <T>(url: string): BaseActions<T> => ({
-  create: async (data: T) => {
+export const baseActions = <T, D = T>(url: string): BaseActions<T, D> => ({
+  create: async (data) => {
     return await fetchWrapper(url, {
       method: "POST",
       body: JSON.stringify(data),
@@ -73,7 +73,7 @@ export const baseActions = <T>(url: string): BaseActions<T> => ({
   read: async () => {
     return await fetchWrapper(url);
   },
-  update: async (id: string, data: T) => {
+  update: async (id: string, data) => {
     return await fetchWrapper(`${url}/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
