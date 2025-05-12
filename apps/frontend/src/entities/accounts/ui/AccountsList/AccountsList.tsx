@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { accountsState } from "../../model/accountsState";
 import { Link } from "@tanstack/react-router";
 import { observer } from "mobx-react-lite";
-import { toJS } from "mobx";
 import { Wallet, Banknote, CreditCard } from "lucide-react";
 
 const getAccountIcon = (type: string) => {
@@ -23,15 +22,17 @@ export const AccountsList = observer(() => {
     accountsState.getAll();
   }, []);
 
-  console.log("accountsState.data: ", toJS(accountsState.data));
-
   return (
     <div>
       <h1>Accounts List</h1>
       <ul className="menu menu-sm">
         {accountsState.data.map((account) => (
           <li key={account.id}>
-            <Link to={"/"} className="flex items-center">
+            <Link
+              to="/accounts/$accountId"
+              params={{ accountId: String(account.id) }}
+              className="flex items-center"
+            >
               {getAccountIcon("cash")}
               {account.name}
             </Link>

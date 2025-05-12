@@ -7,11 +7,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { accountsState } from "src/entities/accounts/model/accountsState";
 import { accountSchema, AccountFormValues } from "shared/types/account";
 
-type AddAccountModalProps = {
+type ManageAccountModalProps = {
   state: ModalState;
 };
 
-export const AddAccountModal = observer((props: AddAccountModalProps) => {
+export const ManageAccountModal = observer((props: ManageAccountModalProps) => {
   const { state } = props;
 
   const {

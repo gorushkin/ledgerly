@@ -1,9 +1,12 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { Account, AccountFormValues } from "shared/types/account";
 import { accountActions } from "../api/accountActions";
+import { ModalState } from "src/shared/lib/modalState";
 
 class AccountsState {
   data: Account[] = [];
+
+  modalState = new ModalState();
   constructor() {
     makeAutoObservable(this);
   }

@@ -1,42 +1,61 @@
+import { AccountFormValues } from "../../../../../packages/shared/types/account";
 import { db } from "../../db";
 import { accounts } from "../../db/accounts";
 import { eq } from "drizzle-orm";
-import { NewAccount } from "../../../../packages/shared/types/account";
 
-export async function getAllAccounts() {
-  try {
-    const result = await db.select().from(accounts).all();
-    return result;
-  } catch (error) {
-    console.error("Error fetching accounts:", error);
-    throw new Error("Failed to fetch accounts");
+export class AccountController {
+  async handleDatabaseOperation(
+    operation: () => Promise<any>,
+    errorMessage: string
+  ) {
+    try {
+      return await operation();
+    } catch (error) {
+      console.error(errorMessage, error);
+      throw new Error(errorMessage);
+    }
+  }
+
+  async getAll() {
+    return this.handleDatabaseOperation(
+      async () => db.select().from(accounts).all(),
+      "Failed to fetch accounts"
+    );
+  }
+
+  async getById(id: string) {
+    return this.handleDatabaseOperation(
+      async () => db.select().from(accounts).where(eq(accounts.id, id)).get(),
+      "Failed to fetch account"
+    );
+  }
+
+  async create(newAccount: AccountFormValues) {
+    return this.handleDatabaseOperation(
+      async () => db.insert(accounts).values(newAccount).returning().get(),
+      "Failed to create account"
+    );
+  }
+
+  async update(id: string, updatedAccount: Partial<AccountFormValues>) {
+    return this.handleDatabaseOperation(
+      async () =>
+        db
+          .update(accounts)
+          .set(updatedAccount)
+          .where(eq(accounts.id, id))
+          .returning()
+          .get(),
+      "Failed to update account"
+    );
+  }
+
+  async delete(id: string) {
+    return this.handleDatabaseOperation(
+      async () => db.delete(accounts).where(eq(accounts.id, id)).run(),
+      "Failed to delete account"
+    );
   }
 }
 
-export async function getAccountById(id: number) {
-  try {
-    const result = await db
-      .select()
-      .from(accounts)
-      .where(eq(accounts.id, id))
-      .get();
-    return result;
-  } catch (error) {
-    console.error("Error fetching account by ID:", error);
-    throw new Error("Failed to fetch account");
-  }
-}
-
-export async function createAccount(newAccount: NewAccount) {
-  try {
-    const result = await db
-      .insert(accounts)
-      .values(newAccount)
-      .returning()
-      .get();
-    return result;
-  } catch (error) {
-    console.error("Error creating account:", error);
-    throw new Error("Failed to create account");
-  }
-}
+export const accountController = new AccountController();

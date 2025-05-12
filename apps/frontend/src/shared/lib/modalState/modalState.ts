@@ -8,11 +8,11 @@ export class ModalState {
     makeAutoObservable(this);
   }
 
-  open() {
+  open = () => {
     this.isOpen = true;
-  }
+  };
 
-  close() {
+  close = () => {
     this.isOpen = false;
-  }
+  };
 }
