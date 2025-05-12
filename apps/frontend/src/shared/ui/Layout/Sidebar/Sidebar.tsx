@@ -1,7 +1,8 @@
-import { AccountsList } from "src/entities/accounts/ui/AccountsList";
-import { Button } from "../../Button";
-import { accountsState } from "src/entities/accounts/model/accountsState";
-import { ManageAccount } from "src/features/ManageAccount/ui";
+import { accountsState } from 'src/entities/accounts/model/accountsState';
+import { AccountsList } from 'src/entities/accounts/ui/AccountsList';
+import { ManageAccount } from 'src/features/ManageAccount/ui';
+
+import { Button } from '../../Button';
 
 export const Sidebar = () => {
   return (

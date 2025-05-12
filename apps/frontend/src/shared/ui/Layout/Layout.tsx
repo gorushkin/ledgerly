@@ -1,10 +1,9 @@
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { Header } from "./Header";
-import { Footer } from "./Footer";
-import { Main } from "./Main";
-import { Sidebar } from "./Sidebar/Sidebar";
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 
-import { Wallet } from "lucide-react";
+import { Footer } from './Footer';
+import { Header } from './Header';
+import { Main } from './Main';
+import { Sidebar } from './Sidebar/Sidebar';
 
 export const Layout = () => {
   return (

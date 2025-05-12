@@ -1,7 +1,8 @@
-import { makeAutoObservable, runInAction } from "mobx";
-import { Account, AccountFormValues } from "shared/types/account";
-import { accountActions } from "../api/accountActions";
-import { ModalState } from "src/shared/lib/modalState";
+import { makeAutoObservable, runInAction } from 'mobx';
+import { Account, AccountFormValues } from 'shared/types/account';
+import { ModalState } from 'src/shared/lib/modalState';
+
+import { accountActions } from '../api/accountActions';
 
 class AccountsState {
   data: Account[] = [];
@@ -17,7 +18,7 @@ class AccountsState {
     runInAction(() => {
       if (response.ok) {
         this.data = response.data;
-        console.log("this.data: ", this.data);
+        console.log('this.data: ', this.data);
       } else {
         console.error(response.error);
       }
@@ -30,7 +31,7 @@ class AccountsState {
     runInAction(() => {
       if (response.ok) {
         this.data.push(response.data);
-        console.log("Account created successfully: ", response.data);
+        console.log('Account created successfully: ', response.data);
       } else {
         console.error(response.error);
       }

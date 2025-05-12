@@ -1,19 +1,19 @@
-import { envConfig } from "../config/env";
+import { envConfig } from '../config/env';
 
-export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
-const path = "/api"; // Define your API versioning here
+const path = '/api'; // Define your API versioning here
 
 const apiConfig = {
   baseUrl: (url: string) => `${envConfig.API_URL}${path}${url}`,
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    Authorization: `Bearer ${envConfig.API_TOKEN}`,
-  },
-  method: "GET" as HttpMethod, // Default HTTP method
-  timeout: 5000, // Timeout in milliseconds
   createAbortController: () => new AbortController(), // Utility to create a new AbortController
+  headers: {
+    Accept: 'application/json',
+    Authorization: `Bearer ${envConfig.API_TOKEN}`,
+    'Content-Type': 'application/json',
+  },
+  method: 'GET' as HttpMethod, // Default HTTP method
+  timeout: 5000, // Timeout in milliseconds
 };
 
 type Response<T> = { data: T; ok: true } | { error: string; ok: false };
@@ -25,11 +25,8 @@ export const fetchWrapper = async <T>(
 ): Promise<Response<T>> => {
   const url = apiConfig.baseUrl(path);
 
-  const abortController = controller || apiConfig.createAbortController();
-  const timeoutId = setTimeout(
-    () => abortController.abort(),
-    apiConfig.timeout
-  );
+  const abortController = controller ?? apiConfig.createAbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), apiConfig.timeout);
 
   try {
     const response = await fetch(url, {
@@ -45,10 +42,10 @@ export const fetchWrapper = async <T>(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return { data: await response.json(), ok: true };
+    return { data: (await response.json()) as T, ok: true };
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("Request timed out");
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out');
     }
     throw error;
   } finally {
@@ -66,8 +63,13 @@ export type BaseActions<T, D = T> = {
 export const baseActions = <T, D = T>(url: string): BaseActions<T, D> => ({
   create: async (data) => {
     return await fetchWrapper(url, {
-      method: "POST",
       body: JSON.stringify(data),
+      method: 'POST',
+    });
+  },
+  delete: async (id: string) => {
+    return await fetchWrapper(`${url}/${id}`, {
+      method: 'DELETE',
     });
   },
   read: async () => {
@@ -75,13 +77,8 @@ export const baseActions = <T, D = T>(url: string): BaseActions<T, D> => ({
   },
   update: async (id: string, data) => {
     return await fetchWrapper(`${url}/${id}`, {
-      method: "PUT",
       body: JSON.stringify(data),
-    });
-  },
-  delete: async (id: string) => {
-    return await fetchWrapper(`${url}/${id}`, {
-      method: "DELETE",
+      method: 'PUT',
     });
   },
 });

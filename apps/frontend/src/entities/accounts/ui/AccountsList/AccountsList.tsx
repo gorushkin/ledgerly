@@ -1,16 +1,18 @@
-import { useEffect } from "react";
-import { accountsState } from "../../model/accountsState";
-import { Link } from "@tanstack/react-router";
-import { observer } from "mobx-react-lite";
-import { Wallet, Banknote, CreditCard } from "lucide-react";
+import { useEffect } from 'react';
+
+import { Link } from '@tanstack/react-router';
+import { Wallet, Banknote, CreditCard } from 'lucide-react';
+import { observer } from 'mobx-react-lite';
+
+import { accountsState } from '../../model/accountsState';
 
 const getAccountIcon = (type: string) => {
   switch (type) {
-    case "cash":
+    case 'cash':
       return <Wallet className="w-5 h-5 mr-2" />;
-    case "bank":
+    case 'bank':
       return <Banknote className="w-5 h-5 mr-2" />;
-    case "credit":
+    case 'credit':
       return <CreditCard className="w-5 h-5 mr-2" />;
     default:
       return <Wallet className="w-5 h-5 mr-2" />; // Default icon
@@ -19,7 +21,7 @@ const getAccountIcon = (type: string) => {
 
 export const AccountsList = observer(() => {
   useEffect(() => {
-    accountsState.getAll();
+    void accountsState.getAll();
   }, []);
 
   return (
@@ -28,12 +30,8 @@ export const AccountsList = observer(() => {
       <ul className="menu menu-sm">
         {accountsState.data.map((account) => (
           <li key={account.id}>
-            <Link
-              to="/accounts/$accountId"
-              params={{ accountId: String(account.id) }}
-              className="flex items-center"
-            >
-              {getAccountIcon("cash")}
+            <Link to="/accounts/$accountId" params={{ accountId: String(account.id) }} className="flex items-center">
+              {getAccountIcon('cash')}
               {account.name}
             </Link>
           </li>

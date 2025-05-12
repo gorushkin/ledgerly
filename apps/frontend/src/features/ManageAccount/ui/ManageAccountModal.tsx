@@ -1,11 +1,11 @@
-import { observer } from "mobx-react-lite";
-import { ACCOUNT_TYPES } from "shared/constants/accountTypes";
-import { CURRENCIES } from "shared/constants/currencies";
-import { ModalState } from "src/shared/lib/modalState";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { accountsState } from "src/entities/accounts/model/accountsState";
-import { accountSchema, AccountFormValues } from "shared/types/account";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { observer } from 'mobx-react-lite';
+import { useForm } from 'react-hook-form';
+import { ACCOUNT_TYPES } from 'shared/constants/accountTypes';
+import { CURRENCIES } from 'shared/constants/currencies';
+import { accountSchema, AccountFormValues } from 'shared/types/account';
+import { accountsState } from 'src/entities/accounts/model/accountsState';
+import { ModalState } from 'src/shared/lib/modalState';
 
 type ManageAccountModalProps = {
   state: ModalState;
@@ -15,15 +15,15 @@ export const ManageAccountModal = observer((props: ManageAccountModalProps) => {
   const { state } = props;
 
   const {
-    register,
-    handleSubmit,
     formState: { errors },
+    handleSubmit,
+    register,
   } = useForm<AccountFormValues>({
     resolver: zodResolver(accountSchema),
   });
 
   const onSubmit = (data: AccountFormValues) => {
-    accountsState.create(data);
+    void accountsState.create(data);
     state.close();
   };
 
@@ -31,6 +31,7 @@ export const ManageAccountModal = observer((props: ManageAccountModalProps) => {
     <div className="modal modal-open text-black">
       <div className="modal-box">
         <h3 className="font-bold text-lg mb-4">Добавить новый счет</h3>
+        {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div className="form-control w-full">
             <label className="label">
@@ -40,22 +41,16 @@ export const ManageAccountModal = observer((props: ManageAccountModalProps) => {
               type="text"
               placeholder="Например: Основная карта"
               className="input input-bordered w-full"
-              {...register("name")}
+              {...register('name')}
             />
-            {errors.name && (
-              <p className="text-red-500 text-sm">{errors.name.message}</p>
-            )}
+            {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
           </div>
 
           <div className="form-control w-full">
             <label className="label">
               <span className="label-text">Тип счета</span>
             </label>
-            <select
-              className="select select-bordered w-full"
-              defaultValue=""
-              {...register("type")}
-            >
+            <select className="select select-bordered w-full" defaultValue="" {...register('type')}>
               <option value="" disabled>
                 Выберите тип счета
               </option>
@@ -65,31 +60,21 @@ export const ManageAccountModal = observer((props: ManageAccountModalProps) => {
                 </option>
               ))}
             </select>
-            {errors.type && (
-              <p className="text-red-500 text-sm">{errors.type.message}</p>
-            )}
+            {errors.type && <p className="text-red-500 text-sm">{errors.type.message}</p>}
           </div>
 
           <div className="form-control w-full">
             <label className="label">
               <span className="label-text">Валюта</span>
             </label>
-            <select
-              className="select select-bordered w-full"
-              defaultValue="RUB"
-              {...register("currency_code")}
-            >
+            <select className="select select-bordered w-full" defaultValue="RUB" {...register('currency_code')}>
               {CURRENCIES.map((currency) => (
                 <option key={currency.code} value={currency.code}>
                   {currency.name} ({currency.code})
                 </option>
               ))}
             </select>
-            {errors.currency_code && (
-              <p className="text-red-500 text-sm">
-                {errors.currency_code.message}
-              </p>
-            )}
+            {errors.currency_code && <p className="text-red-500 text-sm">{errors.currency_code.message}</p>}
           </div>
 
           <div className="form-control w-full">
@@ -100,11 +85,9 @@ export const ManageAccountModal = observer((props: ManageAccountModalProps) => {
               type="number"
               placeholder="0.00"
               className="input input-bordered w-full"
-              {...register("balance", { valueAsNumber: true })}
+              {...register('balance', { valueAsNumber: true })}
             />
-            {errors.balance && (
-              <p className="text-red-500 text-sm">{errors.balance.message}</p>
-            )}
+            {errors.balance && <p className="text-red-500 text-sm">{errors.balance.message}</p>}
           </div>
 
           <div className="form-control w-full">
@@ -114,16 +97,12 @@ export const ManageAccountModal = observer((props: ManageAccountModalProps) => {
             <textarea
               className="textarea textarea-bordered w-full"
               placeholder="Дополнительная информация о счете"
-              {...register("description")}
+              {...register('description')}
             ></textarea>
           </div>
 
           <div className="modal-action">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => state.close()}
-            >
+            <button type="button" className="btn btn-ghost" onClick={() => state.close()}>
               Отмена
             </button>
             <button type="submit" className="btn btn-primary">

@@ -1,1 +1,1 @@
-export { ManageAccount } from "./ManageAccount";
+export { ManageAccount } from './ManageAccount';

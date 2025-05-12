@@ -1,40 +1,31 @@
-import React from "react";
-import classNames from "classnames";
-import clsx from "clsx";
+import React from 'react';
+
+import clsx from 'clsx';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?:
-    | "primary"
-    | "secondary"
-    | "accent"
-    | "info"
-    | "success"
-    | "warning"
-    | "error"
-    | "neutral";
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
-  styleType?: "default" | "outline" | "soft" | "ghost" | "link" | "wide";
+  variant?: 'primary' | 'secondary' | 'accent' | 'info' | 'success' | 'warning' | 'error' | 'neutral';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  styleType?: 'default' | 'outline' | 'soft' | 'ghost' | 'link' | 'wide';
 }
 
-const buttonClasses = ({ variant, size, styleType }: ButtonProps) => {
-  const baseClass = "btn";
-  const variantClass = variant ? `btn-${variant}` : "btn-primary";
-  const sizeClass = size ? `btn-${size}` : "btn-md";
-  const styleClass =
-    styleType && styleType !== "default" ? `btn-${styleType}` : "";
+const buttonClasses = ({ size, styleType, variant }: ButtonProps) => {
+  const baseClass = 'btn';
+  const variantClass = variant ? `btn-${variant}` : 'btn-primary';
+  const sizeClass = size ? `btn-${size}` : 'btn-md';
+  const styleClass = styleType && styleType !== 'default' ? `btn-${styleType}` : '';
 
-  return [baseClass, variantClass, sizeClass, styleClass].join(" ").trim();
+  return [baseClass, variantClass, sizeClass, styleClass].join(' ').trim();
 };
 
 export const Button: React.FC<ButtonProps> = ({
-  variant = "primary",
-  size = "md",
-  styleType = "default",
-  className,
   children,
+  className,
+  size = 'md',
+  styleType = 'default',
+  variant = 'primary',
   ...props
 }) => {
-  const buttonClass = buttonClasses({ variant, size, styleType });
+  const buttonClass = buttonClasses({ size, styleType, variant });
 
   return (
     <button className={clsx(buttonClass, className)} {...props}>

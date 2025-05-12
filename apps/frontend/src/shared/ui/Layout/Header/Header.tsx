@@ -1,8 +1,8 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from '@tanstack/react-router';
 
 const links: { to: string; label: string }[] = [
-  { to: "/", label: "Home" },
-  { to: "/about", label: "About" },
+  { label: 'Home', to: '/' },
+  { label: 'About', to: '/about' },
 ];
 
 export const Header = () => {

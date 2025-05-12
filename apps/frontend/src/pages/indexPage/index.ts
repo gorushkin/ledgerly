@@ -1,1 +1,1 @@
-export { IndexPage } from "./indexPage";
+export { IndexPage } from './indexPage';

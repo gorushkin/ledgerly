@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AccountsList } from "src/entities/accounts/ui/AccountsList";
+import { createFileRoute } from '@tanstack/react-router';
+import { AccountsList } from 'src/entities/accounts/ui/AccountsList';
 
-export const Route = createFileRoute("/accounts/")({
+export const Route = createFileRoute('/accounts/')({
   component: RouteComponent,
   errorComponent: ErrorComponent,
   pendingComponent: PendingComponent,
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/accounts/")({
 function RouteComponent() {
   return (
     <div>
-      <h1>Hello "/accounts"!</h1>
+      <h1>Hello accounts!</h1>
       <p>Welcome to the accounts page.</p>
       <AccountsList />
     </div>
