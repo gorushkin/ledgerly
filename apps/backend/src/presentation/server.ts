@@ -1,19 +1,20 @@
-import Fastify from "fastify";
-import { registerRoutes } from "./routes";
-import cors from "@fastify/cors";
+import cors from '@fastify/cors';
+import Fastify from 'fastify';
+import { ZodError } from 'zod';
 
-import { ZodError } from "zod";
+import { registerRoutes } from './routes';
+
 export function createServer() {
   const fastify = Fastify();
 
-  fastify.setErrorHandler((error, request, reply) => {
-    const status = (error as any).statusCode || 500;
+  fastify.setErrorHandler((error, _request, reply) => {
+    const status = error.statusCode ?? 500;
 
     if (error instanceof ZodError) {
       const firstIssue = error.errors[0];
       reply.status(400).send({
         error: true,
-        message: firstIssue?.message || "Validation failed",
+        message: firstIssue?.message || 'Validation failed',
         path: firstIssue?.path,
       });
       return;
@@ -21,15 +22,15 @@ export function createServer() {
 
     reply.status(status).send({
       error: true,
-      message: error.message || "Unexpected error",
+      message: error.message || 'Unexpected error',
     });
   });
 
   fastify.register(cors, {
-    origin: "*",
+    origin: '*',
   });
 
-  fastify.register(registerRoutes, { prefix: "/api" });
+  fastify.register(registerRoutes, { prefix: '/api' });
 
   return fastify;
 }

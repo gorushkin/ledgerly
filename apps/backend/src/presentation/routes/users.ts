@@ -1,7 +1,7 @@
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from 'fastify';
 
-export async function registerUsersRoutes(app: FastifyInstance) {
-  app.get("/", async () => {
-    return { message: "Users route is under construction." };
+export const registerUsersRoutes = (app: FastifyInstance) => {
+  app.get('/', () => {
+    return { message: 'Users route is under construction.' };
   });
-}
+};

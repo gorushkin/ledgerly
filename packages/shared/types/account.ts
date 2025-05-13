@@ -4,7 +4,7 @@ import { BUDGET_ACCOUNT_TYPES } from "../constants/budgetTypes";
 import { z } from "zod";
 
 export type Account = {
-  id: number;
+  id: string;
   name: string;
   currency_code: (typeof CURRENCIES)[number]["code"];
   type: (typeof ACCOUNT_TYPES)[number]["value"];
