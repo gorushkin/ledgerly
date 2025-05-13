@@ -1,42 +1,25 @@
-// import { eq } from 'drizzle-orm';
-// import { db } from 'src/db';
-import { Account } from '../../../../../packages/shared/types/account';
-import type { IAccountRepository } from '../../domain/IAccountRepository';
-// import { transactions } from 'src/db/transactions';
+import { ITransactionRepository } from 'src/domain/ITransactionRepository';
 
-export class TransactionRepository implements IAccountRepository {
-  getAllAccounts(): Promise<Account[]> {
+export class TransactionRepository implements ITransactionRepository {
+  getAllTransactions(): Promise<unknown[]> {
     throw new Error('Method not implemented.');
   }
-  getAccountById(id: number): Promise<Account | null> {
+  getTransactionById(_id: number): Promise<unknown> {
     throw new Error('Method not implemented.');
   }
-  createTransaction(data: any): Promise<any> {
+  getAllAccounts(): Promise<unknown> {
     throw new Error('Method not implemented.');
   }
-  updateTransaction(id: number, data: any): Promise<any> {
+  getAccountById(_id: number): Promise<unknown> {
     throw new Error('Method not implemented.');
   }
-  deleteTransaction(id: number): Promise<void> {
+  createTransaction(_data: unknown): Promise<unknown> {
     throw new Error('Method not implemented.');
   }
-  // async getAllTransactions() {
-  //   return db.select().from(transactions);
-  // }
-  // async getTransactionById(id: number) {
-  //   return db.select().from(transactions).where(eq(transactions.id, id)).get();
-  // }
-  // async createTransaction(data: any) {
-  //   return db.insert(transactions).values(data).returning();
-  // }
-  // async updateTransaction(id: number, data: any) {
-  //   return db
-  //     .update(transactions)
-  //     .set(data)
-  //     .where(eq(transactions.id, id))
-  //     .returning();
-  // }
-  // async deleteTransaction(id: number) {
-  //   await db.delete(transactions).where(eq(transactions.id, id));
-  // }
+  updateTransaction(_id: number, _data: unknown): Promise<unknown> {
+    throw new Error('Method not implemented.');
+  }
+  deleteTransaction(_id: number): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
 }
