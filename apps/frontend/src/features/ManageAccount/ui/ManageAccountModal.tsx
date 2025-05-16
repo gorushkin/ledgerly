@@ -3,34 +3,55 @@ import { observer } from 'mobx-react-lite';
 import { useForm } from 'react-hook-form';
 import { ACCOUNT_TYPES } from 'shared/constants/accountTypes';
 import { CURRENCIES } from 'shared/constants/currencies';
-import { accountSchema, AccountFormValues } from 'shared/types/account';
+import { accountSchema, AccountDTO } from 'shared/types/account';
 import { accountsState } from 'src/entities/accounts/model/accountsState';
-import { ModalState } from 'src/shared/lib/modalState';
+import { Button } from 'src/shared/ui/Button';
 
-type ManageAccountModalProps = {
-  state: ModalState;
-};
+export const ManageAccountModal = observer(() => {
+  const { currentAccount, modalState } = accountsState;
 
-export const ManageAccountModal = observer((props: ManageAccountModalProps) => {
-  const { state } = props;
+  const isEditMode = Boolean(currentAccount);
 
   const {
     formState: { errors },
     handleSubmit,
     register,
-  } = useForm<AccountFormValues>({
+  } = useForm<AccountDTO>({
     resolver: zodResolver(accountSchema),
+    values: {
+      balance: 0,
+      currency_code: currentAccount?.currency_code ?? 'RUB',
+      description: currentAccount?.description ?? '',
+      name: currentAccount?.name ?? '',
+      type: currentAccount?.type ?? '',
+    },
   });
 
-  const onSubmit = (data: AccountFormValues) => {
-    void accountsState.create(data);
-    state.close();
+  const handleClose = () => {
+    accountsState.resetCurrentAccount();
+    modalState.close();
   };
+
+  const onSubmit = (data: AccountDTO) => {
+    void accountsState.create(data);
+    handleClose();
+  };
+
+  const onDeleteClick = () => {
+    if (!currentAccount) {
+      return;
+    }
+
+    void accountsState.delete(currentAccount.id);
+    handleClose();
+  };
+
+  const title = currentAccount ? 'Редактировать счет' : 'Добавить новый счет';
 
   return (
     <div className="modal modal-open text-black">
       <div className="modal-box">
-        <h3 className="font-bold text-lg mb-4">Добавить новый счет</h3>
+        <h3 className="font-bold text-lg mb-4">{title}</h3>
         {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div className="form-control w-full">
@@ -101,17 +122,22 @@ export const ManageAccountModal = observer((props: ManageAccountModalProps) => {
             ></textarea>
           </div>
 
-          <div className="modal-action">
-            <button type="button" className="btn btn-ghost" onClick={() => state.close()}>
+          <div className="modal-action flex justify-between items-center ">
+            {isEditMode && (
+              <Button variant="error" outline onClick={onDeleteClick}>
+                Удалить
+              </Button>
+            )}
+            <Button ghost onClick={handleClose} className="ml-auto">
               Отмена
-            </button>
-            <button type="submit" className="btn btn-primary">
+            </Button>
+            <Button type="submit" variant="primary">
               Сохранить
-            </button>
+            </Button>
           </div>
         </form>
       </div>
-      <label className="modal-backdrop" onClick={() => state.close()} />
+      <label className="modal-backdrop" onClick={handleClose} />
     </div>
   );
 });

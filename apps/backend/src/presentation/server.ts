@@ -27,7 +27,10 @@ export function createServer() {
   });
 
   fastify.register(cors, {
-    origin: '*',
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    origin: 'http://localhost:3000',
   });
 
   fastify.register(registerRoutes, { prefix: '/api' });

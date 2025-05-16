@@ -1,8 +1,10 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @plugin "daisyui" {
   themes: corporate --default;
 }
+
+@source inline('btn btn-neutral btn-primary btn-secondary btn-accent btn-info btn-success btn-warning btn-error btn-outline btn-dash btn-soft btn-ghost btn-link btn-active btn-disabled btn-xs btn-sm btn-md btn-lg btn-xl btn-wide btn-block btn-square btn-circle');
 
 /* DaisyUI plugin should be configured in the Tailwind CSS configuration file */
 

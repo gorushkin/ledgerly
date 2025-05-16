@@ -1,16 +1,21 @@
 import { makeAutoObservable, runInAction } from 'mobx';
-import { Account, AccountFormValues } from 'shared/types/account';
+import { Account, AccountDTO } from 'shared/types/account';
 import { ModalState } from 'src/shared/lib/modalState';
 
 import { accountActions } from '../api/accountActions';
 
 class AccountsState {
   data: Account[] = [];
+  currentAccount: Account | null = null;
 
   modalState = new ModalState();
   constructor() {
     makeAutoObservable(this);
   }
+
+  resetCurrentAccount = () => {
+    this.currentAccount = null;
+  };
 
   getAll = async () => {
     const response = await accountActions.read();
@@ -18,24 +23,35 @@ class AccountsState {
     runInAction(() => {
       if (response.ok) {
         this.data = response.data;
-        console.log('this.data: ', this.data);
       } else {
         console.error(response.error);
       }
     });
   };
 
-  create = async (account: AccountFormValues) => {
+  create = async (account: AccountDTO) => {
     const response = await accountActions.create(account);
 
     runInAction(() => {
       if (response.ok) {
         this.data.push(response.data);
-        console.log('Account created successfully: ', response.data);
       } else {
         console.error(response.error);
       }
     });
+  };
+
+  getById = (id: string) => {
+    const account = this.data.find((account) => account.id === id);
+    if (account) {
+      this.currentAccount = account;
+      return;
+    }
+  };
+
+  delete = async (id: string) => {
+    const res = await accountActions.delete(id);
+    console.log('res: ', res);
   };
 }
 

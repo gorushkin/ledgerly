@@ -1,6 +1,5 @@
 import { ACCOUNT_TYPES } from "../constants/accountTypes";
 import { CURRENCIES } from "../constants/currencies";
-import { BUDGET_ACCOUNT_TYPES } from "../constants/budgetTypes";
 import { z } from "zod";
 
 export type Account = {
@@ -8,7 +7,6 @@ export type Account = {
   name: string;
   currency_code: (typeof CURRENCIES)[number]["code"];
   type: (typeof ACCOUNT_TYPES)[number]["value"];
-  budget_type: (typeof BUDGET_ACCOUNT_TYPES)[number]["value"];
   description?: string;
 };
 
@@ -20,4 +18,4 @@ export const accountSchema = z.object({
   description: z.string().optional(),
 });
 
-export type AccountFormValues = z.infer<typeof accountSchema>;
+export type AccountDTO = z.infer<typeof accountSchema>;

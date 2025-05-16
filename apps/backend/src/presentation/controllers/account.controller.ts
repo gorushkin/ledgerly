@@ -1,6 +1,6 @@
 import { accountRepository } from 'src/infrastructure/db/AccountRepository';
 
-import type { AccountFormValues } from '../../../../../packages/shared/types/account';
+import type { AccountDTO } from '../../../../../packages/shared/types/account';
 import { NotFoundError } from '../errors/httpErrors';
 
 export class AccountController {
@@ -18,11 +18,11 @@ export class AccountController {
     return account;
   }
 
-  create(newAccount: AccountFormValues) {
+  create(newAccount: AccountDTO) {
     return accountRepository.createAccount(newAccount);
   }
 
-  update(id: string, updatedAccount: AccountFormValues) {
+  update(id: string, updatedAccount: AccountDTO) {
     return accountRepository.updateAccount(id, updatedAccount);
   }
 

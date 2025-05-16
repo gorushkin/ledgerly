@@ -5,19 +5,19 @@ import { withErrorHandling } from 'src/libs/errorHandler';
 
 import {
   Account,
-  AccountFormValues,
+  AccountDTO,
 } from '../../../../../packages/shared/types/account';
 import type { IAccountRepository } from '../../domain/IAccountRepository';
 
 class AccountRepository implements IAccountRepository {
-  async createAccount(data: AccountFormValues): Promise<Account> {
+  async createAccount(data: AccountDTO): Promise<Account> {
     return withErrorHandling(
       () => db.insert(accounts).values(data).returning().get(),
       'Failed to create account',
     );
   }
 
-  async updateAccount(id: string, data: AccountFormValues): Promise<Account> {
+  async updateAccount(id: string, data: AccountDTO): Promise<Account> {
     return withErrorHandling(
       () =>
         db

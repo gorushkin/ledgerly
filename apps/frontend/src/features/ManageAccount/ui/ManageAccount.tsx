@@ -10,5 +10,5 @@ export const ManageAccount = observer(() => {
     return null;
   }
 
-  return <ManageAccountModal state={state} />;
+  return <ManageAccountModal />;
 });
