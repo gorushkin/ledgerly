@@ -1,1 +1,1 @@
-export { ManageAccount } from './ManageAccount';
+export { ManageAccountModal } from './ManageAccountModal';

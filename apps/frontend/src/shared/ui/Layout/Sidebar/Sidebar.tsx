@@ -1,6 +1,6 @@
 import { accountsState } from 'src/entities/accounts/model/accountsState';
 import { AccountsList } from 'src/entities/accounts/ui/AccountsList';
-import { ManageAccount } from 'src/features/ManageAccount/ui';
+import { ManageAccountModal } from 'src/features/ManageAccount/ui';
 
 import { Button } from '../../Button';
 
@@ -11,7 +11,7 @@ export const Sidebar = () => {
       <Button onClick={accountsState.modalState.open} variant="primary">
         Add Account
       </Button>
-      <ManageAccount />
+      <ManageAccountModal />
     </div>
   );
 };

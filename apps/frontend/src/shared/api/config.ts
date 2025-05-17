@@ -1,4 +1,4 @@
-import { envConfig } from '../config/env';
+import { envConfig } from '../config/config';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
@@ -10,8 +10,7 @@ const apiConfig = {
   headers: {
     Accept: 'application/json',
     Authorization: `Bearer ${envConfig.API_TOKEN}`,
-    'Content-Type': 'application/json',
-  },
+  } as Record<string, string>,
   method: 'GET' as HttpMethod, // Default HTTP method
   timeout: 5000, // Timeout in milliseconds
 };
@@ -29,12 +28,14 @@ export const fetchWrapper = async <T>(
   const timeoutId = setTimeout(() => abortController.abort(), apiConfig.timeout);
 
   try {
+    const headers: Record<string, string> = {
+      ...apiConfig.headers,
+      ...(options.headers as Record<string, string>),
+    };
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        ...apiConfig.headers,
-        ...options.headers,
-      },
+      headers,
       signal: abortController.signal,
     });
 
@@ -64,6 +65,9 @@ export const baseActions = <T, D = T>(url: string): BaseActions<T, D> => ({
   create: async (data) => {
     return await fetchWrapper(url, {
       body: JSON.stringify(data),
+      headers: {
+        'Content-Type': 'application/json',
+      },
       method: 'POST',
     });
   },
@@ -78,6 +82,9 @@ export const baseActions = <T, D = T>(url: string): BaseActions<T, D> => ({
   update: async (id: string, data) => {
     return await fetchWrapper(`${url}/${id}`, {
       body: JSON.stringify(data),
+      headers: {
+        'Content-Type': 'application/json',
+      },
       method: 'PUT',
     });
   },

@@ -23,6 +23,7 @@ const envSchema = z.object({
     invalid_type_error: 'FRONTEND_PORT must be a string',
     required_error: 'FRONTEND_PORT is required',
   }),
+  FRONTEND_PROTOCOL: z.enum(['http', 'https']).default('http'),
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
     .default('development'),
@@ -33,12 +34,13 @@ const parsedEnv = envSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL,
   FRONTEND_HOST: process.env.FRONTEND_HOST,
   FRONTEND_PORT: process.env.FRONTEND_PORT,
+  FRONTEND_PROTOCOL: process.env.FRONTEND_PROTOCOL,
   NODE_ENV: process.env.NODE_ENV,
 });
 
 export const config = {
   dbUrl: parsedEnv.DATABASE_URL,
   env: parsedEnv.NODE_ENV,
-  frontendUrl: `${parsedEnv.FRONTEND_HOST}:${parsedEnv.FRONTEND_PORT}`,
+  frontendUrl: `${parsedEnv.FRONTEND_PROTOCOL}://${parsedEnv.FRONTEND_HOST}:${parsedEnv.FRONTEND_PORT}`,
   isProd: parsedEnv.NODE_ENV === 'production',
 };

@@ -1,8 +1,8 @@
+import { accountSchema } from '@ledgerly/shared';
 import type { FastifyInstance } from 'fastify';
 import { uniqueIdSchema } from 'src/libs/validators';
 
 import { accountController } from '../controllers/account.controller';
-import { accountSchema } from '@ledgerly/shared';
 
 export const registerAccountsRoutes = (app: FastifyInstance) => {
   app.get('/', async () => {
@@ -20,5 +20,16 @@ export const registerAccountsRoutes = (app: FastifyInstance) => {
 
     const createdAccount = await accountController.create(newAccount);
     reply.status(201).send(createdAccount);
+  });
+
+  app.delete('/:id', async (request, reply) => {
+    const { id } = uniqueIdSchema.parse(request.params);
+
+    await accountController.delete(id);
+
+    reply.status(200).send({
+      id,
+      message: 'Account successfully deleted',
+    });
   });
 };
