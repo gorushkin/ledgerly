@@ -1,6 +1,6 @@
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-import { ACCOUNT_TYPES } from '../../../../../packages/shared/constants/accountTypes';
+import { ACCOUNT_TYPES } from '@ledgerly/shared';
 
 export const accounts = sqliteTable('accounts', {
   currency_code: text('currency_code').notNull(),

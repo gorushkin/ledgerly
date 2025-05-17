@@ -3,10 +3,7 @@ import { db } from 'src/db';
 import { accounts } from 'src/db/schema';
 import { withErrorHandling } from 'src/libs/errorHandler';
 
-import {
-  Account,
-  AccountDTO,
-} from '../../../../../packages/shared/types/account';
+import { Account, AccountDTO } from '@ledgerly/shared';
 import type { IAccountRepository } from '../../domain/IAccountRepository';
 
 class AccountRepository implements IAccountRepository {

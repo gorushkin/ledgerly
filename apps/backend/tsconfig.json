@@ -17,11 +17,5 @@
     "strict": true /* Enable all strict type-checking options. */,
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
   },
-  "include": [
-    "src",
-    "drizzle.config.ts",
-    "../../packages/shared/**/*",
-    "vite.config.tsback"
-  ],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "include": ["src"]
 }

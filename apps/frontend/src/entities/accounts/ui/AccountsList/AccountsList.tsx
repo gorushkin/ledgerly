@@ -3,10 +3,10 @@ import { JSX, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Wallet, Banknote, CreditCard, Pencil } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
-import { Account } from 'shared/types/account';
 import { Button } from 'src/shared/ui/Button';
 
 import { accountsState } from '../../model/accountsState';
+import { Account } from 'shared/dist';
 
 const iconClassName = 'w-5 h-5';
 

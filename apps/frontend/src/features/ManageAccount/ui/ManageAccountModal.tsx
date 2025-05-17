@@ -1,9 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { observer } from 'mobx-react-lite';
 import { useForm } from 'react-hook-form';
-import { ACCOUNT_TYPES } from 'shared/constants/accountTypes';
-import { CURRENCIES } from 'shared/constants/currencies';
-import { accountSchema, AccountDTO } from 'shared/types/account';
+import { ACCOUNT_TYPES, AccountDTO, accountSchema, CURRENCIES } from 'shared/dist';
 import { accountsState } from 'src/entities/accounts/model/accountsState';
 import { Button } from 'src/shared/ui/Button';
 

@@ -1,1 +1,1 @@
-export { ROUTES } from '../../../../../packages/shared/constants/routes';
+export { ROUTES } from '@ledgerly/shared';

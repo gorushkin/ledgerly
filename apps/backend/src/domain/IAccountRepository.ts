@@ -1,4 +1,4 @@
-import { Account, AccountDTO } from '../../../../packages/shared/types/account';
+import { Account, AccountDTO } from '@ledgerly/shared';
 
 export interface IAccountRepository {
   getAllAccounts(): Promise<Account[]>;
