@@ -8,7 +8,8 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 
 // https://vite.dev/config/
 export default defineConfig({
-  // envDir: path.resolve(__dirname, '../..'),
+  envDir: path.resolve(__dirname, '../..'),
+  envPrefix: ['VITE_', 'FRONTEND_'],
   plugins: [TanStackRouterVite({ autoCodeSplitting: true, target: 'react' }), react(), tailwindcss(), tsconfigPaths()],
   resolve: {
     alias: {

@@ -1,5 +1,6 @@
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
+import { config } from 'src/config/config';
 import { ZodError } from 'zod';
 
 import { registerRoutes } from './routes';
@@ -30,7 +31,7 @@ export function createServer() {
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    origin: 'http://localhost:3000',
+    origin: config.frontendUrl,
   });
 
   fastify.register(registerRoutes, { prefix: '/api' });
