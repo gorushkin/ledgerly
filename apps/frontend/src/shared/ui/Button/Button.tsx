@@ -1,43 +1,37 @@
-import React from "react";
-import classNames from "classnames";
-import clsx from "clsx";
+import React from 'react';
+
+import clsx from 'clsx';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?:
-    | "primary"
-    | "secondary"
-    | "accent"
-    | "info"
-    | "success"
-    | "warning"
-    | "error"
-    | "neutral";
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
-  styleType?: "default" | "outline" | "soft" | "ghost" | "link" | "wide";
+  variant?: 'primary' | 'secondary' | 'accent' | 'info' | 'success' | 'warning' | 'error' | 'neutral';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  ghost?: boolean;
+  link?: boolean;
+  outline?: boolean;
+  soft?: boolean;
+  wide?: boolean;
 }
 
-const buttonClasses = ({ variant, size, styleType }: ButtonProps) => {
-  const baseClass = "btn";
-  const variantClass = variant ? `btn-${variant}` : "btn-primary";
-  const sizeClass = size ? `btn-${size}` : "btn-md";
-  const styleClass =
-    styleType && styleType !== "default" ? `btn-${styleType}` : "";
+const buttonClasses = ({ ghost, link, outline, size, soft, variant, wide }: ButtonProps) => {
+  const baseClass = 'btn';
+  const variantClass = variant ? `btn-${variant}` : 'btn-primary';
+  const sizeClass = size ? `btn-${size}` : 'btn-md';
+  const ghostClass = ghost ? 'btn-ghost' : '';
+  const linkClass = link ? 'btn-link' : '';
+  const outlineClass = outline ? 'btn-outline' : '';
+  const softClass = soft ? 'btn-soft' : '';
+  const wideClass = wide ? 'btn-wide' : '';
 
-  return [baseClass, variantClass, sizeClass, styleClass].join(" ").trim();
+  return [baseClass, variantClass, sizeClass, ghostClass, linkClass, outlineClass, softClass, wideClass]
+    .join(' ')
+    .trim();
 };
 
-export const Button: React.FC<ButtonProps> = ({
-  variant = "primary",
-  size = "md",
-  styleType = "default",
-  className,
-  children,
-  ...props
-}) => {
-  const buttonClass = buttonClasses({ variant, size, styleType });
+export const Button: React.FC<ButtonProps> = ({ children, className, size = 'md', variant = 'primary', ...props }) => {
+  const buttonClass = buttonClasses({ ...props, size, variant });
 
   return (
-    <button className={clsx(buttonClass, className)} {...props}>
+    <button className={clsx(buttonClass, className, '')} type="button" {...props}>
       {children}
     </button>
   );

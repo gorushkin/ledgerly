@@ -1,24 +1,19 @@
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { Header } from "./Header";
-import { Footer } from "./Footer";
-import { Main } from "./Main";
-import { Sidebar } from "./Sidebar/Sidebar";
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
+import { ConfirmDialog } from 'src/features/ConfirmDialog';
 
-import { Wallet } from "lucide-react";
+import { Footer } from './Footer';
+import { Header } from './Header';
+import { Main } from './Main';
+import { Sidebar } from './Sidebar/Sidebar';
 
 export const Layout = () => {
   return (
     <div className="flex min-h-screen bg-base-200">
       <div className="hidden w-64 flex-col bg-base-100 md:flex">
-        {/* <div className="flex h-14 items-center  px-4">
-          <h1 className="font-semibold text-lg flex items-center">
-            <Wallet className="mr-2 h-5 w-5" />
-            ФинТрекер
-          </h1>
-        </div> */}
         <Sidebar />
       </div>
       <Main />
+      <ConfirmDialog />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 export interface IEntryRepository {
-  getAllEntries(): Promise<any[]>;
-  getEntryById(id: number): Promise<any | null>;
-  createEntry(data: any): Promise<any>;
-  updateEntry(id: number, data: any): Promise<any>;
+  getAllEntries(): Promise<unknown[]>;
+  getEntryById(id: number): Promise<unknown>;
+  createEntry(data: unknown): Promise<unknown>;
+  updateEntry(id: number, data: unknown): Promise<void>;
   deleteEntry(id: number): Promise<void>;
 }

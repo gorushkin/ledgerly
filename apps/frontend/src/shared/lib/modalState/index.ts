@@ -1,1 +1,1 @@
-export { ModalState } from "./modalState";
+export { ModalState } from './modalState';

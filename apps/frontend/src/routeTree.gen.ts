@@ -16,6 +16,8 @@ import { Route as BudgetImport } from './routes/budget'
 import { Route as AccountsImport } from './routes/accounts'
 import { Route as AboutImport } from './routes/about'
 import { Route as IndexImport } from './routes/index'
+import { Route as AccountsIndexImport } from './routes/accounts/index'
+import { Route as AccountsAccountIdImport } from './routes/accounts/$accountId'
 
 // Create/Update Routes
 
@@ -47,6 +49,18 @@ const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRoute,
+} as any)
+
+const AccountsIndexRoute = AccountsIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountsRoute,
+} as any)
+
+const AccountsAccountIdRoute = AccountsAccountIdImport.update({
+  id: '/$accountId',
+  path: '/$accountId',
+  getParentRoute: () => AccountsRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
@@ -88,49 +102,103 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransactionsImport
       parentRoute: typeof rootRoute
     }
+    '/accounts/$accountId': {
+      id: '/accounts/$accountId'
+      path: '/$accountId'
+      fullPath: '/accounts/$accountId'
+      preLoaderRoute: typeof AccountsAccountIdImport
+      parentRoute: typeof AccountsImport
+    }
+    '/accounts/': {
+      id: '/accounts/'
+      path: '/'
+      fullPath: '/accounts/'
+      preLoaderRoute: typeof AccountsIndexImport
+      parentRoute: typeof AccountsImport
+    }
   }
 }
 
 // Create and export the route tree
 
+interface AccountsRouteChildren {
+  AccountsAccountIdRoute: typeof AccountsAccountIdRoute
+  AccountsIndexRoute: typeof AccountsIndexRoute
+}
+
+const AccountsRouteChildren: AccountsRouteChildren = {
+  AccountsAccountIdRoute: AccountsAccountIdRoute,
+  AccountsIndexRoute: AccountsIndexRoute,
+}
+
+const AccountsRouteWithChildren = AccountsRoute._addFileChildren(
+  AccountsRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/accounts': typeof AccountsRoute
+  '/accounts': typeof AccountsRouteWithChildren
   '/budget': typeof BudgetRoute
   '/transactions': typeof TransactionsRoute
+  '/accounts/$accountId': typeof AccountsAccountIdRoute
+  '/accounts/': typeof AccountsIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/accounts': typeof AccountsRoute
   '/budget': typeof BudgetRoute
   '/transactions': typeof TransactionsRoute
+  '/accounts/$accountId': typeof AccountsAccountIdRoute
+  '/accounts': typeof AccountsIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/accounts': typeof AccountsRoute
+  '/accounts': typeof AccountsRouteWithChildren
   '/budget': typeof BudgetRoute
   '/transactions': typeof TransactionsRoute
+  '/accounts/$accountId': typeof AccountsAccountIdRoute
+  '/accounts/': typeof AccountsIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/accounts' | '/budget' | '/transactions'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/accounts'
+    | '/budget'
+    | '/transactions'
+    | '/accounts/$accountId'
+    | '/accounts/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/accounts' | '/budget' | '/transactions'
-  id: '__root__' | '/' | '/about' | '/accounts' | '/budget' | '/transactions'
+  to:
+    | '/'
+    | '/about'
+    | '/budget'
+    | '/transactions'
+    | '/accounts/$accountId'
+    | '/accounts'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/accounts'
+    | '/budget'
+    | '/transactions'
+    | '/accounts/$accountId'
+    | '/accounts/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  AccountsRoute: typeof AccountsRoute
+  AccountsRoute: typeof AccountsRouteWithChildren
   BudgetRoute: typeof BudgetRoute
   TransactionsRoute: typeof TransactionsRoute
 }
@@ -138,7 +206,7 @@ export interface RootRouteChildren {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  AccountsRoute: AccountsRoute,
+  AccountsRoute: AccountsRouteWithChildren,
   BudgetRoute: BudgetRoute,
   TransactionsRoute: TransactionsRoute,
 }
@@ -167,13 +235,25 @@ export const routeTree = rootRoute
       "filePath": "about.tsx"
     },
     "/accounts": {
-      "filePath": "accounts.tsx"
+      "filePath": "accounts.tsx",
+      "children": [
+        "/accounts/$accountId",
+        "/accounts/"
+      ]
     },
     "/budget": {
       "filePath": "budget.tsx"
     },
     "/transactions": {
       "filePath": "transactions.tsx"
+    },
+    "/accounts/$accountId": {
+      "filePath": "accounts/$accountId.tsx",
+      "parent": "/accounts"
+    },
+    "/accounts/": {
+      "filePath": "accounts/index.tsx",
+      "parent": "/accounts"
     }
   }
 }

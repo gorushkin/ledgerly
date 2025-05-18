@@ -1,8 +1,10 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @plugin "daisyui" {
   themes: corporate --default;
 }
+
+@source inline('btn btn-neutral btn-primary btn-secondary btn-accent btn-info btn-success btn-warning btn-error btn-outline btn-dash btn-soft btn-ghost btn-link btn-active btn-disabled btn-xs btn-sm btn-md btn-lg btn-xl btn-wide btn-block btn-square btn-circle');
 
 /* DaisyUI plugin should be configured in the Tailwind CSS configuration file */
 
@@ -28,12 +30,9 @@
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  color: black;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
-
-  --border-color: var(--background-color);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -49,4 +48,5 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  position: relative;
 }

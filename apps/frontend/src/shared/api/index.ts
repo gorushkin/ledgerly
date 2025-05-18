@@ -1,1 +1,1 @@
-export { baseActions } from "./config";
+export { baseActions } from './config';

@@ -1,6 +1,6 @@
-import { Account } from "shared/types/account";
-import { baseActions } from "src/shared/api";
+import type { Account, AccountDTO } from '@ledgerly/shared';
+import { baseActions } from 'src/shared/api';
 
-const URL = "/accounts";
+const URL = '/accounts';
 
-export const accountActions = baseActions<Account>(URL);
+export const accountActions = baseActions<Account, AccountDTO>(URL);

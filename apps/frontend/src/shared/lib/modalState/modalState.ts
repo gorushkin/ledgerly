@@ -1,5 +1,4 @@
-// shared/ui/Modal/ModalState.ts
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable } from 'mobx';
 
 export class ModalState {
   isOpen = false;
@@ -8,11 +7,11 @@ export class ModalState {
     makeAutoObservable(this);
   }
 
-  open() {
+  open = () => {
     this.isOpen = true;
-  }
+  };
 
-  close() {
+  close = () => {
     this.isOpen = false;
-  }
+  };
 }

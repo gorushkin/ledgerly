@@ -1,34 +1,25 @@
-import { eq.  } from "drizzle-orm";
-import { db } from "src/db";
-import { ITransactionRepository } from "../../domain/ITransactionRepository";
-import { transactions } from "src/db/transactions";
+import { ITransactionRepository } from 'src/domain/ITransactionRepository';
 
 export class TransactionRepository implements ITransactionRepository {
-  async getAllTransactions() {
-    return db.select().from(transactions);
+  getAllTransactions(): Promise<unknown[]> {
+    throw new Error('Method not implemented.');
   }
-
-  async getTransactionById(id: number) {
-    return db
-      .select()
-      .from(transactions)
-      .where(eq(transactions.id, id))
-      .get();
+  getTransactionById(_id: number): Promise<unknown> {
+    throw new Error('Method not implemented.');
   }
-
-  async createTransaction(data: any) {
-    return db.insert(transactions).values(data).returning();
+  getAllAccounts(): Promise<unknown> {
+    throw new Error('Method not implemented.');
   }
-
-  async updateTransaction(id: number, data: any) {
-    return db
-      .update(transactions)
-      .set(data)
-      .where(eq(transactions.id, id))
-      .returning();
+  getAccountById(_id: number): Promise<unknown> {
+    throw new Error('Method not implemented.');
   }
-
-  async deleteTransaction(id: number) {
-    await db.delete(transactions).where(eq(transactions.id, id));
+  createTransaction(_data: unknown): Promise<unknown> {
+    throw new Error('Method not implemented.');
+  }
+  updateTransaction(_id: number, _data: unknown): Promise<unknown> {
+    throw new Error('Method not implemented.');
+  }
+  deleteTransaction(_id: number): Promise<void> {
+    throw new Error('Method not implemented.');
   }
 }

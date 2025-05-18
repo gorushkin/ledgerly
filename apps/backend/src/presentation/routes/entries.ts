@@ -1,20 +1,16 @@
-import { FastifyInstance } from "fastify";
-import { getAllEntries, getEntryById } from "../controllers/entry.controller";
+import type { FastifyInstance } from 'fastify';
+import { numericIdSchema } from 'src/libs/validators';
 
-import { z } from "zod";
+import { getAllEntries, getEntryById } from '../controllers/entry.controller';
 
-const idSchema = z.object({
-  id: z.string().regex(/^\d+$/).transform(Number),
-});
-
-export async function registerEntriesRoutes(app: FastifyInstance) {
-  app.get("/", async () => {
+export const registerEntriesRoutes = (app: FastifyInstance) => {
+  app.get('/', async () => {
     return await getAllEntries();
   });
 
-  app.get("/:id", async (request) => {
-    const { id } = idSchema.parse(request.params);
+  app.get('/:id', async (request) => {
+    const { id } = numericIdSchema.parse(request.params);
 
-    return await getEntryById(id);
+    return getEntryById(id);
   });
-}
+};

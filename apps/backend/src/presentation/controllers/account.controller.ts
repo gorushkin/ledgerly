@@ -1,27 +1,34 @@
-import { db } from "../../db";
-import { accounts } from "../../db/accounts";
-import { eq } from "drizzle-orm";
+import type { AccountDTO } from '@ledgerly/shared';
+import { accountRepository } from 'src/infrastructure/db/AccountRepository';
 
-export async function getAllAccounts() {
-  try {
-    const result = await db.select().from(accounts).all();
-    return result;
-  } catch (error) {
-    console.error("Error fetching accounts:", error);
-    throw new Error("Failed to fetch accounts");
+import { NotFoundError } from '../errors/httpErrors';
+
+export class AccountController {
+  getAll() {
+    return accountRepository.getAllAccounts();
+  }
+
+  async getById(id: string) {
+    const account = await accountRepository.getAccountById(id);
+
+    if (!account) {
+      throw new NotFoundError('Account not found');
+    }
+
+    return account;
+  }
+
+  create(newAccount: AccountDTO) {
+    return accountRepository.createAccount(newAccount);
+  }
+
+  update(id: string, updatedAccount: AccountDTO) {
+    return accountRepository.updateAccount(id, updatedAccount);
+  }
+
+  delete(id: string) {
+    return accountRepository.deleteAccount(id);
   }
 }
 
-export async function getAccountById(id: number) {
-  try {
-    const result = await db
-      .select()
-      .from(accounts)
-      .where(eq(accounts.id, id))
-      .get();
-    return result;
-  } catch (error) {
-    console.error("Error fetching account by ID:", error);
-    throw new Error("Failed to fetch account");
-  }
-}
+export const accountController = new AccountController();

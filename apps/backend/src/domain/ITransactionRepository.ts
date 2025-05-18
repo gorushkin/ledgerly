@@ -1,7 +1,7 @@
 export interface ITransactionRepository {
-  getAllTransactions(): Promise<any[]>;
-  getTransactionById(id: number): Promise<any | null>;
-  createTransaction(data: any): Promise<any>;
-  updateTransaction(id: number, data: any): Promise<any>;
+  createTransaction(data: unknown): Promise<unknown>;
+  updateTransaction(id: number, data: unknown): Promise<unknown>;
   deleteTransaction(id: number): Promise<void>;
+  getAllTransactions(): Promise<unknown[]>;
+  getTransactionById(id: number): Promise<unknown>;
 }
