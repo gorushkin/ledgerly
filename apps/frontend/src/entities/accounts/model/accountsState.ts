@@ -41,17 +41,39 @@ class AccountsState {
     });
   };
 
+  update = async (id: string, account: AccountDTO) => {
+    const response = await accountActions.update(id, account);
+
+    runInAction(() => {
+      if (response.ok) {
+        const index = this.data.findIndex((a) => a.id === id);
+        if (index !== -1) {
+          this.data[index] = response.data;
+        }
+      } else {
+        console.error(response.error);
+      }
+    });
+  };
+
+  delete = async (id: string) => {
+    const response = await accountActions.delete(id);
+
+    runInAction(() => {
+      if (response.ok) {
+        this.data = this.data.filter((a) => a.id !== id);
+      } else {
+        console.error(response.error);
+      }
+    });
+  };
+
   getById = (id: string) => {
     const account = this.data.find((account) => account.id === id);
     if (account) {
       this.currentAccount = account;
       return;
     }
-  };
-
-  delete = async (id: string) => {
-    const res = await accountActions.delete(id);
-    console.log('res: ', res);
   };
 }
 

@@ -31,7 +31,7 @@ export const Button: React.FC<ButtonProps> = ({ children, className, size = 'md'
   const buttonClass = buttonClasses({ ...props, size, variant });
 
   return (
-    <button className={clsx(buttonClass, className, '')} {...props}>
+    <button className={clsx(buttonClass, className, '')} type="button" {...props}>
       {children}
     </button>
   );

@@ -1,4 +1,3 @@
-// shared/ui/Modal/ModalState.ts
 import { makeAutoObservable } from 'mobx';
 
 export class ModalState {

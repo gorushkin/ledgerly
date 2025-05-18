@@ -1,15 +1,16 @@
+import { Account, AccountDTO } from '@ledgerly/shared';
 import { eq } from 'drizzle-orm';
-import { db } from 'src/db';
 import { accounts } from 'src/db/schema';
 import { withErrorHandling } from 'src/libs/errorHandler';
 
-import { Account, AccountDTO } from '@ledgerly/shared';
 import type { IAccountRepository } from '../../domain/IAccountRepository';
 
-class AccountRepository implements IAccountRepository {
+import { BaseRepository } from './BaseRepository';
+
+class AccountRepository extends BaseRepository implements IAccountRepository {
   async createAccount(data: AccountDTO): Promise<Account> {
     return withErrorHandling(
-      () => db.insert(accounts).values(data).returning().get(),
+      () => this.db.insert(accounts).values(data).returning().get(),
       'Failed to create account',
     );
   }
@@ -17,7 +18,7 @@ class AccountRepository implements IAccountRepository {
   async updateAccount(id: string, data: AccountDTO): Promise<Account> {
     return withErrorHandling(
       () =>
-        db
+        this.db
           .update(accounts)
           .set(data)
           .where(eq(accounts.id, id))
@@ -29,21 +30,22 @@ class AccountRepository implements IAccountRepository {
 
   async deleteAccount(id: string): Promise<Account | undefined> {
     return withErrorHandling(
-      () => db.delete(accounts).where(eq(accounts.id, id)).returning().get(),
+      () =>
+        this.db.delete(accounts).where(eq(accounts.id, id)).returning().get(),
       `Failed to delete account with ID ${id}`,
     );
   }
 
   async getAccountById(id: string): Promise<Account | undefined> {
     return withErrorHandling(
-      () => db.select().from(accounts).where(eq(accounts.id, id)).get(),
+      () => this.db.select().from(accounts).where(eq(accounts.id, id)).get(),
       `Failed to fetch account with ID ${id}`,
     );
   }
 
   async getAllAccounts(): Promise<Account[]> {
     return withErrorHandling(
-      () => db.select().from(accounts).all(),
+      () => this.db.select().from(accounts).all(),
       'Failed to fetch accounts',
     );
   }

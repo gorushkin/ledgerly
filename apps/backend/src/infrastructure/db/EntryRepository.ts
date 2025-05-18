@@ -1,29 +1,19 @@
-import { eq } from 'drizzle-orm';
-import { entries } from '../../db/schemas/entries';
 import type { IEntryRepository } from '../../domain/IEntryRepository';
-import { db } from '../../db';
 
 export class EntryRepository implements IEntryRepository {
-  async getAllEntries() {
-    return db.select().from(entries);
+  getAllEntries(): Promise<unknown[]> {
+    throw new Error('Method not implemented.');
   }
-  async getEntryById(id: number) {
-    return db.select().from(entries).where(eq(entries.id, id)).get();
+  getEntryById(_id: number): Promise<unknown> {
+    throw new Error('Method not implemented.');
   }
-  async createEntry(data: unknown) {
-    const result = await db
-      .insert(entries)
-      .values(data as any)
-      .returning();
-    return result[0];
+  createEntry(_data: unknown): Promise<unknown> {
+    throw new Error('Method not implemented.');
   }
-  async updateEntry(id: number, data: unknown) {
-    await db
-      .update(entries)
-      .set(data as any)
-      .where(eq(entries.id, id));
+  updateEntry(_id: number, _data: unknown): Promise<void> {
+    throw new Error('Method not implemented.');
   }
-  async deleteEntry(id: number) {
-    await db.delete(entries).where(eq(entries.id, id));
+  deleteEntry(_id: number): Promise<void> {
+    throw new Error('Method not implemented.');
   }
 }
