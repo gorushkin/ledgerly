@@ -2,17 +2,17 @@ import { envConfig } from '../config/config';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
-const path = '/api'; // Define your API versioning here
+const path = '/api';
 
 const apiConfig = {
-  baseUrl: (url: string) => `${envConfig.API_URL}${path}${url}`,
-  createAbortController: () => new AbortController(), // Utility to create a new AbortController
+  baseUrl: (url: string) => `${path}${url}`,
+  createAbortController: () => new AbortController(),
   headers: {
     Accept: 'application/json',
     Authorization: `Bearer ${envConfig.API_TOKEN}`,
   } as Record<string, string>,
-  method: 'GET' as HttpMethod, // Default HTTP method
-  timeout: 5000, // Timeout in milliseconds
+  method: 'GET' as HttpMethod,
+  timeout: 5000,
 };
 
 type Response<T> = { data: T; ok: true } | { error: string; ok: false };
@@ -20,7 +20,7 @@ type Response<T> = { data: T; ok: true } | { error: string; ok: false };
 export const fetchWrapper = async <T>(
   path: string,
   options: RequestInit = {},
-  controller?: AbortController // Optional external AbortController
+  controller?: AbortController
 ): Promise<Response<T>> => {
   const url = apiConfig.baseUrl(path);
 

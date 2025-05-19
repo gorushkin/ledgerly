@@ -1,6 +1,4 @@
-import cors from '@fastify/cors';
 import Fastify from 'fastify';
-import { config } from 'src/config/config';
 import { ZodError } from 'zod';
 
 import { registerRoutes } from './routes';
@@ -25,13 +23,6 @@ export function createServer() {
       error: true,
       message: error.message || 'Unexpected error',
     });
-  });
-
-  fastify.register(cors, {
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    origin: config.frontendUrl,
   });
 
   fastify.register(registerRoutes, { prefix: '/api' });

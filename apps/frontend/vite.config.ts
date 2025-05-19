@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
 
   const host = env.FRONTEND_HOST ?? DEFAULT_HOST;
   const port = env.FRONTEND_PORT ? Number(env.FRONTEND_PORT) : DEFAULT_PORT;
+  const proxy = env.VITE_API_URL ?? 'http://localhost:3000';
 
   return {
     envDir: path.resolve(__dirname, '../..'),
@@ -27,6 +28,9 @@ export default defineConfig(({ mode }) => {
       host,
       open: true,
       port,
+      proxy: {
+        '/api': proxy,
+      },
       strictPort: true,
     },
   };
