@@ -11,8 +11,8 @@ dotenv.config({ path: resolve(__dirname, '../../.env') });
 
 const envSchema = z.object({
   DATABASE_URL: z.string({
-    invalid_type_error: 'DB_URL must be a string',
-    required_error: 'DB_URL is required',
+    invalid_type_error: 'DATABASE_URL must be a string',
+    required_error: 'DATABASE_URL is required',
   }),
 });
 
