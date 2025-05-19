@@ -1,5 +1,3 @@
-// @ts-check
-
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import unusedImports from 'eslint-plugin-unused-imports';
@@ -8,12 +6,12 @@ import perfectionist from 'eslint-plugin-perfectionist';
 import importOrder from 'eslint-plugin-import';
 import pluginDrizzle from 'eslint-plugin-drizzle';
 import js from '@eslint/js';
-
+import { globalIgnores } from 'eslint/config';
 export default tseslint.config(
   { ignores: ['dist', 'node_modules'] },
-
   eslint.configs.recommended,
   tseslint.configs.recommended,
+  globalIgnores(['.config/*']),
   {
     extends: [
       js.configs.recommended,

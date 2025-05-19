@@ -5,7 +5,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 const path = '/api'; // Define your API versioning here
 
 const apiConfig = {
-  baseUrl: (url: string) => `${envConfig.API_URL}${path}${url}`,
+  baseUrl: (url: string) => `${path}${url}`,
   createAbortController: () => new AbortController(), // Utility to create a new AbortController
   headers: {
     Accept: 'application/json',

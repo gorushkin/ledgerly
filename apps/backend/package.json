@@ -34,14 +34,8 @@
   "devDependencies": {
     "@types/node": "^22.15.3",
     "drizzle-kit": "^0.31.1",
-    "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-drizzle": "^0.2.3",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-perfectionist": "^4.12.3",
-    "eslint-plugin-prettier": "^5.4.0",
-    "eslint-plugin-unused-imports": "^4.1.4",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3",
     "vite": "^6.3.4",
     "vite-plugin-dts": "^4.5.3"
   }
