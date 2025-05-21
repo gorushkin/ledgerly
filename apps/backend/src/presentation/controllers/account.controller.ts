@@ -1,4 +1,4 @@
-import type { AccountDTO } from '@ledgerly/shared';
+import { AccountDTO } from 'src/db';
 import { accountRepository } from 'src/infrastructure/db/AccountRepository';
 
 import { NotFoundError } from '../errors/httpErrors';

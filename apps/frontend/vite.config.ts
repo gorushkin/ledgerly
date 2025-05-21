@@ -17,6 +17,10 @@ export default defineConfig(({ mode }) => {
   const proxy = env.VITE_API_URL ?? 'http://localhost:3000';
 
   return {
+    build: {
+      emptyOutDir: true,
+      outDir: 'dist',
+    },
     envDir: path.resolve(__dirname, '../..'),
     plugins: [
       TanStackRouterVite({ autoCodeSplitting: true, target: 'react' }),

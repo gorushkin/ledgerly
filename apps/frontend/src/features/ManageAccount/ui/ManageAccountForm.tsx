@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ACCOUNT_TYPES, AccountDTO, accountSchema, CURRENCIES } from '@ledgerly/shared';
+import type { AccountDTO } from '@ledgerly/backend/schema';
+import { ACCOUNT_TYPES, CURRENCIES } from '@ledgerly/shared/constants';
 import { observer } from 'mobx-react-lite';
 import { useForm } from 'react-hook-form';
 import { accountsState } from 'src/entities/accounts/model/accountsState';

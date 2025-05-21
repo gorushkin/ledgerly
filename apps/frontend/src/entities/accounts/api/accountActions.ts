@@ -1,4 +1,4 @@
-import type { Account, AccountDTO } from '@ledgerly/shared';
+import { Account, AccountDTO } from '@ledgerly/backend/schema';
 import { baseActions } from 'src/shared/api';
 
 const URL = '/accounts';

@@ -1,4 +1,4 @@
-import type { Account, AccountDTO } from '@ledgerly/shared';
+import type { Account, AccountDTO } from '@ledgerly/backend/schema';
 import { makeAutoObservable, runInAction } from 'mobx';
 import { ModalState } from 'src/shared/lib/modalState';
 

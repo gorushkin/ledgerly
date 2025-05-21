@@ -3,14 +3,9 @@
   "description": "Shared utilities and types for Ledgerly projects",
   "version": "1.0.0",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+    "./routes": "./src/routes/index.ts",
+    "./constants": "./src/constants/index.ts"
   },
   "scripts": {
     "build": "tsc",

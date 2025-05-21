@@ -1,6 +1,7 @@
-import { ACCOUNT_TYPES } from '@ledgerly/shared';
+import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { createInsertSchema } from 'drizzle-zod';
 
 import { createdAt, description, updatedAt, uuid } from './common';
 
@@ -16,3 +17,4 @@ export const accounts = sqliteTable('accounts', {
 
 export type Account = InferSelectModel<typeof accounts>;
 export type AccountDTO = InferInsertModel<typeof accounts>;
+export const accountInsertSchema = createInsertSchema(accounts);
