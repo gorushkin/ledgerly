@@ -1,8 +1,8 @@
+import { ROUTES } from '@ledgerly/shared';
 import type { FastifyInstance } from 'fastify';
 
 import { registerAccountsRoutes } from './accounts';
 import { registerEntriesRoutes } from './entries';
-import { ROUTES } from './paths';
 import { registerTransactionsRoutes } from './transactions';
 import { registerUsersRoutes } from './users';
 export { registerUsersRoutes } from './users';

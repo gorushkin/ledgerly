@@ -1,9 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { AccountPage } from 'src/pages/accountPage';
 
 export const Route = createFileRoute('/accounts/$accountId')({
-  component: RouteComponent,
+  component: AccountPage,
 });
-
-function RouteComponent() {
-  return <div>Hello accounts/$accountId!</div>;
-}

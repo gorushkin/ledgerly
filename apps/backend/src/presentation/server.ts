@@ -4,7 +4,14 @@ import { ZodError } from 'zod';
 import { registerRoutes } from './routes';
 
 export function createServer() {
-  const fastify = Fastify();
+  const fastify = Fastify({
+    logger: false,
+  });
+
+  fastify.addHook('onRequest', (request, _reply, done) => {
+    console.info(`${request.method} ${request.url}`, request.body);
+    done();
+  });
 
   fastify.setErrorHandler((error, _request, reply) => {
     const status = error.statusCode ?? 500;
