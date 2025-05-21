@@ -1,6 +1,5 @@
-import { Account, AccountDTO } from '@ledgerly/shared';
 import { eq } from 'drizzle-orm';
-import { accounts } from 'src/db/schema';
+import { Account, AccountDTO, accounts } from 'src/db';
 import { withErrorHandling } from 'src/libs/errorHandler';
 
 import type { IAccountRepository } from '../../domain/IAccountRepository';

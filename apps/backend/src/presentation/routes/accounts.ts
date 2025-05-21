@@ -32,4 +32,17 @@ export const registerAccountsRoutes = (app: FastifyInstance) => {
       message: 'Account successfully deleted',
     });
   });
+
+  app.get('/:id/transactions', async (request) => {
+    const { id } = uniqueIdSchema.parse(request.params);
+
+    return await accountController.getTransactionsById(id);
+  });
+
+  app.post('/:id/transactions', async (request) => {
+    const { id } = uniqueIdSchema.parse(request.params);
+    const transaction = request.body;
+
+    return await accountController.createTransaction(id, transaction);
+  });
 };

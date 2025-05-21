@@ -39,7 +39,7 @@ export default tseslint.config(
       'unused-imports': unusedImports,
       prettier,
       react,
-      perfectionist: perfectionist,
+      perfectionist,
       'typescript-eslint': tseslint,
       import: importOrder,
     },

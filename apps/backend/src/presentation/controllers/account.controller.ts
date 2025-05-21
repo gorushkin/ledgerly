@@ -29,6 +29,19 @@ export class AccountController {
   delete(id: string) {
     return accountRepository.deleteAccount(id);
   }
+
+  getTransactionsById(id: string): Promise<void> {
+    console.log('id: ', id);
+
+    throw new Error('Method getTransactionsById not implemented.');
+  }
+
+  createTransaction(id: string, transaction: unknown): Promise<void> {
+    console.log('id: ', id);
+    console.log('transaction: ', transaction);
+
+    throw new Error('Method createTransaction not implemented.');
+  }
 }
 
 export const accountController = new AccountController();

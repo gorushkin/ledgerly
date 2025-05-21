@@ -13,3 +13,8 @@ const start = async () => {
 };
 
 void start();
+
+export const print = () => {
+  // eslint-disable-next-line no-console
+  console.log('Hello from backend!');
+};

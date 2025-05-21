@@ -12,3 +12,7 @@ if (!dbUrl) {
 }
 
 export const db = drizzle(dbUrl);
+
+export type { Account, AccountDTO } from '../db/schemas/accounts';
+
+export { accounts } from '../db/schemas/accounts';
