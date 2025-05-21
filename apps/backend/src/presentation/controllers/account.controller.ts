@@ -1,4 +1,4 @@
-import { AccountDTO } from 'src/db';
+import { AccountCreateDTO } from '@ledgerly/shared/types';
 import { accountRepository } from 'src/infrastructure/db/AccountRepository';
 
 import { NotFoundError } from '../errors/httpErrors';
@@ -18,11 +18,11 @@ export class AccountController {
     return account;
   }
 
-  create(newAccount: AccountDTO) {
+  create(newAccount: AccountCreateDTO) {
     return accountRepository.createAccount(newAccount);
   }
 
-  update(id: string, updatedAccount: AccountDTO) {
+  update(id: string, updatedAccount: AccountCreateDTO) {
     return accountRepository.updateAccount(id, updatedAccount);
   }
 

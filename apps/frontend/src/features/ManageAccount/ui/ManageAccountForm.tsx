@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { AccountDTO } from '@ledgerly/backend/schema';
 import { ACCOUNT_TYPES, CURRENCIES } from '@ledgerly/shared/constants';
+import { AccountCreateDTO } from '@ledgerly/shared/types';
+import { accountCreateSchema } from '@ledgerly/shared/validation';
 import { observer } from 'mobx-react-lite';
 import { useForm } from 'react-hook-form';
 import { accountsState } from 'src/entities/accounts/model/accountsState';
@@ -19,12 +20,12 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
     formState: { errors },
     handleSubmit,
     register,
-  } = useForm<AccountDTO>({
-    resolver: zodResolver(accountSchema),
+  } = useForm<AccountCreateDTO>({
+    resolver: zodResolver(accountCreateSchema),
     values: {
-      balance: 0,
       currency_code: currentAccount?.currency_code ?? CURRENCIES[0].code,
       description: currentAccount?.description ?? '',
+      initialBalance: 0,
       name: currentAccount?.name ?? '',
       type: currentAccount?.type ?? ACCOUNT_TYPES[0].value,
     },
@@ -35,7 +36,7 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
     modalState.close();
   };
 
-  const handleFormSubmit = (data: AccountDTO) => {
+  const handleFormSubmit = (data: AccountCreateDTO) => {
     try {
       if (currentAccount) {
         void accountsState.update(currentAccount.id, data);
@@ -109,9 +110,9 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
           <input
             type="number"
             className="input input-bordered w-full"
-            {...register('balance', { valueAsNumber: true })}
+            {...register('initialBalance', { valueAsNumber: true })}
           />
-          {errors.balance && <span className="text-error text-sm mt-1">{errors.balance.message}</span>}
+          {errors.initialBalance && <span className="text-error text-sm mt-1">{errors.initialBalance.message}</span>}
         </div>
       )}
     </form>

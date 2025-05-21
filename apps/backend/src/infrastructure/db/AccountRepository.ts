@@ -1,5 +1,6 @@
+import { AccountCreateDTO, AccountResponseDTO } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
-import { Account, AccountDTO, accounts } from 'src/db';
+import { accounts } from 'src/db';
 import { withErrorHandling } from 'src/libs/errorHandler';
 
 import type { IAccountRepository } from '../../domain/IAccountRepository';
@@ -7,14 +8,17 @@ import type { IAccountRepository } from '../../domain/IAccountRepository';
 import { BaseRepository } from './BaseRepository';
 
 class AccountRepository extends BaseRepository implements IAccountRepository {
-  async createAccount(data: AccountDTO): Promise<Account> {
+  async createAccount(data: AccountCreateDTO): Promise<AccountResponseDTO> {
     return withErrorHandling(
       () => this.db.insert(accounts).values(data).returning().get(),
       'Failed to create account',
     );
   }
 
-  async updateAccount(id: string, data: AccountDTO): Promise<Account> {
+  async updateAccount(
+    id: string,
+    data: AccountCreateDTO,
+  ): Promise<AccountResponseDTO> {
     return withErrorHandling(
       () =>
         this.db
@@ -27,7 +31,7 @@ class AccountRepository extends BaseRepository implements IAccountRepository {
     );
   }
 
-  async deleteAccount(id: string): Promise<Account | undefined> {
+  async deleteAccount(id: string): Promise<AccountResponseDTO | undefined> {
     return withErrorHandling(
       () =>
         this.db.delete(accounts).where(eq(accounts.id, id)).returning().get(),
@@ -35,14 +39,14 @@ class AccountRepository extends BaseRepository implements IAccountRepository {
     );
   }
 
-  async getAccountById(id: string): Promise<Account | undefined> {
+  async getAccountById(id: string): Promise<AccountResponseDTO | undefined> {
     return withErrorHandling(
       () => this.db.select().from(accounts).where(eq(accounts.id, id)).get(),
       `Failed to fetch account with ID ${id}`,
     );
   }
 
-  async getAllAccounts(): Promise<Account[]> {
+  async getAllAccounts(): Promise<AccountResponseDTO[]> {
     return withErrorHandling(
       () => this.db.select().from(accounts).all(),
       'Failed to fetch accounts',

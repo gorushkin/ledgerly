@@ -1,1 +1,1 @@
-export { Account, AccountDTO, accounts } from './accounts';
+export { accounts } from './accounts';

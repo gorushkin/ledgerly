@@ -1,9 +1,12 @@
-import { Account, AccountDTO } from 'src/db/schema';
+import { AccountResponseDTO, AccountCreateDTO } from '@ledgerly/shared/types';
 
 export interface IAccountRepository {
-  getAllAccounts(): Promise<Account[]>;
-  getAccountById(id: string): Promise<Account | undefined>;
-  createAccount(data: AccountDTO): Promise<Account>;
-  updateAccount(id: string, data: AccountDTO): Promise<Account>;
-  deleteAccount(id: string): Promise<Account | undefined>;
+  getAllAccounts(): Promise<AccountResponseDTO[]>;
+  getAccountById(id: string): Promise<AccountResponseDTO | undefined>;
+  createAccount(data: AccountCreateDTO): Promise<AccountResponseDTO>;
+  updateAccount(
+    id: string,
+    data: AccountCreateDTO,
+  ): Promise<AccountResponseDTO>;
+  deleteAccount(id: string): Promise<AccountResponseDTO | undefined>;
 }

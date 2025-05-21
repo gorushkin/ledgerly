@@ -1,12 +1,12 @@
 import { JSX, useEffect } from 'react';
 
+import { AccountResponseDTO } from '@ledgerly/shared/types';
 import { Link } from '@tanstack/react-router';
 import { Wallet, Banknote, CreditCard, Pencil } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { Button } from 'src/shared/ui/Button';
 
 import { accountsState } from '../../model/accountsState';
-import { Account } from 'shared/dist';
 
 const iconClassName = 'w-5 h-5';
 
@@ -20,7 +20,7 @@ const accountIcons: Record<string, JSX.Element> = {
 const getAccountIcon = (type: string) => accountIcons[type] || accountIcons.default;
 
 type AccountListItemProps = {
-  account: Account;
+  account: AccountResponseDTO;
 };
 
 const AccountListItem = ({ account }: AccountListItemProps) => {

@@ -1,5 +1,5 @@
+import { accountCreateSchema } from '@ledgerly/shared/validation';
 import type { FastifyInstance } from 'fastify';
-import { accountInsertSchema } from 'src/db/schema';
 import { uniqueIdSchema } from 'src/libs/validators';
 
 import { accountController } from '../controllers/account.controller';
@@ -16,7 +16,7 @@ export const registerAccountsRoutes = (app: FastifyInstance) => {
   });
 
   app.post('/', async (request, reply) => {
-    const newAccount = accountInsertSchema.parse(request.body);
+    const newAccount = accountCreateSchema.parse(request.body);
 
     const createdAccount = await accountController.create(newAccount);
     reply.status(201).send(createdAccount);

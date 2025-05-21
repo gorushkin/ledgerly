@@ -43,6 +43,7 @@
     "vite-plugin-dts": "^4.5.3"
   },
   "exports": {
-    "./schema": "./src/db/schemas/index.ts"
+    "./types": "./src/db/types/index.ts",
+    "./schemas": "./src/db/schemas/index.ts"
   }
 }
