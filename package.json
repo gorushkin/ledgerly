@@ -22,7 +22,7 @@
     "fe": "pnpm --filter frontend dev",
     "be": "pnpm --filter backend dev",
     "dev": "pnpm run -r --parallel dev",
-    "build": "pnpm --filter frontend build",
+    "build": "pnpm run -r build",
     "lint": "pnpm --filter frontend lint",
     "clean:node_modules": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +"
   },
