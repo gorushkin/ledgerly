@@ -14,18 +14,12 @@ export default tseslint.config(
   tseslint.configs.recommended,
   globalIgnores(['.config/*']),
   {
+    files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,
       ...tseslint.configs.stylisticTypeChecked,
     ],
-    languageOptions: {
-      ecmaVersion: 2020,
-      parserOptions: {
-        project: ['./tsconfig.json'],
-      },
-    },
-    files: ['**/*.{ts,tsx}'],
     plugins: {
       'unused-imports': unusedImports,
       prettier,
@@ -33,6 +27,12 @@ export default tseslint.config(
       'typescript-eslint': tseslint.plugin,
       import: importOrder,
       pluginDrizzle,
+    },
+    languageOptions: {
+      ecmaVersion: 2020,
+      parserOptions: {
+        project: true,
+      },
     },
     rules: {
       'no-console': ['warn', { allow: ['error', 'info'] }],
