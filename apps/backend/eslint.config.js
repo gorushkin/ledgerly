@@ -7,6 +7,7 @@ import importOrder from 'eslint-plugin-import';
 import pluginDrizzle from 'eslint-plugin-drizzle';
 import js from '@eslint/js';
 import { globalIgnores } from 'eslint/config';
+
 export default tseslint.config(
   { ignores: ['dist', 'node_modules'] },
   eslint.configs.recommended,

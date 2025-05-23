@@ -9,6 +9,6 @@ export const accounts = sqliteTable('accounts', {
   description,
   id: uuid,
   name: text('name').notNull(),
-  type: text('type').notNull().default(ACCOUNT_TYPES[0].value),
+  type: text('type').notNull().default(ACCOUNT_TYPES[0]),
   updatedAt,
 });

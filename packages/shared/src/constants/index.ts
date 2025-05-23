@@ -1,3 +1,2 @@
-export * from "./accountTypes";
-export * from "./budgetTypes";
+export * from "./accounts";
 export * from "./currencies";

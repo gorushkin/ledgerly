@@ -1,12 +1,19 @@
-export const CURRENCIES = [
-  { code: "USD", name: "United States Dollar" },
-  { code: "EUR", name: "Euro" },
-  { code: "RUB", name: "Russian Ruble" },
-  { code: "JPY", name: "Japanese Yen" },
-  { code: "GBP", name: "British Pound Sterling" },
-  { code: "AUD", name: "Australian Dollar" },
-  { code: "CAD", name: "Canadian Dollar" },
-  { code: "CHF", name: "Swiss Franc" },
-  { code: "CNY", name: "Chinese Yuan" },
-  { code: "INR", name: "Indian Rupee" },
+import { Currency } from "../types";
+
+export const CURRENCY_TYPES: Currency[] = [
+  "USD",
+  "EUR",
+  "RUB",
+  "JPY",
+  "GBP",
+  "AUD",
+  "CAD",
+  "CHF",
+  "CNY",
+  "INR",
+];
+
+export const CURRENCY_TYPE_VALUES = CURRENCY_TYPES.map((t) => t) as [
+  Currency,
+  ...Currency[],
 ];

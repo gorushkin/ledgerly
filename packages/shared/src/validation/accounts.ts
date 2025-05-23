@@ -1,20 +1,32 @@
 import { z } from "zod";
-import { ACCOUNT_TYPES, CURRENCIES } from "../constants";
+
+import { ACCOUNT_TYPE_VALUES, CURRENCY_TYPE_VALUES } from "../constants";
+
+import {
+  createdAt,
+  description,
+  name,
+  updatedAt,
+  uuid,
+} from "./baseValidations";
+
+const type = z.enum(ACCOUNT_TYPE_VALUES);
+const currency_code = z.enum(CURRENCY_TYPE_VALUES);
 
 export const accountCreateSchema = z.object({
-  name: z.string().min(1),
-  currency_code: z.enum(CURRENCIES.map((t) => t.code) as [string, ...string[]]),
-  type: z.enum(ACCOUNT_TYPES.map((t) => t.value) as [string, ...string[]]),
-  description: z.string().optional(),
+  currency_code,
+  description,
   initialBalance: z.number().default(0).optional(),
+  name,
+  type,
 });
 
 export const accountResponseSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-  type: z.enum(ACCOUNT_TYPES.map((t) => t.value) as [string, ...string[]]),
-  currency_code: z.enum(CURRENCIES.map((t) => t.code) as [string, ...string[]]),
-  description: z.string().nullable(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt,
+  currency_code,
+  description,
+  id: uuid,
+  name,
+  type,
+  updatedAt,
 });

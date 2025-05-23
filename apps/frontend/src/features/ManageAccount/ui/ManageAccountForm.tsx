@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ACCOUNT_TYPES, CURRENCIES } from '@ledgerly/shared/constants';
+import { ACCOUNT_TYPES, CURRENCY_TYPES } from '@ledgerly/shared/constants';
+import { AccountType, Currency } from '@ledgerly/shared/types';
 import { AccountCreateDTO } from '@ledgerly/shared/types';
 import { accountCreateSchema } from '@ledgerly/shared/validation';
 import { observer } from 'mobx-react-lite';
@@ -9,6 +10,39 @@ import { accountsState } from 'src/entities/accounts/model/accountsState';
 type ManageAccountFormProps = {
   formId: string;
 };
+
+// TODO: Move to constants
+const optionMapping: Record<AccountType, string> = {
+  cash: 'Наличные',
+  credit: 'Кредитная карта',
+  debit: 'Дебетовая карта',
+  investment: 'Инвестиционный счет',
+  savings: 'Сберегательный счет',
+};
+
+// TODO: Move to constants
+const currencyMapping: Record<Currency, string> = {
+  AUD: 'Австралийский доллар',
+  CAD: 'Канадский доллар',
+  CHF: 'Швейцарский франк',
+  CNY: 'Китайский юань',
+  EUR: 'Евро',
+  GBP: 'Британский фунт стерлингов',
+  INR: 'Индийская рупия',
+  JPY: 'Японская иена',
+  RUB: 'Российский рубль',
+  USD: 'Доллар США',
+};
+
+const options = Object.entries(optionMapping).map(([value, label]) => ({
+  label,
+  value,
+}));
+
+const CURRENCIES = Object.entries(currencyMapping).map(([code, name]) => ({
+  code,
+  name,
+}));
 
 export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
   const { formId } = props;
@@ -23,11 +57,11 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
   } = useForm<AccountCreateDTO>({
     resolver: zodResolver(accountCreateSchema),
     values: {
-      currency_code: currentAccount?.currency_code ?? CURRENCIES[0].code,
+      currency_code: currentAccount?.currency_code ?? CURRENCY_TYPES[0],
       description: currentAccount?.description ?? '',
       initialBalance: 0,
       name: currentAccount?.name ?? '',
-      type: currentAccount?.type ?? ACCOUNT_TYPES[0].value,
+      type: currentAccount?.type ?? ACCOUNT_TYPES[0],
     },
   });
 
@@ -78,7 +112,7 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
         </label>
         <select className="select select-bordered w-full" {...register('type')}>
           <option value="">Выберите тип счета</option>
-          {ACCOUNT_TYPES.map((type) => (
+          {options.map((type) => (
             <option key={type.value} value={type.value}>
               {type.label}
             </option>

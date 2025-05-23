@@ -1,14 +1,8 @@
-import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
 
+import { accounts } from './accounts';
+import { categories } from './categories';
 import { createdAt, description, updatedAt, uuid } from './common';
-
-// export const transactions1 = sqliteTable('transactions', {
-//   comment: text('comment'),
-//   created_at: text('created_at').notNull(),
-//   id: integer('id').primaryKey({ autoIncrement: true }),
-//   name: text('name').notNull(),
-//   posted_at: text('posted_at'),
-// });
 
 export const transactions = sqliteTable('transactions', {
   createdAt,
@@ -17,4 +11,18 @@ export const transactions = sqliteTable('transactions', {
   postingDate: text('posting_date').notNull(),
   transactionDate: text('transaction_date').notNull(),
   updatedAt,
+});
+
+export const operations = sqliteTable('operations', {
+  accountId: text('account_id')
+    .notNull()
+    .references(() => accounts.id),
+  amount: real('amount').notNull(),
+  categoryId: text('category_id').references(() => categories.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  description: text('description'),
+  id: uuid,
+  transactionId: text('transaction_id')
+    .notNull()
+    .references(() => transactions.id),
 });
