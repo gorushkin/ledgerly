@@ -10,4 +10,10 @@ export const registerTransactionsRoutes = (app: FastifyInstance) => {
 
     return { message: `Transaction with ID ${id} is under construction.` };
   });
+
+  app.post('/', (request) => {
+    const { id } = request.params as { id: string };
+
+    return { message: `Transaction with ID ${id} is under construction.` };
+  });
 };
