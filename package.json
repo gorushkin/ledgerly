@@ -23,7 +23,8 @@
     "be": "pnpm --filter backend dev",
     "dev": "pnpm run -r --parallel dev",
     "build": "pnpm run -r build",
-    "lint": "pnpm --filter frontend lint",
+    "lint": "pnpm run -r --parallel lint:fix",
+    "lint:fix": "pnpm run -r --parallel lint",
     "clean:node_modules": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +"
   },
   "dependencies": {
