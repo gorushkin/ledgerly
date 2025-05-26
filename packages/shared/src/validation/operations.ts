@@ -9,5 +9,4 @@ export const operationCreateSchema = z.object({
   description: defaultText,
   localAmount: z.number(),
   originalAmount: z.number(),
-  transactionId: z.string().optional(),
 });

@@ -1,6 +1,8 @@
-import { ITransactionRepository } from 'src/domain/ITransactionRepository';
+import { TransactionCreateDTO } from '@ledgerly/shared/types';
 
-export class TransactionRepository implements ITransactionRepository {
+import { BaseRepository } from './BaseRepository';
+
+export class TransactionRepository extends BaseRepository {
   getAllTransactions(): Promise<unknown[]> {
     throw new Error('Method not implemented.');
   }
@@ -13,7 +15,8 @@ export class TransactionRepository implements ITransactionRepository {
   getAccountById(_id: number): Promise<unknown> {
     throw new Error('Method not implemented.');
   }
-  createTransaction(_data: unknown): Promise<unknown> {
+  createTransaction(dto: TransactionCreateDTO): Promise<unknown> {
+    console.info('dto: ', dto);
     throw new Error('Method not implemented.');
   }
   updateTransaction(_id: number, _data: unknown): Promise<unknown> {
@@ -23,3 +26,5 @@ export class TransactionRepository implements ITransactionRepository {
     throw new Error('Method not implemented.');
   }
 }
+
+export const transactionRepository = new TransactionRepository();
