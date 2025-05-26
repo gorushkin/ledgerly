@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "ts-check": "tsc -b"
+    "ts-check": "tsc -b --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

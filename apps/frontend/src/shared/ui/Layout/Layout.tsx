@@ -1,4 +1,7 @@
+import { useEffect } from 'react';
+
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
+import { currencyState } from 'src/entities/currencies';
 import { ConfirmDialog } from 'src/features/ConfirmDialog';
 
 import { Footer } from './Footer';
@@ -7,6 +10,10 @@ import { Main } from './Main';
 import { Sidebar } from './Sidebar/Sidebar';
 
 export const Layout = () => {
+  useEffect(() => {
+    void currencyState.getAll();
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-base-200">
       <div className="hidden w-64 flex-col bg-base-100 md:flex">

@@ -25,7 +25,16 @@
     "build": "pnpm run -r build",
     "lint": "pnpm run -r --parallel lint:fix",
     "lint:fix": "pnpm run -r --parallel lint",
-    "clean:node_modules": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +"
+    "clean:node_modules": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
+    "drop:tables": "pnpm --filter backend run drop:tables",
+    "seed": "pnpm --filter backend run seed",
+    "migrate": "pnpm --filter backend run migrate",
+    "studio": "pnpm --filter backend run studio",
+    "push": "pnpm --filter backend run push",
+    "generate": "pnpm --filter backend run generate",
+    "delete:db": "rm -rf apps/backend/src/db/data.db",
+    "reset:db": "pnpm run delete:db && pnpm run migrate && pnpm run seed",
+    "ts-check": "pnpm run -r --parallel ts-check"
   },
   "dependencies": {
     "tsconfig-paths": "^4.2.0",

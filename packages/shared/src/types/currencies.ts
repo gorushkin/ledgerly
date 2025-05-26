@@ -1,11 +1,5 @@
-export type Currency =
-  | "USD"
-  | "EUR"
-  | "RUB"
-  | "JPY"
-  | "GBP"
-  | "AUD"
-  | "CAD"
-  | "CHF"
-  | "CNY"
-  | "INR";
+export interface Currency {
+  code: string;
+  createdAt: string;
+  updatedAt: string;
+}

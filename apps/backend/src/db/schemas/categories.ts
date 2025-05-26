@@ -1,6 +1,8 @@
-import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+
+import { uuidPrimary } from './common';
 
 export const categories = sqliteTable('categories', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+  id: uuidPrimary,
   name: text('name').notNull(),
 });

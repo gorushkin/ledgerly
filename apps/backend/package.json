@@ -17,7 +17,8 @@
     "studio": "pnpm drizzle-kit studio",
     "push": "npx drizzle-kit push",
     "generate": "npx drizzle-kit generate",
-    "drop:tables": "tsx src/db/scripts/drop-tables.ts"
+    "drop:tables": "tsx src/db/scripts/drop-tables.ts",
+    "ts-check": "tsc -b --noEmit"
   },
   "keywords": [],
   "author": "",

@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ACCOUNT_TYPES, CURRENCY_TYPES } from '@ledgerly/shared/constants';
+import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import { AccountType, Currency } from '@ledgerly/shared/types';
 import { AccountCreateDTO } from '@ledgerly/shared/types';
 import { accountCreateSchema } from '@ledgerly/shared/validation';
 import { observer } from 'mobx-react-lite';
 import { useForm } from 'react-hook-form';
 import { accountsState } from 'src/entities/accounts/model/accountsState';
+import { currencyState } from 'src/entities/currencies';
 
 type ManageAccountFormProps = {
   formId: string;
@@ -21,7 +22,7 @@ const optionMapping: Record<AccountType, string> = {
 };
 
 // TODO: Move to constants
-const currencyMapping: Record<Currency, string> = {
+const currencyMapping: Record<Currency['code'], string> = {
   AUD: 'Австралийский доллар',
   CAD: 'Канадский доллар',
   CHF: 'Швейцарский франк',
@@ -48,6 +49,8 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
   const { formId } = props;
   const { currentAccount, modalState } = accountsState;
 
+  const CURRENCY_TYPES = currencyState.currencies;
+
   const isEditMode = Boolean(currentAccount);
 
   const {
@@ -57,7 +60,7 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
   } = useForm<AccountCreateDTO>({
     resolver: zodResolver(accountCreateSchema),
     values: {
-      currency_code: currentAccount?.currency_code ?? CURRENCY_TYPES[0],
+      currency_code: currentAccount?.currency_code ?? CURRENCY_TYPES[0].code,
       description: currentAccount?.description ?? '',
       initialBalance: 0,
       name: currentAccount?.name ?? '',

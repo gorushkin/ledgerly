@@ -1,4 +1,5 @@
 export * from './schemas/accounts';
-export * from './schemas/entries';
 export * from './schemas/categories';
 export * from './schemas/transactions';
+export * from './schemas/currencies';
+export * from './schemas/operations';

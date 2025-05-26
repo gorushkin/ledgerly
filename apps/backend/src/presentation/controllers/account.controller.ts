@@ -30,15 +30,20 @@ export class AccountController {
     return accountRepository.deleteAccount(id);
   }
 
+  // TODO: Move to transactions controller
+  // This method is not implemented yet, but it should be moved to a transactions controller
+  // and should handle transactions related to the account.
+  // For now, it just throws an error.
+
   getTransactionsById(id: string): Promise<void> {
-    console.log('id: ', id);
+    console.info('id: ', id);
 
     throw new Error('Method getTransactionsById not implemented.');
   }
 
   createTransaction(id: string, transaction: unknown): Promise<void> {
-    console.log('id: ', id);
-    console.log('transaction: ', transaction);
+    console.info('id: ', id);
+    console.info('transaction: ', transaction);
 
     throw new Error('Method createTransaction not implemented.');
   }

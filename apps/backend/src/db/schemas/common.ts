@@ -1,14 +1,19 @@
+import { randomUUID } from 'node:crypto';
+
+import { sql } from 'drizzle-orm';
 import { text } from 'drizzle-orm/sqlite-core';
 
-export const createdAt = text('created_at')
-  .notNull()
-  .default('CURRENT_TIMESTAMP');
-export const updatedAt = text('updated_at')
-  .notNull()
-  .default('CURRENT_TIMESTAMP');
+const timestamp = (name: string) =>
+  text(name)
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`);
 
-export const description = text('description');
+export const createdAt = timestamp('created_at');
 
-export const uuid = text('id')
-  .primaryKey()
-  .$defaultFn(() => crypto.randomUUID());
+export const updatedAt = timestamp('updated_at');
+
+export const description = text('description').notNull().default('');
+
+export const uuid = text('id').$defaultFn(() => randomUUID());
+
+export const uuidPrimary = uuid.primaryKey();

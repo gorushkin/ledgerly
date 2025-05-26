@@ -13,4 +13,4 @@ if (!dbUrl) {
 
 export const db = drizzle(dbUrl);
 
-export { accounts } from '../db/schemas/accounts';
+export { currencies, categories, accounts } from '../db/schemas/';

@@ -3,11 +3,9 @@ import { eq } from 'drizzle-orm';
 import { accounts } from 'src/db';
 import { withErrorHandling } from 'src/libs/errorHandler';
 
-import type { IAccountRepository } from '../../domain/IAccountRepository';
-
 import { BaseRepository } from './BaseRepository';
 
-class AccountRepository extends BaseRepository implements IAccountRepository {
+class AccountRepository extends BaseRepository {
   async createAccount(data: AccountCreateDTO): Promise<AccountResponseDTO> {
     return withErrorHandling(
       () => this.db.insert(accounts).values(data).returning().get(),

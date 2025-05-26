@@ -9,7 +9,9 @@
     "esModuleInterop": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "composite": true,
+    "declaration": true
   },
-  "include": ["packages/**/*", "apps/**/*"]
+  "exclude": ["**/node_modules", "**/dist"]
 }

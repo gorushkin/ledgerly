@@ -1,6 +1,4 @@
-import { Currency } from "../types";
-
-export const CURRENCY_TYPES: Currency[] = [
+export const CURRENCY_TYPES: string[] = [
   "USD",
   "EUR",
   "RUB",
@@ -11,9 +9,4 @@ export const CURRENCY_TYPES: Currency[] = [
   "CHF",
   "CNY",
   "INR",
-];
-
-export const CURRENCY_TYPE_VALUES = CURRENCY_TYPES.map((t) => t) as [
-  Currency,
-  ...Currency[],
 ];

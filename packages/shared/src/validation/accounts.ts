@@ -1,32 +1,35 @@
 import { z } from "zod";
 
-import { ACCOUNT_TYPE_VALUES, CURRENCY_TYPE_VALUES } from "../constants";
+import { ACCOUNT_TYPE_VALUES } from "../constants";
 
 import {
   createdAt,
-  description,
-  name,
+  notNullText,
+  defaultText,
   updatedAt,
   uuid,
+  defaultNumber,
 } from "./baseValidations";
 
 const type = z.enum(ACCOUNT_TYPE_VALUES);
-const currency_code = z.enum(CURRENCY_TYPE_VALUES);
+
+// TODO: update currency validation
+const currency_code = z.string().length(3);
 
 export const accountCreateSchema = z.object({
   currency_code,
-  description,
-  initialBalance: z.number().default(0).optional(),
-  name,
+  description: defaultText,
+  initialBalance: defaultNumber,
+  name: notNullText,
   type,
 });
 
 export const accountResponseSchema = z.object({
   createdAt,
   currency_code,
-  description,
+  description: defaultText,
   id: uuid,
-  name,
+  name: notNullText,
   type,
   updatedAt,
 });
