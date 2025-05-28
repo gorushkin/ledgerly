@@ -24,12 +24,10 @@ export const accountCreateSchema = z.object({
   type,
 });
 
-export const accountResponseSchema = z.object({
-  createdAt,
-  currency_code,
-  description: defaultText,
-  id: uuid,
-  name: notNullText,
-  type,
-  updatedAt,
-});
+export const accountResponseSchema = z
+  .object({
+    createdAt,
+    id: uuid,
+    updatedAt,
+  })
+  .merge(accountCreateSchema);

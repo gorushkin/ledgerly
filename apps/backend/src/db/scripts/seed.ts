@@ -11,7 +11,6 @@ const seedCurrencies = async () => {
     .values(
       CURRENCY_TYPES.map((code) => ({
         code,
-        id: crypto.randomUUID(),
       })),
     )
     .returning();
@@ -49,12 +48,26 @@ const seedAccounts = async () => {
 };
 
 const seed = async () => {
-  const insertedCurrencies = await seedCurrencies();
-  console.info('insertedCurrencies: ', insertedCurrencies);
-  const _insertedCategories = await seedCategories();
-  const _insertedAccounts = await seedAccounts();
+  try {
+    // Очищаем таблицы в правильном порядке из-за внешних ключей
+    await db.delete(accounts);
+    await db.delete(categories);
+    await db.delete(currencies);
 
-  console.info('Сиды добавлены!');
+    const insertedCurrencies = await seedCurrencies();
+    console.info('insertedCurrencies: ', insertedCurrencies);
+
+    const insertedCategories = await seedCategories();
+    console.info('insertedCategories: ', insertedCategories);
+
+    const insertedAccounts = await seedAccounts();
+    console.info('insertedAccounts: ', insertedAccounts);
+
+    console.info('Сиды успешно добавлены!');
+  } catch (error) {
+    console.error('Ошибка при заполнении базы данных:', error);
+    throw error;
+  }
 };
 
 void seed();

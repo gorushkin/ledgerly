@@ -1,14 +1,22 @@
-import { AccountCreateDTO, TransactionCreateDTO } from '@ledgerly/shared/types';
+import {
+  TransactionCreateDTO,
+  TransactionResponseDTO,
+} from '@ledgerly/shared/types';
 import { transactionRepository } from 'src/infrastructure/db/TransactionRepository';
 
 export class TransactionController {
   getAll() {
-    throw new Error('Method getAll not implemented.');
-    // return accountRepository.getAllAccounts();
+    return transactionRepository.getAllTransactions();
   }
 
-  getById(_id: string) {
-    throw new Error('Method getById not implemented.');
+  async getById(id: string): Promise<TransactionResponseDTO> {
+    const transaction = await transactionRepository.getTransactionById(id);
+
+    if (!transaction) {
+      throw new Error(`Transaction with ID ${id} not found.`);
+    }
+
+    return transaction;
   }
 
   create(newTransaction: TransactionCreateDTO) {
@@ -16,7 +24,7 @@ export class TransactionController {
     return transactionRepository.createTransaction(newTransaction);
   }
 
-  update(_id: string, _updatedAccount: AccountCreateDTO) {
+  update(_id: string, _updatedAccount: TransactionResponseDTO) {
     throw new Error('Method update not implemented.');
   }
 

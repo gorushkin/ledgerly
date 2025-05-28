@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { dateText, defaultText } from "./baseValidations";
-import { operationCreateSchema } from "./operations";
+import { dateText, defaultText, uuid } from "./baseValidations";
+import { operationCreateSchema, operationResponseSchema } from "./operations";
 
 export const transactionCreateSchema = z.object({
   description: defaultText,
@@ -9,3 +9,13 @@ export const transactionCreateSchema = z.object({
   postingDate: dateText,
   transactionDate: dateText,
 });
+
+// TODO: check operations count validation
+
+export const transactionResponseSchema = z
+  .object({
+    id: uuid,
+    operations: z.array(operationResponseSchema),
+    // operations: z.array(operationResponseSchema).nonempty(),
+  })
+  .merge(transactionCreateSchema.omit({ operations: true }));
