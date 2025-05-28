@@ -60,7 +60,7 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
   } = useForm<AccountCreateDTO>({
     resolver: zodResolver(accountCreateSchema),
     values: {
-      currency_code: currentAccount?.currency_code ?? CURRENCY_TYPES[0].code,
+      currencyCode: currentAccount?.currencyCode ?? CURRENCY_TYPES[0].code,
       description: currentAccount?.description ?? '',
       initialBalance: 0,
       name: currentAccount?.name ?? '',
@@ -136,7 +136,7 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
             </option>
           ))}
         </select>
-        {errors.currency_code && <span className="text-error text-sm mt-1">{errors.currency_code.message}</span>}
+        {errors.currencyCode && <span className="text-error text-sm mt-1">{errors.currencyCode.message}</span>}
       </div>
 
       {!isEditMode && (

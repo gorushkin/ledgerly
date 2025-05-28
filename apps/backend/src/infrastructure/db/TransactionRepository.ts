@@ -30,25 +30,10 @@ export class TransactionRepository extends BaseRepository {
       transaction.id,
     );
 
-    if (operations.length === 0) {
-      throw new Error(`Transaction ${id} has no operations`);
-    }
-
-    const mappedOperations = operations.map((op) => ({
-      accountId: op.accountId,
-      categoryId: op.categoryId ?? '',
-      createdAt: op.createdAt,
-      description: op.description ?? undefined,
-      id: op.id,
-      localAmount: op.localAmount,
-      originalAmount: op.originalAmount,
-      updatedAt: op.updatedAt,
-    }));
-
     return {
-      description: transaction.description ?? undefined,
+      description: transaction.description,
       id: transaction.id,
-      operations: mappedOperations,
+      operations,
       postingDate: transaction.postingDate,
       transactionDate: transaction.transactionDate,
     };
@@ -63,7 +48,7 @@ export class TransactionRepository extends BaseRepository {
 
     const now = new Date().toISOString();
 
-    const transaction = await this.db.transaction(async (tx) => {
+    const result = await this.db.transaction(async (tx) => {
       const [transaction] = await tx
         .insert(transactions)
         .values({
@@ -75,12 +60,14 @@ export class TransactionRepository extends BaseRepository {
 
       const opsToInsert = dto.operations.map((op) => ({
         accountId: op.accountId,
+        baseCurrency: op.baseCurrency,
         categoryId: op.categoryId,
         createdAt: now,
         description: op.description,
         id: randomUUID(),
         localAmount: op.localAmount,
         originalAmount: op.originalAmount,
+        originalCurrency: op.originalCurrency,
         transactionId: transaction.id,
       }));
 
@@ -88,7 +75,7 @@ export class TransactionRepository extends BaseRepository {
 
       return { ...transaction, operations: ops };
     });
-    return transaction;
+    return result;
   }
   updateTransaction(_id: number, _data: unknown): Promise<unknown> {
     throw new Error('Method not implemented.');

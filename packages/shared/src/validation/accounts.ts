@@ -9,15 +9,13 @@ import {
   updatedAt,
   uuid,
   defaultNumber,
+  currencyCode,
 } from "./baseValidations";
 
 const type = z.enum(ACCOUNT_TYPE_VALUES);
 
-// TODO: update currency validation
-const currency_code = z.string().length(3);
-
 export const accountCreateSchema = z.object({
-  currency_code,
+  currencyCode,
   description: defaultText,
   initialBalance: defaultNumber,
   name: notNullText,

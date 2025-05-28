@@ -6,7 +6,7 @@ import { currencies } from './currencies';
 
 export const accounts = sqliteTable('accounts', {
   createdAt,
-  currency_code: text('currency_code')
+  currencyCode: text('currency_code')
     .notNull()
     .references(() => currencies.code),
   description,

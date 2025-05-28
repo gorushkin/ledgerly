@@ -4,6 +4,8 @@ import {
 } from '@ledgerly/shared/types';
 import { transactionRepository } from 'src/infrastructure/db/TransactionRepository';
 
+import { operationController } from './operation.controller';
+
 export class TransactionController {
   getAll() {
     return transactionRepository.getAllTransactions();
@@ -19,8 +21,9 @@ export class TransactionController {
     return transaction;
   }
 
-  create(newTransaction: TransactionCreateDTO) {
-    // TODO: add operations validations
+  async create(newTransaction: TransactionCreateDTO) {
+    await operationController.validateOperations(newTransaction.operations);
+
     return transactionRepository.createTransaction(newTransaction);
   }
 
@@ -30,24 +33,6 @@ export class TransactionController {
 
   delete(_id: string) {
     throw new Error('Method delete not implemented.');
-  }
-
-  // TODO: Move to transactions controller
-  // This method is not implemented yet, but it should be moved to a transactions controller
-  // and should handle transactions related to the account.
-  // For now, it just throws an error.
-
-  getTransactionsById(id: string): Promise<void> {
-    console.info('id: ', id);
-
-    throw new Error('Method getTransactionsById not implemented.');
-  }
-
-  createTransaction(id: string, transaction: unknown): Promise<void> {
-    console.info('id: ', id);
-    console.info('transaction: ', transaction);
-
-    throw new Error('Method createTransaction not implemented.');
   }
 }
 

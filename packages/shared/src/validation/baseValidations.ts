@@ -10,3 +10,7 @@ export const name = z.string().min(1);
 export const dateText = z.string().refine((d) => !isNaN(Date.parse(d)), {
   message: "Invalid date format",
 });
+
+export const currencyCode = z
+  .string()
+  .length(3, "Currency code must be exactly 3 characters");
