@@ -5,15 +5,15 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1747115458247,
-      "tag": "0000_burly_roxanne_simpson",
+      "when": 1748543401758,
+      "tag": "0000_init",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1747684362236,
-      "tag": "0001_fair_goblin_queen",
+      "when": 1748543523069,
+      "tag": "0001_currencies",
       "breakpoints": true
     }
   ]

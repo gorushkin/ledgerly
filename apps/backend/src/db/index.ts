@@ -1,3 +1,4 @@
+import { createClient } from '@libsql/client';
 import * as dotenv from 'dotenv';
 import { drizzle } from 'drizzle-orm/libsql';
 
@@ -11,6 +12,11 @@ if (!dbUrl) {
   throw new Error('Database URL is not defined');
 }
 
-export const db = drizzle(dbUrl);
+import * as schemas from './schemas';
+const client = createClient({ url: dbUrl });
+
+export const db = drizzle(client, {
+  schema: schemas,
+});
 
 export { currencies, categories, accounts } from '../db/schemas/';

@@ -1,4 +1,3 @@
-import { CURRENCY_TYPES } from '@ledgerly/shared/constants';
 import {
   AccountResponseDTO,
   CategoryResponseDTO,
@@ -8,26 +7,12 @@ import { db } from '../index';
 import { operations, transactions } from '../schemas';
 import { accounts } from '../schemas/accounts';
 import { categories } from '../schemas/categories';
-import { currencies } from '../schemas/currencies';
 
 const CATEGORY_ID1 = '3a04352a-68f2-4c96-9b0d-dc0df9957441'; // Example category ID
 const CATEGORY_ID2 = '0022c3b2-24f5-483d-9c0b-fccc2b46972d'; // Example category ID
 
 const ACCOUNT_ID1 = '3a3c164d-a33a-4d61-8dd9-626dbb7d6a5b';
 const ACCOUNT_ID2 = '0055a5ca-faf1-46f2-afbe-6d36b1544b75'; // Example account ID
-
-const seedCurrencies = async () => {
-  const insertedCurrencies = await db
-    .insert(currencies)
-    .values(
-      CURRENCY_TYPES.map((code) => ({
-        code,
-      })),
-    )
-    .returning();
-
-  return insertedCurrencies;
-};
 
 const seedCategories = async () => {
   const insertedCategories = await db
@@ -108,7 +93,6 @@ const deleteData = async () => {
     await db.delete(transactions);
     await db.delete(accounts);
     await db.delete(categories);
-    await db.delete(currencies);
 
     console.info('Data deleted successfully');
   } catch (error) {
@@ -119,9 +103,6 @@ const deleteData = async () => {
 
 const addData = async () => {
   try {
-    const insertedCurrencies = await seedCurrencies();
-    console.info('insertedCurrencies: ', insertedCurrencies);
-
     const insertedCategories = await seedCategories();
     console.info('insertedCategories: ', insertedCategories);
 
