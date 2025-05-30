@@ -1,13 +1,16 @@
-import { currencyRepository } from 'src/infrastructure/db/CurrencyRepository';
+import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 
 export class CurrencyController {
+  repo: CurrencyRepository;
+
+  constructor(repo: CurrencyRepository) {
+    this.repo = repo;
+  }
   getAll() {
-    return currencyRepository.getAllCurrencies();
+    return this.repo.getAllCurrencies();
   }
 
   getById(id: string) {
-    return currencyRepository.getCurrencyById(id);
+    return this.repo.getCurrencyById(id);
   }
 }
-
-export const currencyController = new CurrencyController();

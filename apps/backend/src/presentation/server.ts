@@ -1,9 +1,19 @@
+import { LibSQLDatabase } from 'drizzle-orm/libsql';
 import Fastify from 'fastify';
 import { ZodError } from 'zod';
 
+import { db as defaultDb } from '../db';
+import * as schema from '../db/schemas';
+
 import { registerRoutes } from './routes';
 
-export function createServer() {
+declare module 'fastify' {
+  interface FastifyInstance {
+    db: LibSQLDatabase<typeof schema>;
+  }
+}
+
+export function createServer(db: LibSQLDatabase<typeof schema> = defaultDb) {
   const fastify = Fastify({
     logger: false,
   });
@@ -31,6 +41,8 @@ export function createServer() {
       message: error.message || 'Unexpected error',
     });
   });
+
+  fastify.decorate('db', db);
 
   fastify.register(registerRoutes, { prefix: '/api' });
 

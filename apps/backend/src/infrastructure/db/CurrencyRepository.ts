@@ -2,10 +2,13 @@ import { Currency } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { currencies } from 'src/db';
 import { withErrorHandling } from 'src/libs/errorHandler';
+import { DataBase } from 'src/types';
 
-import { BaseRepository } from './BaseRepository';
-
-class CurrencyRepository extends BaseRepository {
+export class CurrencyRepository {
+  db: DataBase;
+  constructor(db: DataBase) {
+    this.db = db;
+  }
   getAllCurrencies(): Promise<Currency[]> {
     return withErrorHandling(
       () => this.db.select().from(currencies).all(),
@@ -21,5 +24,3 @@ class CurrencyRepository extends BaseRepository {
     );
   }
 }
-
-export const currencyRepository = new CurrencyRepository();

@@ -2,14 +2,16 @@ import { LibSQLDatabase } from 'drizzle-orm/libsql';
 import { db } from 'src/db';
 import * as schema from 'src/db/schemas';
 
+export type DataBase = LibSQLDatabase<typeof schema>;
+
 export abstract class BaseRepository {
   protected db = db;
 }
 
 export abstract class BaseRepositoryNew {
-  protected db: LibSQLDatabase<typeof schema>;
+  protected db: DataBase;
 
-  constructor(db: LibSQLDatabase<typeof schema>) {
+  constructor(db: DataBase) {
     this.db = db;
   }
 }
