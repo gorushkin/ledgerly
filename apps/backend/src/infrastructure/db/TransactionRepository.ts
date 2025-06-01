@@ -6,11 +6,16 @@ import {
 } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { operations, transactions } from 'src/db/schemas';
+import { DataBase } from 'src/types';
 
-import { BaseRepository } from './BaseRepository';
-import { operationRepository } from './OperationRepository';
+import { OperationRepository } from './OperationRepository';
 
-export class TransactionRepository extends BaseRepository {
+export class TransactionRepository {
+  constructor(
+    private readonly db: DataBase,
+    private readonly operationRepository: OperationRepository,
+  ) {}
+
   getAllTransactions(): Promise<unknown[]> {
     return this.db.select().from(transactions).all();
   }
@@ -26,7 +31,7 @@ export class TransactionRepository extends BaseRepository {
 
     if (!transaction) return undefined;
 
-    const operations = await operationRepository.getByTransactionId(
+    const operations = await this.operationRepository.getByTransactionId(
       transaction.id,
     );
 
@@ -84,5 +89,3 @@ export class TransactionRepository extends BaseRepository {
     throw new Error('Method not implemented.');
   }
 }
-
-export const transactionRepository = new TransactionRepository();

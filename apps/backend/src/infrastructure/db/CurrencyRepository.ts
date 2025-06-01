@@ -5,10 +5,8 @@ import { withErrorHandling } from 'src/libs/errorHandler';
 import { DataBase } from 'src/types';
 
 export class CurrencyRepository {
-  db: DataBase;
-  constructor(db: DataBase) {
-    this.db = db;
-  }
+  constructor(private readonly db: DataBase) {}
+
   getAllCurrencies(): Promise<Currency[]> {
     return withErrorHandling(
       () => this.db.select().from(currencies).all(),

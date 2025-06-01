@@ -2,9 +2,9 @@ import { transactionCreateSchema } from '@ledgerly/shared/validation';
 import type { FastifyInstance } from 'fastify';
 import { uniqueIdSchema } from 'src/libs/validators';
 
-import { transactionController } from '../controllers/transaction.controller';
-
 export const registerTransactionsRoutes = (app: FastifyInstance) => {
+  const transactionController = app.container.controllers.transaction;
+
   app.get('/', () => {
     return transactionController.getAll();
   });

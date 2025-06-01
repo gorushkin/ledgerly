@@ -2,17 +2,24 @@ import {
   TransactionCreateDTO,
   TransactionResponseDTO,
 } from '@ledgerly/shared/types';
-import { transactionRepository } from 'src/infrastructure/db/TransactionRepository';
+import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
 
-import { operationController } from './operation.controller';
+import { BadRequestError } from '../errors/httpErrors';
+
+import { OperationController } from './operation.controller';
 
 export class TransactionController {
+  constructor(
+    private readonly repo: TransactionRepository,
+    private readonly operationController: OperationController,
+  ) {}
+
   getAll() {
-    return transactionRepository.getAllTransactions();
+    return this.repo.getAllTransactions();
   }
 
   async getById(id: string): Promise<TransactionResponseDTO> {
-    const transaction = await transactionRepository.getTransactionById(id);
+    const transaction = await this.repo.getTransactionById(id);
 
     if (!transaction) {
       throw new Error(`Transaction with ID ${id} not found.`);
@@ -21,10 +28,28 @@ export class TransactionController {
     return transaction;
   }
 
-  async create(newTransaction: TransactionCreateDTO) {
-    await operationController.validateOperations(newTransaction.operations);
+  async validateTransaction(operations: TransactionCreateDTO['operations']) {
+    const totalSum = operations.reduce((sum, op) => sum + op.localAmount, 0);
+    if (totalSum !== 0) {
+      throw new BadRequestError('Сумма всех операций должна быть равна 0');
+    }
 
-    return transactionRepository.createTransaction(newTransaction);
+    if (operations.length < 2) {
+      throw new BadRequestError(
+        'Транзакция должна содержать минимум 2 операции',
+      );
+    }
+
+    // Валидация каждой операции
+    for (const operation of operations) {
+      await this.operationController.validateOperation(operation);
+    }
+  }
+
+  async create(transactionData: TransactionCreateDTO) {
+    await this.validateTransaction(transactionData.operations);
+
+    return this.repo.createTransaction(transactionData);
   }
 
   update(_id: string, _updatedAccount: TransactionResponseDTO) {
@@ -35,5 +60,3 @@ export class TransactionController {
     throw new Error('Method delete not implemented.');
   }
 }
-
-export const transactionController = new TransactionController();

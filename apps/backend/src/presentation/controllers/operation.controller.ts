@@ -1,36 +1,26 @@
 import { OperationCreateDTO } from '@ledgerly/shared/types';
-import { accountRepository } from 'src/infrastructure/db/AccountRepository';
+import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 
 import { BadRequestError, NotFoundError } from '../errors/httpErrors';
 
-import { currencyController } from './currency.controller';
+import { AccountController } from './account.controller';
+import { CurrencyController } from './currency.controller';
 
 export class OperationController {
-  async validateOperations(operations: OperationCreateDTO[]) {
-    const totalSum = operations.reduce((sum, op) => sum + op.localAmount, 0);
-    if (totalSum !== 0) {
-      throw new BadRequestError('Сумма всех операций должна быть равна 0');
-    }
+  constructor(
+    private readonly repo: OperationRepository,
+    private readonly currencyController: CurrencyController,
+    private readonly accountController: AccountController,
+  ) {}
 
-    if (operations.length < 2) {
-      throw new BadRequestError(
-        'Транзакция должна содержать минимум 2 операции',
-      );
-    }
-
-    for (const operation of operations) {
-      await this.validateOperation(operation);
-    }
-  }
-
-  private async validateOperation(operation: OperationCreateDTO) {
-    const account = await accountRepository.getAccountById(operation.accountId);
+  public async validateOperation(operation: OperationCreateDTO) {
+    const account = await this.accountController.getById(operation.accountId);
 
     if (!account) {
       throw new NotFoundError(`Account ${operation.accountId} not found`);
     }
 
-    const baseCurrency = await currencyController.getById(
+    const baseCurrency = await this.currencyController.getById(
       operation.baseCurrency,
     );
 
@@ -40,7 +30,7 @@ export class OperationController {
       );
     }
 
-    const originalCurrency = await currencyController.getById(
+    const originalCurrency = await this.currencyController.getById(
       operation.originalCurrency,
     );
 
@@ -57,5 +47,3 @@ export class OperationController {
     }
   }
 }
-
-export const operationController = new OperationController();

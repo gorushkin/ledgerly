@@ -21,7 +21,8 @@
     "generate": "npx drizzle-kit generate",
     "generateCustom": "drizzle-kit --config=drizzle.config.ts generate --custom --name",
     "drop:tables": "tsx src/db/scripts/drop-tables.ts",
-    "ts-check": "tsc -b --noEmit"
+    "ts-check": "tsc -b --noEmit",
+    "check": "pnpm ts-check && pnpm lint"
   },
   "keywords": [],
   "author": "",

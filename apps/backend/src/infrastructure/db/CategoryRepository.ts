@@ -1,10 +1,14 @@
 import { CategoryResponseDTO } from '@ledgerly/shared/types';
 import { categories } from 'src/db';
 import { withErrorHandling } from 'src/libs/errorHandler';
+import { DataBase } from 'src/types';
 
-import { BaseRepository } from './BaseRepository';
+export class CategoryRepository {
+  db: DataBase;
+  constructor(db: DataBase) {
+    this.db = db;
+  }
 
-class CategoryRepository extends BaseRepository {
   getAllCategories(): Promise<CategoryResponseDTO[]> {
     return withErrorHandling(
       () => this.db.select().from(categories).all(),
@@ -12,5 +16,3 @@ class CategoryRepository extends BaseRepository {
     );
   }
 }
-
-export const categoryRepository = new CategoryRepository();

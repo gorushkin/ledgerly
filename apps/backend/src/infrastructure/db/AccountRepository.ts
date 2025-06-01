@@ -2,10 +2,10 @@ import { AccountCreateDTO, AccountResponseDTO } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { accounts } from 'src/db';
 import { withErrorHandling } from 'src/libs/errorHandler';
+import { DataBase } from 'src/types';
 
-import { BaseRepository } from './BaseRepository';
-
-class AccountRepository extends BaseRepository {
+export class AccountRepository {
+  constructor(private readonly db: DataBase) {}
   async createAccount(data: AccountCreateDTO): Promise<AccountResponseDTO> {
     return withErrorHandling(
       () => this.db.insert(accounts).values(data).returning().get(),
@@ -51,5 +51,3 @@ class AccountRepository extends BaseRepository {
     );
   }
 }
-
-export const accountRepository = new AccountRepository();

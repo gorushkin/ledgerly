@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
-import { categoryRepository } from 'src/infrastructure/db/CategoryRepository';
 
 export const registerCategoriesRoutes = (app: FastifyInstance) => {
+  const categoryController = app.container.controllers.category;
+
   app.get('/', () => {
-    return categoryRepository.getAllCategories();
+    return categoryController.getAll();
   });
 };

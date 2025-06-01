@@ -4,10 +4,11 @@ import {
 } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { operations } from 'src/db/schemas';
+import { DataBase } from 'src/types';
 
-import { BaseRepository } from './BaseRepository';
+export class OperationRepository {
+  constructor(private readonly db: DataBase) {}
 
-export class OperationRepository extends BaseRepository {
   getAll(): Promise<OperationResponseDTO[]> {
     throw new Error('Method not implemented.');
   }
@@ -37,5 +38,3 @@ export class OperationRepository extends BaseRepository {
     return transactionOperations;
   }
 }
-
-export const operationRepository = new OperationRepository();
