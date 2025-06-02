@@ -6,12 +6,12 @@ import { currencies } from './currencies';
 
 export const accounts = sqliteTable('accounts', {
   createdAt,
-  currencyCode: text('currency_code')
-    .notNull()
-    .references(() => currencies.code),
   description,
   id: uuidPrimary,
   name: text('name').notNull(),
+  originalCurrency: text('original_currency')
+    .default('RUB')
+    .references(() => currencies.code),
   type: text('type', {
     enum: ACCOUNT_TYPE_VALUES,
   })

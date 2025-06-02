@@ -1,6 +1,6 @@
 {
-  "id": "41450b27-5348-4524-b9a0-74e5160e716a",
-  "prevId": "421828a7-148b-4b82-a264-3205ff31b989",
+  "id": "7eb341c3-4d7d-462a-b8ec-d47b57f10be3",
+  "prevId": "bc9b7043-b7e3-4e74-b15f-b6dd3b789974",
   "version": "6",
   "dialect": "sqlite",
   "tables": {
@@ -14,13 +14,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
-        },
-        "currency_code": {
-          "name": "currency_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
         },
         "description": {
           "name": "description",
@@ -44,6 +37,14 @@
           "notNull": true,
           "autoincrement": false
         },
+        "original_currency": {
+          "name": "original_currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'RUB'"
+        },
         "type": {
           "name": "type",
           "type": "text",
@@ -63,11 +64,11 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "accounts_currency_code_currencies_code_fk": {
-          "name": "accounts_currency_code_currencies_code_fk",
+        "accounts_original_currency_currencies_code_fk": {
+          "name": "accounts_original_currency_currencies_code_fk",
           "tableFrom": "accounts",
           "columnsFrom": [
-            "currency_code"
+            "original_currency"
           ],
           "tableTo": "currencies",
           "columnsTo": [
@@ -187,13 +188,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "base_currency": {
-          "name": "base_currency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "category_id": {
           "name": "category_id",
           "type": "text",
@@ -238,13 +232,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "original_currency": {
-          "name": "original_currency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "transaction_id": {
           "name": "transaction_id",
           "type": "text",
@@ -276,19 +263,6 @@
           "onUpdate": "no action",
           "onDelete": "no action"
         },
-        "operations_base_currency_currencies_code_fk": {
-          "name": "operations_base_currency_currencies_code_fk",
-          "tableFrom": "operations",
-          "columnsFrom": [
-            "base_currency"
-          ],
-          "tableTo": "currencies",
-          "columnsTo": [
-            "code"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
-        },
         "operations_category_id_categories_id_fk": {
           "name": "operations_category_id_categories_id_fk",
           "tableFrom": "operations",
@@ -298,19 +272,6 @@
           "tableTo": "categories",
           "columnsTo": [
             "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
-        },
-        "operations_original_currency_currencies_code_fk": {
-          "name": "operations_original_currency_currencies_code_fk",
-          "tableFrom": "operations",
-          "columnsFrom": [
-            "original_currency"
-          ],
-          "tableTo": "currencies",
-          "columnsTo": [
-            "code"
           ],
           "onUpdate": "no action",
           "onDelete": "no action"

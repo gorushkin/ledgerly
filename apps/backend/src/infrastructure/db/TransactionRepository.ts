@@ -65,14 +65,12 @@ export class TransactionRepository {
 
       const opsToInsert = dto.operations.map((op) => ({
         accountId: op.accountId,
-        baseCurrency: op.baseCurrency,
         categoryId: op.categoryId,
         createdAt: now,
         description: op.description,
         id: randomUUID(),
         localAmount: op.localAmount,
         originalAmount: op.originalAmount,
-        originalCurrency: op.originalCurrency,
         transactionId: transaction.id,
       }));
 

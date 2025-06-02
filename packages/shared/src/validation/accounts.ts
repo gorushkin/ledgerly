@@ -15,10 +15,10 @@ import {
 const type = z.enum(ACCOUNT_TYPE_VALUES);
 
 export const accountCreateSchema = z.object({
-  currencyCode,
   description: defaultText,
   initialBalance: defaultNumber,
   name: notNullText,
+  originalCurrency: currencyCode,
   type,
 });
 
