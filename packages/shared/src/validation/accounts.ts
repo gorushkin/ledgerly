@@ -20,6 +20,7 @@ export const accountCreateSchema = z.object({
   name: notNullText,
   originalCurrency: currencyCode,
   type,
+  userId: uuid,
 });
 
 export const accountResponseSchema = z

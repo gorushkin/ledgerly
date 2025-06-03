@@ -3,3 +3,5 @@ export * from './schemas/categories';
 export * from './schemas/transactions';
 export * from './schemas/currencies';
 export * from './schemas/operations';
+export * from './schemas/users';
+export * from './schemas/settings';

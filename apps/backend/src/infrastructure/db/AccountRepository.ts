@@ -1,13 +1,18 @@
 import { AccountCreateDTO, AccountResponseDTO } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
-import { accounts } from 'src/db';
+import { accounts } from 'src/db/schemas';
 import { withErrorHandling } from 'src/libs/errorHandler';
 import { DataBase } from 'src/types';
 
-export class AccountRepository {
-  constructor(private readonly db: DataBase) {}
+import { BaseRepository } from './BaseRepository';
+
+export class AccountRepository extends BaseRepository {
+  constructor(db: DataBase) {
+    super(db);
+  }
+
   async createAccount(data: AccountCreateDTO): Promise<AccountResponseDTO> {
-    return withErrorHandling(
+    return this.withErrorHandling(
       () => this.db.insert(accounts).values(data).returning().get(),
       'Failed to create account',
     );
@@ -17,7 +22,7 @@ export class AccountRepository {
     id: string,
     data: AccountCreateDTO,
   ): Promise<AccountResponseDTO> {
-    return withErrorHandling(
+    return this.withErrorHandling(
       () =>
         this.db
           .update(accounts)
@@ -30,7 +35,7 @@ export class AccountRepository {
   }
 
   async deleteAccount(id: string): Promise<AccountResponseDTO | undefined> {
-    return withErrorHandling(
+    return this.withErrorHandling(
       () =>
         this.db.delete(accounts).where(eq(accounts.id, id)).returning().get(),
       `Failed to delete account with ID ${id}`,
@@ -38,7 +43,7 @@ export class AccountRepository {
   }
 
   async getAccountById(id: string): Promise<AccountResponseDTO | undefined> {
-    return withErrorHandling(
+    return this.withErrorHandling(
       () => this.db.select().from(accounts).where(eq(accounts.id, id)).get(),
       `Failed to fetch account with ID ${id}`,
     );

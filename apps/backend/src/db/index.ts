@@ -18,5 +18,3 @@ const client = createClient({ url: dbUrl });
 export const db = drizzle(client, {
   schema: schemas,
 });
-
-export { currencies, categories, accounts } from '../db/schemas/';

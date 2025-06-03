@@ -6,8 +6,12 @@ import { eq } from 'drizzle-orm';
 import { operations } from 'src/db/schemas';
 import { DataBase } from 'src/types';
 
-export class OperationRepository {
-  constructor(private readonly db: DataBase) {}
+import { BaseRepository } from './BaseRepository';
+
+export class OperationRepository extends BaseRepository {
+  constructor(db: DataBase) {
+    super(db);
+  }
 
   getAll(): Promise<OperationResponseDTO[]> {
     throw new Error('Method not implemented.');

@@ -3,10 +3,12 @@ CREATE TABLE `accounts` (
 	`description` text DEFAULT '' NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
-	`original_currency` text DEFAULT 'RUB',
+	`original_currency` text DEFAULT 'RUB' NOT NULL,
 	`type` text DEFAULT 'cash' NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	FOREIGN KEY (`original_currency`) REFERENCES `currencies`(`code`) ON UPDATE no action ON DELETE no action
+	`user_id` text NOT NULL,
+	FOREIGN KEY (`original_currency`) REFERENCES `currencies`(`code`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `categories` (
@@ -40,4 +42,22 @@ CREATE TABLE `operations` (
 	FOREIGN KEY (`account_id`) REFERENCES `accounts`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE TABLE `users` (
+	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`email` text NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
+CREATE TABLE `settings` (
+	`base_currency` text DEFAULT 'RUB' NOT NULL,
+	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`user_id` text NOT NULL,
+	FOREIGN KEY (`base_currency`) REFERENCES `currencies`(`code`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
