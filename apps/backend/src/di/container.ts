@@ -12,6 +12,7 @@ import { OperationController } from 'src/presentation/controllers/operation.cont
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { AuthService } from 'src/services/auth.service';
+import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
 import { AppContainer } from './types';
@@ -25,7 +26,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     db,
     operationRepository,
   );
-
   const userRepository = new UsersRepository(db);
 
   const repositories: AppContainer['repositories'] = {
@@ -38,9 +38,11 @@ export const createContainer = (db: DataBase): AppContainer => {
   };
 
   const authService = new AuthService(userRepository);
+  const userService = new UserService(userRepository);
 
   const services: AppContainer['services'] = {
     auth: authService,
+    user: userService,
   };
 
   const accountController = new AccountController(repositories.account);
@@ -51,13 +53,12 @@ export const createContainer = (db: DataBase): AppContainer => {
     currencyController,
     accountController,
   );
-
   const transactionController = new TransactionController(
     repositories.transaction,
     operationController,
   );
 
-  const userController = new UserController(userRepository);
+  const userController = new UserController(userService);
 
   const authController = new AuthController(authService);
 

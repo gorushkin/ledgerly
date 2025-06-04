@@ -12,6 +12,7 @@ import { OperationController } from 'src/presentation/controllers/operation.cont
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { AuthService } from 'src/services/auth.service';
+import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
 interface Repositories {
@@ -25,12 +26,7 @@ interface Repositories {
 
 interface Services {
   auth: AuthService;
-  // user: UserService;
-  // transaction: TransactionService;
-  // account: AccountService;
-  // category: CategoryService;
-  // currency: CurrencyService;
-  // operation: OperationService;
+  user: UserService;
 }
 
 interface Controllers {
