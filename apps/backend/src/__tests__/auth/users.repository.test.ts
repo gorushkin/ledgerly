@@ -10,7 +10,6 @@ describe('UsersRepository', () => {
   const email = 'test@example.com';
   const password = 'password123';
   const name = 'Test User';
-  const id = '123';
 
   beforeAll(async () => {
     await setupTestDb();

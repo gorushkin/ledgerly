@@ -1,4 +1,9 @@
 import bcrypt from 'bcryptjs';
+import {
+  InvalidPasswordError,
+  UserExistsError,
+  UserNotFoundError,
+} from 'src/presentation/errors/auth.errors';
 import { describe, vi, beforeEach, expect, it } from 'vitest';
 
 import { UsersRepository } from '../../infrastructure/db/UsersRepository';
@@ -6,7 +11,7 @@ import { AuthService } from '../../services/auth.service';
 
 vi.mock('bcryptjs', () => ({
   default: {
-    compare: vi.fn().mockResolvedValue(true),
+    compare: vi.fn(),
     hash: vi.fn().mockResolvedValue('hashed_password'),
   },
 }));
@@ -32,7 +37,7 @@ describe('AuthService', () => {
     vi.clearAllMocks();
   });
 
-  describe.skip('registerUser', () => {
+  describe('registerUser', () => {
     it('should register a user successfully', async () => {
       const mockUser = { email, id, name, password: hashedPassword };
 
@@ -46,17 +51,15 @@ describe('AuthService', () => {
       });
 
       expect(bcrypt.hash).toHaveBeenCalledWith(password, 10);
-
       expect(mockUsersRepository.create).toHaveBeenCalledWith({
         email,
         name,
         password: hashedPassword,
       });
-
       expect(result).toEqual(mockUser);
     });
 
-    it('should throw error if user already exists', async () => {
+    it('should throw UserExistsError if user already exists', async () => {
       mockUsersRepository.findByEmail.mockResolvedValue({ email });
 
       await expect(
@@ -65,41 +68,46 @@ describe('AuthService', () => {
           name,
           password,
         }),
-      ).rejects.toThrow('User already exists');
+      ).rejects.toThrow(UserExistsError);
     });
   });
 
   describe('validateUser', () => {
-    it.skip('should validate user with correct credentials', async () => {
-      const mockUser = { email, id: '1', password: hashedPassword };
+    it('should validate user with correct credentials', async () => {
+      const mockUser = { email, id, name, password: hashedPassword };
 
       mockUsersRepository.findByEmail.mockResolvedValue(mockUser);
 
+      (bcrypt.compare as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true,
+      );
+
       const result = await service.validateUser(email, password);
 
+      expect(mockUsersRepository.findByEmail).toHaveBeenCalledWith(email);
       expect(bcrypt.compare).toHaveBeenCalledWith(password, hashedPassword);
       expect(result).toEqual(mockUser);
     });
 
-    it.skip('should throw error if user not found', async () => {
+    it('should throw UserNotFoundError if user not found', async () => {
       mockUsersRepository.findByEmail.mockResolvedValue(null);
 
       await expect(service.validateUser(email, password)).rejects.toThrow(
-        'User not found',
+        UserNotFoundError,
       );
     });
 
-    it('should throw error if password is invalid', async () => {
-      const mockUser = { email, id: '1', password: hashedPassword };
+    it('should throw InvalidPasswordError if password is invalid', async () => {
+      const mockUser = { email, id, name, password: hashedPassword };
+
       mockUsersRepository.findByEmail.mockResolvedValue(mockUser);
 
-      // vi.mocked(bcrypt).compare.mockResolvedValue(false);
       (bcrypt.compare as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
         false,
       );
 
       await expect(service.validateUser(email, password)).rejects.toThrow(
-        'Invalid password',
+        InvalidPasswordError,
       );
     });
   });

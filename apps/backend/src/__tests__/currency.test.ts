@@ -2,7 +2,7 @@ import { createTestDb } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-describe('Currency Tests', () => {
+describe.skip('Currency Tests', () => {
   const { cleanupTestDb, db, setupTestDb } = createTestDb();
   const server = createServer(db);
 

@@ -15,3 +15,12 @@ export abstract class BaseRepositoryNew {
     this.db = db;
   }
 }
+
+export interface JWTPayload {
+  userId: string;
+  email: string;
+}
+
+export interface TokenGenerator {
+  signToken(payload: JWTPayload): Promise<string>;
+}

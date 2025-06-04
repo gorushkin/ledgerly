@@ -10,30 +10,34 @@ export class UsersRepository extends BaseRepository {
     super(db);
   }
 
-  findByEmail(email: string): Promise<UsersResponseDTO | undefined> {
-    return this.withErrorHandling(
-      () => this.db.select().from(users).where(eq(users.email, email)).get(),
-      'Failed to fetch user by email',
+  async findByEmail(email: string): Promise<UsersResponseDTO | undefined> {
+    return this.executeDatabaseOperation(
+      async () =>
+        this.db.select().from(users).where(eq(users.email, email)).get(),
+      `Failed to find user with email ${email}`,
     );
   }
 
-  getUsers(): Promise<UsersResponseDTO[]> {
-    return this.withErrorHandling(
-      () => this.db.select().from(users).all(),
+  async getUsers(): Promise<UsersResponseDTO[]> {
+    return this.executeDatabaseOperation(
+      async () => this.db.select().from(users).all(),
       'Failed to fetch users',
     );
   }
 
-  getUserById(id: string): Promise<UsersResponseDTO | undefined> {
-    return this.withErrorHandling(
-      () => this.db.select().from(users).where(eq(users.id, id)).get(),
-      'Failed to fetch user',
+  async getUserById(id: string): Promise<UsersResponseDTO | undefined> {
+    return this.executeDatabaseOperation(
+      async () => this.db.select().from(users).where(eq(users.id, id)).get(),
+      `Failed to fetch user with ID ${id}`,
     );
   }
 
-  updateUser(id: string, data: UsersCreateDTO): Promise<UsersResponseDTO> {
-    return this.withErrorHandling(
-      () =>
+  async updateUser(
+    id: string,
+    data: UsersCreateDTO,
+  ): Promise<UsersResponseDTO> {
+    return this.executeDatabaseOperation(
+      async () =>
         this.db
           .update(users)
           .set(data)
@@ -44,17 +48,18 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  create(data: UsersCreateDTO): Promise<UsersResponseDTO> {
-    return this.withErrorHandling(
-      () => this.db.insert(users).values(data).returning().get(),
+  async create(data: UsersCreateDTO): Promise<UsersResponseDTO> {
+    return this.executeDatabaseOperation(
+      async () => this.db.insert(users).values(data).returning().get(),
       'Failed to create user',
     );
   }
 
-  deleteUser(id: string): Promise<UsersResponseDTO | undefined> {
-    return this.withErrorHandling(
-      () => this.db.delete(users).where(eq(users.id, id)).returning().get(),
-      'Failed to delete user',
+  async deleteUser(id: string): Promise<UsersResponseDTO | undefined> {
+    return this.executeDatabaseOperation(
+      async () =>
+        this.db.delete(users).where(eq(users.id, id)).returning().get(),
+      `Failed to delete user with ID ${id}`,
     );
   }
 }
