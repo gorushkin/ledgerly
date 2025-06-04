@@ -5,11 +5,13 @@ import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { AccountController } from 'src/presentation/controllers/account.controller';
+import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { CategoryController } from 'src/presentation/controllers/category.controller';
 import { CurrencyController } from 'src/presentation/controllers/currency.controller';
 import { OperationController } from 'src/presentation/controllers/operation.controller';
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
+import { AuthService } from 'src/services/auth.service';
 import { DataBase } from 'src/types';
 
 interface Repositories {
@@ -21,6 +23,16 @@ interface Repositories {
   user: UsersRepository;
 }
 
+interface Services {
+  auth: AuthService;
+  // user: UserService;
+  // transaction: TransactionService;
+  // account: AccountService;
+  // category: CategoryService;
+  // currency: CurrencyService;
+  // operation: OperationService;
+}
+
 interface Controllers {
   category: CategoryController;
   currency: CurrencyController;
@@ -28,10 +40,12 @@ interface Controllers {
   account: AccountController;
   operation: OperationController;
   user: UserController;
+  auth: AuthController;
 }
 
 export interface AppContainer {
   db: DataBase;
   repositories: Repositories;
+  services: Services;
   controllers: Controllers;
 }

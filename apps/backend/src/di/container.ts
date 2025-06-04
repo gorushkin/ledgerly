@@ -5,11 +5,13 @@ import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { AccountController } from 'src/presentation/controllers/account.controller';
+import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { CategoryController } from 'src/presentation/controllers/category.controller';
 import { CurrencyController } from 'src/presentation/controllers/currency.controller';
 import { OperationController } from 'src/presentation/controllers/operation.controller';
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
+import { AuthService } from 'src/services/auth.service';
 import { DataBase } from 'src/types';
 
 import { AppContainer } from './types';
@@ -35,12 +37,15 @@ export const createContainer = (db: DataBase): AppContainer => {
     user: userRepository,
   };
 
+  const authService = new AuthService(userRepository);
+
+  const services: AppContainer['services'] = {
+    auth: authService,
+  };
+
   const accountController = new AccountController(repositories.account);
-
   const currencyController = new CurrencyController(repositories.currency);
-
   const categoryController = new CategoryController(repositories.category);
-
   const operationController = new OperationController(
     operationRepository,
     currencyController,
@@ -54,8 +59,11 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const userController = new UserController(userRepository);
 
+  const authController = new AuthController(authService);
+
   const controllers: AppContainer['controllers'] = {
     account: accountController,
+    auth: authController,
     category: categoryController,
     currency: currencyController,
     operation: operationController,
@@ -67,5 +75,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     controllers,
     db,
     repositories,
+    services,
   };
 };

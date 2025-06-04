@@ -5,3 +5,4 @@ export * from "./transactions";
 export * from "./operations";
 export * from "./settings";
 export * from "./users";
+export * from "./auth";

@@ -49,6 +49,7 @@ CREATE TABLE `users` (
 	`email` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
+	`password` text NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 --> statement-breakpoint

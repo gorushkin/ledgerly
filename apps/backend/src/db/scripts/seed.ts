@@ -77,6 +77,7 @@ const seedUsers = async () => {
         email: 'test@example.com',
         id: USER_ID,
         name: 'Test User',
+        password: 'hashed_password',
       })
       .returning();
 

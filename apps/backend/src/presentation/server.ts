@@ -19,6 +19,10 @@ export function createServer(db: DataBase = defaultDb) {
     logger: false,
   });
 
+  // fastify.register(fastifyJwt, {
+  //   secret: process.env.JWT_SECRET ?? 'your-secret-key',
+  // });
+
   fastify.addHook('onRequest', (request, _reply, done) => {
     console.info(`${request.method} ${request.url}`, request.body);
     done();

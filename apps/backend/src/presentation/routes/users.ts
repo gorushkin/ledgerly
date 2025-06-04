@@ -15,12 +15,12 @@ export const registerUsersRoutes = (app: FastifyInstance) => {
     return await userController.getById(id);
   });
 
-  app.post('/', async (request, reply) => {
-    const newUser = usersCreateSchema.parse(request.body);
+  // app.post('/', async (request, reply) => {
+  //   const newUser = usersCreateSchema.parse(request.body);
 
-    const createdUser = await userController.create(newUser);
-    reply.status(201).send(createdUser);
-  });
+  //   const createdUser = await userController.create(newUser);
+  //   reply.status(201).send(createdUser);
+  // });
 
   app.put('/:id', async (request, reply) => {
     const { id } = uniqueIdSchema.parse(request.params);

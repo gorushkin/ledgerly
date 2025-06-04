@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { createdAt, notNullText, updatedAt, uuid } from "./baseValidations";
-
+// TODO: add password validation
 export const usersCreateSchema = z.object({
   email: z
     .string()
@@ -14,6 +14,7 @@ export const usersCreateSchema = z.object({
       message: "Email must be at most 255 characters long",
     }),
   name: notNullText,
+  password: notNullText,
 });
 
 export const usersResponseSchema = z

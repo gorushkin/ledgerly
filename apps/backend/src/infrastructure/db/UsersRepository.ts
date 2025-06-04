@@ -10,6 +10,13 @@ export class UsersRepository extends BaseRepository {
     super(db);
   }
 
+  findByEmail(email: string): Promise<UsersResponseDTO | undefined> {
+    return this.withErrorHandling(
+      () => this.db.select().from(users).where(eq(users.email, email)).get(),
+      'Failed to fetch user by email',
+    );
+  }
+
   getUsers(): Promise<UsersResponseDTO[]> {
     return this.withErrorHandling(
       () => this.db.select().from(users).all(),
@@ -37,7 +44,7 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  createUser(data: UsersCreateDTO): Promise<UsersResponseDTO> {
+  create(data: UsersCreateDTO): Promise<UsersResponseDTO> {
     return this.withErrorHandling(
       () => this.db.insert(users).values(data).returning().get(),
       'Failed to create user',
