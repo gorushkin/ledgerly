@@ -1,8 +1,7 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 
-import { DatabaseError } from '../infrastructure/db/errors';
-import { AppError } from '../presentation/errors/AppError';
+import { AppError, DatabaseError } from '../presentation/errors';
 
 export function errorHandler(
   error: FastifyError | AppError | ZodError | DatabaseError,

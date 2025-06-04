@@ -6,7 +6,6 @@ export async function authMiddleware(
 ) {
   try {
     const token = request.headers.authorization?.replace('Bearer ', '');
-    console.log('token: ', token);
 
     if (!token) {
       throw new Error('No token provided');
