@@ -1,12 +1,12 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import type { FastifyInstance } from 'fastify';
 
-import { registerAccountsRoutes } from './accounts';
+import { registerAccountsRoutes } from './accounts.routes';
 import { authRoutes } from './auth.routes';
-import { registerCategoriesRoutes } from './categories';
-import { registerCurrenciesRoutes } from './currencies';
-import { registerTransactionsRoutes } from './transactions';
-import { registerUsersRoutes } from './users';
+import { registerCategoriesRoutes } from './categories.routes';
+import { registerCurrenciesRoutes } from './currencies.routes';
+import { registerTransactionsRoutes } from './transactions.routes';
+import { registerUsersRoutes } from './users.routes';
 
 export const registerRoutes = (fastify: FastifyInstance) => {
   fastify.get('/', (_request, reply) => {
