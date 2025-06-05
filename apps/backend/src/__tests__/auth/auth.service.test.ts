@@ -20,6 +20,7 @@ describe('AuthService', () => {
   const mockUsersRepository = {
     create: vi.fn(),
     findByEmail: vi.fn(),
+    findByEmailWithPassword: vi.fn(),
     updatePassword: vi.fn(),
   };
 
@@ -76,7 +77,7 @@ describe('AuthService', () => {
     it('should validate user with correct credentials', async () => {
       const mockUser = { email, id, name, password: hashedPassword };
 
-      mockUsersRepository.findByEmail.mockResolvedValue(mockUser);
+      mockUsersRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
 
       (bcrypt.compare as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
         true,
@@ -84,13 +85,19 @@ describe('AuthService', () => {
 
       const result = await service.validateUser(email, password);
 
-      expect(mockUsersRepository.findByEmail).toHaveBeenCalledWith(email);
+      expect(mockUsersRepository.findByEmailWithPassword).toHaveBeenCalledWith(
+        email,
+      );
       expect(bcrypt.compare).toHaveBeenCalledWith(password, hashedPassword);
-      expect(result).toEqual(mockUser);
+      expect(result).toEqual({
+        email: mockUser.email,
+        id: mockUser.id,
+        name: mockUser.name,
+      });
     });
 
     it('should throw UserNotFoundError if user not found', async () => {
-      mockUsersRepository.findByEmail.mockResolvedValue(null);
+      mockUsersRepository.findByEmailWithPassword.mockResolvedValue(null);
 
       await expect(service.validateUser(email, password)).rejects.toThrow(
         UserNotFoundError,
@@ -100,7 +107,7 @@ describe('AuthService', () => {
     it('should throw InvalidPasswordError if password is invalid', async () => {
       const mockUser = { email, id, name, password: hashedPassword };
 
-      mockUsersRepository.findByEmail.mockResolvedValue(mockUser);
+      mockUsersRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
 
       (bcrypt.compare as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
         false,

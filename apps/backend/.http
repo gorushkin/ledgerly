@@ -1,1 +1,35 @@
-GET http://localhost:3000/
+@baseUrl = http://localhost:3000/api
+
+### health check
+
+GET {{baseUrl}}
+
+### login
+# @name postLogin
+POST {{baseUrl}}/auth/login
+content-type: application/json
+
+{
+	"email": "test@example4.com",
+	"password": "hashed_password"
+}
+
+### Save token
+
+@access = {{postLogin.response.body.token}}
+
+
+### getProfile
+GET {{baseUrl}}/profile
+Authorization: Bearer {{access}}
+
+### updateProfile
+PUT {{baseUrl}}/profile
+Authorization: Bearer {{access}}
+content-type: application/json
+
+{
+	"email": "test@example43333.com",
+	"password": "hashed_password",
+    "name": "Test User"
+}

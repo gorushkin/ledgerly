@@ -13,19 +13,24 @@ export class AuthService {
     email: string,
     password: string,
   ): Promise<UsersResponseDTO> {
-    const user = await this.usersRepository.findByEmail(email);
+    const userWithPassword =
+      await this.usersRepository.findByEmailWithPassword(email);
 
-    if (!user) {
+    if (!userWithPassword) {
       throw new UserNotFoundError();
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      userWithPassword.password,
+    );
 
     if (!isPasswordValid) {
       throw new InvalidPasswordError();
     }
 
-    return user;
+    const { password: _, ...userWithoutPassword } = userWithPassword;
+    return userWithoutPassword;
   }
 
   async registerUser(data: RegisterDto): Promise<UsersResponseDTO> {

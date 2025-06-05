@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { createdAt, notNullText, updatedAt, uuid } from "./baseValidations";
-// TODO: add password validation
+import { notNullText } from "./baseValidations";
+
 export const usersCreateSchema = z.object({
   email: z
     .string()
@@ -19,8 +19,6 @@ export const usersCreateSchema = z.object({
 
 export const usersResponseSchema = z
   .object({
-    createdAt,
-    id: uuid,
-    updatedAt,
+    id: z.string(),
   })
-  .merge(usersCreateSchema);
+  .merge(usersCreateSchema.omit({ password: true }));

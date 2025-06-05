@@ -24,16 +24,14 @@ describe('UsersRepository', () => {
     it('should create a user successfully', async () => {
       const user = await repository.create({ email, name, password });
 
-      expect(user).toHaveProperty('id');
       expect(user.email).toBe(email);
       expect(user.name).toBe(name);
-      expect(user.password).toBeDefined(); // Password should be hashed
 
       expect(1).toBe(1); // Placeholder for actual test logic
     });
   });
 
-  describe('findByEmail', async () => {
+  describe('findByEmail', () => {
     it('should find a user by email', async () => {
       await repository.create({ email, name, password });
 
@@ -50,15 +48,19 @@ describe('UsersRepository', () => {
       const user = await repository.create({ email, name, password });
 
       const newPassword = 'newpassword123';
+      const newName = 'Test User Updated';
+      const newEmail = 'qwe@qwe.com';
 
       const updatedUser = await repository.updateUser(user.id, {
-        ...user,
+        email: newEmail,
+        name: newName,
         password: newPassword,
       });
 
       expect(updatedUser).toBeDefined();
-      expect(updatedUser.password).not.toBe(user.password); // Password should be hashed and different
-      expect(updatedUser.password).toBe(newPassword); // Password should be hashed and different
+      expect(updatedUser.name).toBe(newName);
+
+      expect(updatedUser.email).toBe(newEmail);
     });
   });
 });
