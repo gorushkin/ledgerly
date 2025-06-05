@@ -1,18 +1,38 @@
 import { UsersCreateDTO } from '@ledgerly/shared/types';
 import { UserService } from 'src/services/user.service';
 
+import { UserNotFoundError } from '../errors/auth.errors';
+
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  getById(id: string) {
-    return this.userService.getById(id);
+  async getById(id: string) {
+    const user = await this.userService.getById(id);
+
+    if (!user) {
+      throw new UserNotFoundError();
+    }
+
+    return user;
   }
 
-  update(id: string, userData: UsersCreateDTO) {
+  async update(id: string, userData: UsersCreateDTO) {
+    const user = await this.userService.getById(id);
+
+    if (!user) {
+      throw new UserNotFoundError();
+    }
+
     return this.userService.update(id, userData);
   }
 
-  delete(id: string) {
+  async delete(id: string) {
+    const user = await this.userService.getById(id);
+
+    if (!user) {
+      throw new UserNotFoundError();
+    }
+
     return this.userService.delete(id);
   }
 }

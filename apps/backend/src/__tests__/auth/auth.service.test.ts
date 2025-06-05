@@ -1,13 +1,12 @@
 import bcrypt from 'bcryptjs';
+import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import {
-  InvalidPasswordError,
   UserExistsError,
   UserNotFoundError,
+  InvalidPasswordError,
 } from 'src/presentation/errors/auth.errors';
+import { AuthService } from 'src/services/auth.service';
 import { describe, vi, beforeEach, expect, it } from 'vitest';
-
-import { UsersRepository } from '../../infrastructure/db/UsersRepository';
-import { AuthService } from '../../services/auth.service';
 
 vi.mock('bcryptjs', () => ({
   default: {
@@ -69,7 +68,7 @@ describe('AuthService', () => {
           name,
           password,
         }),
-      ).rejects.toThrow(UserExistsError);
+      ).rejects.toThrowError(UserExistsError);
     });
   });
 
@@ -113,7 +112,7 @@ describe('AuthService', () => {
         false,
       );
 
-      await expect(service.validateUser(email, password)).rejects.toThrow(
+      await expect(service.validateUser(email, password)).rejects.toThrowError(
         InvalidPasswordError,
       );
     });
