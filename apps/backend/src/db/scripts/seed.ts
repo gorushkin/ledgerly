@@ -2,8 +2,8 @@ import {
   AccountResponseDTO,
   CategoryResponseDTO,
 } from '@ledgerly/shared/types';
+import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
-import { hashPassword } from '../../utils/password.utils';
 import { db } from '../index';
 import { operations, transactions } from '../schemas';
 import { accounts } from '../schemas/accounts';
@@ -69,13 +69,14 @@ const seedAccounts = async (userId: string) => {
 
     return insertedWallets;
   } catch {
-    throw new SeedError('Ошибка при добавлении счетов:');
+    throw new SeedError('Failed to seed accounts');
   }
 };
 
 const seedUser = async () => {
   try {
-    const hashedPassword = await hashPassword(USER_PASSWORD);
+    const passwordManager = new PasswordManager();
+    const hashedPassword = await passwordManager.hash(USER_PASSWORD);
     const insertedUser = await db
       .insert(users)
       .values({
@@ -157,8 +158,7 @@ const deleteData = async () => {
     throw new Error('Ошибка при удалении данных');
   }
 };
-
-const addData = async () => {
+export const addData = async () => {
   try {
     console.info('Starting seeding...');
 

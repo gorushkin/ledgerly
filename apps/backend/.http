@@ -49,7 +49,7 @@ Authorization: Bearer {{access}}
 content-type: application/json
 
 {
-	"email": "test@example43333.com",
-	"password": "hashed_password",
-    "name": "Test User"
+	"email": "{{USER_EMAIL}}",
+	"password": "{{USER_PASSWORD}}",
+	"name": "New name"
 }

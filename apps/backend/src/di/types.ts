@@ -1,3 +1,4 @@
+import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
@@ -27,6 +28,7 @@ interface Repositories {
 interface Services {
   auth: AuthService;
   user: UserService;
+  passwordManager: PasswordManager;
 }
 
 interface Controllers {

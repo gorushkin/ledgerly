@@ -1,3 +1,4 @@
+import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
@@ -37,11 +38,13 @@ export const createContainer = (db: DataBase): AppContainer => {
     user: userRepository,
   };
 
-  const authService = new AuthService(userRepository);
-  const userService = new UserService(userRepository);
+  const passwordManager = new PasswordManager();
+  const authService = new AuthService(userRepository, passwordManager);
+  const userService = new UserService(userRepository, passwordManager);
 
   const services: AppContainer['services'] = {
     auth: authService,
+    passwordManager,
     user: userService,
   };
 
@@ -59,7 +62,6 @@ export const createContainer = (db: DataBase): AppContainer => {
   );
 
   const userController = new UserController(userService);
-
   const authController = new AuthController(authService);
 
   const controllers: AppContainer['controllers'] = {

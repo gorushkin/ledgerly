@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import {
   UserExistsError,
@@ -8,13 +8,6 @@ import {
 import { AuthService } from 'src/services/auth.service';
 import { describe, vi, beforeEach, expect, it } from 'vitest';
 
-vi.mock('bcryptjs', () => ({
-  default: {
-    compare: vi.fn(),
-    hash: vi.fn().mockResolvedValue('hashed_password'),
-  },
-}));
-
 describe('AuthService', () => {
   const mockUsersRepository = {
     create: vi.fn(),
@@ -23,8 +16,14 @@ describe('AuthService', () => {
     updatePassword: vi.fn(),
   };
 
+  const mockPasswordManager = {
+    compare: vi.fn(),
+    hash: vi.fn(),
+  };
+
   const service = new AuthService(
     mockUsersRepository as unknown as UsersRepository,
+    mockPasswordManager as unknown as PasswordManager,
   );
 
   const email = 'test@example.com';
@@ -42,6 +41,7 @@ describe('AuthService', () => {
       const mockUser = { email, id, name, password: hashedPassword };
 
       mockUsersRepository.findByEmail.mockResolvedValue(null);
+      mockPasswordManager.hash.mockResolvedValue(hashedPassword);
       mockUsersRepository.create.mockResolvedValue(mockUser);
 
       const result = await service.registerUser({
@@ -50,7 +50,7 @@ describe('AuthService', () => {
         password,
       });
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(password, 10);
+      expect(mockPasswordManager.hash).toHaveBeenCalledWith(password);
       expect(mockUsersRepository.create).toHaveBeenCalledWith({
         email,
         name,
@@ -77,17 +77,17 @@ describe('AuthService', () => {
       const mockUser = { email, id, name, password: hashedPassword };
 
       mockUsersRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
-
-      (bcrypt.compare as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
-        true,
-      );
+      mockPasswordManager.compare.mockResolvedValue(true);
 
       const result = await service.validateUser(email, password);
 
       expect(mockUsersRepository.findByEmailWithPassword).toHaveBeenCalledWith(
         email,
       );
-      expect(bcrypt.compare).toHaveBeenCalledWith(password, hashedPassword);
+      expect(mockPasswordManager.compare).toHaveBeenCalledWith(
+        password,
+        hashedPassword,
+      );
       expect(result).toEqual({
         email: mockUser.email,
         id: mockUser.id,
@@ -107,10 +107,7 @@ describe('AuthService', () => {
       const mockUser = { email, id, name, password: hashedPassword };
 
       mockUsersRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
-
-      (bcrypt.compare as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
-        false,
-      );
+      mockPasswordManager.compare.mockResolvedValue(false);
 
       await expect(service.validateUser(email, password)).rejects.toThrowError(
         InvalidPasswordError,
