@@ -1,4 +1,3 @@
-import { usersCreateSchema } from '@ledgerly/shared/validation';
 import type { FastifyInstance } from 'fastify';
 
 export const registerProfileRoutes = (app: FastifyInstance) => {
@@ -6,14 +5,17 @@ export const registerProfileRoutes = (app: FastifyInstance) => {
 
   app.get('/', async (request) => {
     const userId = request.user.userId;
+
     return await userController.getById(userId);
   });
 
   app.put('/', async (request, reply) => {
     const userId = request.user.userId;
-    const updatedUserDTO = usersCreateSchema.parse(request.body);
 
-    const updatedUser = await userController.update(userId, updatedUserDTO);
+    const updatedUser = await userController.updateProfile(
+      userId,
+      request.body,
+    );
     reply.status(200).send(updatedUser);
   });
 
