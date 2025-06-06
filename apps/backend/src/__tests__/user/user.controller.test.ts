@@ -2,6 +2,8 @@ import { UserController } from 'src/presentation/controllers/user.controller';
 import { UserService } from 'src/services/user.service';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { UserNotFoundError } from '../../presentation/errors/auth.errors';
+
 describe('UserController', () => {
   const mockUserService = {
     delete: vi.fn(),
@@ -37,7 +39,7 @@ describe('UserController', () => {
       mockUserService.getById.mockResolvedValue(undefined);
 
       await expect(() => controller.getById('999')).rejects.toThrowError(
-        'User not found',
+        UserNotFoundError,
       );
       expect(mockUserService.getById).toHaveBeenCalledWith('999');
     });
@@ -78,7 +80,7 @@ describe('UserController', () => {
 
       await expect(() =>
         controller.update('999', userData),
-      ).rejects.toThrowError('User not found');
+      ).rejects.toThrowError(UserNotFoundError);
       expect(mockUserService.getById).toHaveBeenCalledWith('999');
       expect(mockUserService.update).not.toHaveBeenCalled();
     });
@@ -106,7 +108,7 @@ describe('UserController', () => {
       mockUserService.getById.mockResolvedValue(undefined);
 
       await expect(() => controller.delete('999')).rejects.toThrowError(
-        'User not found',
+        UserNotFoundError,
       );
       expect(mockUserService.getById).toHaveBeenCalledWith('999');
       expect(mockUserService.delete).not.toHaveBeenCalled();

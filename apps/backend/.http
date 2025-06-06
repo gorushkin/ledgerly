@@ -1,17 +1,21 @@
-@baseUrl = http://localhost:3000/api
+@BASE_URL = http://localhost:3000/api
+
+@USER_EMAIL = test@example.com
+@USER_PASSWORD = test_password
+@USER_NAME = Test User
 
 ### health check
 
-GET {{baseUrl}}
+GET {{BASE_URL}}
 
 ### login
 # @name postLogin
-POST {{baseUrl}}/auth/login
+POST {{BASE_URL}}/auth/login
 content-type: application/json
 
 {
-	"email": "test@example4.com",
-	"password": "hashed_password"
+	"email": "{{USER_EMAIL}}",
+	"password": "{{USER_PASSWORD}}"
 }
 
 ### Save token
@@ -19,12 +23,28 @@ content-type: application/json
 @access = {{postLogin.response.body.token}}
 
 
+### register
+POST {{BASE_URL}}/auth/register
+content-type: application/json
+
+{
+	"email": "{{USER_EMAIL}}",
+	"password": "{{USER_PASSWORD}}",
+	"name": "{{USER_NAME}}"
+}
+
+### Save token
+
+@access = {{postLogin.response.body.token}}
+
+
+
 ### getProfile
-GET {{baseUrl}}/profile
+GET {{BASE_URL}}/profile
 Authorization: Bearer {{access}}
 
 ### updateProfile
-PUT {{baseUrl}}/profile
+PUT {{BASE_URL}}/profile
 Authorization: Bearer {{access}}
 content-type: application/json
 

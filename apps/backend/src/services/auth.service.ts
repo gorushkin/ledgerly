@@ -1,11 +1,12 @@
 import { RegisterDto, UsersResponseDTO } from '@ledgerly/shared/types';
-import bcrypt from 'bcryptjs';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import {
   InvalidPasswordError,
   UserExistsError,
   UserNotFoundError,
 } from 'src/presentation/errors/auth.errors';
+
+import { comparePasswords, hashPassword } from '../utils/password.utils';
 
 export class AuthService {
   constructor(private readonly usersRepository: UsersRepository) {}
@@ -20,7 +21,7 @@ export class AuthService {
       throw new UserNotFoundError();
     }
 
-    const isPasswordValid = await bcrypt.compare(
+    const isPasswordValid = await comparePasswords(
       password,
       userWithPassword.password,
     );
@@ -39,7 +40,7 @@ export class AuthService {
     if (existingUser) {
       throw new UserExistsError();
     }
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await hashPassword(data.password);
 
     const user = await this.usersRepository.create({
       ...data,

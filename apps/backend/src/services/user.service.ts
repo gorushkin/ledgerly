@@ -1,6 +1,7 @@
 import { UsersCreateDTO } from '@ledgerly/shared/types';
-import bcrypt from 'bcryptjs';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
+
+import { hashPassword } from '../utils/password.utils';
 
 export class UserService {
   constructor(private readonly usersRepository: UsersRepository) {}
@@ -10,7 +11,7 @@ export class UserService {
   }
 
   async update(id: string, userData: UsersCreateDTO) {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    const hashedPassword = await hashPassword(userData.password);
     return this.usersRepository.updateUser(id, {
       ...userData,
       password: hashedPassword,
