@@ -63,6 +63,26 @@ describe('UserController', () => {
       expect(mockUserService.update).toHaveBeenCalledWith('1', userData);
       expect(result).toEqual(updatedUser);
     });
+
+    it('should handle case-sensitive email updates', async () => {
+      const existingUser = {
+        email: 'OLD@example.com',
+        name: 'Old Name',
+      };
+
+      const normalizedEmail = existingUser.email.toLocaleLowerCase();
+      const updatedUser = {
+        ...existingUser,
+        email: normalizedEmail,
+      };
+
+      mockUserService.update.mockResolvedValue(updatedUser);
+
+      const result = await controller.update('1', existingUser);
+
+      expect(result).toEqual(updatedUser);
+      expect(mockUserService.update).toHaveBeenCalledWith('1', updatedUser);
+    });
   });
 
   describe('delete', () => {
@@ -124,7 +144,7 @@ describe('UserController', () => {
   });
 
   describe('changePassword validation', () => {
-    it.skip('should throw ZodError for missing oldPassword', async () => {
+    it('should throw ZodError for missing oldPassword', async () => {
       const invalidData = {
         newPassword: 'newPassword123',
       };
@@ -134,7 +154,7 @@ describe('UserController', () => {
       );
     });
 
-    it.skip('should throw ZodError for missing newPassword', async () => {
+    it('should throw ZodError for missing newPassword', async () => {
       const invalidData = {
         oldPassword: 'oldPassword123',
       };
@@ -144,7 +164,7 @@ describe('UserController', () => {
       );
     });
 
-    it.skip('should throw ZodError for short passwords', async () => {
+    it('should throw ZodError for short passwords', async () => {
       const invalidData = {
         newPassword: '456',
         oldPassword: '123',
