@@ -1,7 +1,12 @@
 @BASE_URL = http://localhost:3000/api
 
+@USER = '/user/
+
+@USER_ROUTE = http://localhost:3000/api/user
+
 @USER_EMAIL = test@example.com
 @USER_PASSWORD = test_password
+@USER_NEW_PASSWORD = New password
 @USER_NAME = Test User
 
 ### health check
@@ -38,18 +43,32 @@ content-type: application/json
 @access = {{postLogin.response.body.token}}
 
 
-
-### getProfile
-GET {{BASE_URL}}/profile
+### getUser
+GET {{USER_ROUTE}}
 Authorization: Bearer {{access}}
 
-### updateProfile
-PUT {{BASE_URL}}/profile
+### updateUser
+PUT {{USER_ROUTE}}
 Authorization: Bearer {{access}}
 content-type: application/json
 
 {
 	"email": "{{USER_EMAIL}}",
-	"password": "{{USER_PASSWORD}}",
-	"name": "New name"
+	"name": "New name опорпропо"
 }
+
+
+### updatePassword
+PUT {{USER_ROUTE}}/password
+Authorization: Bearer {{access}}
+content-type: application/json
+
+{
+	"currentPassword": "{{USER_PASSWORD}}",
+	"newPassword": "New password"
+}
+
+
+### deleteUser
+DELETE {{USER_ROUTE}}
+Authorization: Bearer {{access}}

@@ -4,6 +4,6 @@ export const ROUTES = {
   categories: "/categories",
   currencies: "/currencies",
   entries: "/entries",
-  profile: "/profile",
   transactions: "/transactions",
+  user: "/user",
 };

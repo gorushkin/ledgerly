@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 
-export const registerProfileRoutes = (app: FastifyInstance) => {
+export const registerUserRoutes = (app: FastifyInstance) => {
   const userController = app.container.controllers.user;
 
   app.get('/', async (request) => {
@@ -17,6 +17,16 @@ export const registerProfileRoutes = (app: FastifyInstance) => {
       request.body,
     );
     reply.status(200).send(updatedUser);
+  });
+
+  app.put('/password', async (request, reply) => {
+    const userId = request.user.userId;
+
+    await userController.changePassword(userId, request.body);
+
+    reply.status(200).send({
+      message: 'Password successfully changed',
+    });
   });
 
   app.delete('/', async (request, reply) => {

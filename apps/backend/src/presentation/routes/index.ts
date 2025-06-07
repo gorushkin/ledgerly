@@ -7,8 +7,8 @@ import { registerAccountsRoutes } from './accounts.routes';
 import { authRoutes } from './auth.routes';
 import { registerCategoriesRoutes } from './categories.routes';
 import { registerCurrenciesRoutes } from './currencies.routes';
-import { registerProfileRoutes } from './profile.routes';
 import { registerTransactionsRoutes } from './transactions.routes';
+import { registerUserRoutes } from './user.routes';
 
 export const registerRoutes = (fastify: FastifyInstance) => {
   // Public routes
@@ -38,8 +38,8 @@ export const registerRoutes = (fastify: FastifyInstance) => {
       prefix: ROUTES.currencies,
     });
 
-    protectedApp.register(registerProfileRoutes, {
-      prefix: ROUTES.profile,
+    protectedApp.register(registerUserRoutes, {
+      prefix: ROUTES.user,
     });
   });
 };

@@ -22,3 +22,13 @@ export const usersResponseSchema = z
     id: z.string(),
   })
   .merge(usersCreateSchema.omit({ password: true }));
+
+export const usersUpdateSchema = z.object({
+  email: z.string().email().toLowerCase().trim().min(1).max(255).optional(),
+  name: notNullText.optional(),
+});
+
+export const passwordChangeSchema = z.object({
+  currentPassword: notNullText,
+  newPassword: notNullText,
+});

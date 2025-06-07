@@ -27,3 +27,10 @@ export class UnauthorizedError extends AppError {
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
+
+export class EmailAlreadyExistsError extends AppError {
+  constructor(message = 'Email already exists') {
+    super(message, 409);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}

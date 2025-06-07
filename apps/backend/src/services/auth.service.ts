@@ -1,4 +1,4 @@
-import { RegisterDto, UsersResponseDTO } from '@ledgerly/shared/types';
+import { RegisterDto, UsersResponse } from '@ledgerly/shared/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import {
@@ -13,12 +13,9 @@ export class AuthService {
     private readonly passwordManager: PasswordManager,
   ) {}
 
-  async validateUser(
-    email: string,
-    password: string,
-  ): Promise<UsersResponseDTO> {
+  async validateUser(email: string, password: string): Promise<UsersResponse> {
     const userWithPassword =
-      await this.usersRepository.findByEmailWithPassword(email);
+      await this.usersRepository.getUserByEmailWithPassword(email);
 
     if (!userWithPassword) {
       throw new UserNotFoundError();
@@ -32,12 +29,11 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new InvalidPasswordError();
     }
-
     const { password: _, ...userWithoutPassword } = userWithPassword;
     return userWithoutPassword;
   }
 
-  async registerUser(data: RegisterDto): Promise<UsersResponseDTO> {
+  async registerUser(data: RegisterDto): Promise<UsersResponse> {
     const existingUser = await this.usersRepository.findByEmail(data.email);
 
     if (existingUser) {

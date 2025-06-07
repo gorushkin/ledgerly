@@ -1,4 +1,8 @@
-import { UsersCreateDTO, UsersResponseDTO } from '@ledgerly/shared/types';
+import {
+  UsersCreate,
+  UsersResponse,
+  UsersUpdate,
+} from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { users } from 'src/db/schemas';
 import { DataBase } from 'src/types';
@@ -21,7 +25,7 @@ export class UsersRepository extends BaseRepository {
     super(db);
   }
 
-  async findByEmail(email: string): Promise<UsersResponseDTO | undefined> {
+  async findByEmail(email: string): Promise<UsersResponse | undefined> {
     return this.executeDatabaseOperation(
       async () =>
         this.db
@@ -33,7 +37,7 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async findByEmailWithPassword(email: string) {
+  async getUserByEmailWithPassword(email: string) {
     return this.executeDatabaseOperation(
       async () =>
         this.db
@@ -45,7 +49,7 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async getUserById(id: string): Promise<UsersResponseDTO | undefined> {
+  async getUserById(id: string): Promise<UsersResponse | undefined> {
     return this.executeDatabaseOperation(
       async () =>
         this.db.select(userSelect).from(users).where(eq(users.id, id)).get(),
@@ -53,23 +57,53 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async updateUser(
-    id: string,
-    data: UsersCreateDTO,
-  ): Promise<UsersResponseDTO> {
+  async getUserByIdWithPassword(id: string) {
     return this.executeDatabaseOperation(
       async () =>
         this.db
-          .update(users)
-          .set(data)
+          .select(userWithPasswordSelect)
+          .from(users)
           .where(eq(users.id, id))
-          .returning(userSelect)
           .get(),
-      `Failed to update user with ID ${id}`,
+      `Failed to fetch user with password for ID ${id}`,
     );
   }
 
-  async create(data: UsersCreateDTO): Promise<UsersResponseDTO> {
+  async updateUserProfile(
+    id: string,
+    data: UsersUpdate,
+  ): Promise<UsersResponse> {
+    return this.executeDatabaseOperation(async () => {
+      const updateData: Partial<typeof users.$inferInsert> = {};
+
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined) {
+          updateData[key as keyof typeof updateData] = value;
+        }
+      });
+
+      return this.db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, id))
+        .returning(userSelect)
+        .get();
+    }, `Failed to update user profile with ID ${id}`);
+  }
+
+  async updateUserPassword(id: string, hashedPassword: string): Promise<void> {
+    await this.executeDatabaseOperation(
+      async () =>
+        this.db
+          .update(users)
+          .set({ password: hashedPassword })
+          .where(eq(users.id, id))
+          .run(),
+      `Failed to update password for user with ID ${id}`,
+    );
+  }
+
+  async create(data: UsersCreate): Promise<UsersResponse> {
     return this.executeDatabaseOperation(
       async () =>
         this.db.insert(users).values(data).returning(userSelect).get(),
@@ -77,7 +111,7 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async deleteUser(id: string): Promise<UsersResponseDTO | undefined> {
+  async deleteUser(id: string): Promise<UsersResponse | undefined> {
     return this.executeDatabaseOperation(
       async () =>
         this.db

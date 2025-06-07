@@ -1,50 +1,29 @@
-import { UsersCreateDTO } from '@ledgerly/shared/types';
-import { usersCreateSchema } from '@ledgerly/shared/validation';
+import {
+  passwordChangeSchema,
+  usersUpdateSchema,
+} from '@ledgerly/shared/validation';
 import { UserService } from 'src/services/user.service';
-
-import { UserNotFoundError } from '../errors/auth.errors';
 
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   async getById(id: string) {
-    const user = await this.userService.getById(id);
-
-    if (!user) {
-      throw new UserNotFoundError();
-    }
-
-    return user;
-  }
-
-  async update(id: string, userData: UsersCreateDTO) {
-    const user = await this.userService.getById(id);
-
-    if (!user) {
-      throw new UserNotFoundError();
-    }
-
-    return this.userService.update(id, userData);
+    return this.userService.getById(id);
   }
 
   async updateProfile(id: string, requestBody: unknown) {
-    const user = await this.userService.getById(id);
+    const updatedProfileDTO = usersUpdateSchema.parse(requestBody);
 
-    if (!user) {
-      throw new UserNotFoundError();
-    }
+    return this.userService.updateProfile(id, updatedProfileDTO);
+  }
 
-    const updatedUserDTO = usersCreateSchema.parse(requestBody);
-    return this.userService.update(id, updatedUserDTO);
+  async changePassword(id: string, requestBody: unknown) {
+    const passwordChangeDTO = passwordChangeSchema.parse(requestBody);
+
+    await this.userService.changePassword(id, passwordChangeDTO);
   }
 
   async delete(id: string) {
-    const user = await this.userService.getById(id);
-
-    if (!user) {
-      throw new UserNotFoundError();
-    }
-
     return this.userService.delete(id);
   }
 }
