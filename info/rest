@@ -1,0 +1,46 @@
+Table categories {
+	id text [ pk, not null, unique ]
+	name text [ not null ]
+}
+
+Table transactions {
+	id text [ pk, not null, unique ]
+	created_at text [ not null ]
+	description text
+	posting_date text [ not null ]
+	transaction_date text [ not null ]
+	updated_at text [ not null ]
+}
+
+Table operations {
+	id text [ pk, not null, unique ]
+	transaction_id text [ not null ]
+	created_at text [ not null ]
+	updated_at text [ not null ]
+	description text
+	type text [ not null ]
+	account_id text [ not null ]
+	category_id text [ not null ]
+}
+
+Table accounts {
+	id text [ pk, not null, unique ]
+	currency_code text [ not null ]
+	name text [ not null ]
+	type text [ not null ]
+	created_at text [ not null ]
+	updated_at text [ not null ]
+	description text
+}
+
+Ref fk_operations_accountId_accounts {
+	operations.account_id - accounts.id [ delete: no action, update: no action ]
+}
+
+Ref fk_operations_transaction_id_transactions {
+	operations.transaction_id - transactions.id [ delete: no action, update: no action ]
+}
+
+Ref fk_operations_category_id_categories {
+	operations.category_id - categories.id [ delete: no action, update: no action ]
+}

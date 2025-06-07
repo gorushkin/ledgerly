@@ -1,15 +1,17 @@
-import type { AccountDTO } from '@ledgerly/shared';
-import { accountRepository } from 'src/infrastructure/db/AccountRepository';
+import { AccountCreateDTO } from '@ledgerly/shared/types';
+import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 
 import { NotFoundError } from '../errors/httpErrors';
 
 export class AccountController {
+  constructor(private readonly repo: AccountRepository) {}
+
   getAll() {
-    return accountRepository.getAllAccounts();
+    return this.repo.getAllAccounts();
   }
 
   async getById(id: string) {
-    const account = await accountRepository.getAccountById(id);
+    const account = await this.repo.getAccountById(id);
 
     if (!account) {
       throw new NotFoundError('Account not found');
@@ -18,17 +20,15 @@ export class AccountController {
     return account;
   }
 
-  create(newAccount: AccountDTO) {
-    return accountRepository.createAccount(newAccount);
+  create(newAccount: AccountCreateDTO) {
+    return this.repo.createAccount(newAccount);
   }
 
-  update(id: string, updatedAccount: AccountDTO) {
-    return accountRepository.updateAccount(id, updatedAccount);
+  update(id: string, updatedAccount: AccountCreateDTO) {
+    return this.repo.updateAccount(id, updatedAccount);
   }
 
   delete(id: string) {
-    return accountRepository.deleteAccount(id);
+    return this.repo.deleteAccount(id);
   }
 }
-
-export const accountController = new AccountController();

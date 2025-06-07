@@ -1,9 +1,12 @@
-import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+
+import { createdAt, description, updatedAt, uuidPrimary } from './common';
 
 export const transactions = sqliteTable('transactions', {
-  comment: text('comment'),
-  created_at: text('created_at').notNull(),
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
-  posted_at: text('posted_at'),
+  createdAt,
+  description,
+  id: uuidPrimary,
+  postingDate: text('posting_date').notNull(),
+  transactionDate: text('transaction_date').notNull(),
+  updatedAt,
 });

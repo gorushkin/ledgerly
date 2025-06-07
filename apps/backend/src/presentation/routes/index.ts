@@ -1,19 +1,45 @@
+import { ROUTES } from '@ledgerly/shared/routes';
 import type { FastifyInstance } from 'fastify';
 
-import { registerAccountsRoutes } from './accounts';
-import { registerEntriesRoutes } from './entries';
-import { ROUTES } from './paths';
-import { registerTransactionsRoutes } from './transactions';
-import { registerUsersRoutes } from './users';
-export { registerUsersRoutes } from './users';
+import { authMiddleware } from '../middleware';
+
+import { registerAccountsRoutes } from './accounts.routes';
+import { authRoutes } from './auth.routes';
+import { registerCategoriesRoutes } from './categories.routes';
+import { registerCurrenciesRoutes } from './currencies.routes';
+import { registerTransactionsRoutes } from './transactions.routes';
+import { registerUsersRoutes } from './users.routes';
 
 export const registerRoutes = (fastify: FastifyInstance) => {
+  // Public routes
   fastify.get('/', (_request, reply) => {
     reply.send({ message: 'Welcome to the Money Manager API!' });
   });
 
-  fastify.register(registerEntriesRoutes, { prefix: ROUTES.entries });
-  fastify.register(registerTransactionsRoutes, { prefix: ROUTES.transactions });
-  fastify.register(registerAccountsRoutes, { prefix: ROUTES.accounts });
-  fastify.register(registerUsersRoutes, { prefix: ROUTES.users });
+  fastify.register(authRoutes, { prefix: ROUTES.auth });
+
+  // Protected routes
+  fastify.register((protectedApp) => {
+    protectedApp.addHook('onRequest', authMiddleware);
+
+    protectedApp.register(registerTransactionsRoutes, {
+      prefix: ROUTES.transactions,
+    });
+
+    protectedApp.register(registerAccountsRoutes, {
+      prefix: ROUTES.accounts,
+    });
+
+    protectedApp.register(registerCategoriesRoutes, {
+      prefix: ROUTES.categories,
+    });
+
+    protectedApp.register(registerCurrenciesRoutes, {
+      prefix: ROUTES.currencies,
+    });
+
+    protectedApp.register(registerUsersRoutes, {
+      prefix: ROUTES.users,
+    });
+  });
 };

@@ -19,6 +19,3 @@ data/sqlite.db
 
 # TypeScript build info
 tsconfig.tsbuildinfo
-
-# Drizzle output
-drizzle/

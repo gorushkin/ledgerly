@@ -7,24 +7,19 @@ import importOrder from 'eslint-plugin-import';
 import pluginDrizzle from 'eslint-plugin-drizzle';
 import js from '@eslint/js';
 import { globalIgnores } from 'eslint/config';
+
 export default tseslint.config(
   { ignores: ['dist', 'node_modules'] },
   eslint.configs.recommended,
   tseslint.configs.recommended,
   globalIgnores(['.config/*']),
   {
+    files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,
       ...tseslint.configs.stylisticTypeChecked,
     ],
-    languageOptions: {
-      ecmaVersion: 2020,
-      parserOptions: {
-        project: ['./tsconfig.json'],
-      },
-    },
-    files: ['**/*.{ts,tsx}'],
     plugins: {
       'unused-imports': unusedImports,
       prettier,
@@ -33,8 +28,14 @@ export default tseslint.config(
       import: importOrder,
       pluginDrizzle,
     },
+    languageOptions: {
+      ecmaVersion: 2020,
+      parserOptions: {
+        project: true,
+      },
+    },
     rules: {
-      'no-console': ['warn', { allow: ['error'] }],
+      'no-console': ['warn', { allow: ['error', 'info'] }],
       'unused-imports/no-unused-imports': 'error',
       'no-multiple-empty-lines': ['error', { max: 1, maxBOF: 0, maxEOF: 0 }],
       'perfectionist/sort-objects': 'warn',

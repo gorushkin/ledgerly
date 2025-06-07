@@ -1,5 +1,3 @@
-import type { IdType } from './types';
-
 export class DatabaseError extends Error {
   constructor(
     message: string,
@@ -11,7 +9,7 @@ export class DatabaseError extends Error {
 }
 
 export class RecordNotFoundError extends DatabaseError {
-  constructor(tableName: string, id: IdType) {
+  constructor(tableName: string, id: number) {
     super(`Record with id ${id} not found in table ${tableName}`);
     this.name = 'RecordNotFoundError';
   }

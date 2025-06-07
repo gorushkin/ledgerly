@@ -1,15 +1,35 @@
+import {
+  AccountResponseDTO,
+  CategoryResponseDTO,
+} from '@ledgerly/shared/types';
+
 import { db } from '../index';
+import { operations, transactions } from '../schemas';
 import { accounts } from '../schemas/accounts';
 import { categories } from '../schemas/categories';
-import { entries } from '../schemas/entries';
-import { transactions } from '../schemas/transactions';
+import { users } from '../schemas/users';
+
+const CATEGORY_ID1 = '3a04352a-68f2-4c96-9b0d-dc0df9957441'; // Example category ID
+const CATEGORY_ID2 = '0022c3b2-24f5-483d-9c0b-fccc2b46972d'; // Example category ID
+
+const ACCOUNT_ID1 = '3a3c164d-a33a-4d61-8dd9-626dbb7d6a5b';
+const ACCOUNT_ID2 = '0055a5ca-faf1-46f2-afbe-6d36b1544b75'; // Example account ID
+
+const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
+
+class SeedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SeedError';
+  }
+}
 
 const seedCategories = async () => {
   const insertedCategories = await db
     .insert(categories)
     .values([
-      { name: 'Продукты' },
-      { name: 'Транспорт' },
+      { id: CATEGORY_ID1, name: 'Продукты' },
+      { id: CATEGORY_ID2, name: 'Транспорт' },
       { name: 'Жильё' },
       { name: 'Развлечения' },
       { name: 'Здоровье' },
@@ -21,174 +41,173 @@ const seedCategories = async () => {
   return insertedCategories;
 };
 
-const seedWallets = async () => {
-  const insertedWallets = await db
-    .insert(accounts)
-    .values([
-      { currency_code: 'RUB', name: 'Tinkoff RUB' },
-      { currency_code: 'USD', name: 'Cash USD' },
-    ])
-    .returning();
+const seedAccounts = async (userId: string) => {
+  try {
+    const insertedWallets = await db
+      .insert(accounts)
+      .values([
+        {
+          id: ACCOUNT_ID1,
+          name: 'Tinkoff RUB',
+          originalCurrency: 'RUB',
+          type: 'cash',
+          userId,
+        },
+        {
+          id: ACCOUNT_ID2,
+          name: 'Cash USD',
+          originalCurrency: 'USD',
+          type: 'cash',
+          userId,
+        },
+      ])
+      .returning();
 
-  return insertedWallets;
+    return insertedWallets;
+  } catch {
+    throw new SeedError('Ошибка при добавлении счетов:');
+  }
 };
 
-const seedTransactions = async () => {
-  const insertedTransactions = await db
+const seedUsers = async () => {
+  try {
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: 'test@example.com',
+        id: USER_ID,
+        name: 'Test User',
+        password: 'hashed_password',
+      })
+      .returning();
+
+    return user;
+  } catch (error) {
+    console.error('Ошибка при добавлении пользователя:', error);
+    throw new SeedError('Ошибка при добавлении пользователя:');
+  }
+};
+
+const seedTransactionsAndOperations = async (
+  insertedAccounts: AccountResponseDTO[],
+  insertedCategories: CategoryResponseDTO[],
+) => {
+  const now = new Date().toISOString();
+  const [rubAccount, usdAccount] = insertedAccounts;
+  const [productsCategory, transportCategory] = insertedCategories;
+
+  // Create a transfer transaction
+  const [transaction] = await db
     .insert(transactions)
-    .values([
-      {
-        comment: 'Еда и хозтовары',
-        created_at: '2025-05-01',
-        name: 'Покупка в магазине',
-        posted_at: '2025-05-01',
-      },
-    ])
+    .values({
+      description: 'Перевод из RUB в USD',
+      postingDate: now,
+      transactionDate: now,
+    })
     .returning();
 
-  return insertedTransactions;
+  // Create operations for the transfer
+  // await db.insert(operations).values([
+  //   {
+  //     accountId: rubAccount.id,
+  //     baseCurrency: 'RUB',
+  //     categoryId: productsCategory.id,
+  //     description: 'Списание RUB',
+  //     localAmount: -1000,
+  //     originalAmount: -1000,
+  //     originalCurrency: 'RUB',
+  //     transactionId: transaction.id,
+  //   },
+  //   {
+  //     accountId: usdAccount.id,
+  //     baseCurrency: 'USD',
+  //     categoryId: transportCategory.id,
+  //     description: 'Получение USD',
+  //     localAmount: 10,
+  //     originalAmount: 10,
+  //     originalCurrency: 'USD',
+  //     transactionId: transaction.id,
+  //   },
+  // ]);
+
+  await db.batch([
+    db.insert(operations).values({
+      accountId: rubAccount.id,
+      categoryId: productsCategory.id,
+      description: 'Списание RUB',
+      localAmount: -1000,
+      originalAmount: -1000,
+      transactionId: transaction.id,
+    }),
+    db.insert(operations).values({
+      accountId: usdAccount.id,
+      categoryId: transportCategory.id,
+      description: 'Получение USD',
+      localAmount: 10,
+      originalAmount: 10,
+      transactionId: transaction.id,
+    }),
+  ]);
+
+  return transaction;
 };
 
-const seedEntries = async (params: {
-  categoryId: number;
-  transactionId: number;
-  accountId: string;
-  catHousehold: number;
-}) => {
-  const { accountId, categoryId, catHousehold, transactionId } = params;
+const deleteData = async () => {
+  try {
+    await db.delete(transactions);
+    await db.delete(accounts);
+    await db.delete(categories);
+    await db.delete(users);
 
-  await db.insert(entries).values([
-    {
-      accountId,
-      amount: -1000,
-      categoryId,
-      date: '2025-05-01',
-      description: 'Продукты',
-      transactionId,
-    },
-    {
-      accountId,
-      amount: -500,
-      categoryId: catHousehold,
-      date: '2025-05-01',
-      description: 'Хозтовары',
-      transactionId,
-    },
-  ]);
+    console.info('Data deleted successfully');
+  } catch (error) {
+    console.error('Ошибка при удалении данных:', error);
+    throw new Error('Ошибка при удалении данных');
+  }
 };
 
-const seedIncome = async (params: {
-  categoryId: number;
-  accountId: string;
-}) => {
-  const { accountId, categoryId: categoryId } = params;
+const addData = async () => {
+  try {
+    const insertedCategories = await seedCategories();
+    console.info('insertedCategories: ', insertedCategories);
 
-  const incomeTx = await db
-    .insert(transactions)
-    .values([
-      {
-        comment: 'Май 2025',
-        created_at: '2025-05-05',
-        name: 'Зарплата',
-        posted_at: '2025-05-05',
-      },
-    ])
-    .returning();
+    const insertedUsers = await seedUsers();
+    console.info('insertedUsers: ', insertedUsers);
 
-  await db.insert(entries).values([
-    {
-      accountId,
-      amount: 100000,
-      categoryId,
-      date: '2025-05-05',
-      description: 'Зарплата',
-      transactionId: incomeTx[0].id,
-    },
-  ]);
-};
+    const insertedAccounts = await seedAccounts(USER_ID);
+    console.info('insertedAccounts: ', insertedAccounts);
 
-const seedCurrencyExchange = async (params: { accountId: string }) => {
-  const { accountId } = params;
+    const insertedTransaction = await seedTransactionsAndOperations(
+      insertedAccounts,
+      insertedCategories,
+    );
 
-  const exchangeTx = await db
-    .insert(transactions)
-    .values([
-      {
-        comment: 'Обмен $100 на рубли',
-        created_at: '2025-05-10',
-        name: 'Обмен валюты',
-        posted_at: '2025-05-10',
-      },
-    ])
-    .returning();
+    console.info('insertedTransaction: ', insertedTransaction);
 
-  await db.insert(entries).values([
-    {
-      accountId: accountId, // USD
-      amount: -100,
-      date: '2025-05-10',
-      description: 'USD ->',
-      transactionId: exchangeTx[0].id,
-    },
-    {
-      accountId: accountId, // RUB
-      amount: 9300,
-      date: '2025-05-10',
-      description: '-> RUB',
-      transactionId: exchangeTx[0].id,
-    },
-  ]);
+    console.info('Сиды успешно добавлены!');
+  } catch (e) {
+    if (e instanceof SeedError) {
+      throw new SeedError('Ошибка при заполнении базы данных: ' + e.message);
+    }
+    throw e;
+  }
 };
 
 const seed = async () => {
-  const insertedCategories = await seedCategories();
-  const insertedWallets = await seedWallets();
-  const insertedTransactions = await seedTransactions();
+  try {
+    console.info('Начало процесса сидирования...');
 
-  if (
-    insertedTransactions.length === 0 ||
-    insertedWallets.length === 0 ||
-    insertedCategories.length === 0
-  ) {
-    console.error('Не удалось сидировать: отсутствуют ключевые записи.');
-    return;
+    await deleteData();
+
+    await addData();
+
+    console.info('Сиды успешно завершены!');
+  } catch (error) {
+    console.error('Ошибка при сидировании:');
+    if (error instanceof SeedError) {
+      console.error(error.message);
+    }
   }
-
-  const accountId = insertedWallets[0].id;
-  const categoryId = insertedCategories.find((c) => c.name === 'Продукты')?.id;
-  const catHousehold = insertedCategories.find((c) => c.name === 'Жильё')?.id;
-
-  if (!categoryId || !catHousehold) {
-    console.error('Не найдены категории Продукты или Жильё.');
-    return;
-  }
-
-  // Insert entries (split the transaction)
-  await seedEntries({
-    accountId,
-    categoryId,
-    catHousehold,
-    transactionId: insertedTransactions[0].id,
-  });
-
-  // Add income and exchange transactions
-  const catIncome = insertedCategories.find((c) => c.name === 'Доход')?.id;
-
-  if (!catIncome) {
-    console.error("Категория 'Доход' не найдена.");
-    return;
-  }
-
-  // Insert income transaction
-  await seedIncome({ accountId: accountId, categoryId: catIncome });
-
-  // Insert currency exchange transaction
-  await seedCurrencyExchange({
-    accountId: insertedWallets[0].id,
-  });
-
-  // eslint-disable-next-line no-console
-  console.log('Сиды добавлены!');
 };
 
 void seed();

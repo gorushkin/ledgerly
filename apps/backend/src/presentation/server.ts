@@ -1,29 +1,33 @@
+import fastifyJwt from '@fastify/jwt';
 import Fastify from 'fastify';
-import { ZodError } from 'zod';
+import { config } from 'src/config/config';
+import { createContainer } from 'src/di/container';
+import { errorHandler } from 'src/libs/errorHandler';
+import { DataBase } from 'src/types';
+
+import { db as defaultDb } from '../db';
 
 import { registerRoutes } from './routes';
 
-export function createServer() {
-  const fastify = Fastify();
-
-  fastify.setErrorHandler((error, _request, reply) => {
-    const status = error.statusCode ?? 500;
-
-    if (error instanceof ZodError) {
-      const firstIssue = error.errors[0];
-      reply.status(400).send({
-        error: true,
-        message: firstIssue?.message || 'Validation failed',
-        path: firstIssue?.path,
-      });
-      return;
-    }
-
-    reply.status(status).send({
-      error: true,
-      message: error.message || 'Unexpected error',
-    });
+export function createServer(db: DataBase = defaultDb) {
+  const fastify = Fastify({
+    logger: false,
   });
+
+  fastify.register(fastifyJwt, {
+    secret: config.jwtSecret,
+  });
+
+  if (config.env !== 'test') {
+    fastify.addHook('onRequest', (request, _reply, done) => {
+      console.info(`${request.method} ${request.url}`, request.body);
+      done();
+    });
+  }
+
+  fastify.setErrorHandler(errorHandler);
+
+  fastify.decorate('container', createContainer(db));
 
   fastify.register(registerRoutes, { prefix: '/api' });
 

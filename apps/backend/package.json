@@ -1,42 +1,63 @@
 {
-  "name": "backend",
+  "name": "@ledgerly/backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node -r tsconfig-paths/register dist/index.js",
-    "migrate": "drizzle-kit push --config=drizzle.config.ts",
+    "clean": "rm -rf dist",
+    "build": "pnpm clean && tsc",
+    "start": "node --experimental-specifier-resolution=node dist/index.js",
+    "migrateOld": "drizzle-kit push --config=drizzle.config.ts",
+    "migrate": "drizzle-kit migrate --config=drizzle.config.ts",
     "seed": "tsx src/db/scripts/seed.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "studio": "pnpm drizzle-kit studio",
     "push": "npx drizzle-kit push",
     "generate": "npx drizzle-kit generate",
-    "drop:tables": "tsx src/db/scripts/drop-tables.ts"
+    "generateCustom": "drizzle-kit --config=drizzle.config.ts generate --custom --name",
+    "drop:tables": "tsx src/db/scripts/drop-tables.ts",
+    "ts-check": "tsc -b --noEmit",
+    "check": "pnpm ts-check && pnpm lint",
+    "delete:db": "rm -rf ./data/*",
+    "delete:migrations": "rm -rf ./drizzle",
+    "delete:all": "pnpm delete:db && pnpm delete:migrations",
+    "full-reset:db": "pnpm delete:all && pnpm generate && pnpm migrate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@fastify/cors": "^11.0.1",
+    "@fastify/jwt": "^9.1.0",
+    "@ledgerly/shared": "workspace:*",
     "@libsql/client": "^0.15.5",
+    "bcryptjs": "^3.0.2",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.43.1",
+    "drizzle-zod": "0.7.1",
     "fastify": "^5.3.2",
-    "@ledgerly/shared": "workspace:*",
     "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0"
+    "ts-node-dev": "^2.0.0",
+    "zod": "^3.24.4"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^22.15.3",
+    "@vitest/coverage-v8": "^1.3.1",
     "drizzle-kit": "^0.31.1",
     "eslint-plugin-drizzle": "^0.2.3",
     "tsx": "^4.19.4",
     "vite": "^6.3.4",
-    "vite-plugin-dts": "^4.5.3"
+    "vite-plugin-dts": "^4.5.3",
+    "vitest": "^1.3.1"
+  },
+  "exports": {
+    "./types": "./src/db/types/index.ts",
+    "./schemas": "./src/db/schemas/index.ts"
   }
 }

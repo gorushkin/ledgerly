@@ -1,16 +1,55 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ACCOUNT_TYPES, AccountDTO, accountSchema, CURRENCIES } from '@ledgerly/shared';
+import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
+import { AccountType, Currency } from '@ledgerly/shared/types';
+import { AccountCreateDTO } from '@ledgerly/shared/types';
+import { accountCreateSchema } from '@ledgerly/shared/validation';
 import { observer } from 'mobx-react-lite';
 import { useForm } from 'react-hook-form';
 import { accountsState } from 'src/entities/accounts/model/accountsState';
+import { currencyState } from 'src/entities/currencies';
 
 type ManageAccountFormProps = {
   formId: string;
 };
 
+// TODO: Move to constants
+const optionMapping: Record<AccountType, string> = {
+  cash: 'Наличные',
+  credit: 'Кредитная карта',
+  debit: 'Дебетовая карта',
+  investment: 'Инвестиционный счет',
+  savings: 'Сберегательный счет',
+};
+
+// TODO: Move to constants
+const currencyMapping: Record<Currency['code'], string> = {
+  AUD: 'Австралийский доллар',
+  CAD: 'Канадский доллар',
+  CHF: 'Швейцарский франк',
+  CNY: 'Китайский юань',
+  EUR: 'Евро',
+  GBP: 'Британский фунт стерлингов',
+  INR: 'Индийская рупия',
+  JPY: 'Японская иена',
+  RUB: 'Российский рубль',
+  USD: 'Доллар США',
+};
+
+const options = Object.entries(optionMapping).map(([value, label]) => ({
+  label,
+  value,
+}));
+
+const CURRENCIES = Object.entries(currencyMapping).map(([code, name]) => ({
+  code,
+  name,
+}));
+
 export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
   const { formId } = props;
   const { currentAccount, modalState } = accountsState;
+
+  const CURRENCY_TYPES = currencyState.currencies;
 
   const isEditMode = Boolean(currentAccount);
 
@@ -18,14 +57,14 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
     formState: { errors },
     handleSubmit,
     register,
-  } = useForm<AccountDTO>({
-    resolver: zodResolver(accountSchema),
+  } = useForm<AccountCreateDTO>({
+    resolver: zodResolver(accountCreateSchema),
     values: {
-      balance: 0,
-      currency_code: currentAccount?.currency_code ?? CURRENCIES[0].code,
+      currencyCode: currentAccount?.currencyCode ?? CURRENCY_TYPES[0].code,
       description: currentAccount?.description ?? '',
+      initialBalance: 0,
       name: currentAccount?.name ?? '',
-      type: currentAccount?.type ?? ACCOUNT_TYPES[0].value,
+      type: currentAccount?.type ?? ACCOUNT_TYPES[0],
     },
   });
 
@@ -34,7 +73,7 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
     modalState.close();
   };
 
-  const handleFormSubmit = (data: AccountDTO) => {
+  const handleFormSubmit = (data: AccountCreateDTO) => {
     try {
       if (currentAccount) {
         void accountsState.update(currentAccount.id, data);
@@ -76,7 +115,7 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
         </label>
         <select className="select select-bordered w-full" {...register('type')}>
           <option value="">Выберите тип счета</option>
-          {ACCOUNT_TYPES.map((type) => (
+          {options.map((type) => (
             <option key={type.value} value={type.value}>
               {type.label}
             </option>
@@ -97,7 +136,7 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
             </option>
           ))}
         </select>
-        {errors.currency_code && <span className="text-error text-sm mt-1">{errors.currency_code.message}</span>}
+        {errors.currencyCode && <span className="text-error text-sm mt-1">{errors.currencyCode.message}</span>}
       </div>
 
       {!isEditMode && (
@@ -108,9 +147,9 @@ export const ManageAccountForm = observer((props: ManageAccountFormProps) => {
           <input
             type="number"
             className="input input-bordered w-full"
-            {...register('balance', { valueAsNumber: true })}
+            {...register('initialBalance', { valueAsNumber: true })}
           />
-          {errors.balance && <span className="text-error text-sm mt-1">{errors.balance.message}</span>}
+          {errors.initialBalance && <span className="text-error text-sm mt-1">{errors.initialBalance.message}</span>}
         </div>
       )}
     </form>

@@ -1,12 +1,12 @@
-import type { Account, AccountDTO } from '@ledgerly/shared';
+import { AccountResponseDTO, AccountCreateDTO } from '@ledgerly/shared/types';
 import { makeAutoObservable, runInAction } from 'mobx';
 import { ModalState } from 'src/shared/lib/modalState';
 
 import { accountActions } from '../api/accountActions';
 
 class AccountsState {
-  data: Account[] = [];
-  currentAccount: Account | null = null;
+  data: AccountResponseDTO[] = [];
+  currentAccount: AccountResponseDTO | null = null;
 
   modalState = new ModalState();
   constructor() {
@@ -29,7 +29,7 @@ class AccountsState {
     });
   };
 
-  create = async (account: AccountDTO) => {
+  create = async (account: AccountCreateDTO) => {
     const response = await accountActions.create(account);
 
     runInAction(() => {
@@ -41,7 +41,7 @@ class AccountsState {
     });
   };
 
-  update = async (id: string, account: AccountDTO) => {
+  update = async (id: string, account: AccountCreateDTO) => {
     const response = await accountActions.update(id, account);
 
     runInAction(() => {
