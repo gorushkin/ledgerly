@@ -12,10 +12,7 @@ export const registerUserRoutes = (app: FastifyInstance) => {
   app.put('/', async (request, reply) => {
     const userId = request.user.userId;
 
-    const updatedUser = await userController.updateProfile(
-      userId,
-      request.body,
-    );
+    const updatedUser = await userController.update(userId, request.body);
     reply.status(200).send(updatedUser);
   });
 

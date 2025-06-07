@@ -23,10 +23,15 @@ export const usersResponseSchema = z
   })
   .merge(usersCreateSchema.omit({ password: true }));
 
-export const usersUpdateSchema = z.object({
-  email: z.string().email().toLowerCase().trim().min(1).max(255).optional(),
-  name: notNullText.optional(),
-});
+export const usersUpdateSchema = z
+  .object({
+    email: z.string().email().toLowerCase().trim().min(1).max(255).optional(),
+    name: notNullText.optional(),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided for update",
+  });
 
 export const passwordChangeSchema = z.object({
   currentPassword: notNullText,

@@ -11,10 +11,10 @@ export class UserController {
     return this.userService.getById(id);
   }
 
-  async updateProfile(id: string, requestBody: unknown) {
+  async update(id: string, requestBody: unknown) {
     const updatedProfileDTO = usersUpdateSchema.parse(requestBody);
 
-    return this.userService.updateProfile(id, updatedProfileDTO);
+    return this.userService.update(id, updatedProfileDTO);
   }
 
   async changePassword(id: string, requestBody: unknown) {

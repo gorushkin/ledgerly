@@ -27,7 +27,7 @@ export class UserService {
     return existingUser;
   }
 
-  async updateProfile(id: string, profileData: UsersUpdate) {
+  async update(id: string, profileData: UsersUpdate) {
     await this.validateUser(id);
 
     if (profileData?.email) {
@@ -44,8 +44,6 @@ export class UserService {
   }
 
   async changePassword(id: string, passwordData: PasswordChange) {
-    await this.validateUser(id);
-
     const userWithPassword =
       await this.usersRepository.getUserByIdWithPassword(id);
 
