@@ -6,3 +6,4 @@ export * from "./operations";
 export * from "./settings";
 export * from "./users";
 export * from "./auth";
+export * from "./types";
