@@ -106,7 +106,7 @@ describe('AuthService', () => {
       );
     });
 
-    it.skip('should throw InvalidPasswordError if password is invalid', async () => {
+    it('should throw InvalidPasswordError if password is invalid', async () => {
       const mockUser = { email, id, name, password: hashedPassword };
 
       mockUsersRepository.getUserByEmailWithPassword.mockResolvedValue(

@@ -17,43 +17,19 @@ describe('CategoryController', () => {
   const categoryId = '123e4567-e89b-12d3-a456-426614174000';
 
   const invalidDataCases = [
-    {
-      data: { name: '', userId },
-      name: 'empty name',
-    },
-    {
-      data: { name: 'Valid Name', userId: 'invalid-user-id' },
-      name: 'invalid userId format',
-    },
-    {
-      data: { userId },
-      name: 'missing name field',
-    },
-    {
-      data: { name: 'Valid Name' },
-      name: 'missing userId field',
-    },
-    {
-      data: { name: 123, userId },
-      name: 'name as number',
-    },
-    {
-      data: { name: 'Valid Name', userId: 123 },
-      name: 'userId as number',
-    },
-    {
-      data: {},
-      name: 'empty object',
-    },
-    {
-      data: null,
-      name: 'null value',
-    },
-    {
-      data: undefined,
-      name: 'undefined value',
-    },
-  ] as { data: CategoryCreate; name: string }[];
+    ['empty name', { name: '', userId }],
+    [
+      'invalid userId format',
+      { name: 'Valid Name', userId: 'invalid-user-id' },
+    ],
+    ['missing name field', { userId }],
+    ['missing userId field', { name: 'Valid Name' }],
+    ['name as number', { name: 123, userId }],
+    ['userId as number', { name: 'Valid Name', userId: 123 }],
+    ['empty object', {}],
+    ['null value', null],
+    ['undefined value', undefined],
+  ] as [string, CategoryCreate][];
 
   const categoryController = new CategoryController(
     mockCategoryService as unknown as CategoryService,
@@ -81,9 +57,12 @@ describe('CategoryController', () => {
     const category = { id: '1', name: 'Category 1' };
     mockCategoryService.getById.mockResolvedValue(category);
 
-    const result = await categoryController.getById(category.id);
+    const result = await categoryController.getById(userId, category.id);
 
-    expect(mockCategoryService.getById).toHaveBeenCalledWith(category.id);
+    expect(mockCategoryService.getById).toHaveBeenCalledWith(
+      userId,
+      category.id,
+    );
     expect(result).toEqual(category);
   });
 
@@ -102,19 +81,20 @@ describe('CategoryController', () => {
 
       mockCategoryService.create.mockResolvedValue(createdCategory);
 
-      const result = await categoryController.create(newCategory);
+      const result = await categoryController.create(userId, newCategory);
 
       expect(mockCategoryService.create).toHaveBeenCalledWith(newCategory);
       expect(result).toEqual(createdCategory);
     });
 
-    it('should throw ZodError for invalid data', async () => {
-      for (const testCase of invalidDataCases) {
-        await expect(categoryController.create(testCase.data)).rejects.toThrow(
-          ZodError,
-        );
-      }
-    });
+    it.each(invalidDataCases)(
+      'should throw ZodError for %s',
+      async (_, data) => {
+        await expect(
+          categoryController.create(data?.userId, data),
+        ).rejects.toThrow(ZodError);
+      },
+    );
   });
 
   describe('update', () => {
@@ -124,6 +104,7 @@ describe('CategoryController', () => {
 
     it('should update an existing category with valid data', async () => {
       const category = {
+        id: categoryId,
         name: 'Category',
         userId,
       };
@@ -135,7 +116,11 @@ describe('CategoryController', () => {
 
       mockCategoryService.update.mockResolvedValue(updateData);
 
-      const result = await categoryController.update(categoryId, category);
+      const result = await categoryController.update(
+        userId,
+        category.id,
+        category,
+      );
 
       expect(mockCategoryService.update).toHaveBeenCalledWith({
         ...category,
@@ -144,17 +129,21 @@ describe('CategoryController', () => {
       expect(result).toEqual(updateData);
     });
 
-    it('should throw ZodError for invalid data', async () => {
-      for (const testCase of invalidDataCases) {
+    it.each(invalidDataCases)(
+      'should throw ZodError for %s',
+      async (_, data) => {
         await expect(
-          categoryController.update(userId, testCase.data),
+          categoryController.update(data?.userId, categoryId, data),
         ).rejects.toThrow(ZodError);
-      }
-    });
+      },
+    );
 
     it('should throw ZodError for invalid category Id', async () => {
       await expect(
-        categoryController.update('invalid-id', { name: 'Category 1', userId }),
+        categoryController.update(userId, 'invalid-id', {
+          name: 'Category 1',
+          userId,
+        }),
       ).rejects.toThrow(ZodError);
     });
   });
@@ -165,9 +154,12 @@ describe('CategoryController', () => {
 
       mockCategoryService.delete.mockResolvedValue(deletedCategory);
 
-      const result = await categoryController.delete(categoryId);
+      const result = await categoryController.delete(userId, categoryId);
 
-      expect(mockCategoryService.delete).toHaveBeenCalledWith(categoryId);
+      expect(mockCategoryService.delete).toHaveBeenCalledWith(
+        userId,
+        categoryId,
+      );
       expect(result).toEqual(deletedCategory);
     });
   });

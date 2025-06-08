@@ -8,6 +8,12 @@ import { CategoryService } from 'src/services/category.service';
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
+  private getNonNullObject(requestBody: unknown): object {
+    return typeof requestBody === 'object' && requestBody !== null
+      ? requestBody
+      : {};
+  }
+
   async getAll(userId: UUID): Promise<CategoryResponse[]> {
     return this.categoryService.getAll(userId);
   }
@@ -18,9 +24,7 @@ export class CategoryController {
 
   async create(userId: UUID, requestBody: unknown) {
     const categoryCreateDto = categoryCreateSchema.parse({
-      ...(typeof requestBody === 'object' && requestBody !== null
-        ? requestBody
-        : {}),
+      ...this.getNonNullObject(requestBody),
       userId,
     });
 
@@ -29,15 +33,13 @@ export class CategoryController {
   async update(userId: UUID, id: UUID, requestBody: unknown) {
     const categoryUpdateDto = categoryUpdateSchema.parse({
       id,
-      ...(typeof requestBody === 'object' && requestBody !== null
-        ? requestBody
-        : {}),
+      ...this.getNonNullObject(requestBody),
       userId,
     });
 
     return this.categoryService.update(categoryUpdateDto);
   }
-  async delete(userId: UUID, id: string) {
+  async delete(userId: UUID, id: UUID) {
     return this.categoryService.delete(userId, id);
   }
 }
