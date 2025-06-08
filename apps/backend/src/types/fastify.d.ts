@@ -1,14 +1,15 @@
 import '@fastify/jwt';
+import { UUID } from '@ledgerly/shared/types';
 import { AppContainer } from 'src/di/types';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
     payload: {
-      userId: string;
+      userId: UUID;
       email: string;
     };
     user: {
-      userId: string;
+      userId: UUID;
       email: string;
     };
   }
