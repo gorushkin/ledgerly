@@ -1,3 +1,4 @@
+import { PasswordChange, UsersUpdate } from '@ledgerly/shared/types';
 import {
   passwordChangeSchema,
   usersUpdateSchema,
@@ -11,13 +12,13 @@ export class UserController {
     return this.userService.getById(id);
   }
 
-  async update(id: string, requestBody: unknown) {
+  async update(id: string, requestBody: UsersUpdate) {
     const updatedProfileDTO = usersUpdateSchema.parse(requestBody);
 
     return this.userService.update(id, updatedProfileDTO);
   }
 
-  async changePassword(id: string, requestBody: unknown) {
+  async changePassword(id: string, requestBody: PasswordChange) {
     const passwordChangeDTO = passwordChangeSchema.parse(requestBody);
 
     await this.userService.changePassword(id, passwordChangeDTO);

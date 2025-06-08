@@ -1,3 +1,4 @@
+import { PasswordChange, UsersUpdate } from '@ledgerly/shared/types';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { UserService } from 'src/services/user.service';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -118,8 +119,8 @@ describe('UserController', () => {
     it('should throw ZodError for invalid name type', async () => {
       const invalidData = {
         email: 'valid@email.com',
-        name: 123, // должно быть строкой
-      };
+        name: 123,
+      } as unknown as UsersUpdate;
 
       await expect(controller.update('1', invalidData)).rejects.toThrow(
         ZodError,
@@ -147,7 +148,7 @@ describe('UserController', () => {
     it('should throw ZodError for missing oldPassword', async () => {
       const invalidData = {
         newPassword: 'newPassword123',
-      };
+      } as unknown as PasswordChange;
 
       await expect(controller.changePassword('1', invalidData)).rejects.toThrow(
         ZodError,
@@ -156,8 +157,8 @@ describe('UserController', () => {
 
     it('should throw ZodError for missing newPassword', async () => {
       const invalidData = {
-        oldPassword: 'oldPassword123',
-      };
+        currentPassword: 'oldPassword123',
+      } as PasswordChange;
 
       await expect(controller.changePassword('1', invalidData)).rejects.toThrow(
         ZodError,
@@ -166,8 +167,8 @@ describe('UserController', () => {
 
     it('should throw ZodError for short passwords', async () => {
       const invalidData = {
+        currentPassword: '123',
         newPassword: '456',
-        oldPassword: '123',
       };
 
       await expect(controller.changePassword('1', invalidData)).rejects.toThrow(

@@ -1,4 +1,4 @@
-import { CategoryResponseDTO } from '@ledgerly/shared/types';
+import { CategoryResponse } from '@ledgerly/shared/types';
 import { categories } from 'src/db/schema';
 import { DataBase } from 'src/types';
 
@@ -9,8 +9,8 @@ export class CategoryRepository extends BaseRepository {
     super(db);
   }
 
-  getAllCategories(): Promise<CategoryResponseDTO[]> {
-    return this.withErrorHandling(
+  getAllCategories(): Promise<CategoryResponse[]> {
+    return this.executeDatabaseOperation<CategoryResponse[]>(
       () => this.db.select().from(categories).all(),
       'Failed to fetch categories',
     );

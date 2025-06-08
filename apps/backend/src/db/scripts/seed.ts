@@ -1,7 +1,4 @@
-import {
-  AccountResponseDTO,
-  CategoryResponseDTO,
-} from '@ledgerly/shared/types';
+import { AccountResponseDTO, CategoryResponse } from '@ledgerly/shared/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
 import { db } from '../index';
@@ -28,17 +25,17 @@ class SeedError extends Error {
   }
 }
 
-const seedCategories = async () => {
+const seedCategories = async (userId: string) => {
   const insertedCategories = await db
     .insert(categories)
     .values([
-      { id: CATEGORY_ID1, name: 'Продукты' },
-      { id: CATEGORY_ID2, name: 'Транспорт' },
-      { name: 'Жильё' },
-      { name: 'Развлечения' },
-      { name: 'Здоровье' },
-      { name: 'Одежда' },
-      { name: 'Доход' },
+      { id: CATEGORY_ID1, name: 'Продукты', userId },
+      { id: CATEGORY_ID2, name: 'Транспорт', userId },
+      { name: 'Жильё', userId },
+      { name: 'Развлечения', userId },
+      { name: 'Здоровье', userId },
+      { name: 'Одежда', userId },
+      { name: 'Доход', userId },
     ])
     .returning();
 
@@ -114,7 +111,7 @@ const seedTransaction = async (_accounts: AccountResponseDTO[]) => {
 const seedOperations = async (
   transaction: { id: string },
   accounts: AccountResponseDTO[],
-  categories: CategoryResponseDTO[],
+  categories: CategoryResponse[],
 ) => {
   try {
     const insertedOperations = await db
@@ -165,17 +162,17 @@ export const addData = async () => {
     const user = await seedUser();
     console.info('User seeded');
 
-    const insertedCategories = await seedCategories();
+    const insertedCategories = await seedCategories(user.id);
     console.info('Categories seeded');
 
-    const insertedAccounts = await seedAccounts(user.id);
-    console.info('Accounts seeded');
+    // const insertedAccounts = await seedAccounts(user.id);
+    // console.info('Accounts seeded');
 
-    const transaction = await seedTransaction(insertedAccounts);
-    console.info('Transaction seeded');
+    // const transaction = await seedTransaction(insertedAccounts);
+    // console.info('Transaction seeded');
 
-    await seedOperations(transaction, insertedAccounts, insertedCategories);
-    console.info('Operations seeded');
+    // await seedOperations(transaction, insertedAccounts, insertedCategories);
+    // console.info('Operations seeded');
 
     console.info('Seeding completed successfully');
   } catch (error) {
