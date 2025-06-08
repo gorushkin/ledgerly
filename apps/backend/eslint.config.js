@@ -35,6 +35,7 @@ export default tseslint.config(
       },
     },
     rules: {
+      '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
       'no-console': ['warn', { allow: ['error', 'info'] }],
       'unused-imports/no-unused-imports': 'error',
       'no-multiple-empty-lines': ['error', { max: 1, maxBOF: 0, maxEOF: 0 }],

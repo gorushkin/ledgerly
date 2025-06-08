@@ -34,6 +34,7 @@ export default tseslint.config(
     },
     rules: {
       "no-console": ["warn", { allow: ["error", "info"] }],
+      "@typescript-eslint/consistent-type-definitions": ["error", "type"],
       "unused-imports/no-unused-imports": "error",
       "no-multiple-empty-lines": ["error", { max: 1, maxBOF: 0, maxEOF: 0 }],
       "perfectionist/sort-objects": "warn",
