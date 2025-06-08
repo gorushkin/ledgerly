@@ -71,7 +71,7 @@ describe('CategoryController', () => {
 
     mockCategoryService.getAll.mockResolvedValue(categories);
 
-    const result = await categoryController.getAll();
+    const result = await categoryController.getAll(userId);
 
     expect(mockCategoryService.getAll).toHaveBeenCalled();
     expect(result).toEqual(categories);

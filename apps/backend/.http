@@ -72,3 +72,19 @@ content-type: application/json
 ### deleteUser
 DELETE {{USER_ROUTE}}
 Authorization: Bearer {{access}}
+
+
+### getUserCategories
+# @name getUserCategories
+GET {{BASE_URL}}/categories
+Authorization: Bearer {{access}}
+
+### Save category
+
+
+@category = {{getUserCategories.response.body.$[0].id}}
+
+### getUserCategory
+GET {{BASE_URL}}/categories/{{category}}
+Authorization: Bearer {{access}}
+

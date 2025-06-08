@@ -2,26 +2,62 @@ import {
   CategoryResponse,
   CategoryCreate,
   CategoryUpdate,
+  UUID,
 } from '@ledgerly/shared/types';
+import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
+import { CategoryNotFoundError } from 'src/presentation/errors/category.errors';
+
+import { UserService } from './user.service';
 
 export class CategoryService {
-  getAll(): Promise<CategoryResponse[]> {
-    throw new Error('Method not implemented.');
+  constructor(
+    private readonly categoryRepository: CategoryRepository,
+    private readonly userService: UserService,
+  ) {}
+  async getAll(userId: UUID): Promise<CategoryResponse[]> {
+    await this.userService.validateUser(userId);
+
+    return this.categoryRepository.getAll(userId);
   }
 
-  getById(_id: string): Promise<CategoryResponse | undefined> {
-    throw new Error('Method not implemented.');
+  async validateAndGetCategory(
+    userId: UUID,
+    id: UUID,
+  ): Promise<CategoryResponse> {
+    await this.userService.validateUser(userId);
+
+    const category = await this.categoryRepository.getById(userId, id);
+
+    if (!category) {
+      throw new CategoryNotFoundError(
+        `Category with id ${id} not found for user ${userId}`,
+      );
+    }
+
+    return category;
   }
 
-  create(_requestBody: CategoryCreate): Promise<CategoryResponse> {
-    throw new Error('Method not implemented.');
+  async getById(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {
+    return this.validateAndGetCategory(userId, id);
   }
 
-  update(_requestBody: CategoryUpdate): Promise<CategoryResponse | undefined> {
-    throw new Error('Method not implemented.');
+  async create(requestBody: CategoryCreate): Promise<CategoryResponse> {
+    await this.userService.validateUser(requestBody.userId);
+
+    return this.categoryRepository.create(requestBody);
   }
 
-  delete(_id: string): Promise<void> {
-    throw new Error('Method not implemented.');
+  async update(
+    requestBody: CategoryUpdate,
+  ): Promise<CategoryResponse | undefined> {
+    await this.validateAndGetCategory(requestBody.userId, requestBody.id);
+
+    return this.categoryRepository.update(requestBody);
+  }
+
+  async delete(userId: UUID, id: UUID): Promise<CategoryResponse> {
+    await this.validateAndGetCategory(userId, id);
+
+    return this.categoryRepository.delete(userId, id);
   }
 }
