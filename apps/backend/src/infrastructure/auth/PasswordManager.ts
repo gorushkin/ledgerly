@@ -18,22 +18,4 @@ export class PasswordManager {
   verify(hashedPassword: string): boolean {
     return hashedPassword.startsWith('$2');
   }
-
-  async rehash(hashedPassword: string): Promise<string | null> {
-    try {
-      if (!this.verify(hashedPassword)) {
-        return null;
-      }
-
-      const currentRounds = bcrypt.getRounds(hashedPassword);
-
-      if (currentRounds !== this.rounds) {
-        return this.hash(hashedPassword);
-      }
-
-      return hashedPassword;
-    } catch {
-      return null;
-    }
-  }
 }

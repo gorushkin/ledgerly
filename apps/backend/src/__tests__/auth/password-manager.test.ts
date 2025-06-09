@@ -82,33 +82,4 @@ describe('PasswordManager', () => {
       expect(result).toBe(false);
     });
   });
-
-  describe('rehash', () => {
-    beforeEach(() => {
-      (bcrypt.getRounds as Mock).mockReturnValue(defaultRounds);
-      (bcrypt.hash as Mock).mockResolvedValue(hashedPassword);
-    });
-
-    it('should return null for invalid hash', async () => {
-      const invalidHash = 'invalid_hash';
-      const result = await passwordManager.rehash(invalidHash);
-      expect(result).toBeNull();
-    });
-
-    it('should return same hash if rounds match', async () => {
-      const validHash = '$2a$10$hashedpassword';
-      const result = await passwordManager.rehash(validHash);
-      expect(result).toBe(validHash);
-    });
-
-    it('should rehash if rounds differ', async () => {
-      const validHash = '$2a$10$hashedpassword';
-      (bcrypt.getRounds as Mock).mockReturnValue(8);
-
-      const result = await passwordManager.rehash(validHash);
-
-      expect(bcrypt.hash).toHaveBeenCalledWith(validHash, defaultRounds);
-      expect(result).toBe(hashedPassword);
-    });
-  });
 });
