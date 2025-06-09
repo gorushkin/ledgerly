@@ -1,5 +1,5 @@
-import { RegisterDto, UsersResponseDTO } from '@ledgerly/shared/types';
-import bcrypt from 'bcryptjs';
+import { RegisterDto, UsersResponse } from '@ledgerly/shared/types';
+import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import {
   InvalidPasswordError,
@@ -8,33 +8,39 @@ import {
 } from 'src/presentation/errors/auth.errors';
 
 export class AuthService {
-  constructor(private readonly usersRepository: UsersRepository) {}
-  async validateUser(
-    email: string,
-    password: string,
-  ): Promise<UsersResponseDTO> {
-    const user = await this.usersRepository.findByEmail(email);
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly passwordManager: PasswordManager,
+  ) {}
 
-    if (!user) {
+  async validateUser(email: string, password: string): Promise<UsersResponse> {
+    const userWithPassword =
+      await this.usersRepository.getUserByEmailWithPassword(email);
+
+    if (!userWithPassword) {
       throw new UserNotFoundError();
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await this.passwordManager.compare(
+      password,
+      userWithPassword.password,
+    );
 
     if (!isPasswordValid) {
       throw new InvalidPasswordError();
     }
-
-    return user;
+    const { password: _, ...userWithoutPassword } = userWithPassword;
+    return userWithoutPassword;
   }
 
-  async registerUser(data: RegisterDto): Promise<UsersResponseDTO> {
+  async registerUser(data: RegisterDto): Promise<UsersResponse> {
     const existingUser = await this.usersRepository.findByEmail(data.email);
 
     if (existingUser) {
       throw new UserExistsError();
     }
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    const hashedPassword = await this.passwordManager.hash(data.password);
 
     const user = await this.usersRepository.create({
       ...data,

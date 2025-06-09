@@ -20,7 +20,7 @@ export class TransactionRepository extends BaseRepository {
   }
 
   getAllTransactions(): Promise<unknown[]> {
-    return this.withErrorHandling(
+    return this.executeDatabaseOperation(
       () => this.db.select().from(transactions).all(),
       'Failed to fetch transactions',
     );
@@ -29,7 +29,7 @@ export class TransactionRepository extends BaseRepository {
   async getTransactionById(
     id: string,
   ): Promise<TransactionResponseDTO | undefined> {
-    return this.withErrorHandling(async () => {
+    return this.executeDatabaseOperation(async () => {
       const transaction = await this.db
         .select()
         .from(transactions)
@@ -55,7 +55,7 @@ export class TransactionRepository extends BaseRepository {
   async createTransaction(
     dto: TransactionCreateDTO,
   ): Promise<TransactionResponseDTO> {
-    return this.withErrorHandling(async () => {
+    return this.executeDatabaseOperation(async () => {
       if (dto.operations.length === 0) {
         throw new Error('Transaction must have at least one operation');
       }

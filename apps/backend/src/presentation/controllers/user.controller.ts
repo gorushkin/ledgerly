@@ -1,35 +1,29 @@
-import { UsersCreateDTO } from '@ledgerly/shared/types';
-import bcrypt from 'bcryptjs';
-import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
+import {
+  passwordChangeSchema,
+  usersUpdateSchema,
+} from '@ledgerly/shared/validation';
+import { UserService } from 'src/services/user.service';
 
 export class UserController {
-  constructor(private readonly repo: UsersRepository) {}
+  constructor(private readonly userService: UserService) {}
 
-  getAll() {
-    return this.repo.getUsers();
+  async getById(id: string) {
+    return this.userService.getById(id);
   }
 
-  getById(id: string) {
-    return this.repo.getUserById(id);
+  async update(id: string, requestBody: unknown) {
+    const updatedProfileDTO = usersUpdateSchema.parse(requestBody);
+
+    return this.userService.update(id, updatedProfileDTO);
   }
 
-  // async create(userData: UsersCreateDTO) {
-  //   const hashedPassword = await bcrypt.hash(userData.password, 10);
-  //   return this.repo.create({
-  //     ...userData,
-  //     password: hashedPassword,
-  //   });
-  // }
+  async changePassword(id: string, requestBody: unknown) {
+    const passwordChangeDTO = passwordChangeSchema.parse(requestBody);
 
-  async update(id: string, userData: UsersCreateDTO) {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
-    return this.repo.updateUser(id, {
-      ...userData,
-      password: hashedPassword,
-    });
+    await this.userService.changePassword(id, passwordChangeDTO);
   }
 
-  delete(id: string) {
-    return this.repo.deleteUser(id);
+  async delete(id: string) {
+    return this.userService.delete(id);
   }
 }

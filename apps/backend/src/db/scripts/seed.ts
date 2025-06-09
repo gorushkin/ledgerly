@@ -2,6 +2,7 @@ import {
   AccountResponseDTO,
   CategoryResponseDTO,
 } from '@ledgerly/shared/types';
+import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
 import { db } from '../index';
 import { operations, transactions } from '../schemas';
@@ -9,13 +10,16 @@ import { accounts } from '../schemas/accounts';
 import { categories } from '../schemas/categories';
 import { users } from '../schemas/users';
 
-const CATEGORY_ID1 = '3a04352a-68f2-4c96-9b0d-dc0df9957441'; // Example category ID
-const CATEGORY_ID2 = '0022c3b2-24f5-483d-9c0b-fccc2b46972d'; // Example category ID
+const CATEGORY_ID1 = '3a04352a-68f2-4c96-9b0d-dc0df9957441';
+const CATEGORY_ID2 = '0022c3b2-24f5-483d-9c0b-fccc2b46972d';
 
 const ACCOUNT_ID1 = '3a3c164d-a33a-4d61-8dd9-626dbb7d6a5b';
-const ACCOUNT_ID2 = '0055a5ca-faf1-46f2-afbe-6d36b1544b75'; // Example account ID
+const ACCOUNT_ID2 = '0055a5ca-faf1-46f2-afbe-6d36b1544b75';
 
 const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
+const USER_EMAIL = 'test@example.com';
+const USER_NAME = 'Test User';
+const USER_PASSWORD = 'test_password';
 
 class SeedError extends Error {
   constructor(message: string) {
@@ -55,7 +59,7 @@ const seedAccounts = async (userId: string) => {
         },
         {
           id: ACCOUNT_ID2,
-          name: 'Cash USD',
+          name: 'Tinkoff USD',
           originalCurrency: 'USD',
           type: 'cash',
           userId,
@@ -65,91 +69,80 @@ const seedAccounts = async (userId: string) => {
 
     return insertedWallets;
   } catch {
-    throw new SeedError('Ошибка при добавлении счетов:');
+    throw new SeedError('Failed to seed accounts');
   }
 };
 
-const seedUsers = async () => {
+const seedUser = async () => {
   try {
-    const [user] = await db
+    const passwordManager = new PasswordManager();
+    const hashedPassword = await passwordManager.hash(USER_PASSWORD);
+    const insertedUser = await db
       .insert(users)
       .values({
-        email: 'test@example.com',
+        email: USER_EMAIL,
         id: USER_ID,
-        name: 'Test User',
-        password: 'hashed_password',
+        name: USER_NAME,
+        password: hashedPassword,
       })
       .returning();
 
-    return user;
+    return insertedUser[0];
   } catch (error) {
-    console.error('Ошибка при добавлении пользователя:', error);
-    throw new SeedError('Ошибка при добавлении пользователя:');
+    console.error('Error details:', error);
+    throw new SeedError('Failed to seed user');
   }
 };
 
-const seedTransactionsAndOperations = async (
-  insertedAccounts: AccountResponseDTO[],
-  insertedCategories: CategoryResponseDTO[],
+const seedTransaction = async (_accounts: AccountResponseDTO[]) => {
+  try {
+    const insertedTransaction = await db
+      .insert(transactions)
+      .values({
+        description: 'Test transaction',
+        postingDate: new Date().toISOString(),
+        transactionDate: new Date().toISOString(),
+      })
+      .returning();
+
+    return insertedTransaction[0];
+  } catch {
+    throw new SeedError('Failed to seed transaction');
+  }
+};
+
+const seedOperations = async (
+  transaction: { id: string },
+  accounts: AccountResponseDTO[],
+  categories: CategoryResponseDTO[],
 ) => {
-  const now = new Date().toISOString();
-  const [rubAccount, usdAccount] = insertedAccounts;
-  const [productsCategory, transportCategory] = insertedCategories;
+  try {
+    const insertedOperations = await db
+      .insert(operations)
+      .values([
+        {
+          accountId: accounts[0].id,
+          categoryId: categories[0].id,
+          description: 'Test operation 1',
+          localAmount: 100,
+          originalAmount: 100,
+          transactionId: transaction.id,
+        },
+        {
+          accountId: accounts[1].id,
+          categoryId: categories[1].id,
+          description: 'Test operation 2',
+          localAmount: -100,
+          originalAmount: -1,
+          transactionId: transaction.id,
+        },
+      ])
+      .returning();
 
-  // Create a transfer transaction
-  const [transaction] = await db
-    .insert(transactions)
-    .values({
-      description: 'Перевод из RUB в USD',
-      postingDate: now,
-      transactionDate: now,
-    })
-    .returning();
-
-  // Create operations for the transfer
-  // await db.insert(operations).values([
-  //   {
-  //     accountId: rubAccount.id,
-  //     baseCurrency: 'RUB',
-  //     categoryId: productsCategory.id,
-  //     description: 'Списание RUB',
-  //     localAmount: -1000,
-  //     originalAmount: -1000,
-  //     originalCurrency: 'RUB',
-  //     transactionId: transaction.id,
-  //   },
-  //   {
-  //     accountId: usdAccount.id,
-  //     baseCurrency: 'USD',
-  //     categoryId: transportCategory.id,
-  //     description: 'Получение USD',
-  //     localAmount: 10,
-  //     originalAmount: 10,
-  //     originalCurrency: 'USD',
-  //     transactionId: transaction.id,
-  //   },
-  // ]);
-
-  await db.batch([
-    db.insert(operations).values({
-      accountId: rubAccount.id,
-      categoryId: productsCategory.id,
-      description: 'Списание RUB',
-      localAmount: -1000,
-      originalAmount: -1000,
-      transactionId: transaction.id,
-    }),
-    db.insert(operations).values({
-      accountId: usdAccount.id,
-      categoryId: transportCategory.id,
-      description: 'Получение USD',
-      localAmount: 10,
-      originalAmount: 10,
-      transactionId: transaction.id,
-    }),
-  ]);
-
-  return transaction;
+    return insertedOperations;
+  } catch {
+    throw new SeedError('Failed to seed operations');
+  }
 };
 
 const deleteData = async () => {
@@ -165,31 +158,33 @@ const deleteData = async () => {
     throw new Error('Ошибка при удалении данных');
   }
 };
-
-const addData = async () => {
+export const addData = async () => {
   try {
+    console.info('Starting seeding...');
+
+    const user = await seedUser();
+    console.info('User seeded');
+
     const insertedCategories = await seedCategories();
-    console.info('insertedCategories: ', insertedCategories);
+    console.info('Categories seeded');
 
-    const insertedUsers = await seedUsers();
-    console.info('insertedUsers: ', insertedUsers);
+    const insertedAccounts = await seedAccounts(user.id);
+    console.info('Accounts seeded');
 
-    const insertedAccounts = await seedAccounts(USER_ID);
-    console.info('insertedAccounts: ', insertedAccounts);
+    const transaction = await seedTransaction(insertedAccounts);
+    console.info('Transaction seeded');
 
-    const insertedTransaction = await seedTransactionsAndOperations(
-      insertedAccounts,
-      insertedCategories,
-    );
+    await seedOperations(transaction, insertedAccounts, insertedCategories);
+    console.info('Operations seeded');
 
-    console.info('insertedTransaction: ', insertedTransaction);
-
-    console.info('Сиды успешно добавлены!');
-  } catch (e) {
-    if (e instanceof SeedError) {
-      throw new SeedError('Ошибка при заполнении базы данных: ' + e.message);
+    console.info('Seeding completed successfully');
+  } catch (error) {
+    if (error instanceof SeedError) {
+      console.error('Seeding failed:', error.message);
+    } else {
+      console.error('Unexpected error during seeding:', error);
     }
-    throw e;
+    process.exit(1);
   }
 };
 

@@ -32,7 +32,7 @@
     "studio": "pnpm --filter backend run studio",
     "push": "pnpm --filter backend run push",
     "generate": "pnpm --filter backend run generate",
-    "delete:db": "rm -rf apps/backend/src/db/data.db",
+    "delete:db": "rm -rf apps/backend/data/sqlite.db",
     "reset:db": "pnpm run delete:db && pnpm run migrate && pnpm run seed",
     "ts-check": "pnpm run -r --parallel ts-check"
   },

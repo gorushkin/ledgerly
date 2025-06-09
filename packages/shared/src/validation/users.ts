@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { createdAt, notNullText, updatedAt, uuid } from "./baseValidations";
-// TODO: add password validation
+import { notNullText } from "./baseValidations";
+
 export const usersCreateSchema = z.object({
   email: z
     .string()
@@ -19,8 +19,21 @@ export const usersCreateSchema = z.object({
 
 export const usersResponseSchema = z
   .object({
-    createdAt,
-    id: uuid,
-    updatedAt,
+    id: z.string(),
   })
-  .merge(usersCreateSchema);
+  .merge(usersCreateSchema.omit({ password: true }));
+
+export const usersUpdateSchema = z
+  .object({
+    email: z.string().email().toLowerCase().trim().min(1).max(255).optional(),
+    name: notNullText.optional(),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided for update",
+  });
+
+export const passwordChangeSchema = z.object({
+  currentPassword: notNullText,
+  newPassword: notNullText,
+});

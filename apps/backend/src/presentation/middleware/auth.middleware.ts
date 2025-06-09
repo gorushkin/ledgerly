@@ -1,19 +1,24 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 
+import { UnauthorizedError } from '../errors/auth.errors';
+
 export async function authMiddleware(
   request: FastifyRequest,
-  reply: FastifyReply,
+  _reply: FastifyReply,
 ) {
   try {
     const token = request.headers.authorization?.replace('Bearer ', '');
 
     if (!token) {
-      throw new Error('No token provided');
+      throw new UnauthorizedError('Authentication required');
     }
 
-    const decoded = await request.jwtVerify<{ userId: string }>();
+    const decoded = await request.jwtVerify<{
+      userId: string;
+      email: string;
+    }>();
     request.user = decoded;
-  } catch (_err) {
-    reply.status(401).send({ error: true, message: 'Unauthorized' });
+  } catch {
+    throw new UnauthorizedError('Authentication required');
   }
 }

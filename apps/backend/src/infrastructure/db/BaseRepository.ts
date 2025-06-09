@@ -1,6 +1,5 @@
+import { DatabaseError } from 'src/presentation/errors';
 import { DataBase } from 'src/types';
-
-import { DatabaseError } from './errors';
 
 export class BaseRepository {
   constructor(readonly db: DataBase) {}

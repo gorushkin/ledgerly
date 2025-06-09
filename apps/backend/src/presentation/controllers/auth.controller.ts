@@ -9,10 +9,15 @@ export class AuthController {
     const data = loginSchema.parse(request.body);
     const user = await this.authService.validateUser(data.email, data.password);
 
-    const token = await reply.jwtSign({
-      email: user.email,
-      userId: user.id,
-    });
+    const token = await reply.jwtSign(
+      {
+        email: user.email,
+        userId: user.id,
+      },
+      {
+        expiresIn: '1h',
+      },
+    );
 
     return { token };
   }
@@ -21,10 +26,15 @@ export class AuthController {
     const data = registerSchema.parse(request.body);
     const user = await this.authService.registerUser(data);
 
-    const token = await reply.jwtSign({
-      email: user.email,
-      userId: user.id,
-    });
+    const token = await reply.jwtSign(
+      {
+        email: user.email,
+        userId: user.id,
+      },
+      {
+        expiresIn: '1h',
+      },
+    );
 
     return { token };
   }

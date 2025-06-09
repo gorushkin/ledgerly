@@ -6,6 +6,7 @@ export class AppError extends Error {
   ) {
     super(message);
     this.name = this.constructor.name;
+    Object.setPrototypeOf(this, AppError.prototype);
     Error.captureStackTrace(this, this.constructor);
   }
 }

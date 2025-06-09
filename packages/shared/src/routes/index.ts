@@ -5,5 +5,5 @@ export const ROUTES = {
   currencies: "/currencies",
   entries: "/entries",
   transactions: "/transactions",
-  users: "/users",
+  user: "/user",
 };

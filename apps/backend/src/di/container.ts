@@ -1,3 +1,4 @@
+import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
@@ -12,6 +13,7 @@ import { OperationController } from 'src/presentation/controllers/operation.cont
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { AuthService } from 'src/services/auth.service';
+import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
 import { AppContainer } from './types';
@@ -25,7 +27,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     db,
     operationRepository,
   );
-
   const userRepository = new UsersRepository(db);
 
   const repositories: AppContainer['repositories'] = {
@@ -37,10 +38,14 @@ export const createContainer = (db: DataBase): AppContainer => {
     user: userRepository,
   };
 
-  const authService = new AuthService(userRepository);
+  const passwordManager = new PasswordManager();
+  const authService = new AuthService(userRepository, passwordManager);
+  const userService = new UserService(userRepository, passwordManager);
 
   const services: AppContainer['services'] = {
     auth: authService,
+    passwordManager,
+    user: userService,
   };
 
   const accountController = new AccountController(repositories.account);
@@ -51,14 +56,12 @@ export const createContainer = (db: DataBase): AppContainer => {
     currencyController,
     accountController,
   );
-
   const transactionController = new TransactionController(
     repositories.transaction,
     operationController,
   );
 
-  const userController = new UserController(userRepository);
-
+  const userController = new UserController(userService);
   const authController = new AuthController(authService);
 
   const controllers: AppContainer['controllers'] = {
