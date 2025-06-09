@@ -78,7 +78,7 @@ export class UsersRepository extends BaseRepository {
 
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined) {
-          updateData[key as keyof typeof updateData] = value;
+          updateData[key as keyof typeof users.$inferInsert] = value;
         }
       });
 
