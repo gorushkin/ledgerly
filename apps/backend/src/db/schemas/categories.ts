@@ -1,5 +1,4 @@
-import { relations } from 'drizzle-orm';
-import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
 
 import { createdAt, updatedAt, uuidPrimary } from './common';
 import { users } from './users';
@@ -14,9 +13,7 @@ export const categories = sqliteTable('categories', {
     .references(() => users.id, { onDelete: 'cascade' }),
 });
 
-export const categoriesRelations = relations(categories, ({ one }) => ({
-  user: one(users, {
-    fields: [categories.userId],
-    references: [users.id],
-  }),
-}));
+export const categoriesConstraints = unique().on(
+  categories.userId,
+  categories.name,
+);

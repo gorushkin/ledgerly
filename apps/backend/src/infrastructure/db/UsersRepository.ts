@@ -122,4 +122,12 @@ export class UsersRepository extends BaseRepository {
       `Failed to delete user with ID ${id}`,
     );
   }
+
+  // TODO: remove this method
+  async getAll(): Promise<UsersResponse[]> {
+    return this.executeDatabaseOperation(
+      async () => this.db.select(userSelect).from(users).all(),
+      'Failed to fetch all users',
+    );
+  }
 }

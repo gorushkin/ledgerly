@@ -32,10 +32,7 @@ export class CategoryRepository extends BaseRepository {
           .select()
           .from(categories)
           .where(
-            and(
-              eq(categories.id, categoryId),
-              eq(categories.userId, userId), // ✅ Сразу фильтруем по владельцу
-            ),
+            and(eq(categories.id, categoryId), eq(categories.userId, userId)),
           )
           .get(),
       'Failed to fetch category by ID',
@@ -43,22 +40,50 @@ export class CategoryRepository extends BaseRepository {
   }
 
   update(
-    _requestBody: CategoryResponse,
+    userId: UUID,
+    requestBody: CategoryResponse,
   ): Promise<CategoryResponse | undefined> {
     return this.executeDatabaseOperation<CategoryResponse | undefined>(() => {
-      throw new Error('Method not implemented.');
+      return this.db
+        .update(categories)
+        .set({ name: requestBody.name })
+        .where(
+          and(eq(categories.id, requestBody.id), eq(categories.userId, userId)),
+        )
+        .returning()
+        .get();
     }, 'Failed to update category');
   }
 
-  create(_requestBody: CategoryCreate): Promise<CategoryResponse> {
-    return this.executeDatabaseOperation<CategoryResponse>(() => {
-      throw new Error('Method not implemented.');
-    }, 'Failed to create category');
+  async create(requestBody: CategoryCreate): Promise<CategoryResponse> {
+    return this.executeDatabaseOperation<CategoryResponse>(
+      async () =>
+        this.db
+          .insert(categories)
+          .values({
+            name: requestBody.name,
+            userId: requestBody.userId,
+          })
+          .returning()
+          .get(),
+      'Failed to create category',
+    );
   }
 
-  delete(_userId: UUID, _categoryId: UUID): Promise<CategoryResponse> {
-    return this.executeDatabaseOperation<CategoryResponse>(() => {
-      throw new Error('Method not implemented.');
-    }, 'Failed to delete category');
+  async delete(
+    userId: UUID,
+    categoryId: UUID,
+  ): Promise<CategoryResponse | undefined> {
+    return this.executeDatabaseOperation<CategoryResponse | undefined>(
+      async () =>
+        await this.db
+          .delete(categories)
+          .where(
+            and(eq(categories.id, categoryId), eq(categories.userId, userId)),
+          )
+          .returning()
+          .get(),
+      'Failed to delete category',
+    );
   }
 }
