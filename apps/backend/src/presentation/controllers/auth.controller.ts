@@ -1,4 +1,5 @@
 import { loginSchema, registerSchema } from '@ledgerly/shared/validation';
+import { env } from 'env.config';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { AuthService } from 'src/services/auth.service';
 
@@ -15,7 +16,7 @@ export class AuthController {
         userId: user.id,
       },
       {
-        expiresIn: '1h',
+        expiresIn: env.expiresIn || '1h',
       },
     );
 

@@ -52,10 +52,10 @@ export class CategoryService {
   ): Promise<CategoryResponse | undefined> {
     await this.validateAndGetCategory(requestBody.userId, requestBody.id);
 
-    return this.categoryRepository.update(requestBody);
+    return this.categoryRepository.update(requestBody.userId, requestBody);
   }
 
-  async delete(userId: UUID, id: UUID): Promise<CategoryResponse> {
+  async delete(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {
     await this.validateAndGetCategory(userId, id);
 
     return this.categoryRepository.delete(userId, id);

@@ -13,6 +13,7 @@ import { OperationController } from 'src/presentation/controllers/operation.cont
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { AuthService } from 'src/services/auth.service';
+import { CategoryService } from 'src/services/category.service';
 import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
@@ -41,16 +42,18 @@ export const createContainer = (db: DataBase): AppContainer => {
   const passwordManager = new PasswordManager();
   const authService = new AuthService(userRepository, passwordManager);
   const userService = new UserService(userRepository, passwordManager);
+  const categoryService = new CategoryService(categoryRepository, userService);
 
   const services: AppContainer['services'] = {
     auth: authService,
+    category: categoryService,
     passwordManager,
     user: userService,
   };
 
   const accountController = new AccountController(repositories.account);
   const currencyController = new CurrencyController(repositories.currency);
-  const categoryController = new CategoryController(repositories.category);
+  const categoryController = new CategoryController(services.category);
   const operationController = new OperationController(
     operationRepository,
     currencyController,
