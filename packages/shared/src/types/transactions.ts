@@ -5,6 +5,6 @@ import {
   transactionResponseSchema,
 } from "../validation";
 
-export type TransactionCreateDTO = z.infer<typeof transactionCreateSchema>;
+export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 
-export type TransactionResponseDTO = z.infer<typeof transactionResponseSchema>;
+export type TransactionResponse = z.infer<typeof transactionResponseSchema>;

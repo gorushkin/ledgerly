@@ -3,7 +3,7 @@ CREATE TABLE `accounts` (
 	`description` text DEFAULT '' NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
-	`original_currency` text DEFAULT 'RUB' NOT NULL,
+	`original_currency` text NOT NULL,
 	`type` text DEFAULT 'cash' NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`user_id` text NOT NULL,
@@ -11,6 +11,7 @@ CREATE TABLE `accounts` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `user_id_name_unique_idx` ON `accounts` (`user_id`,`name`);--> statement-breakpoint
 CREATE TABLE `categories` (
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
@@ -26,11 +27,15 @@ CREATE TABLE `transactions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`posting_date` text NOT NULL,
 	`transaction_date` text NOT NULL,
-	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL
+	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`user_id` text NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `currencies` (
-	`code` text PRIMARY KEY NOT NULL
+	`code` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`symbol` text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE `operations` (

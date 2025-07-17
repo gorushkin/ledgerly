@@ -12,8 +12,10 @@ import { CurrencyController } from 'src/presentation/controllers/currency.contro
 import { OperationController } from 'src/presentation/controllers/operation.controller';
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
+import { AccountService } from 'src/services/account.service';
 import { AuthService } from 'src/services/auth.service';
 import { CategoryService } from 'src/services/category.service';
+import { TransactionService } from 'src/services/transaction.service';
 import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
@@ -31,6 +33,8 @@ type Services = {
   user: UserService;
   passwordManager: PasswordManager;
   category: CategoryService;
+  transaction: TransactionService;
+  account: AccountService;
 };
 
 type Controllers = {

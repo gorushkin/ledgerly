@@ -1,7 +1,8 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
-import { UsersResponse } from '@ledgerly/shared/types';
+import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
+import { AccountType, UsersResponse, UUID } from '@ledgerly/shared/types';
 import { createClient } from '@libsql/client';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
@@ -9,7 +10,7 @@ import { migrate } from 'drizzle-orm/libsql/migrator';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
 import * as schema from './schemas';
-import { users } from './schemas';
+import { accounts, users } from './schemas';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,38 +22,41 @@ export const createTestDb = () => {
 
   const db = drizzle(client, { schema });
 
-  // const testDb = async () => {
-  //   try {
-  //     const result = await db.all(
-  //       sql`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`,
-  //     );
-  //     console.info('result: ', result);
-  //     if (result.length > 0) {
-  //       console.info('✅ Users table exists');
-  //       // Дополнительная проверка структуры таблицы users
-  //       const tableInfo = await db.all(sql`PRAGMA table_info(users);`);
-  //       console.info('📋 Users table structure:', tableInfo);
-  //     } else {
-  //       console.info('❌ Users table not found');
-  //     }
-  //   } catch (error) {
-  //     console.error('❌ Error checking users table:', error);
-  //   }
-  // };
+  const testDb = async () => {
+    try {
+      const result = await db.all(
+        sql`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`,
+      );
+      console.info('result: ', result);
+      if (result.length > 0) {
+        console.info('✅ Users table exists');
+        // Дополнительная проверка структуры таблицы users
+        const tableInfo = await db.all(sql`PRAGMA table_info(users);`);
+        console.info('📋 Users table structure:', tableInfo);
+      } else {
+        console.info('❌ Users table not found');
+      }
+    } catch (error) {
+      console.error('❌ Error checking users table:', error);
+    }
+  };
 
   const setupTestDb = async () => {
-    await db.run(sql`PRAGMA foreign_keys = ON;`);
+    try {
+      await db.run(sql`PRAGMA foreign_keys = ON;`);
 
-    const migrationsPath = join(__dirname, '../../drizzle');
-    // console.info('🔍 Migrations path:', migrationsPath);
+      const migrationsFolder = join(__dirname, '../../drizzle');
+      // console.info('🔍 Migrations path:', migrationsFolder);
 
-    await migrate(db, { migrationsFolder: migrationsPath });
+      await migrate(db, { migrationsFolder });
 
-    // console.info('migrationsPath: ', migrationsPath);
+      // console.info('✅ Migration applied successfully');
 
-    // console.info('✅ Migration applied successfully');
-
-    // await testDb();
+      // await testDb();
+    } catch (error) {
+      console.error('❌ Error setting up test database:', error);
+      throw error;
+    }
   };
 
   const cleanupTestDb = async () => {
@@ -63,6 +67,7 @@ export const createTestDb = () => {
     for (const table of tables) {
       await db.run(sql.raw(`DROP TABLE IF EXISTS ${table};`));
     }
+    // console.info('✅ Test database cleaned up');
   };
 
   const createUser = async (params?: {
@@ -94,7 +99,43 @@ export const createTestDb = () => {
     return user;
   };
 
-  return { cleanupTestDb, createUser, db, setupTestDb };
+  const createTestAccount = async (
+    userId: UUID,
+    params?: {
+      name?: string;
+      originalCurrency?: string;
+      type?: AccountType;
+    },
+  ) => {
+    const accountData = {
+      name: 'Test Account',
+      originalCurrency: 'USD',
+      type: ACCOUNT_TYPES[0],
+      ...params,
+      userId,
+    };
+
+    const account = await db
+      .insert(accounts)
+      .values({
+        name: accountData.name,
+        originalCurrency: accountData.originalCurrency,
+        type: accountData.type,
+        userId: accountData.userId,
+      })
+      .returning()
+      .get();
+
+    return account;
+  };
+
+  return {
+    cleanupTestDb,
+    createTestAccount,
+    createUser,
+    db,
+    setupTestDb,
+  };
 };
 
 // const { cleanupTestDb, db, setupTestDb } = createTestDb();

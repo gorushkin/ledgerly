@@ -11,11 +11,12 @@ post {
 }
 
 headers {
-  Authorization: {{token}}
+  Authorization: {{bearerToken}}
 }
 
 body:json {
   {
-    "name": "Income"
+    "name": "Income",
+    "body": {{categoriId}}
   }
 }

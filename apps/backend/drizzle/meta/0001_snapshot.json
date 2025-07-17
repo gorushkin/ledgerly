@@ -1,8 +1,8 @@
 {
+  "id": "2858dfff-2b26-47a4-830a-855f7883bec8",
+  "prevId": "cbc4c981-4291-45ea-8b6b-e17daabf7e82",
   "version": "6",
   "dialect": "sqlite",
-  "id": "cbc4c981-4291-45ea-8b6b-e17daabf7e82",
-  "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
       "name": "accounts",
@@ -82,28 +82,28 @@
         "accounts_original_currency_currencies_code_fk": {
           "name": "accounts_original_currency_currencies_code_fk",
           "tableFrom": "accounts",
-          "tableTo": "currencies",
           "columnsFrom": [
             "original_currency"
           ],
+          "tableTo": "currencies",
           "columnsTo": [
             "code"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "accounts_user_id_users_id_fk": {
           "name": "accounts_user_id_users_id_fk",
           "tableFrom": "accounts",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -156,15 +156,15 @@
         "categories_user_id_users_id_fk": {
           "name": "categories_user_id_users_id_fk",
           "tableFrom": "categories",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -232,15 +232,15 @@
         "transactions_user_id_users_id_fk": {
           "name": "transactions_user_id_users_id_fk",
           "tableFrom": "transactions",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -353,41 +353,41 @@
         "operations_account_id_accounts_id_fk": {
           "name": "operations_account_id_accounts_id_fk",
           "tableFrom": "operations",
-          "tableTo": "accounts",
           "columnsFrom": [
             "account_id"
           ],
+          "tableTo": "accounts",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "operations_category_id_categories_id_fk": {
           "name": "operations_category_id_categories_id_fk",
           "tableFrom": "operations",
-          "tableTo": "categories",
           "columnsFrom": [
             "category_id"
           ],
+          "tableTo": "categories",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "operations_transaction_id_transactions_id_fk": {
           "name": "operations_transaction_id_transactions_id_fk",
           "tableFrom": "operations",
-          "tableTo": "transactions",
           "columnsFrom": [
             "transaction_id"
           ],
+          "tableTo": "transactions",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -496,28 +496,28 @@
         "settings_base_currency_currencies_code_fk": {
           "name": "settings_base_currency_currencies_code_fk",
           "tableFrom": "settings",
-          "tableTo": "currencies",
           "columnsFrom": [
             "base_currency"
           ],
+          "tableTo": "currencies",
           "columnsTo": [
             "code"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "settings_user_id_users_id_fk": {
           "name": "settings_user_id_users_id_fk",
           "tableFrom": "settings",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -528,9 +528,9 @@
   "views": {},
   "enums": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
+    "tables": {}
   },
   "internal": {
     "indexes": {}

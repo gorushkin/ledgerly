@@ -9,5 +9,5 @@ export type AccountType =
 
 import { accountCreateSchema, accountResponseSchema } from "../validation";
 
-export type AccountCreateDTO = z.infer<typeof accountCreateSchema>;
-export type AccountResponseDTO = z.infer<typeof accountResponseSchema>;
+export type AccountCreate = z.infer<typeof accountCreateSchema>;
+export type AccountResponse = z.infer<typeof accountResponseSchema>;

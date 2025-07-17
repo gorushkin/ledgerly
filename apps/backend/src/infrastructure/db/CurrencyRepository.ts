@@ -10,15 +10,15 @@ export class CurrencyRepository extends BaseRepository {
     super(db);
   }
 
-  getAllCurrencies(): Promise<Currency[]> {
-    return this.withErrorHandling(
+  getAll(): Promise<Currency[]> {
+    return this.executeDatabaseOperation(
       () => this.db.select().from(currencies).all(),
       'Failed to fetch currencies',
     );
   }
 
-  getCurrencyById(id: string): Promise<Currency | undefined> {
-    return this.withErrorHandling(
+  getById(id: string): Promise<Currency | undefined> {
+    return this.executeDatabaseOperation(
       () =>
         this.db.select().from(currencies).where(eq(currencies.code, id)).get(),
       `Failed to fetch currency with ID ${id}`,

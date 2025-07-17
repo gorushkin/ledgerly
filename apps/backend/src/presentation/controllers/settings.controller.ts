@@ -1,4 +1,4 @@
-import { TransactionResponseDTO } from '@ledgerly/shared/types';
+import { TransactionResponse } from '@ledgerly/shared/types';
 import { SettingsRepository } from 'src/infrastructure/db/SeetingsRepository';
 
 export class SettingsController {
@@ -8,7 +8,7 @@ export class SettingsController {
     return this.repo.getSettings();
   }
 
-  update(_id: string, _updatedAccount: TransactionResponseDTO) {
+  update(_id: string, _updatedAccount: TransactionResponse) {
     throw new Error('Method update not implemented.');
   }
 

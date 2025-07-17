@@ -10,12 +10,9 @@ export const transactionCreateSchema = z.object({
   transactionDate: dateText,
 });
 
-// TODO: check operations count validation
-
 export const transactionResponseSchema = z
   .object({
     id: uuid,
     operations: z.array(operationResponseSchema),
-    // operations: z.array(operationResponseSchema).nonempty(),
   })
   .merge(transactionCreateSchema.omit({ operations: true }));

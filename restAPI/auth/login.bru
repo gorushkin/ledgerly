@@ -12,8 +12,12 @@ post {
 
 body:json {
   {
-    "email": "test@example4.com",
-    "password": "hashed_password",
+    "email": "test@example.com",
+    "password": "test_password",
     "name": "Ivan"
   }
+}
+
+vars:post-response {
+  token: res.body.token
 }

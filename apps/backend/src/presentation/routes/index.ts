@@ -18,6 +18,10 @@ export const registerRoutes = (fastify: FastifyInstance) => {
 
   fastify.register(authRoutes, { prefix: ROUTES.auth });
 
+  fastify.register(registerCurrenciesRoutes, {
+    prefix: ROUTES.currencies,
+  });
+
   // Protected routes
   fastify.register((protectedApp) => {
     protectedApp.addHook('onRequest', authMiddleware);
@@ -32,10 +36,6 @@ export const registerRoutes = (fastify: FastifyInstance) => {
 
     protectedApp.register(registerCategoriesRoutes, {
       prefix: ROUTES.categories,
-    });
-
-    protectedApp.register(registerCurrenciesRoutes, {
-      prefix: ROUTES.currencies,
     });
 
     protectedApp.register(registerUserRoutes, {

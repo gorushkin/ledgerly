@@ -1,13 +1,17 @@
 meta {
-  name: getProfile
+  name: getAll
   type: http
   seq: 1
 }
 
 get {
-  url: {{baseUrl}}/user
+  url: {{baseUrl}}/transactions
   body: none
   auth: bearer
+}
+
+headers {
+  ~Authorization: {{bearerToken}}
 }
 
 auth:bearer {
