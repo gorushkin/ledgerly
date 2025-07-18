@@ -7,15 +7,15 @@ import {
 } from '@ledgerly/shared/types';
 import { createTestDb } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
-import { describe, it, expect, afterAll, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, afterAll, beforeEach } from 'vitest';
 
 const url = `/api${ROUTES.user}`;
 
 const passwordUrl = `${url}/password`;
 
 describe('User Integration Tests', () => {
-  const { cleanupTestDb, db, setupTestDb } = createTestDb();
-  const server = createServer(db);
+  let testDbInstance: ReturnType<typeof createTestDb>;
+  let server: ReturnType<typeof createServer>;
   let authToken: string;
   let userId: string;
 
@@ -25,13 +25,10 @@ describe('User Integration Tests', () => {
     password: 'Password123!',
   };
 
-  beforeAll(async () => {
-    await setupTestDb();
-  });
-
   beforeEach(async () => {
-    await cleanupTestDb();
-    await setupTestDb();
+    testDbInstance = createTestDb();
+    server = createServer(testDbInstance.db);
+    await testDbInstance.setupTestDb();
 
     const response = await server.inject({
       method: 'POST',
@@ -48,10 +45,10 @@ describe('User Integration Tests', () => {
   });
 
   afterAll(async () => {
-    await cleanupTestDb();
+    await testDbInstance.cleanupTestDb();
   });
 
-  describe.skip('GET /api/user', () => {
+  describe('GET /api/user', () => {
     it('should get user profile successfully', async () => {
       const response = await server.inject({
         headers: {

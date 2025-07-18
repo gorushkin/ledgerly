@@ -163,17 +163,23 @@ describe('CategoryService', () => {
 
       const updatedCategory = { ...updateData, name: 'Updated Category Name' };
 
-      mockCategoryRepository.update.mockResolvedValue(updatedCategory);
       mockCategoryRepository.getById.mockResolvedValue(updatedCategory);
       mockUserService.validateUser.mockResolvedValue({
         email: 'test@test.com',
         id: userId,
       });
 
-      const result = await service.update(updateData);
+      await service.update(updateData);
 
-      expect(mockCategoryRepository.update).toHaveBeenCalledWith(updateData);
-      expect(result).toEqual(updatedCategory);
+      expect(mockCategoryRepository.update).toHaveBeenCalledWith(
+        userId,
+        updateData,
+      );
+
+      expect(mockUserService.validateUser).toHaveBeenCalledWith(
+        updateData.userId,
+      );
+
       expect(mockCategoryRepository.getById).toHaveBeenCalledWith(
         updateData.userId,
         updateData.id,

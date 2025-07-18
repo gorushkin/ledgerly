@@ -1,31 +1,28 @@
 import { createTestDb } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 
-interface AuthSuccessResponse {
+type AuthSuccessResponse = {
   token: string;
-}
+};
 
-interface AuthErrorResponse {
+type AuthErrorResponse = {
   error: boolean;
   message: string;
-}
+};
 
 describe('Auth Integration Tests', () => {
-  const { cleanupTestDb, db, setupTestDb } = createTestDb();
-  const server = createServer(db);
-
-  beforeAll(async () => {
-    await setupTestDb();
-  });
+  let testDbInstance: ReturnType<typeof createTestDb>;
+  let server: ReturnType<typeof createServer>;
 
   beforeEach(async () => {
-    await cleanupTestDb();
-    await setupTestDb();
+    testDbInstance = createTestDb();
+    server = createServer(testDbInstance.db);
+    await testDbInstance.setupTestDb();
   });
 
   afterAll(async () => {
-    await cleanupTestDb();
+    await testDbInstance.cleanupTestDb();
   });
 
   const testUser = {
