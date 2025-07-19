@@ -1,62 +1,85 @@
 import { AccountCreate, AccountResponse, UUID } from '@ledgerly/shared/types';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
+import { NotFoundError } from 'src/presentation/errors';
 
-export class AccountService {
+import { BaseService } from './baseService';
+
+export class AccountService extends BaseService {
   constructor(
     private readonly accountRepository: AccountRepository,
     private readonly currencyRepository: CurrencyRepository,
-  ) {}
-  async getAll(userId: UUID): Promise<AccountResponse[]> {
-    return this.accountRepository.getAll(userId);
+  ) {
+    super();
   }
-
-  // async validateAndGetCategory(
-  //   userId: UUID,
-  //   id: UUID,
-  // ): Promise<CategoryResponse> {
-  //   await this.userService.validateUser(userId);
-
-  //   const category = await this.categoryRepository.getById(userId, id);
-
-  //   if (!category) {
-  //     throw new CategoryNotFoundError(
-  //       `Category with id ${id} not found for user ${userId}`,
-  //     );
-  //   }
-
-  //   return category;
-  // }
-
-  // async getById(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {
-  //   return this.validateAndGetCategory(userId, id);
-  // }
 
   async validateCurrency(currencyCode: string): Promise<void> {
     const currency = await this.currencyRepository.getById(currencyCode);
 
     if (!currency) {
-      throw new Error(`Currency with code ${currencyCode} not found`);
+      throw new NotFoundError(`Currency with code ${currencyCode} not found`, {
+        entity: 'Currency',
+        entityId: currencyCode,
+      });
     }
   }
 
-  async create(requestBody: AccountCreate): Promise<AccountResponse> {
-    await this.validateCurrency(requestBody.originalCurrency);
-
-    return this.accountRepository.create(requestBody);
+  async getAll(userId: UUID): Promise<AccountResponse[]> {
+    return this.accountRepository.getAll(userId);
   }
 
-  // async update(
-  //   requestBody: CategoryUpdate,
-  // ): Promise<CategoryResponse | undefined> {
-  //   await this.validateAndGetCategory(requestBody.userId, requestBody.id);
+  async ensureAccountExistsAndOwned(
+    userId: UUID,
+    id: UUID,
+  ): Promise<AccountResponse> {
+    const account = this.ensureEntityExists(
+      await this.accountRepository.getById(userId, id),
+      'Account not found',
+      {
+        attemptedUserId: userId,
+        entity: 'Account',
+        entityId: id,
+        reason: 'missing',
+      },
+    );
 
-  //   return this.categoryRepository.update(requestBody.userId, requestBody);
-  // }
+    this.ensureAuthorized(account?.userId === userId, 'Account not found', {
+      attemptedUserId: userId,
+      entity: 'Account',
+      entityId: id,
+      ownerUserId: account?.userId,
+      reason: 'forbidden',
+    });
 
-  // async delete(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {
-  //   await this.validateAndGetCategory(userId, id);
+    return account;
+  }
 
-  //   return this.categoryRepository.delete(userId, id);
-  // }
+  async getById(userId: UUID, id: UUID): Promise<AccountResponse> {
+    return this.ensureAccountExistsAndOwned(userId, id);
+  }
+
+  async create(data: AccountCreate): Promise<AccountResponse> {
+    await this.validateCurrency(data.originalCurrency);
+
+    return this.accountRepository.create(data);
+  }
+
+  async update(
+    data: AccountCreate,
+    id: UUID,
+    userId: UUID,
+  ): Promise<AccountResponse> {
+    await this.validateCurrency(data.originalCurrency);
+
+    await this.ensureAccountExistsAndOwned(userId, id);
+
+    return this.accountRepository.update(id, data, userId);
+  }
+
+  async delete(userId: UUID, id: UUID): Promise<AccountResponse> {
+    await this.ensureAccountExistsAndOwned(userId, id);
+
+    // TODO: fix ts error
+    return this.accountRepository.delete(userId, id);
+  }
 }
