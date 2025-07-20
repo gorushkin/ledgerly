@@ -15,17 +15,11 @@ export class AccountController {
     return this.accountService.getAll(userId);
   }
 
-  // async getById(id: string) {
-  //   const account = await this.repo.getAccountById(id);
+  getById(userId: UUID, id: string) {
+    return this.accountService.getById(userId, id);
+  }
 
-  //   if (!account) {
-  //     throw new NotFoundError('Account not found');
-  //   }
-
-  //   return account;
-  // }
-
-  create(userId: UUID, requestBody: unknown) {
+  async create(userId: UUID, requestBody: unknown) {
     const accountCreateDto = accountCreateSchema.parse({
       ...this.getNonNullObject(requestBody),
       userId,
@@ -34,11 +28,16 @@ export class AccountController {
     return this.accountService.create(accountCreateDto);
   }
 
-  // update(id: string, updatedAccount: AccountCreateDTO) {
-  //   return this.repo.updateAccount(id, updatedAccount);
-  // }
+  async update(id: UUID, updatedAccount: unknown, userId: UUID) {
+    const accountUpdateDto = accountCreateSchema.parse({
+      ...this.getNonNullObject(updatedAccount),
+      id,
+    });
 
-  // delete(id: string) {
-  //   return this.repo.deleteAccount(id);
-  // }
+    return this.accountService.update(accountUpdateDto, id, userId);
+  }
+
+  async delete(id: UUID, userId: UUID) {
+    return this.accountService.delete(id, userId);
+  }
 }
