@@ -1,0 +1,22 @@
+meta {
+  name: delete
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}{{accounts}}/32b9e2e6-d95c-476c-8ebd-e04eb69eb5a9
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "!!!!!",
+    "originalCurrency": "EUR"
+  }
+}
