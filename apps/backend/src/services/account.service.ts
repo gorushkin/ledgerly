@@ -33,7 +33,7 @@ export class AccountService extends BaseService {
     id: UUID,
   ): Promise<AccountResponse> {
     const account = this.ensureEntityExists(
-      await this.accountRepository.getById(id, userId),
+      await this.accountRepository.getById(userId, id),
       'Account not found',
       {
         attemptedUserId: userId,
