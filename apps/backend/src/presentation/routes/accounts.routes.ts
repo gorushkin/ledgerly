@@ -12,8 +12,9 @@ export const registerAccountsRoutes = (app: FastifyInstance) => {
 
   app.get('/:id', async (request) => {
     const { id } = uniqueIdSchema.parse(request.params);
+    const userId = request.user.userId;
 
-    return await accountController.getById(id);
+    return await accountController.getById(userId, id);
   });
 
   app.post('/', async (request, reply) => {

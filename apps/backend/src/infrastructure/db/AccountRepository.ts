@@ -10,6 +10,13 @@ export class AccountRepository extends BaseRepository {
     super(db);
   }
 
+  // async getSuperAll() {
+  //   return this.executeDatabaseOperation<AccountResponse[]>(
+  //     () => this.db.select().from(accounts).all(),
+  //     'Failed to fetch all accounts',
+  //   );
+  // }
+
   async getAll(userId: UUID): Promise<AccountResponse[]> {
     return this.executeDatabaseOperation<AccountResponse[]>(
       () =>
