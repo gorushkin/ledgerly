@@ -1,5 +1,8 @@
 import { UUID } from '@ledgerly/shared/types';
-import { accountCreateSchema } from '@ledgerly/shared/validation';
+import {
+  accountCreateSchema,
+  accountUpdateSchema,
+} from '@ledgerly/shared/validation';
 import { AccountService } from 'src/services/account.service';
 
 export class AccountController {
@@ -11,11 +14,11 @@ export class AccountController {
       : {};
   }
 
-  getAll(userId: UUID) {
+  async getAll(userId: UUID) {
     return this.accountService.getAll(userId);
   }
 
-  getById(userId: UUID, id: string) {
+  async getById(userId: UUID, id: UUID) {
     return this.accountService.getById(userId, id);
   }
 
@@ -28,16 +31,16 @@ export class AccountController {
     return this.accountService.create(accountCreateDto);
   }
 
-  async update(id: UUID, updatedAccount: unknown, userId: UUID) {
-    const accountUpdateDto = accountCreateSchema.parse({
+  async update(userId: UUID, id: UUID, updatedAccount: unknown) {
+    const accountUpdateDto = accountUpdateSchema.parse({
       ...this.getNonNullObject(updatedAccount),
       id,
     });
 
-    return this.accountService.update(accountUpdateDto, id, userId);
+    return this.accountService.update(userId, id, accountUpdateDto);
   }
 
-  async delete(id: UUID, userId: UUID) {
-    return this.accountService.delete(id, userId);
+  async delete(userId: UUID, id: UUID) {
+    return this.accountService.delete(userId, id);
   }
 }

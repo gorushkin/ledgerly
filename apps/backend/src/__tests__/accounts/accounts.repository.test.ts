@@ -212,8 +212,8 @@ describe('AccountRepository', () => {
 
     it('should retrieve an account by ID', async () => {
       const retrievedAccount = await accountRepository.getById(
-        account.id,
         user.id,
+        account.id,
       );
 
       expect(retrievedAccount).toBeDefined();
@@ -260,9 +260,9 @@ describe('AccountRepository', () => {
       };
 
       const updatedAccount = await accountRepository.update(
+        user.id,
         account.id,
         updatedAccountData,
-        user.id,
       );
 
       expect(updatedAccount).toBeDefined();
@@ -284,9 +284,9 @@ describe('AccountRepository', () => {
       };
 
       const updatedAccount = await accountRepository.update(
+        'non-existent-account-id',
         account.id,
         updatedAccountData,
-        'non-existent-account-id',
       );
 
       expect(updatedAccount).toBeUndefined();
@@ -308,7 +308,7 @@ describe('AccountRepository', () => {
       });
 
       await expect(
-        accountRepository.update(account.id, updatedAccountData, user.id),
+        accountRepository.update(user.id, account.id, updatedAccountData),
       ).rejects.toThrowError(
         new RecordAlreadyExistsError(
           'accounts',
@@ -332,6 +332,7 @@ describe('AccountRepository', () => {
       });
 
       const updatedSecondUserAccount = await accountRepository.update(
+        secondUser.id,
         secondUserAccount.id,
         {
           name: accountData.name,
@@ -339,7 +340,6 @@ describe('AccountRepository', () => {
           type: 'cash',
           userId: secondUser.id,
         },
-        secondUser.id,
       );
 
       expect(updatedSecondUserAccount).toBeDefined();
@@ -356,7 +356,7 @@ describe('AccountRepository', () => {
       };
 
       await expect(
-        accountRepository.update(account.id, updatedAccountData, user.id),
+        accountRepository.update(user.id, account.id, updatedAccountData),
       ).rejects.toThrowError(
         new ForeignKeyConstraintError(
           'currencies',
@@ -375,13 +375,13 @@ describe('AccountRepository', () => {
     });
 
     it('should delete account when it exists and belongs to user', async () => {
-      const deleted = await accountRepository.delete(account.id, user.id);
+      const deleted = await accountRepository.delete(user.id, account.id);
 
-      expect(deleted).toBeDefined();
+      expect(deleted).toBeUndefined();
 
       const retrievedAccount = await accountRepository.getById(
-        account.id,
         user.id,
+        account.id,
       );
 
       const userAccounts = await accountRepository.getAll(user.id);

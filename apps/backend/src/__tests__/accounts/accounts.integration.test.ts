@@ -114,12 +114,11 @@ describe('Accounts Integration Tests', () => {
   describe('POST /api/accounts', () => {
     it('should create a new account', async () => {
       const newAccount = {
+        description: 'This is a new account',
         name: 'New Account',
         originalCurrency: 'USD',
         type: 'cash' as AccountType,
       };
-
-      console.log('newAccount: ', newAccount);
 
       const response = await server.inject({
         headers: {
@@ -130,12 +129,103 @@ describe('Accounts Integration Tests', () => {
         url,
       });
 
-      console.log('response: ', response.body);
+      const createdAccount = JSON.parse(response.body) as AccountResponse;
 
-      // const createdAccount = JSON.parse(response.body) as AccountResponse;
+      expect(response.statusCode).toBe(201);
+      expect(createdAccount.name).toBe(newAccount.name);
+      expect(createdAccount.originalCurrency).toBe(newAccount.originalCurrency);
+      expect(createdAccount.type).toBe(newAccount.type);
+      expect(createdAccount.description).toBe(newAccount.description);
 
-      // expect(response.statusCode).toBe(201);
-      // expect(createdAccount.name).toBe(newAccount.name);
+      const finalResponse = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      const accountsAfterCreation = JSON.parse(
+        finalResponse.body,
+      ) as AccountResponse[];
+
+      expect(accountsAfterCreation.length).toBe(firstUserAccounts.length + 1);
+      expect(accountsAfterCreation).toContainEqual(createdAccount);
+    });
+  });
+
+  describe('DELETE /api/accounts/:id', () => {
+    it('should delete an account by ID', async () => {
+      const accountToDelete = accounts[0];
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'DELETE',
+        url: `${url}/${accountToDelete.id}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toContain(accountToDelete.id);
+      expect(response.body).toContain('Account successfully deleted');
+
+      const finalResponse = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      const accountsAfterDeletion = JSON.parse(
+        finalResponse.body,
+      ) as AccountResponse[];
+
+      expect(accountsAfterDeletion.length).toBe(firstUserAccounts.length - 1);
+      expect(accountsAfterDeletion).not.toContainEqual(accountToDelete);
+    });
+  });
+
+  describe('PUT /api/accounts/:id', () => {
+    it('should update an account by ID', async () => {
+      const accountToUpdate = accounts[0];
+
+      const updatedData = {
+        name: 'Updated Account Name',
+        originalCurrency: 'EUR',
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload: updatedData,
+        url: `${url}/${accountToUpdate.id}`,
+      });
+
+      const updatedAccount = JSON.parse(response.body) as AccountResponse;
+
+      expect(response.statusCode).toBe(200);
+      expect(updatedAccount.name).toBe(updatedData.name);
+      expect(updatedAccount.originalCurrency).toBe(
+        updatedData.originalCurrency,
+      );
+
+      const finalResponse = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      const accountsAfterUpdate = JSON.parse(
+        finalResponse.body,
+      ) as AccountResponse[];
+
+      expect(accountsAfterUpdate).toContainEqual(updatedAccount);
     });
   });
 });

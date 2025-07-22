@@ -96,7 +96,7 @@ describe('AccountService', () => {
         userId: accountData.userId,
       });
 
-      await accountService.update(accountData, accountId, userId);
+      await accountService.update(userId, accountId, accountData);
 
       expect(currencyRepository.getById).toHaveBeenCalledWith(
         accountData.originalCurrency,
@@ -114,9 +114,9 @@ describe('AccountService', () => {
       accountRepository.update.mockResolvedValue(accountData);
 
       const updatedAccount = await accountService.update(
-        accountData,
-        accountId,
         userId,
+        accountId,
+        accountData,
       );
 
       expect(currencyRepository.getById).toHaveBeenCalledWith(
@@ -124,9 +124,9 @@ describe('AccountService', () => {
       );
 
       expect(accountRepository.update).toHaveBeenCalledWith(
+        userId,
         accountId,
         accountData,
-        userId,
       );
 
       expect(updatedAccount).toEqual(accountData);
@@ -140,7 +140,7 @@ describe('AccountService', () => {
       });
 
       await expect(
-        accountService.update(accountData, accountId, userId),
+        accountService.update(userId, accountId, accountData),
       ).rejects.toThrow('Currency with code USD not found');
     });
   });
@@ -239,7 +239,7 @@ describe('AccountService', () => {
       });
 
       await expect(
-        accountService.update(accountData, accountId, userId),
+        accountService.update(userId, accountId, accountData),
       ).rejects.toThrowError(new NotFoundError(`Account not found`));
     });
 

@@ -1,4 +1,9 @@
-import { AccountCreate, AccountResponse, UUID } from '@ledgerly/shared/types';
+import {
+  AccountCreate,
+  AccountResponse,
+  AccountUpdate,
+  UUID,
+} from '@ledgerly/shared/types';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { NotFoundError } from 'src/presentation/errors';
@@ -65,21 +70,22 @@ export class AccountService extends BaseService {
   }
 
   async update(
-    data: AccountCreate,
-    id: UUID,
     userId: UUID,
+    id: UUID,
+    data: AccountUpdate,
   ): Promise<AccountResponse> {
-    await this.validateCurrency(data.originalCurrency);
+    if (data.originalCurrency) {
+      await this.validateCurrency(data.originalCurrency);
+    }
 
     await this.ensureAccountExistsAndOwned(userId, id);
 
-    return this.accountRepository.update(id, data, userId);
+    return this.accountRepository.update(userId, id, data);
   }
 
-  async delete(userId: UUID, id: UUID): Promise<AccountResponse> {
+  async delete(userId: UUID, id: UUID): Promise<void> {
     await this.ensureAccountExistsAndOwned(userId, id);
 
-    // TODO: fix ts error
-    return this.accountRepository.delete(userId, id);
+    return await this.accountRepository.delete(userId, id);
   }
 }

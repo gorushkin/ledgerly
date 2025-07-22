@@ -30,3 +30,5 @@ export const accountResponseSchema = z
     updatedAt,
   })
   .merge(accountCreateSchema);
+
+export const accountUpdateSchema = accountCreateSchema.partial();

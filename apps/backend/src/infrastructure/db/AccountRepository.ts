@@ -1,4 +1,9 @@
-import { AccountCreate, AccountResponse, UUID } from '@ledgerly/shared/types';
+import {
+  AccountCreate,
+  AccountResponse,
+  AccountUpdate,
+  UUID,
+} from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import { accounts } from 'src/db/schemas/accounts';
 import { DataBase } from 'src/types';
@@ -41,7 +46,7 @@ export class AccountRepository extends BaseRepository {
     );
   }
 
-  getById(id: UUID, userId: UUID): Promise<AccountResponse | undefined> {
+  getById(userId: UUID, id: UUID): Promise<AccountResponse | undefined> {
     return this.executeDatabaseOperation<AccountResponse | undefined>(
       () =>
         this.db
@@ -54,9 +59,9 @@ export class AccountRepository extends BaseRepository {
   }
 
   async update(
-    id: UUID,
-    data: AccountCreate,
     userId: UUID,
+    id: UUID,
+    data: AccountUpdate,
   ): Promise<AccountResponse> {
     return this.executeDatabaseOperation(
       () =>
@@ -70,20 +75,17 @@ export class AccountRepository extends BaseRepository {
       {
         field: 'accountName',
         tableName: 'accounts',
-        value: data.name,
+        value: data.name ?? 'No name provided',
       },
     );
   }
 
-  async delete(id: UUID, userId: UUID): Promise<AccountResponse | undefined> {
-    return this.executeDatabaseOperation<AccountResponse | undefined>(
-      () =>
-        this.db
-          .delete(accounts)
-          .where(and(eq(accounts.id, id), eq(accounts.userId, userId)))
-          .returning()
-          .get(),
-      `Failed to delete account with ID ${id}`,
-    );
+  async delete(userId: UUID, id: UUID): Promise<void> {
+    return this.executeDatabaseOperation<void>(async () => {
+      await this.db
+        .delete(accounts)
+        .where(and(eq(accounts.id, id), eq(accounts.userId, userId)))
+        .run();
+    }, `Failed to delete account with ID ${id}`);
   }
 }
