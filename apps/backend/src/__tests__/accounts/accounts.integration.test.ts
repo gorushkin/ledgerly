@@ -228,4 +228,113 @@ describe('Accounts Integration Tests', () => {
       expect(accountsAfterUpdate).toContainEqual(updatedAccount);
     });
   });
+
+  // Authentication & Authorization Tests
+  describe.skip('Authentication & Authorization', () => {
+    // - should return 401 when no auth token provided
+    // - should return 401 when invalid auth token provided
+    // - should return 401 when expired auth token provided
+    // - should return 403 when trying to access another user's account
+    // - should return 403 when trying to update another user's account
+    // - should return 403 when trying to delete another user's account
+  });
+
+  // Validation Tests for POST /api/accounts
+  describe.skip('POST /api/accounts - Validation', () => {
+    // - should return 400 when name is empty
+    // - should return 400 when name is missing
+    // - should return 400 when name is not a string
+    // - should return 400 when originalCurrency is empty
+    // - should return 400 when originalCurrency is missing
+    // - should return 400 when originalCurrency is invalid format
+    // - should return 400 when originalCurrency doesn't exist in database
+    // - should return 400 when type is empty
+    // - should return 400 when type is invalid enum value
+    // - should return 400 when type is missing
+    // - should return 400 when userId is missing
+    // - should return 400 when userId is invalid UUID format
+    // - should return 409 when account name already exists for user
+    // - should return 400 when description is not a string
+    // - should return 400 when initialBalance is not a number
+    // - should return 400 when extra unexpected fields are provided
+  });
+
+  // Validation Tests for PUT /api/accounts/:id
+  describe.skip('PUT /api/accounts/:id - Validation', () => {
+    // - should return 400 when name is empty string
+    // - should return 400 when name is not a string
+    // - should return 400 when originalCurrency is empty
+    // - should return 400 when originalCurrency doesn't exist in database
+    // - should return 400 when type is invalid enum value
+    // - should return 400 when description is not a string
+    // - should return 404 when account ID doesn't exist
+    // - should return 400 when account ID is invalid UUID format
+    // - should return 409 when updating to duplicate name within same user
+    // - should return 400 when empty object is provided
+    // - should return 400 when extra unexpected fields are provided
+    // - should allow updating to name that exists for different user
+  });
+
+  // Edge Cases for GET /api/accounts/:id
+  describe.skip('GET /api/accounts/:id - Edge Cases', () => {
+    // - should return 404 when account ID doesn't exist
+    // - should return 400 when account ID is invalid UUID format
+    // - should return 404 when account belongs to different user
+  });
+
+  // Edge Cases for DELETE /api/accounts/:id
+  describe.skip('DELETE /api/accounts/:id - Edge Cases', () => {
+    // - should return 404 when account ID doesn't exist
+    // - should return 400 when account ID is invalid UUID format
+    // - should return 404 when trying to delete another user's account
+    // - should handle deletion of account with transactions (cascade)
+  });
+
+  // Foreign Key Constraint Tests
+  describe.skip('Foreign Key Constraints', () => {
+    // - should handle user deletion cascading to accounts
+    // - should prevent creation with non-existent currency
+    // - should prevent update with non-existent currency
+  });
+
+  // Business Logic Tests
+  describe.skip('Business Logic', () => {
+    // - should allow multiple accounts with same name for different users
+    // - should preserve other fields when partially updating account
+    // - should handle account creation with all optional fields
+    // - should handle account update with only one field changed
+    // - should maintain data integrity during concurrent operations
+  });
+
+  // Database Consistency Tests
+  describe.skip('Database Consistency', () => {
+    // - should maintain unique constraint on (userId, name)
+    // - should properly set created_at and updated_at timestamps
+    // - should handle database connection errors gracefully
+    // - should rollback on transaction failures
+  });
+
+  // Content-Type and Request Format Tests
+  describe.skip('Request Format', () => {
+    // - should return 400 when Content-Type is not application/json
+    // - should return 400 when request body is not valid JSON
+    // - should return 400 when request body is null
+    // - should return 400 when request body is array instead of object
+  });
+
+  // Response Format Tests
+  describe.skip('Response Format', () => {
+    // - should return proper error format for validation errors
+    // - should include all required fields in successful responses
+    // - should not include sensitive data in responses
+    // - should return consistent error structure across endpoints
+  });
+
+  // Performance and Limits Tests
+  describe.skip('Performance & Limits', () => {
+    // - should handle very long account names (within limits)
+    // - should handle maximum number of accounts per user
+    // - should handle special characters in account names
+    // - should handle unicode characters in account names
+  });
 });
