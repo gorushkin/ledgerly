@@ -11,16 +11,7 @@ const password = z
   });
 
 export const usersCreateSchema = z.object({
-  email: z
-    .string()
-    .email()
-    .toLowerCase()
-    .trim()
-    .min(1)
-    .max(255)
-    .refine((email) => email.length <= 255, {
-      message: "Email must be at most 255 characters long",
-    }),
+  email: z.string().email().toLowerCase().trim().min(1).max(255),
   name: notNullText,
   password,
 });
