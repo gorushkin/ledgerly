@@ -58,6 +58,14 @@ describe('UserService', () => {
 
       await expect(service.getById(id)).rejects.toThrowError(UserNotFoundError);
     });
+
+    it.todo('should call validateUser method internally');
+  });
+
+  describe('validateUser', () => {
+    it.todo('should return user when exists');
+    it.todo('should throw UserNotFoundError when user does not exist');
+    it.todo('should call getUserById with correct id');
   });
 
   describe('update', () => {
@@ -109,6 +117,12 @@ describe('UserService', () => {
         EmailAlreadyExistsError,
       );
     });
+
+    it.todo('should call validateUser before updating');
+    it.todo('should allow update without email change');
+    it.todo('should allow email update when email belongs to same user');
+    it.todo('should handle partial updates (only name or only email)');
+    it.todo('should call updateUserProfile with correct parameters');
   });
 
   describe('delete', () => {
@@ -127,6 +141,8 @@ describe('UserService', () => {
 
       await expect(service.delete(id)).rejects.toThrowError(UserNotFoundError);
     });
+
+    it.todo('should call validateUser before deleting');
   });
 
   describe('changePassword', () => {
@@ -184,5 +200,15 @@ describe('UserService', () => {
         InvalidPasswordError,
       );
     });
+
+    it.todo('should call getUserByIdWithPassword with correct id');
+    it.todo('should hash new password before storing');
+    it.todo('should not update password if current password validation fails');
+  });
+
+  describe('canDeleteUser', () => {
+    it.todo('should return null for any user (placeholder implementation)');
+    it.todo('should be implemented to check deletion constraints');
+    it.todo('should prevent deletion when user has dependencies');
   });
 });

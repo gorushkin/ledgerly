@@ -100,6 +100,13 @@ describe('User Integration Tests', () => {
       expect(response.statusCode).toBe(401);
       expect(error.message).toBe('User not found');
     });
+
+    it.todo('should fail with invalid auth token');
+    it.todo('should fail with expired auth token');
+    it.todo('should fail with malformed auth token');
+    it.todo('should handle database connection errors gracefully');
+    it.todo('should return consistent response format');
+    it.todo('should not return sensitive information');
   });
 
   describe('PUT /api/user', () => {
@@ -188,6 +195,24 @@ describe('User Integration Tests', () => {
 
       expect(error.message).toBe('User not found');
     });
+
+    it.todo('should update only name field when email is not provided');
+    it.todo('should update only email field when name is not provided');
+    it.todo('should return 400 when email exceeds 255 characters');
+    it.todo('should return 400 when name is not a string');
+    it.todo('should return 400 when email is not a string');
+    it.todo('should automatically trim and lowercase email');
+    it.todo('should validate email format strictly');
+    it.todo('should return 400 when extra unexpected fields are provided');
+    it.todo('should handle Content-Type validation');
+    it.todo('should handle malformed JSON in request body');
+    it.todo('should prevent email duplication with other users');
+    it.todo('should handle database constraint errors');
+    it.todo('should handle concurrent update requests');
+    it.todo('should preserve user ID during update');
+    it.todo('should update timestamps correctly');
+    it.todo('should fail with invalid auth token');
+    it.todo('should fail with expired auth token');
   });
 
   describe('DELETE /api/user', () => {
@@ -245,6 +270,18 @@ describe('User Integration Tests', () => {
       const error = JSON.parse(response.body) as ErrorResponse;
       expect(error.message).toBe('User not found');
     });
+
+    it.todo(
+      'should cascade delete related data (accounts, transactions, etc.)',
+    );
+    it.todo('should fail with invalid auth token');
+    it.todo('should fail with expired auth token');
+    it.todo('should return consistent response format');
+    it.todo('should handle database transaction rollback on errors');
+    it.todo('should invalidate all user sessions/tokens after deletion');
+    it.todo('should handle concurrent deletion attempts');
+    it.todo('should log user deletion for audit purposes');
+    it.todo('should handle soft delete vs hard delete scenarios');
   });
 
   describe('PUT /password - Change Password', () => {
@@ -359,5 +396,26 @@ describe('User Integration Tests', () => {
       expect(response.statusCode).toBe(401);
       expect(error.message).toBe('User not found');
     });
+
+    it.todo('should return 400 for missing newPassword');
+    it.todo('should return 400 when currentPassword is empty string');
+    it.todo('should return 400 when newPassword is empty string');
+    it.todo('should return 400 when currentPassword is not a string');
+    it.todo('should return 400 when newPassword is not a string');
+    it.todo('should return 400 when newPassword exceeds 255 characters');
+    it.todo('should hash new password before storing');
+    it.todo('should verify new password can be used for login');
+    it.todo('should return 400 when new password same as current');
+    it.todo('should return 400 when extra unexpected fields provided');
+    it.todo('should handle Content-Type validation');
+    it.todo('should handle malformed JSON in request body');
+    it.todo('should fail with invalid auth token');
+    it.todo('should fail with expired auth token');
+    it.todo('should handle database errors during password update');
+    it.todo('should invalidate existing sessions after password change');
+    it.todo('should log password change attempts for security');
+    it.todo('should handle concurrent password change requests');
+    it.todo('should enforce password complexity rules');
+    it.todo('should prevent password reuse (if implemented)');
   });
 });

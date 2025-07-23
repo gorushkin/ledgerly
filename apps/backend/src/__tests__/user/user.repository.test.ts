@@ -197,5 +197,24 @@ describe('UsersRepository', () => {
 
       expect(updatedUser?.password).toBe(newHashedPassword);
     });
+
+    it.todo('should handle database errors when updating user password');
+    it.todo('should handle updating password for non-existent user');
+  });
+
+  describe('getAll', () => {
+    it.todo('should return all users from database');
+    it.todo('should return empty array when no users exist');
+    it.todo('should handle database errors when getting all users');
+    it.todo('should not return passwords in getAll response');
+  });
+
+  // Additional edge case tests
+  describe('edge cases', () => {
+    it.todo('should handle concurrent user creation with same email');
+    it.todo('should handle very long email addresses');
+    it.todo('should handle special characters in user name');
+    it.todo('should handle empty string values in updateUserProfile');
+    it.todo('should validate email format during creation');
   });
 });
