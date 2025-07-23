@@ -1,0 +1,22 @@
+meta {
+  name: updateProfile
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/user
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "email": "test@example7.com",
+    "name": "maria"
+  }
+}

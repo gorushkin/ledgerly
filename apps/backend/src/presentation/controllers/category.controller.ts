@@ -1,12 +1,45 @@
-import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
+import { CategoryResponse, UUID } from '@ledgerly/shared/types';
+import {
+  categoryCreateSchema,
+  categoryUpdateSchema,
+} from '@ledgerly/shared/validation';
+import { CategoryService } from 'src/services/category.service';
 
 export class CategoryController {
-  repo: CategoryRepository;
+  constructor(private readonly categoryService: CategoryService) {}
 
-  constructor(repo: CategoryRepository) {
-    this.repo = repo;
+  private getNonNullObject(requestBody: unknown): object {
+    return typeof requestBody === 'object' && requestBody !== null
+      ? requestBody
+      : {};
   }
-  getAll() {
-    return this.repo.getAllCategories();
+
+  async getAll(userId: UUID): Promise<CategoryResponse[]> {
+    return this.categoryService.getAll(userId);
+  }
+
+  async getById(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {
+    return this.categoryService.getById(userId, id);
+  }
+
+  async create(userId: UUID, requestBody: unknown) {
+    const categoryCreateDto = categoryCreateSchema.parse({
+      ...this.getNonNullObject(requestBody),
+      userId,
+    });
+
+    return this.categoryService.create(categoryCreateDto);
+  }
+  async update(userId: UUID, id: UUID, requestBody: unknown) {
+    const categoryUpdateDto = categoryUpdateSchema.parse({
+      id,
+      ...this.getNonNullObject(requestBody),
+      userId,
+    });
+
+    return this.categoryService.update(categoryUpdateDto);
+  }
+  async delete(userId: UUID, id: UUID) {
+    return this.categoryService.delete(userId, id);
   }
 }

@@ -1,0 +1,15 @@
+meta {
+  name: deleteProfile
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/user
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: {{bearerToken}}
+}

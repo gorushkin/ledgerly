@@ -1,11 +1,7 @@
-import {
-  AccountResponseDTO,
-  CategoryResponseDTO,
-} from '@ledgerly/shared/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
 import { db } from '../index';
-import { operations, transactions } from '../schemas';
+import { transactions } from '../schemas';
 import { accounts } from '../schemas/accounts';
 import { categories } from '../schemas/categories';
 import { users } from '../schemas/users';
@@ -28,17 +24,17 @@ class SeedError extends Error {
   }
 }
 
-const seedCategories = async () => {
+const seedCategories = async (userId: string) => {
   const insertedCategories = await db
     .insert(categories)
     .values([
-      { id: CATEGORY_ID1, name: 'Продукты' },
-      { id: CATEGORY_ID2, name: 'Транспорт' },
-      { name: 'Жильё' },
-      { name: 'Развлечения' },
-      { name: 'Здоровье' },
-      { name: 'Одежда' },
-      { name: 'Доход' },
+      { id: CATEGORY_ID1, name: 'Продукты', userId },
+      { id: CATEGORY_ID2, name: 'Транспорт', userId },
+      { name: 'Жильё', userId },
+      { name: 'Развлечения', userId },
+      { name: 'Здоровье', userId },
+      { name: 'Одежда', userId },
+      { name: 'Доход', userId },
     ])
     .returning();
 
@@ -94,56 +90,56 @@ const seedUser = async () => {
   }
 };
 
-const seedTransaction = async (_accounts: AccountResponseDTO[]) => {
-  try {
-    const insertedTransaction = await db
-      .insert(transactions)
-      .values({
-        description: 'Test transaction',
-        postingDate: new Date().toISOString(),
-        transactionDate: new Date().toISOString(),
-      })
-      .returning();
+// const seedTransaction = async (_accounts: AccountResponse[]) => {
+//   try {
+//     const insertedTransaction = await db
+//       .insert(transactions)
+//       .values({
+//         description: 'Test transaction',
+//         postingDate: new Date().toISOString(),
+//         transactionDate: new Date().toISOString(),
+//       })
+//       .returning();
 
-    return insertedTransaction[0];
-  } catch {
-    throw new SeedError('Failed to seed transaction');
-  }
-};
+//     return insertedTransaction[0];
+//   } catch {
+//     throw new SeedError('Failed to seed transaction');
+//   }
+// };
 
-const seedOperations = async (
-  transaction: { id: string },
-  accounts: AccountResponseDTO[],
-  categories: CategoryResponseDTO[],
-) => {
-  try {
-    const insertedOperations = await db
-      .insert(operations)
-      .values([
-        {
-          accountId: accounts[0].id,
-          categoryId: categories[0].id,
-          description: 'Test operation 1',
-          localAmount: 100,
-          originalAmount: 100,
-          transactionId: transaction.id,
-        },
-        {
-          accountId: accounts[1].id,
-          categoryId: categories[1].id,
-          description: 'Test operation 2',
-          localAmount: -100,
-          originalAmount: -1,
-          transactionId: transaction.id,
-        },
-      ])
-      .returning();
+// const seedOperations = async (
+//   transaction: { id: string },
+//   accounts: AccountResponse[],
+//   categories: CategoryResponse[],
+// ) => {
+//   try {
+//     const insertedOperations = await db
+//       .insert(operations)
+//       .values([
+//         {
+//           accountId: accounts[0].id,
+//           categoryId: categories[0].id,
+//           description: 'Test operation 1',
+//           localAmount: 100,
+//           originalAmount: 100,
+//           transactionId: transaction.id,
+//         },
+//         {
+//           accountId: accounts[1].id,
+//           categoryId: categories[1].id,
+//           description: 'Test operation 2',
+//           localAmount: -100,
+//           originalAmount: -1,
+//           transactionId: transaction.id,
+//         },
+//       ])
+//       .returning();
 
-    return insertedOperations;
-  } catch {
-    throw new SeedError('Failed to seed operations');
-  }
-};
+//     return insertedOperations;
+//   } catch {
+//     throw new SeedError('Failed to seed operations');
+//   }
+// };
 
 const deleteData = async () => {
   try {
@@ -165,17 +161,17 @@ export const addData = async () => {
     const user = await seedUser();
     console.info('User seeded');
 
-    const insertedCategories = await seedCategories();
+    await seedCategories(user.id);
     console.info('Categories seeded');
 
-    const insertedAccounts = await seedAccounts(user.id);
-    console.info('Accounts seeded');
+    // const insertedAccounts = await seedAccounts(user.id);
+    // console.info('Accounts seeded');
 
-    const transaction = await seedTransaction(insertedAccounts);
-    console.info('Transaction seeded');
+    // const transaction = await seedTransaction(insertedAccounts);
+    // console.info('Transaction seeded');
 
-    await seedOperations(transaction, insertedAccounts, insertedCategories);
-    console.info('Operations seeded');
+    // await seedOperations(transaction, insertedAccounts, insertedCategories);
+    // console.info('Operations seeded');
 
     console.info('Seeding completed successfully');
   } catch (error) {

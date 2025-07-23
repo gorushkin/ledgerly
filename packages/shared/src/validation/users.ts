@@ -2,19 +2,18 @@ import { z } from "zod";
 
 import { notNullText } from "./baseValidations";
 
+const password = z
+  .string()
+  .min(8)
+  .max(255)
+  .refine((password) => password.length <= 255, {
+    message: "Password must be at most 255 characters long",
+  });
+
 export const usersCreateSchema = z.object({
-  email: z
-    .string()
-    .email()
-    .toLowerCase()
-    .trim()
-    .min(1)
-    .max(255)
-    .refine((email) => email.length <= 255, {
-      message: "Email must be at most 255 characters long",
-    }),
+  email: z.string().email().toLowerCase().trim().min(1).max(255),
   name: notNullText,
-  password: notNullText,
+  password,
 });
 
 export const usersResponseSchema = z
@@ -35,5 +34,5 @@ export const usersUpdateSchema = z
 
 export const passwordChangeSchema = z.object({
   currentPassword: notNullText,
-  newPassword: notNullText,
+  newPassword: password,
 });

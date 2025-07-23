@@ -12,7 +12,10 @@ import { CurrencyController } from 'src/presentation/controllers/currency.contro
 import { OperationController } from 'src/presentation/controllers/operation.controller';
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
+import { AccountService } from 'src/services/account.service';
 import { AuthService } from 'src/services/auth.service';
+import { CategoryService } from 'src/services/category.service';
+import { TransactionService } from 'src/services/transaction.service';
 import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
@@ -41,26 +44,35 @@ export const createContainer = (db: DataBase): AppContainer => {
   const passwordManager = new PasswordManager();
   const authService = new AuthService(userRepository, passwordManager);
   const userService = new UserService(userRepository, passwordManager);
+  const categoryService = new CategoryService(categoryRepository, userService);
+  const accountService = new AccountService(
+    accountRepository,
+    currencyRepository,
+  );
+  const transactionService = new TransactionService(
+    transactionRepository,
+    userService,
+  );
 
   const services: AppContainer['services'] = {
+    account: accountService,
     auth: authService,
+    category: categoryService,
     passwordManager,
+    transaction: transactionService,
     user: userService,
   };
 
-  const accountController = new AccountController(repositories.account);
+  const accountController = new AccountController(services.account);
   const currencyController = new CurrencyController(repositories.currency);
-  const categoryController = new CategoryController(repositories.category);
+  const categoryController = new CategoryController(services.category);
   const operationController = new OperationController(
     operationRepository,
     currencyController,
     accountController,
   );
-  const transactionController = new TransactionController(
-    repositories.transaction,
-    operationController,
-  );
 
+  const transactionController = new TransactionController(transactionService);
   const userController = new UserController(userService);
   const authController = new AuthController(authService);
 

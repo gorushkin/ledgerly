@@ -7,7 +7,12 @@ export type AccountType =
   | "savings"
   | "investment";
 
-import { accountCreateSchema, accountResponseSchema } from "../validation";
+import {
+  accountCreateSchema,
+  accountResponseSchema,
+  accountUpdateSchema,
+} from "../validation";
 
-export type AccountCreateDTO = z.infer<typeof accountCreateSchema>;
-export type AccountResponseDTO = z.infer<typeof accountResponseSchema>;
+export type AccountCreate = z.infer<typeof accountCreateSchema>;
+export type AccountUpdate = z.infer<typeof accountUpdateSchema>;
+export type AccountResponse = z.infer<typeof accountResponseSchema>;

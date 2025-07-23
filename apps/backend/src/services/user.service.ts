@@ -1,4 +1,4 @@
-import { UsersUpdate, PasswordChange } from '@ledgerly/shared/types';
+import { UsersUpdate, PasswordChange, UUID } from '@ledgerly/shared/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import {
@@ -13,11 +13,11 @@ export class UserService {
     private readonly passwordManager: PasswordManager,
   ) {}
 
-  getById(id: string) {
+  getById(id: UUID) {
     return this.validateUser(id);
   }
 
-  async validateUser(id: string): Promise<UsersUpdate> {
+  async validateUser(id: UUID): Promise<UsersUpdate> {
     const existingUser = await this.usersRepository.getUserById(id);
 
     if (!existingUser) {
@@ -27,7 +27,7 @@ export class UserService {
     return existingUser;
   }
 
-  async update(id: string, profileData: UsersUpdate) {
+  async update(id: UUID, profileData: UsersUpdate) {
     await this.validateUser(id);
 
     if (profileData?.email) {
@@ -43,7 +43,7 @@ export class UserService {
     return this.usersRepository.updateUserProfile(id, profileData);
   }
 
-  async changePassword(id: string, passwordData: PasswordChange) {
+  async changePassword(id: UUID, passwordData: PasswordChange) {
     const userWithPassword =
       await this.usersRepository.getUserByIdWithPassword(id);
 
@@ -67,13 +67,13 @@ export class UserService {
     await this.usersRepository.updateUserPassword(id, hashedNewPassword);
   }
 
-  async delete(id: string) {
+  async delete(id: UUID) {
     await this.validateUser(id);
 
     return this.usersRepository.deleteUser(id);
   }
 
-  canDeleteUser(_userId: string): null {
+  canDeleteUser(_userId: UUID): null {
     // TODO: add checking
 
     /*

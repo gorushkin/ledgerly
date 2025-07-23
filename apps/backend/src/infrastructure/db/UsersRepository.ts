@@ -78,7 +78,7 @@ export class UsersRepository extends BaseRepository {
 
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined) {
-          updateData[key as keyof typeof updateData] = value;
+          updateData[key as keyof typeof users.$inferInsert] = value;
         }
       });
 
@@ -120,6 +120,14 @@ export class UsersRepository extends BaseRepository {
           .returning(userSelect)
           .get(),
       `Failed to delete user with ID ${id}`,
+    );
+  }
+
+  // TODO: remove this method
+  async getAll(): Promise<UsersResponse[]> {
+    return this.executeDatabaseOperation(
+      async () => this.db.select(userSelect).from(users).all(),
+      'Failed to fetch all users',
     );
   }
 }

@@ -14,10 +14,12 @@ const envSchema = z.object({
     invalid_type_error: 'DATABASE_URL must be a string',
     required_error: 'DATABASE_URL is required',
   }),
+  EXPIRES_IN: z.string().default('1h'),
 });
 
 const processEnv = envSchema.parse(process.env);
 
 export const env = {
   dbUrl: processEnv.DATABASE_URL,
+  expiresIn: processEnv.EXPIRES_IN || '1h',
 } as const;

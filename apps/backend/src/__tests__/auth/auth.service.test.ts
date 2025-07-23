@@ -37,7 +37,7 @@ describe('AuthService', () => {
     vi.clearAllMocks();
   });
 
-  describe.skip('registerUser', () => {
+  describe('registerUser', () => {
     it('should register a user successfully', async () => {
       const mockUser = { email, id, name, password: hashedPassword };
 
@@ -71,6 +71,20 @@ describe('AuthService', () => {
         }),
       ).rejects.toThrowError(UserExistsError);
     });
+
+    it.todo('should call findByEmail with correct email');
+
+    it.todo('should hash password before storing');
+
+    it.todo('should pass all data to repository create method');
+
+    it.todo('should not call create method if user already exists');
+
+    it.todo('should handle repository errors during user lookup');
+
+    it.todo('should handle password hashing errors');
+
+    it.todo('should handle repository errors during user creation');
   });
 
   describe('validateUser', () => {
@@ -106,7 +120,7 @@ describe('AuthService', () => {
       );
     });
 
-    it.skip('should throw InvalidPasswordError if password is invalid', async () => {
+    it('should throw InvalidPasswordError if password is invalid', async () => {
       const mockUser = { email, id, name, password: hashedPassword };
 
       mockUsersRepository.getUserByEmailWithPassword.mockResolvedValue(
@@ -118,5 +132,43 @@ describe('AuthService', () => {
         InvalidPasswordError,
       );
     });
+
+    it.todo('should call getUserByEmailWithPassword with correct email');
+
+    it.todo('should not call password compare if user not found');
+
+    it.todo('should return user without password field');
+
+    it.todo('should handle repository errors during user lookup');
+
+    it.todo('should handle password comparison errors');
+
+    it.todo(
+      'should handle case when user exists but password field is missing',
+    );
+  });
+
+  describe.todo('input validation and edge cases', () => {
+    it.todo('should handle empty email in registerUser');
+
+    it.todo('should handle empty email in validateUser');
+
+    it.todo('should handle empty password in registerUser');
+
+    it.todo('should handle empty password in validateUser');
+
+    it.todo('should handle empty name in registerUser');
+
+    it.todo('should handle null values gracefully');
+
+    it.todo('should handle undefined values gracefully');
+  });
+
+  describe('security considerations', () => {
+    it.todo('should always hash passwords before storage');
+
+    it.todo('should not log or expose plain text passwords');
+
+    it.todo('should use secure password comparison');
   });
 });

@@ -20,7 +20,6 @@ const envSchema = z.object({
     .default('development'),
 });
 
-// Validate environment variables
 const parsedEnv = envSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,

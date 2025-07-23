@@ -1,0 +1,21 @@
+meta {
+  name: delete
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/categories/be907c4d-eab8-4c22-ba4f-8e08c1ec5d01
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: {{bearerToken}}
+}
+
+body:json {
+  {
+    "name": "Incomesssss"
+  }
+}

@@ -12,26 +12,32 @@ import { CurrencyController } from 'src/presentation/controllers/currency.contro
 import { OperationController } from 'src/presentation/controllers/operation.controller';
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
+import { AccountService } from 'src/services/account.service';
 import { AuthService } from 'src/services/auth.service';
+import { CategoryService } from 'src/services/category.service';
+import { TransactionService } from 'src/services/transaction.service';
 import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
-interface Repositories {
+type Repositories = {
   category: CategoryRepository;
   currency: CurrencyRepository;
   transaction: TransactionRepository;
   account: AccountRepository;
   operation: OperationRepository;
   user: UsersRepository;
-}
+};
 
-interface Services {
+type Services = {
   auth: AuthService;
   user: UserService;
   passwordManager: PasswordManager;
-}
+  category: CategoryService;
+  transaction: TransactionService;
+  account: AccountService;
+};
 
-interface Controllers {
+type Controllers = {
   category: CategoryController;
   currency: CurrencyController;
   transaction: TransactionController;
@@ -39,11 +45,11 @@ interface Controllers {
   operation: OperationController;
   user: UserController;
   auth: AuthController;
-}
+};
 
-export interface AppContainer {
+export type AppContainer = {
   db: DataBase;
   repositories: Repositories;
   services: Services;
   controllers: Controllers;
-}
+};

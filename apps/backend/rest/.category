@@ -1,0 +1,48 @@
+@BASE_URL = http://localhost:3000/api
+
+@USER_ROUTE = http://localhost:3000/api/user
+@CATEGORY_ROUTE = http://localhost:3000/api/categories
+
+@USER_EMAIL = test@example.com
+@USER_PASSWORD = test_password
+
+
+### login
+# @name postLogin
+POST {{BASE_URL}}/auth/login
+content-type: application/json
+
+{
+	"email": "{{USER_EMAIL}}",
+	"password": "{{USER_PASSWORD}}"
+}
+
+### Save token
+
+@access = {{postLogin.response.body.token}}
+
+
+### getUserCategories
+# @name getUserCategories
+GET {{CATEGORY_ROUTE}}
+Authorization: Bearer {{access}}
+
+### Save category
+
+@category = {{getUserCategories.response.body.$[0].id}}
+
+### getUserCategory
+GET  {{CATEGORY_ROUTE}}/{{category}}
+Authorization: Bearer {{access}}
+
+#### createCategory
+
+POST {{CATEGORY_ROUTE}}
+Authorization: Bearer {{access}}
+content-type: application/json
+
+
+{
+	"name": "new category",
+	"password": "{{USER_PASSWORD}}"
+}

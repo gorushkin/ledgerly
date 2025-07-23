@@ -19,6 +19,6 @@ export async function authMiddleware(
     }>();
     request.user = decoded;
   } catch {
-    throw new UnauthorizedError('Authentication required');
+    throw new UnauthorizedError('Invalid or expired token');
   }
 }

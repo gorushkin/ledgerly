@@ -7,10 +7,10 @@ export class CurrencyController {
     this.repo = repo;
   }
   getAll() {
-    return this.repo.getAllCurrencies();
+    return this.repo.getAll();
   }
 
   getById(id: string) {
-    return this.repo.getCurrencyById(id);
+    return this.repo.getById(id);
   }
 }

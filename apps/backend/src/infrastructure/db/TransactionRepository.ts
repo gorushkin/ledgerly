@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
 
 import {
-  TransactionCreateDTO,
-  TransactionResponseDTO,
+  TransactionCreate,
+  TransactionResponse,
+  UUID,
 } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { operations, transactions } from 'src/db/schemas';
@@ -19,16 +20,36 @@ export class TransactionRepository extends BaseRepository {
     super(db);
   }
 
-  getAllTransactions(): Promise<unknown[]> {
-    return this.executeDatabaseOperation(
-      () => this.db.select().from(transactions).all(),
-      'Failed to fetch transactions',
-    );
+  async getAll(userId: UUID): Promise<TransactionResponse[]> {
+    return this.executeDatabaseOperation(async () => {
+      const transactionsList = await this.db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.userId, userId))
+        .all();
+
+      const transactionsWithOperations = await Promise.all(
+        transactionsList.map(async (transaction) => {
+          const operations = await this.operationRepository.getByTransactionId(
+            transaction.id,
+          );
+
+          return {
+            description: transaction.description,
+            id: transaction.id,
+            operations,
+            postingDate: transaction.postingDate,
+            transactionDate: transaction.transactionDate,
+          };
+        }),
+      );
+      return transactionsWithOperations;
+    }, 'Failed to fetch transactions');
   }
 
   async getTransactionById(
     id: string,
-  ): Promise<TransactionResponseDTO | undefined> {
+  ): Promise<TransactionResponse | undefined> {
     return this.executeDatabaseOperation(async () => {
       const transaction = await this.db
         .select()
@@ -53,8 +74,8 @@ export class TransactionRepository extends BaseRepository {
   }
 
   async createTransaction(
-    dto: TransactionCreateDTO,
-  ): Promise<TransactionResponseDTO> {
+    dto: TransactionCreate,
+  ): Promise<TransactionResponse> {
     return this.executeDatabaseOperation(async () => {
       if (dto.operations.length === 0) {
         throw new Error('Transaction must have at least one operation');
