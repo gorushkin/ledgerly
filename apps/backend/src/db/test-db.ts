@@ -131,7 +131,7 @@ export const createTestDb = () => {
 
   const createTestCategory = (
     userId: UUID,
-    params: {
+    params?: {
       name?: string;
     },
   ) => {

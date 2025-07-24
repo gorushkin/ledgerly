@@ -1,4 +1,9 @@
-import { CategoryCreate, CategoryResponse, UUID } from '@ledgerly/shared/types';
+import {
+  CategoryCreate,
+  CategoryResponse,
+  CategoryUpdate,
+  UUID,
+} from '@ledgerly/shared/types';
 import { eq, and } from 'drizzle-orm';
 import { categories } from 'src/db/schema';
 import { DataBase } from 'src/types';
@@ -61,19 +66,15 @@ export class CategoryRepository extends BaseRepository {
 
   update(
     userId: UUID,
-    requestBody: CategoryResponse,
+    id: UUID,
+    requestBody: CategoryUpdate,
   ): Promise<CategoryResponse | undefined> {
     return this.executeDatabaseOperation<CategoryResponse | undefined>(
       () => {
         return this.db
           .update(categories)
           .set({ name: requestBody.name })
-          .where(
-            and(
-              eq(categories.id, requestBody.id),
-              eq(categories.userId, userId),
-            ),
-          )
+          .where(and(eq(categories.id, id), eq(categories.userId, userId)))
           .returning()
           .get();
       },

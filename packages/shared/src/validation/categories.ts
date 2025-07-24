@@ -13,7 +13,5 @@ export const categoryResponseSchema = z.object({
 });
 
 export const categoryUpdateSchema = z.object({
-  id: uuid,
   name: notNullText,
-  userId: uuid,
 });

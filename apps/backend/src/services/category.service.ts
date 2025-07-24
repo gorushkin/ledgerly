@@ -71,11 +71,28 @@ export class CategoryService {
   }
 
   async update(
+    userId: UUID,
+    id: UUID,
     requestBody: CategoryUpdate,
   ): Promise<CategoryResponse | undefined> {
-    await this.validateAndGetCategory(requestBody.userId, requestBody.id);
+    await this.validateAndGetCategory(userId, id);
 
-    return this.categoryRepository.update(requestBody.userId, requestBody);
+    const existingCategoryByName = await this.categoryRepository.getByName(
+      userId,
+      requestBody.name,
+    );
+
+    if (existingCategoryByName && existingCategoryByName.id !== id) {
+      throw new RecordAlreadyExistsError({
+        context: {
+          field: 'name',
+          tableName: 'categories',
+          value: existingCategoryByName.name,
+        },
+      });
+    }
+
+    return this.categoryRepository.update(userId, id, requestBody);
   }
 
   async delete(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {

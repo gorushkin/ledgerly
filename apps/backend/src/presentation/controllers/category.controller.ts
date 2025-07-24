@@ -31,13 +31,9 @@ export class CategoryController {
     return this.categoryService.create(categoryCreateDto);
   }
   async update(userId: UUID, id: UUID, requestBody: unknown) {
-    const categoryUpdateDto = categoryUpdateSchema.parse({
-      id,
-      ...this.getNonNullObject(requestBody),
-      userId,
-    });
+    const categoryUpdateDto = categoryUpdateSchema.parse(requestBody);
 
-    return this.categoryService.update(categoryUpdateDto);
+    return this.categoryService.update(userId, id, categoryUpdateDto);
   }
   async delete(userId: UUID, id: UUID) {
     return this.categoryService.delete(userId, id);

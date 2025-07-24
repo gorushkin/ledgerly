@@ -25,6 +25,47 @@ describe('CategoryRepository', () => {
     user = await testDbInstance.createUser();
   });
 
+  describe('getAll', () => {
+    it('should return empty array when user has no categories', async () => {
+      const categories = await categoryRepository.getAll(user.id);
+
+      expect(categories).toEqual([]);
+    });
+
+    it('should return only user categories', async () => {
+      const user2 = await testDbInstance.createUser();
+
+      await testDbInstance.createTestCategory(user.id, {
+        name: 'User1 Category',
+      });
+
+      await testDbInstance.createTestCategory(user2.id, {
+        name: 'User2 Category',
+      });
+
+      const user1Categories = await categoryRepository.getAll(user.id);
+
+      expect(user1Categories).toHaveLength(1);
+      expect(user1Categories[0].name).toBe('User1 Category');
+    });
+
+    it('should return multiple categories for user', async () => {
+      await testDbInstance.createTestCategory(user.id, {
+        name: 'Food',
+      });
+
+      await testDbInstance.createTestCategory(user.id, {
+        name: 'Transport',
+      });
+
+      const categories = await categoryRepository.getAll(user.id);
+
+      expect(categories).toHaveLength(2);
+      expect(categories.map((c) => c.name)).toContain('Food');
+      expect(categories.map((c) => c.name)).toContain('Transport');
+    });
+  });
+
   describe('create', () => {
     it('should create category successfully', async () => {
       const newCategory = {
@@ -49,6 +90,7 @@ describe('CategoryRepository', () => {
       });
 
       const categories = await categoryRepository.getAll(user.id);
+
       expect(categories).toHaveLength(2);
 
       expect(category1.id).not.toBe(category2.id);
@@ -104,12 +146,7 @@ describe('CategoryRepository', () => {
 
   describe('getById', () => {
     it('should return category when exists and belongs to user', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of categoryRepository.create()
-      const created = await categoryRepository.create({
-        name: 'Test',
-        userId: user.id,
-      });
+      const created = await testDbInstance.createTestCategory(user.id);
 
       const found = await categoryRepository.getById(user.id, created.id);
 
@@ -119,6 +156,7 @@ describe('CategoryRepository', () => {
 
     it('should return undefined when category does not exist', async () => {
       const nonExistentId = crypto.randomUUID();
+
       const result = await categoryRepository.getById(user.id, nonExistentId);
 
       expect(result).toBeUndefined();
@@ -126,13 +164,8 @@ describe('CategoryRepository', () => {
 
     it('should return undefined when category belongs to different user', async () => {
       const user2 = await testDbInstance.createUser();
+      const created = await testDbInstance.createTestCategory(user.id);
 
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of categoryRepository.create()
-      const created = await categoryRepository.create({
-        name: 'Test',
-        userId: user.id,
-      });
       const result = await categoryRepository.getById(user2.id, created.id);
 
       expect(result).toBeUndefined();
@@ -141,82 +174,62 @@ describe('CategoryRepository', () => {
 
   describe('getByName', () => {
     it('should return category by name when exists and belongs to user', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of categoryRepository.create()
-      // const created = await categoryRepository.create({
-      //   name: 'Test',
-      //   userId: user.id,
-      // });
-      // const found = await categoryRepository.getByName(user.id, created.name);
-      // expect(found).toBeDefined();
-      // expect(found?.id).toBe(created.id);
-    });
-  });
+      const created = await testDbInstance.createTestCategory(user.id);
 
-  describe('getAll', () => {
-    it('should return empty array when user has no categories', async () => {
-      const categories = await categoryRepository.getAll(user.id);
+      const found = await categoryRepository.getByName(user.id, created.name);
 
-      expect(categories).toEqual([]);
+      expect(found).toBeDefined();
+      expect(found?.name).toBe(created.name);
     });
 
-    it('should return only user categories', async () => {
+    it('should return undefined when category with given name does not exist', async () => {
+      const result = await categoryRepository.getByName(user.id, 'Nonexistent');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined when category with name exists but belongs to another user', async () => {
       const user2 = await testDbInstance.createUser();
 
-      await categoryRepository.create({
-        name: 'User1 Category',
-        userId: user.id,
+      await testDbInstance.createTestCategory(user2.id, {
+        name: 'SharedName',
       });
 
-      await categoryRepository.create({
-        name: 'User2 Category',
-        userId: user2.id,
-      });
+      const result = await categoryRepository.getByName(user.id, 'SharedName');
 
-      const user1Categories = await categoryRepository.getAll(user.id);
-
-      expect(user1Categories).toHaveLength(1);
-      expect(user1Categories[0].name).toBe('User1 Category');
-    });
-
-    it('should return multiple categories for user', async () => {
-      await categoryRepository.create({ name: 'Food', userId: user.id });
-      await categoryRepository.create({ name: 'Transport', userId: user.id });
-
-      const categories = await categoryRepository.getAll(user.id);
-
-      expect(categories).toHaveLength(2);
-      expect(categories.map((c) => c.name)).toContain('Food');
-      expect(categories.map((c) => c.name)).toContain('Transport');
+      expect(result).toBeUndefined();
     });
   });
 
   describe('update', () => {
     it('should update category when it belongs to user', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of categoryRepository.create()
-      const created = await categoryRepository.create({
+      const created = await testDbInstance.createTestCategory(user.id, {
         name: 'Original',
-        userId: user.id,
       });
+
       const updateData = { ...created, name: 'Updated' };
 
-      const updated = await categoryRepository.update(user.id, updateData);
+      const updated = await categoryRepository.update(
+        user.id,
+        created.id,
+        updateData,
+      );
 
       expect(updated?.name).toBe('Updated');
     });
 
     it('should return undefined when category belongs to different user', async () => {
       const user2 = await testDbInstance.createUser();
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of categoryRepository.create()
-      const created = await categoryRepository.create({
+      const created = await testDbInstance.createTestCategory(user.id, {
         name: 'Test',
-        userId: user.id,
       });
       const updateData = { ...created, name: 'Hacked' };
 
-      const result = await categoryRepository.update(user2.id, updateData);
+      const result = await categoryRepository.update(
+        user2.id,
+        created.id,
+        updateData,
+      );
 
       expect(result).toBeUndefined();
     });
@@ -224,11 +237,8 @@ describe('CategoryRepository', () => {
 
   describe('delete', () => {
     it('should delete category when it exists and belongs to user', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of categoryRepository.create()
-      const created = await categoryRepository.create({
+      const created = await testDbInstance.createTestCategory(user.id, {
         name: 'Test Category',
-        userId: user.id,
       });
 
       const deleted = await categoryRepository.delete(user.id, created.id);
@@ -252,11 +262,8 @@ describe('CategoryRepository', () => {
     it('should return undefined when category belongs to different user', async () => {
       const user2 = await testDbInstance.createUser();
 
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of categoryRepository.create()
-      const created = await categoryRepository.create({
+      const created = await testDbInstance.createTestCategory(user.id, {
         name: 'Test Category',
-        userId: user.id,
       });
 
       const result = await categoryRepository.delete(user2.id, created.id);
@@ -270,14 +277,12 @@ describe('CategoryRepository', () => {
     it('should not affect other user categories when deleting', async () => {
       const user2 = await testDbInstance.createUser();
 
-      const user1Category = await categoryRepository.create({
+      const user1Category = await testDbInstance.createTestCategory(user.id, {
         name: 'User1 Category',
-        userId: user.id,
       });
 
-      const user2Category = await categoryRepository.create({
+      const user2Category = await testDbInstance.createTestCategory(user2.id, {
         name: 'User2 Category',
-        userId: user2.id,
       });
 
       await categoryRepository.delete(user.id, user1Category.id);
@@ -288,14 +293,12 @@ describe('CategoryRepository', () => {
     });
 
     it('should delete only specified category', async () => {
-      const category1 = await categoryRepository.create({
+      const category1 = await testDbInstance.createTestCategory(user.id, {
         name: 'Category 1',
-        userId: user.id,
       });
 
-      const category2 = await categoryRepository.create({
+      const category2 = await testDbInstance.createTestCategory(user.id, {
         name: 'Category 2',
-        userId: user.id,
       });
 
       await categoryRepository.delete(user.id, category1.id);
