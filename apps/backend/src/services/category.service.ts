@@ -5,6 +5,7 @@ import {
   UUID,
 } from '@ledgerly/shared/types';
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
+import { RecordAlreadyExistsError } from 'src/presentation/errors';
 import { CategoryNotFoundError } from 'src/presentation/errors/category.errors';
 
 import { UserService } from './user.service';
@@ -37,12 +38,34 @@ export class CategoryService {
     return category;
   }
 
+  async getByName(
+    userId: UUID,
+    name: string,
+  ): Promise<CategoryResponse | undefined> {
+    return this.categoryRepository.getByName(userId, name);
+  }
+
   async getById(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {
     return this.validateAndGetCategory(userId, id);
   }
 
   async create(requestBody: CategoryCreate): Promise<CategoryResponse> {
     await this.userService.validateUser(requestBody.userId);
+
+    const existingCategory = await this.categoryRepository.getByName(
+      requestBody.userId,
+      requestBody.name,
+    );
+
+    if (existingCategory) {
+      throw new RecordAlreadyExistsError({
+        context: {
+          field: 'name',
+          tableName: 'categories',
+          value: existingCategory.name,
+        },
+      });
+    }
 
     return this.categoryRepository.create(requestBody);
   }

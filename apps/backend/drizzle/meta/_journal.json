@@ -15,6 +15,13 @@
       "when": 1752769443244,
       "tag": "0001_currency",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1753334588789,
+      "tag": "0002_keen_viper",
+      "breakpoints": true
     }
   ]
 }

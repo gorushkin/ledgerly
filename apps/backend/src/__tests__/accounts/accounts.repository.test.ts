@@ -71,14 +71,17 @@ describe('AccountRepository', () => {
         userId: user.id,
       };
 
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
       await accountRepository.create(newAccount);
 
       await expect(accountRepository.create(newAccount)).rejects.toThrowError(
-        new RecordAlreadyExistsError(
-          'accounts',
-          'accountName',
-          newAccount.name,
-        ),
+        new RecordAlreadyExistsError({
+          context: {
+            field: 'accountName',
+            tableName: 'accounts',
+            value: newAccount.name,
+          },
+        }),
       );
     });
 
@@ -104,6 +107,8 @@ describe('AccountRepository', () => {
         userId: secondUser.id,
       };
 
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of accountRepository.create()
       const account1 = await accountRepository.create(firstUserAccount);
       const account2 = await accountRepository.create(secondUserAccount);
 
@@ -128,11 +133,13 @@ describe('AccountRepository', () => {
       };
 
       await expect(accountRepository.create(newAccount)).rejects.toThrowError(
-        new ForeignKeyConstraintError(
-          'currencies',
-          'code',
-          newAccount.originalCurrency,
-        ),
+        new ForeignKeyConstraintError({
+          context: {
+            field: 'code',
+            tableName: 'currencies',
+            value: newAccount.originalCurrency,
+          },
+        }),
       );
     });
 
@@ -145,7 +152,13 @@ describe('AccountRepository', () => {
       };
 
       await expect(accountRepository.create(newAccount)).rejects.toThrowError(
-        new ForeignKeyConstraintError('users', 'id', newAccount.userId),
+        new ForeignKeyConstraintError({
+          context: {
+            field: 'id',
+            tableName: 'users',
+            value: newAccount.userId,
+          },
+        }),
       );
     });
   });
@@ -300,6 +313,8 @@ describe('AccountRepository', () => {
         userId: user.id,
       };
 
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of accountRepository.create()
       await accountRepository.create({
         name: updatedAccountData.name,
         originalCurrency: 'USD',
@@ -310,11 +325,13 @@ describe('AccountRepository', () => {
       await expect(
         accountRepository.update(user.id, account.id, updatedAccountData),
       ).rejects.toThrowError(
-        new RecordAlreadyExistsError(
-          'accounts',
-          'accountName',
-          'updatedAccount.name',
-        ),
+        new RecordAlreadyExistsError({
+          context: {
+            field: 'accountName',
+            tableName: 'accounts',
+            value: updatedAccountData.name,
+          },
+        }),
       );
     });
 
@@ -324,6 +341,8 @@ describe('AccountRepository', () => {
         name: 'Second User',
       });
 
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of accountRepository.create()
       const secondUserAccount = await accountRepository.create({
         name: 'Shared Account Name',
         originalCurrency: 'USD',
@@ -358,11 +377,13 @@ describe('AccountRepository', () => {
       await expect(
         accountRepository.update(user.id, account.id, updatedAccountData),
       ).rejects.toThrowError(
-        new ForeignKeyConstraintError(
-          'currencies',
-          'code',
-          updatedAccountData.originalCurrency,
-        ),
+        new ForeignKeyConstraintError({
+          context: {
+            field: 'code',
+            tableName: 'currencies',
+            value: updatedAccountData.originalCurrency,
+          },
+        }),
       );
     });
   });
@@ -395,6 +416,9 @@ describe('AccountRepository', () => {
         email: 'second-user@example.com',
         name: 'Second User',
       });
+
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of accountRepository.create()
 
       await accountRepository.create({
         ...accountData,

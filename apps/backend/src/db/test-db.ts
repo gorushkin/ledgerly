@@ -10,7 +10,7 @@ import { migrate } from 'drizzle-orm/libsql/migrator';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
 import * as schema from './schemas';
-import { accounts, users } from './schemas';
+import { accounts, categories, users } from './schemas';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -129,9 +129,32 @@ export const createTestDb = () => {
     return account;
   };
 
+  const createTestCategory = (
+    userId: UUID,
+    params: {
+      name?: string;
+    },
+  ) => {
+    const categoryData = {
+      name: 'Test Category',
+      ...params,
+      userId,
+    };
+
+    return db
+      .insert(categories)
+      .values({
+        id: crypto.randomUUID(),
+        ...categoryData,
+      })
+      .returning()
+      .get();
+  };
+
   return {
     cleanupTestDb,
     createTestAccount,
+    createTestCategory,
     createUser,
     db,
     setupTestDb,
