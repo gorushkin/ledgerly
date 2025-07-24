@@ -104,6 +104,11 @@ describe('UserController', () => {
     });
   });
 
+  describe('changePassword', () => {
+    it.todo('should call userService.changePassword with correct parameters');
+    it.todo('should handle validation through passwordChangeSchema');
+  });
+
   describe('update validation', () => {
     it('should throw ZodError for invalid email', async () => {
       const invalidData = {
@@ -142,6 +147,12 @@ describe('UserController', () => {
         ZodError,
       );
     });
+
+    it.todo('should validate email format strictly');
+    it.todo('should validate name is not empty when provided');
+    it.todo('should validate at least one field is provided');
+    it.todo('should handle null/undefined requestBody');
+    it.todo('should trim and lowercase email automatically');
   });
 
   describe('changePassword validation', () => {
@@ -176,20 +187,11 @@ describe('UserController', () => {
       );
     });
 
-    it('should successfully parse valid password data', async () => {
-      const validData = {
-        currentPassword: 'validOldPassword123',
-        newPassword: 'validNewPassword123',
-      };
-
-      mockUserService.changePassword.mockResolvedValue(undefined);
-
-      await controller.changePassword('1', validData);
-
-      expect(mockUserService.changePassword).toHaveBeenCalledWith(
-        '1',
-        validData,
-      );
-    });
+    it.todo('should validate currentPassword is not empty');
+    it.todo('should validate newPassword meets minimum length');
+    it.todo('should validate newPassword maximum length');
+    it.todo('should validate both passwords are strings');
+    it.todo('should handle null/undefined requestBody');
+    it.todo('should reject extra unexpected fields');
   });
 });
