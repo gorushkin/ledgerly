@@ -37,10 +37,7 @@ export const registerAccountsRoutes = (app: FastifyInstance) => {
 
     await accountController.delete(userId, id);
 
-    reply.status(200).send({
-      id,
-      message: 'Account successfully deleted',
-    });
+    reply.status(204).send();
   });
 
   app.put('/:id', async (request, reply) => {

@@ -166,9 +166,7 @@ describe('Accounts Integration Tests', () => {
         url: `${url}/${accountToDelete.id}`,
       });
 
-      expect(response.statusCode).toBe(200);
-      expect(response.body).toContain(accountToDelete.id);
-      expect(response.body).toContain('Account successfully deleted');
+      expect(response.statusCode).toBe(204);
 
       const finalResponse = await server.inject({
         headers: {

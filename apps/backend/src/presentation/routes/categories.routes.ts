@@ -17,11 +17,12 @@ export const registerCategoriesRoutes = (app: FastifyInstance) => {
     return categoryController.getById(userId, id);
   });
 
-  app.post('/', (request) => {
+  app.post('/', async (request, reply) => {
     const userId = request.user.userId;
     const requestBody = request.body;
 
-    return categoryController.create(userId, requestBody);
+    const category = await categoryController.create(userId, requestBody);
+    reply.status(201).send(category);
   });
 
   app.put('/:id', (request) => {
@@ -32,10 +33,15 @@ export const registerCategoriesRoutes = (app: FastifyInstance) => {
     return categoryController.update(userId, id, requestBody);
   });
 
-  app.delete('/:id', (request) => {
+  app.delete('/:id', async (request, reply) => {
     const userId = request.user.userId;
     const { id } = uniqueIdSchema.parse(request.params);
 
-    return categoryController.delete(userId, id);
+    await categoryController.delete(userId, id);
+
+    reply.status(204).send({
+      id,
+      message: 'Category successfully deleted',
+    });
   });
 };
