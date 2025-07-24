@@ -4,13 +4,13 @@ import { uniqueIdSchema } from 'src/libs/validators';
 export const registerCategoriesRoutes = (app: FastifyInstance) => {
   const categoryController = app.container.controllers.category;
 
-  app.get('/', (request) => {
+  app.get('/', async (request) => {
     const userId = request.user.userId;
 
     return categoryController.getAll(userId);
   });
 
-  app.get('/:id', (request) => {
+  app.get('/:id', async (request) => {
     const userId = request.user.userId;
     const { id } = uniqueIdSchema.parse(request.params);
 
@@ -22,10 +22,10 @@ export const registerCategoriesRoutes = (app: FastifyInstance) => {
     const requestBody = request.body;
 
     const category = await categoryController.create(userId, requestBody);
-    reply.status(201).send(category);
+    return reply.status(201).send(category);
   });
 
-  app.put('/:id', (request) => {
+  app.put('/:id', async (request) => {
     const userId = request.user.userId;
     const { id } = uniqueIdSchema.parse(request.params);
     const requestBody = request.body;
@@ -39,9 +39,6 @@ export const registerCategoriesRoutes = (app: FastifyInstance) => {
 
     await categoryController.delete(userId, id);
 
-    reply.status(204).send({
-      id,
-      message: 'Category successfully deleted',
-    });
+    return reply.status(204).send();
   });
 };
