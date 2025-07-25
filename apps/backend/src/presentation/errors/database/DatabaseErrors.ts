@@ -32,7 +32,7 @@ export class RecordNotFoundError extends DatabaseError {
     context,
     message,
   }: {
-    message: string;
+    message?: string;
     context?: DBErrorContext;
   }) {
     super({
@@ -64,7 +64,7 @@ export class RecordAlreadyExistsError extends DatabaseError {
   }) {
     super({
       context,
-      message: message || DB_ERROR_CODES.ALREADY_EXISTS,
+      message: message ?? DB_ERROR_CODES.ALREADY_EXISTS,
     });
   }
 }
@@ -79,7 +79,7 @@ export class ForeignKeyConstraintError extends DatabaseError {
   }) {
     super({
       context,
-      message: message || DB_ERROR_CODES.FOREIGN_KEY,
+      message: message ?? DB_ERROR_CODES.FOREIGN_KEY,
     });
   }
 }
