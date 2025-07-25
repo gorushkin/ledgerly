@@ -5,6 +5,7 @@ import {
   UUID,
 } from '@ledgerly/shared/types';
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
+import { RecordAlreadyExistsError } from 'src/presentation/errors';
 import { CategoryNotFoundError } from 'src/presentation/errors/category.errors';
 
 import { UserService } from './user.service';
@@ -37,6 +38,13 @@ export class CategoryService {
     return category;
   }
 
+  async getByName(
+    userId: UUID,
+    name: string,
+  ): Promise<CategoryResponse | undefined> {
+    return this.categoryRepository.getByName(userId, name);
+  }
+
   async getById(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {
     return this.validateAndGetCategory(userId, id);
   }
@@ -44,15 +52,47 @@ export class CategoryService {
   async create(requestBody: CategoryCreate): Promise<CategoryResponse> {
     await this.userService.validateUser(requestBody.userId);
 
+    const existingCategory = await this.categoryRepository.getByName(
+      requestBody.userId,
+      requestBody.name,
+    );
+
+    if (existingCategory) {
+      throw new RecordAlreadyExistsError({
+        context: {
+          field: 'name',
+          tableName: 'categories',
+          value: existingCategory.name,
+        },
+      });
+    }
+
     return this.categoryRepository.create(requestBody);
   }
 
   async update(
+    userId: UUID,
+    id: UUID,
     requestBody: CategoryUpdate,
   ): Promise<CategoryResponse | undefined> {
-    await this.validateAndGetCategory(requestBody.userId, requestBody.id);
+    await this.validateAndGetCategory(userId, id);
 
-    return this.categoryRepository.update(requestBody.userId, requestBody);
+    const existingCategoryByName = await this.categoryRepository.getByName(
+      userId,
+      requestBody.name,
+    );
+
+    if (existingCategoryByName && existingCategoryByName.id !== id) {
+      throw new RecordAlreadyExistsError({
+        context: {
+          field: 'name',
+          tableName: 'categories',
+          value: existingCategoryByName.name,
+        },
+      });
+    }
+
+    return this.categoryRepository.update(userId, id, requestBody);
   }
 
   async delete(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {

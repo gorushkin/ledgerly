@@ -11,23 +11,25 @@ export function adaptLibsqlError(
   context?: DBErrorContext,
 ): NormalizedDbError | null {
   if (!(error instanceof LibsqlError)) return null;
+  // TODO: fix types
+  if (context) {
+    if (error.code === UNIQUE) {
+      return {
+        field: context.field,
+        table: context.tableName,
+        type: 'unique',
+        value: context.value,
+      };
+    }
 
-  if (error.code === UNIQUE && context) {
-    return {
-      field: context.field,
-      table: context.tableName,
-      type: 'unique',
-      value: context.value,
-    };
-  }
-
-  if (error.code === FOREIGNKEY && context) {
-    return {
-      field: context.field,
-      table: context.tableName,
-      type: 'foreign_key',
-      value: context.value,
-    };
+    if (error.code === FOREIGNKEY) {
+      return {
+        field: context.field,
+        table: context.tableName,
+        type: 'foreign_key',
+        value: context.value,
+      };
+    }
   }
 
   return { original: error, type: 'unknown' };

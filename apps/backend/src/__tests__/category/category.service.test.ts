@@ -1,10 +1,9 @@
-import { beforeEach } from 'node:test';
-
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
+import { RecordAlreadyExistsError } from 'src/presentation/errors';
 import { UserNotFoundError } from 'src/presentation/errors/auth.errors';
 import { CategoryService } from 'src/services/category.service';
 import { UserService } from 'src/services/user.service';
-import { describe, vi, it, expect } from 'vitest';
+import { describe, vi, it, expect, beforeEach } from 'vitest';
 
 describe('CategoryService', () => {
   const mockCategoryRepository = {
@@ -12,6 +11,7 @@ describe('CategoryService', () => {
     delete: vi.fn(),
     getAll: vi.fn(),
     getById: vi.fn(),
+    getByName: vi.fn(),
     update: vi.fn(),
   };
 
@@ -169,10 +169,11 @@ describe('CategoryService', () => {
         id: userId,
       });
 
-      await service.update(updateData);
+      await service.update(userId, categoryId, updateData);
 
       expect(mockCategoryRepository.update).toHaveBeenCalledWith(
         userId,
+        categoryId,
         updateData,
       );
 
@@ -198,7 +199,9 @@ describe('CategoryService', () => {
       mockCategoryRepository.getById.mockResolvedValue(undefined);
       mockUserService.validateUser.mockResolvedValue(updateData);
 
-      await expect(service.update(updateData)).rejects.toThrowError(
+      await expect(
+        service.update(userId, categoryId, updateData),
+      ).rejects.toThrowError(
         `Category with id ${categoryId} not found for user ${userId}`,
       );
     });
@@ -214,9 +217,39 @@ describe('CategoryService', () => {
 
       mockUserService.validateUser.mockRejectedValue(new UserNotFoundError());
 
-      await expect(service.update(updateData)).rejects.toThrowError(
-        UserNotFoundError,
-      );
+      await expect(
+        service.update(userId, categoryId, updateData),
+      ).rejects.toThrowError(UserNotFoundError);
+    });
+
+    it('should throw an error if category name is not unique', async () => {
+      const categoryId = '1';
+
+      const existingCategory = {
+        id: 'id',
+        name: 'alreadyExistingName',
+        userId,
+      };
+
+      const category = {
+        id: categoryId,
+        name: 'Current Category Name',
+        userId,
+      };
+
+      const updateCategory = {
+        id: categoryId,
+        name: existingCategory.name,
+        userId,
+      };
+
+      mockCategoryRepository.getById.mockResolvedValue(category);
+      mockCategoryRepository.getByName.mockResolvedValue(existingCategory);
+      mockUserService.validateUser.mockResolvedValue(true);
+
+      await expect(
+        service.update(userId, categoryId, updateCategory),
+      ).rejects.toThrowError(RecordAlreadyExistsError);
     });
   });
 

@@ -1,6 +1,12 @@
 import { AppError } from '../AppError';
 
-export const DB_ERROR_CODES: Record<string, string> = {
+type DB_ERROR_CODES =
+  | 'ALREADY_EXISTS'
+  | 'FOREIGN_KEY'
+  | 'INVALID_DATA'
+  | 'NOT_FOUND';
+
+export const DB_ERROR_CODES: Record<DB_ERROR_CODES, string> = {
   ALREADY_EXISTS: 'alreadyExists',
   FOREIGN_KEY: 'foreignKey',
   INVALID_DATA: 'invalidData',
@@ -12,37 +18,68 @@ export const DB_ERROR_CODES: Record<string, string> = {
 // `Record with id ${id} not found in table ${tableName}`
 
 export class DatabaseError extends AppError {
-  constructor(message: string, cause?: Error) {
-    super(message, 500, cause);
+  constructor(params: {
+    message: string;
+    context?: DBErrorContext;
+    cause?: Error;
+  }) {
+    super(params.message, 500, params.cause);
   }
 }
 
 export class RecordNotFoundError extends DatabaseError {
-  constructor(_tableName: string, _id: number | string) {
-    super(DB_ERROR_CODES.NOT_FOUND);
+  constructor({
+    context,
+    message,
+  }: {
+    message?: string;
+    context?: DBErrorContext;
+  }) {
+    super({
+      context,
+      message: message ?? DB_ERROR_CODES.NOT_FOUND,
+    });
   }
 }
 
 export class InvalidDataError extends DatabaseError {
-  constructor(message: string) {
-    super(`Invalid data: ${message}`);
+  constructor(message = '') {
+    super({ message: `Invalid data: ${message}` });
   }
 }
 
 export type DBErrorContext = {
-  field: string;
-  tableName: string;
-  value: string;
+  field?: string;
+  tableName?: string;
+  value?: string;
 };
 
 export class RecordAlreadyExistsError extends DatabaseError {
-  constructor(_tableName: string, _field: string, _value?: string) {
-    super(DB_ERROR_CODES.alreadyExists);
+  constructor({
+    context,
+    message = '',
+  }: {
+    message?: string;
+    context?: DBErrorContext;
+  }) {
+    super({
+      context,
+      message: message ?? DB_ERROR_CODES.ALREADY_EXISTS,
+    });
   }
 }
 
 export class ForeignKeyConstraintError extends DatabaseError {
-  constructor(_tableName: string, _field: string, _value?: string) {
-    super(DB_ERROR_CODES.foreignKey);
+  constructor({
+    context,
+    message = '',
+  }: {
+    message?: string;
+    context?: DBErrorContext;
+  }) {
+    super({
+      context,
+      message: message ?? DB_ERROR_CODES.FOREIGN_KEY,
+    });
   }
 }

@@ -28,24 +28,32 @@ export class BaseRepository {
       if (normalized) {
         switch (normalized.type) {
           case 'unique':
-            throw new RecordAlreadyExistsError(
-              normalized.table,
-              normalized.field,
-              normalized.value,
-            );
+            throw new RecordAlreadyExistsError({
+              context: {
+                field: normalized.field,
+                tableName: normalized.table,
+                value: normalized.value,
+              },
+            });
           case 'foreign_key':
-            throw new ForeignKeyConstraintError(
-              normalized.table,
-              normalized.field,
-              normalized.value,
-            );
+            throw new ForeignKeyConstraintError({
+              context: {
+                field: normalized.field,
+                tableName: normalized.table,
+                value: normalized.value,
+              },
+            });
           case 'unknown':
             break; // fall through
         }
       }
 
       console.error(`Database error: ${errorMessage}`, error);
-      throw new DatabaseError(errorMessage, error as Error);
+      throw new DatabaseError({
+        cause: error as Error,
+        context,
+        message: errorMessage,
+      });
     }
   }
 }

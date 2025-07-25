@@ -1,4 +1,9 @@
-import { CategoryCreate, CategoryResponse, UUID } from '@ledgerly/shared/types';
+import {
+  CategoryCreate,
+  CategoryResponse,
+  CategoryUpdate,
+  UUID,
+} from '@ledgerly/shared/types';
 import { eq, and } from 'drizzle-orm';
 import { categories } from 'src/db/schema';
 import { DataBase } from 'src/types';
@@ -39,20 +44,43 @@ export class CategoryRepository extends BaseRepository {
     );
   }
 
+  async getByName(
+    userId: UUID,
+    categoryName: string,
+  ): Promise<CategoryResponse | undefined> {
+    return this.executeDatabaseOperation<CategoryResponse | undefined>(
+      () =>
+        this.db
+          .select()
+          .from(categories)
+          .where(
+            and(
+              eq(categories.name, categoryName),
+              eq(categories.userId, userId),
+            ),
+          )
+          .get(),
+      'Failed to fetch category by name',
+    );
+  }
+
   update(
     userId: UUID,
-    requestBody: CategoryResponse,
+    id: UUID,
+    requestBody: CategoryUpdate,
   ): Promise<CategoryResponse | undefined> {
-    return this.executeDatabaseOperation<CategoryResponse | undefined>(() => {
-      return this.db
-        .update(categories)
-        .set({ name: requestBody.name })
-        .where(
-          and(eq(categories.id, requestBody.id), eq(categories.userId, userId)),
-        )
-        .returning()
-        .get();
-    }, 'Failed to update category');
+    return this.executeDatabaseOperation<CategoryResponse | undefined>(
+      () => {
+        return this.db
+          .update(categories)
+          .set({ name: requestBody.name })
+          .where(and(eq(categories.id, id), eq(categories.userId, userId)))
+          .returning()
+          .get();
+      },
+      'Failed to update category',
+      { field: 'name', tableName: 'categories', value: requestBody.name },
+    );
   }
 
   async create(requestBody: CategoryCreate): Promise<CategoryResponse> {
@@ -67,6 +95,7 @@ export class CategoryRepository extends BaseRepository {
           .returning()
           .get(),
       'Failed to create category',
+      { field: 'name', tableName: 'categories', value: requestBody.name },
     );
   }
 

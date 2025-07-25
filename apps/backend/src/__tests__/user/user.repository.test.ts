@@ -28,6 +28,8 @@ describe('UsersRepository', () => {
 
   describe('getUserById', () => {
     it('should get user by id successfully', async () => {
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
       const user = await userRepository.create({ email, name, password });
       const foundUser = await userRepository.getUserById(user.id);
       expect(foundUser).toBeDefined();
@@ -46,6 +48,8 @@ describe('UsersRepository', () => {
 
   describe('getUserByIdWithPassword', () => {
     it('should get user with password by id', async () => {
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
       const user = await userRepository.create({ email, name, password });
 
       const foundUser = await userRepository.getUserByIdWithPassword(user.id);
@@ -67,6 +71,8 @@ describe('UsersRepository', () => {
 
   describe('getUserByEmailWithPassword', () => {
     it('should get user with password by email', async () => {
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
       await userRepository.create({ email, name, password });
 
       const foundUser = await userRepository.getUserByEmailWithPassword(email);
@@ -88,6 +94,8 @@ describe('UsersRepository', () => {
 
   describe('updateUserProfile', () => {
     it('should update user profile successfully', async () => {
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
       const user = await userRepository.create({ email, name, password });
       const updateData = { email: 'updated@email.com', name: 'Updated Name' };
 
@@ -102,6 +110,8 @@ describe('UsersRepository', () => {
     });
 
     it('should update only provided fields', async () => {
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
       const user = await userRepository.create({ email, name, password });
       const updateData = { name: 'Only Name Updated' };
 
@@ -117,6 +127,8 @@ describe('UsersRepository', () => {
 
   describe('deleteUser', () => {
     it('should delete user successfully', async () => {
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
       const user = await userRepository.create({ email, name, password });
 
       const deletedUser = await userRepository.deleteUser(user.id);
@@ -169,6 +181,8 @@ describe('UsersRepository', () => {
 
   describe('findByEmail', () => {
     it('should find a user by email', async () => {
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
       await userRepository.create({ email, name, password });
 
       const user = await userRepository.findByEmail(email);
@@ -187,6 +201,8 @@ describe('UsersRepository', () => {
 
   describe('updatePassword', () => {
     it('should update user password', async () => {
+      // TODO: Replace with direct DB insert to avoid circular dependency in tests
+      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
       const user = await userRepository.create({ email, name, password });
 
       const newHashedPassword = 'newpassword123';
