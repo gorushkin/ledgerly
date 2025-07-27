@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import {
   TransactionCreate,
   TransactionResponse,
@@ -29,6 +27,7 @@ export class TransactionRepository extends BaseRepository {
         .all();
 
       const transactionsWithOperations = await Promise.all(
+        // TODO: fix n + 1 problem
         transactionsList.map(async (transaction) => {
           const operations = await this.operationRepository.getByTransactionId(
             transaction.id,
@@ -73,49 +72,50 @@ export class TransactionRepository extends BaseRepository {
     }, 'Failed to fetch transaction');
   }
 
-  async createTransaction(
-    dto: TransactionCreate,
-  ): Promise<TransactionResponse> {
+  async create(dto: TransactionCreate): Promise<TransactionResponse> {
     return this.executeDatabaseOperation(async () => {
-      if (dto.operations.length === 0) {
-        throw new Error('Transaction must have at least one operation');
-      }
+      return await this.db.transaction(async (tx) => {
+        const now = new Date().toISOString();
 
-      const now = new Date().toISOString();
-
-      const result = await this.db.transaction(async (tx) => {
-        const [transaction] = await tx
+        const [createdTransaction] = await tx
           .insert(transactions)
           .values({
-            description: dto.description,
-            postingDate: dto.postingDate,
-            transactionDate: dto.transactionDate,
+            ...dto,
+            createdAt: now,
+            updatedAt: now,
+            userId: dto.userId,
           })
           .returning();
 
-        const opsToInsert = dto.operations.map((op) => ({
-          accountId: op.accountId,
-          categoryId: op.categoryId,
-          createdAt: now,
-          description: op.description,
-          id: randomUUID(),
-          localAmount: op.localAmount,
-          originalAmount: op.originalAmount,
-          transactionId: transaction.id,
-        }));
+        if (dto.operations.length === 0) {
+          return { ...createdTransaction, operations: [] };
+        }
 
-        const ops = await tx.insert(operations).values(opsToInsert).returning();
+        const createdOperations = await tx
+          .insert(operations)
+          .values(
+            dto.operations.map((op) => ({
+              ...op,
+              createdAt: now,
+              transactionId: createdTransaction.id,
+              updatedAt: now,
+              userId: dto.userId,
+            })),
+          )
+          .returning();
 
-        return { ...transaction, operations: ops };
+        return { ...createdTransaction, operations: createdOperations };
       });
-      return result;
     }, 'Failed to create transaction');
   }
 
-  updateTransaction(_id: number, _data: unknown): Promise<unknown> {
-    throw new Error('Method not implemented.');
+  async delete(id: string): Promise<void> {
+    return this.executeDatabaseOperation(async () => {
+      await this.db.delete(transactions).where(eq(transactions.id, id));
+    }, 'Failed to delete transaction');
   }
-  deleteTransaction(_id: number): Promise<void> {
+
+  update(_id: number, _data: unknown): Promise<unknown> {
     throw new Error('Method not implemented.');
   }
 }

@@ -4,6 +4,7 @@ import { accounts } from './accounts';
 import { categories } from './categories';
 import { description, createdAt, uuidPrimary, updatedAt } from './common';
 import { transactions } from './transactions';
+import { users } from './users';
 
 export const operations = sqliteTable('operations', {
   accountId: text('account_id')
@@ -21,4 +22,7 @@ export const operations = sqliteTable('operations', {
     .notNull()
     .references(() => transactions.id, { onDelete: 'cascade' }),
   updatedAt,
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
 });

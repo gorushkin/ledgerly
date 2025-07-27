@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 import {
-  operationCreateSchema,
   operationResponseSchema,
+  operationCreateSchema,
 } from "../validation/operations";
 
 export type OperationCreateDTO = z.infer<typeof operationCreateSchema>;

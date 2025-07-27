@@ -6,7 +6,7 @@ export const operationCreateSchema = z.object({
   accountId: uuid,
   categoryId: uuid,
   description: defaultText,
-  localAmount: z.number().refine((val) => val !== 0, "Сумма не может быть 0"),
+  localAmount: z.number(),
   originalAmount: z.number(),
 });
 
@@ -15,5 +15,6 @@ export const operationResponseSchema = z
     createdAt: z.string(),
     id: uuid,
     updatedAt: z.string(),
+    userId: uuid,
   })
   .merge(operationCreateSchema);
