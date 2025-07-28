@@ -3,7 +3,7 @@ import {
   TransactionResponseDTO,
   UUID,
 } from '@ledgerly/shared/types';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, and } from 'drizzle-orm';
 import { operationsTable, transactionsTable } from 'src/db/schemas';
 import { DataBase } from 'src/types';
 
@@ -73,13 +73,19 @@ export class TransactionRepository extends BaseRepository {
   }
 
   async getTransactionById(
+    userId: UUID,
     id: UUID,
   ): Promise<TransactionResponseDTO | undefined> {
     return this.executeDatabaseOperation(async () => {
       const transaction = await this.db
         .select()
         .from(transactionsTable)
-        .where(eq(transactionsTable.id, id))
+        .where(
+          and(
+            eq(transactionsTable.id, id),
+            eq(transactionsTable.userId, userId),
+          ),
+        )
         .get();
 
       if (!transaction) return undefined;

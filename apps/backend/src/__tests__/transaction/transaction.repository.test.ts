@@ -398,6 +398,7 @@ describe('TransactionRepository', () => {
       const createdTransaction = allTransactions[0];
 
       const transaction = await transactionRepository.getTransactionById(
+        createdTransaction.userId,
         createdTransaction.id,
       );
 
@@ -407,6 +408,7 @@ describe('TransactionRepository', () => {
 
       expect(transaction).toBeDefined();
       expect(transaction?.id).toBe(createdTransaction.id);
+      expect(transaction?.userId).toBe(createdTransaction.userId);
       expect(transaction?.description).toBe(createdTransaction.description);
       expect(transaction?.operations).toHaveLength(
         createdTransaction.operations.length,
