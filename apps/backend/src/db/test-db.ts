@@ -5,7 +5,9 @@ import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import {
   AccountType,
   OperationCreateDTO,
-  TransactionCreate,
+  OperationResponseDTO,
+  TransactionCreateDTO,
+  TransactionResponseDTO,
   UsersResponse,
   UUID,
 } from '@ledgerly/shared/types';
@@ -20,8 +22,8 @@ import * as schema from './schemas';
 import {
   accounts,
   categories,
-  operations,
-  transactions,
+  operationsTable,
+  transactionsTable,
   users,
 } from './schemas';
 
@@ -42,10 +44,10 @@ class Counter {
     return this.count;
   }
 
-  getNewCount() {
+  getNextName(suffix = ''): string {
     this.increment();
     if (this.name) {
-      return `${this.name}-${this.count}`;
+      return `${this.name}-${this.count}${suffix ? `-${suffix}` : ''}`;
     }
 
     return this.count.toString();
@@ -131,7 +133,7 @@ export class TestDB {
   }): Promise<UsersResponse> => {
     const userData = {
       email: params?.email ?? `test-${Date.now()}@example.com`,
-      name: params?.name ?? `Test User ${this.userCounter.getNewCount()}`,
+      name: params?.name ?? `Test User ${this.userCounter.getNextName()}`,
       password: params?.password ?? 'test123',
     };
 
@@ -231,15 +233,15 @@ export class TestDB {
     transactionId: UUID;
     userId: UUID;
     data: OperationCreateDTO[];
-  }) => {
+  }): Promise<OperationResponseDTO[]> => {
     const { data, transactionId, userId } = params;
 
     if (data.length === 0) {
-      return null;
+      return [];
     }
 
     const operation = await this.db
-      .insert(operations)
+      .insert(operationsTable)
       .values(
         data.map((op) => ({
           ...op,
@@ -255,7 +257,13 @@ export class TestDB {
 
   createTestTransaction = async (params: {
     userId: UUID;
-    data?: TransactionCreate;
+    data?: {
+      description?: string;
+      postingDate: string;
+      transactionDate: string;
+      userId: UUID;
+      operations?: OperationCreateDTO[];
+    };
     operationData?: {
       accountId?: UUID;
       categoryId?: UUID;
@@ -264,16 +272,21 @@ export class TestDB {
       originalAmount?: number;
       userId: UUID;
     }[];
-  }) => {
+  }): Promise<TransactionResponseDTO> => {
     const { data, operationData = [], userId } = params;
 
-    if (operationData.length > 0 && data && data.operations.length > 0) {
+    if (
+      operationData.length > 0 &&
+      data?.operations &&
+      data?.operations?.length > 0
+    ) {
       throw new Error(
         'You cannot specify both operationData and operations in data',
       );
     }
-    const transactionData: TransactionCreate = {
-      description: this.transactionCounter.getNewCount(),
+
+    const transactionData: TransactionCreateDTO = {
+      description: this.transactionCounter.getNextName(userId),
       operations: [],
       postingDate: new Date().toString(),
       transactionDate: new Date().toString(),
@@ -282,7 +295,7 @@ export class TestDB {
     };
 
     const transaction = await this.db
-      .insert(transactions)
+      .insert(transactionsTable)
       .values(transactionData)
       .returning()
       .get();
@@ -297,7 +310,7 @@ export class TestDB {
       data: operationData.map((op) => ({
         accountId: op.accountId ?? this.uuid,
         categoryId: op.categoryId ?? this.uuid,
-        description: op.description ?? this.operationCounter.getNewCount(),
+        description: op.description ?? this.operationCounter.getNextName(),
         localAmount: op.localAmount ?? 0,
         originalAmount: op.originalAmount ?? 0,
         transactionId: transaction.id,
@@ -306,10 +319,14 @@ export class TestDB {
       userId,
     });
 
+    const operations = [
+      ...operationsResultFromTransaction,
+      ...operationsResultOperationData,
+    ];
+
     return {
-      operations:
-        operationsResultFromTransaction ?? operationsResultOperationData ?? [],
-      transaction,
+      ...transaction,
+      operations,
     };
   };
 
@@ -317,8 +334,8 @@ export class TestDB {
     return this.db.transaction(async (tx) => {
       const transactionsList = await tx
         .select()
-        .from(transactions)
-        .where(eq(transactions.userId, userId))
+        .from(transactionsTable)
+        .where(eq(transactionsTable.userId, userId))
         .all();
 
       return transactionsList;
@@ -464,9 +481,9 @@ export const createTestDb = () => {
 
   const createTestTransactionWithOperations = async (
     userId: UUID,
-    params?: TransactionCreate,
+    params?: TransactionCreateDTO,
   ) => {
-    const transactionData: TransactionCreate = {
+    const transactionData: TransactionCreateDTO = {
       description: 'Test transaction',
       operations: [],
       postingDate: new Date().toString(),
@@ -477,7 +494,7 @@ export const createTestDb = () => {
 
     const transactionWithOperations = await db.transaction(async (tx) => {
       const transaction = await tx
-        .insert(transactions)
+        .insert(transactionsTable)
         .values(transactionData)
         .returning()
         .get();
@@ -487,7 +504,7 @@ export const createTestDb = () => {
       }
 
       const createdOperations = await tx
-        .insert(operations)
+        .insert(operationsTable)
         .values(
           transactionData.operations.map((op) => ({
             ...op,

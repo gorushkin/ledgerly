@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const requiredText = z.string().default("");
+
 export const defaultText = z.string().default("").optional();
 export const defaultNumber = z.number().default(0).optional();
 export const notNullText = z.string().min(1, "This field cannot be empty");

@@ -2,12 +2,13 @@ import {
   AccountResponse,
   CategoryResponse,
   OperationCreateDTO,
-  TransactionCreate,
+  TransactionCreateDTO,
+  TransactionResponseDTO,
   UsersResponse,
   UUID,
 } from '@ledgerly/shared/types';
 import { eq } from 'node_modules/drizzle-orm/sql/expressions/index.cjs';
-import { transactions, operations } from 'src/db/schemas';
+import { transactionsTable, operationsTable } from 'src/db/schemas';
 import { TestDB } from 'src/db/test-db';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
@@ -15,7 +16,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 type TestDBTransactionParams = {
   userId: UUID;
-  data?: TransactionCreate;
+  data?: {
+    description?: string;
+    postingDate: string;
+    transactionDate: string;
+    userId: UUID;
+    operations?: OperationCreateDTO[];
+  };
   operationData?: {
     accountId?: UUID;
     categoryId?: UUID;
@@ -31,33 +38,33 @@ const getUserTransactionDTO = (params: {
   testAccount2: AccountResponse;
   testCategory: CategoryResponse;
   userId: UUID;
-}): TestDBTransactionParams[] => {
-  const { testAccount1, testAccount2, testCategory, userId } = params;
+  description?: string;
+}): TestDBTransactionParams => {
+  const { description, testAccount1, testAccount2, testCategory, userId } =
+    params;
 
-  return [
-    {
-      data: {
-        description: 'Test transaction for user2',
-        operations: [],
-        postingDate: new Date().toString(),
-        transactionDate: new Date().toString(),
-        userId: userId,
-      },
-      operationData: [
-        {
-          accountId: testAccount1.id,
-          categoryId: testCategory.id,
-          userId: userId,
-        },
-        {
-          accountId: testAccount2.id,
-          categoryId: testCategory.id,
-          userId: userId,
-        },
-      ],
+  return {
+    data: {
+      description: description,
+      operations: [],
+      postingDate: new Date().toString(),
+      transactionDate: new Date().toString(),
       userId: userId,
     },
-  ];
+    operationData: [
+      {
+        accountId: testAccount1.id,
+        categoryId: testCategory.id,
+        userId: userId,
+      },
+      {
+        accountId: testAccount2.id,
+        categoryId: testCategory.id,
+        userId: userId,
+      },
+    ],
+    userId: userId,
+  };
 };
 
 const getOperations = ({
@@ -98,6 +105,11 @@ describe('TransactionRepository', () => {
   let testAccount2: AccountResponse;
   let testDB: TestDB;
 
+  let initOperationsLength = 0;
+  let userOneTransactionData: TestDBTransactionParams[];
+  let transactionsToAdd: TestDBTransactionParams[];
+  let allTransactions: TransactionResponseDTO[];
+
   beforeEach(async () => {
     testDB = new TestDB();
     await testDB.setupTestDb();
@@ -119,9 +131,50 @@ describe('TransactionRepository', () => {
     testAccount2 = await testDB.createTestAccount(user.id, {
       name: 'Test Account 2',
     });
+
+    const user2 = await testDB.createUser({});
+
+    const user1Transaction1DTO = getUserTransactionDTO({
+      description: 'User 1 Transaction 1',
+      testAccount1,
+      testAccount2,
+      testCategory,
+      userId: user.id,
+    });
+
+    const user1Transaction2DTO = getUserTransactionDTO({
+      description: 'User 1 Transaction 2',
+      testAccount1,
+      testAccount2,
+      testCategory,
+      userId: user.id,
+    });
+
+    userOneTransactionData = [user1Transaction1DTO, user1Transaction2DTO];
+
+    const userSecondeTransaction1DTO = getUserTransactionDTO({
+      description: 'User 2 Transaction 1',
+      testAccount1,
+      testAccount2,
+      testCategory,
+      userId: user2.id,
+    });
+
+    transactionsToAdd = [...userOneTransactionData, userSecondeTransaction1DTO];
+
+    initOperationsLength = transactionsToAdd.reduce(
+      (acc, curr) => acc + (curr.operationData?.length ?? 0),
+      0,
+    );
+
+    const promises = transactionsToAdd.map((params) =>
+      testDB.createTestTransaction(params),
+    );
+
+    allTransactions = await Promise.all(promises);
   });
 
-  describe('Transaction create', () => {
+  describe('create', () => {
     it('should create a transaction with valid data with operations', async () => {
       const operations = getOperations({
         testAccount1,
@@ -130,7 +183,7 @@ describe('TransactionRepository', () => {
         userId: user.id,
       });
 
-      const transactionData: TransactionCreate = {
+      const transactionData: TransactionCreateDTO = {
         description: 'Test transaction',
         operations,
         postingDate: new Date().toString(),
@@ -157,7 +210,7 @@ describe('TransactionRepository', () => {
     });
 
     it('should create a transaction without operations', async () => {
-      const transactionData: TransactionCreate = {
+      const transactionData: TransactionCreateDTO = {
         description: 'Test transaction without operations',
         operations: [],
         postingDate: new Date().toString(),
@@ -178,41 +231,6 @@ describe('TransactionRepository', () => {
   });
 
   describe('delete', () => {
-    let initTransactionsLength = 0;
-    let initOperationsLength = 0;
-
-    beforeEach(async () => {
-      const user2 = await testDB.createUser({});
-
-      const user1Transactions = getUserTransactionDTO({
-        testAccount1,
-        testAccount2,
-        testCategory,
-        userId: user.id,
-      });
-
-      const user2Transactions = getUserTransactionDTO({
-        testAccount1,
-        testAccount2,
-        testCategory,
-        userId: user2.id,
-      });
-
-      const transactionsToAdd = [...user2Transactions, ...user1Transactions];
-      initTransactionsLength = transactionsToAdd.length;
-
-      initOperationsLength = transactionsToAdd.reduce(
-        (acc, curr) => acc + (curr.operationData?.length ?? 0),
-        0,
-      );
-
-      const promises = transactionsToAdd.map((params) =>
-        testDB.createTestTransaction(params),
-      );
-
-      await Promise.all(promises);
-    });
-
     it('should delete a transaction by id with operations', async () => {
       const operationsData = getOperations({
         testAccount1,
@@ -223,18 +241,20 @@ describe('TransactionRepository', () => {
 
       const allUsersTransactionsBeforeAdding = await testDB.db
         .select()
-        .from(transactions)
+        .from(transactionsTable)
         .all();
 
       const allOperationsBeforeAdding = await testDB.db
         .select()
-        .from(operations)
+        .from(operationsTable)
         .all();
 
-      expect(allUsersTransactionsBeforeAdding).toHaveLength(2);
+      expect(allUsersTransactionsBeforeAdding).toHaveLength(
+        transactionsToAdd.length,
+      );
       expect(allOperationsBeforeAdding).toHaveLength(initOperationsLength);
 
-      const transactionData: TransactionCreate = {
+      const transactionData: TransactionCreateDTO = {
         description: 'Test transaction',
         operations: operationsData,
         postingDate: new Date().toString(),
@@ -249,28 +269,28 @@ describe('TransactionRepository', () => {
         userId: user.id,
       });
 
-      const transactionId = createdTransaction.transaction.id;
+      const transactionId = createdTransaction.id;
 
       const createdOperations = await testDB.db
         .select()
-        .from(operations)
-        .where(eq(operations.transactionId, transactionId))
+        .from(operationsTable)
+        .where(eq(operationsTable.transactionId, transactionId))
         .all();
 
       const allUsersTransactionsAfterAdding = await testDB.db
         .select()
-        .from(transactions)
+        .from(transactionsTable)
         .all();
 
       const allOperationsAfterAdding = await testDB.db
         .select()
-        .from(operations)
+        .from(operationsTable)
         .all();
 
       expect(createdOperations).toHaveLength(operationsData.length);
 
       expect(allUsersTransactionsAfterAdding).toHaveLength(
-        initTransactionsLength + 1,
+        transactionsToAdd.length + 1,
       );
 
       expect(allOperationsAfterAdding).toHaveLength(
@@ -279,8 +299,8 @@ describe('TransactionRepository', () => {
 
       const transactionOperations = await testDB.db
         .select()
-        .from(operations)
-        .where(eq(operations.transactionId, transactionId))
+        .from(operationsTable)
+        .where(eq(operationsTable.transactionId, transactionId))
         .all();
 
       expect(createdTransaction).toBeDefined();
@@ -292,30 +312,30 @@ describe('TransactionRepository', () => {
 
       const allUsersTransactionsAfterDeleting = await testDB.db
         .select()
-        .from(transactions)
+        .from(transactionsTable)
         .all();
 
       const allOperationsAfterDeleting = await testDB.db
         .select()
-        .from(operations)
+        .from(operationsTable)
         .all();
 
       expect(allUsersTransactionsAfterDeleting.length).toBe(
-        initTransactionsLength,
+        transactionsToAdd.length,
       );
 
       expect(allOperationsAfterDeleting.length).toBe(initOperationsLength);
 
       const deletedTransaction = await testDB.db
         .select()
-        .from(transactions)
-        .where(eq(transactions.id, transactionId))
+        .from(transactionsTable)
+        .where(eq(transactionsTable.id, transactionId))
         .get();
 
       const deletedOperations = await testDB.db
         .select()
-        .from(operations)
-        .where(eq(operations.transactionId, transactionId))
+        .from(operationsTable)
+        .where(eq(operationsTable.transactionId, transactionId))
         .all();
 
       expect(deletedTransaction).toBeUndefined();
@@ -323,19 +343,90 @@ describe('TransactionRepository', () => {
     });
   });
 
-  it.todo('should create a transaction', async () => {
-    // Test implementation
+  describe('getAllByUserId', () => {
+    it('should return all transactions for a specific user', async () => {
+      const userId = user.id;
+
+      const transactions = await transactionRepository.getAllByUserId(userId);
+
+      expect(transactions).toHaveLength(userOneTransactionData.length);
+
+      const initedUserTransactions = userOneTransactionData;
+
+      const initedUserTransactionDescriptionsSet = new Set<string>(
+        initedUserTransactions.map((tx) => tx.data?.description ?? ''),
+      );
+      expect(initedUserTransactionDescriptionsSet.size).toBe(
+        userOneTransactionData.length,
+      );
+
+      transactions.forEach((transaction) => {
+        expect(transaction.userId).toBe(userId);
+        expect(
+          initedUserTransactionDescriptionsSet.has(transaction.description),
+        ).toBe(true);
+      });
+    });
   });
 
-  it.todo('should update a transaction', async () => {
-    // Test implementation
+  describe('getAll', () => {
+    it('should return all transactions for all users', async () => {
+      const transactions = await transactionRepository.getAll();
+
+      expect(transactions).toHaveLength(transactionsToAdd.length);
+
+      const initedUserTransactions = transactionsToAdd;
+
+      const initedUserTransactionDescriptionsSet = new Set<string>(
+        initedUserTransactions.map((tx) => tx.data?.description ?? ''),
+      );
+
+      expect(initedUserTransactionDescriptionsSet.size).toBe(
+        initedUserTransactions.length,
+      );
+
+      transactions.forEach((transaction) => {
+        expect(
+          initedUserTransactionDescriptionsSet.has(transaction.description),
+        ).toBe(true);
+      });
+    });
   });
 
-  it.todo('should delete a transaction', async () => {
-    // Test implementation
+  describe('getTransactionById', () => {
+    it('should return a transaction by id with operations', async () => {
+      const createdTransaction = allTransactions[0];
+
+      const transaction = await transactionRepository.getTransactionById(
+        createdTransaction.id,
+      );
+
+      const createdOperationsSetById = new Set(
+        createdTransaction.operations.map((op) => op.id),
+      );
+
+      expect(transaction).toBeDefined();
+      expect(transaction?.id).toBe(createdTransaction.id);
+      expect(transaction?.description).toBe(createdTransaction.description);
+      expect(transaction?.operations).toHaveLength(
+        createdTransaction.operations.length,
+      );
+
+      transaction?.operations.forEach((op) => {
+        expect(createdOperationsSetById.has(op.id)).toBe(true);
+      });
+    });
   });
 
-  it.todo('should find a transaction by id', async () => {
-    // Test implementation
-  });
+  // it.todo('should update a transaction', async () => {
+  //   // Test implementation
+  // });
+
+  // it.todo('should delete a transaction', async () => {
+  //   // Test implementation
+  // });
+
+  // it.todo('should find a transaction by id', async () => {
+  //   // Test implementation
+  // });
 });

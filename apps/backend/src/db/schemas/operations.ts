@@ -3,10 +3,10 @@ import { sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
 import { accounts } from './accounts';
 import { categories } from './categories';
 import { description, createdAt, uuidPrimary, updatedAt } from './common';
-import { transactions } from './transactions';
+import { transactionsTable } from './transactions';
 import { users } from './users';
 
-export const operations = sqliteTable('operations', {
+export const operationsTable = sqliteTable('operations', {
   accountId: text('account_id')
     .notNull()
     .references(() => accounts.id),
@@ -20,7 +20,7 @@ export const operations = sqliteTable('operations', {
   originalAmount: real('original_amount').notNull(),
   transactionId: text('transaction_id')
     .notNull()
-    .references(() => transactions.id, { onDelete: 'cascade' }),
+    .references(() => transactionsTable.id, { onDelete: 'cascade' }),
   updatedAt,
   userId: text('user_id')
     .notNull()
