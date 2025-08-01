@@ -75,6 +75,8 @@ export default tseslint.config(
           bracketSpacing: true,
         },
       ],
+      "perfectionist/sort-interfaces": "error",
+      "perfectionist/sort-object-types": "error",
     },
   }
 );

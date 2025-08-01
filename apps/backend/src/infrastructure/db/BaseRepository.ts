@@ -2,8 +2,10 @@ import {
   DBErrorContext,
   DatabaseError,
   ForeignKeyConstraintError,
+  InvalidDataError,
   RecordAlreadyExistsError,
 } from 'src/presentation/errors';
+import { BusinessLogicError } from 'src/presentation/errors/businessLogic.error';
 import { adaptLibsqlError } from 'src/presentation/errors/database/libsql-adapter';
 import { DataBase } from 'src/types';
 
@@ -14,6 +16,19 @@ export type NormalizedDbError =
 
 export class BaseRepository {
   constructor(readonly db: DataBase) {}
+  protected get createTimestamps() {
+    const now = new Date().toISOString();
+    return {
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  protected get updateTimestamp() {
+    return {
+      updatedAt: new Date().toISOString(),
+    };
+  }
 
   protected async executeDatabaseOperation<T>(
     operation: () => Promise<T>,
@@ -44,8 +59,16 @@ export class BaseRepository {
               },
             });
           case 'unknown':
-            break; // fall through
+            break;
         }
+      }
+
+      if (error instanceof InvalidDataError) {
+        throw error;
+      }
+
+      if (error instanceof BusinessLogicError) {
+        throw error;
       }
 
       console.error(`Database error: ${errorMessage}`, error);

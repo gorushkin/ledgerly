@@ -1,11 +1,13 @@
 import { z } from "zod";
 
-import { defaultText, uuid } from "./baseValidations";
+import { defaultText, notNullText, uuid } from "./baseValidations";
 
 export const operationCreateSchema = z.object({
   accountId: uuid,
   categoryId: uuid,
   description: defaultText,
+  hash: notNullText,
+  id: uuid,
   localAmount: z.number(),
   originalAmount: z.number(),
 });
@@ -13,7 +15,6 @@ export const operationCreateSchema = z.object({
 export const operationResponseSchema = z
   .object({
     createdAt: z.string(),
-    id: uuid,
     updatedAt: z.string(),
     userId: uuid,
   })
