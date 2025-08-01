@@ -3,7 +3,7 @@ import {
   OperationResponseDTO,
 } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
-import { operations } from 'src/db/schemas';
+import { operationsTable } from 'src/db/schemas';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -36,8 +36,8 @@ export class OperationRepository extends BaseRepository {
   ): Promise<OperationResponseDTO[]> {
     const transactionOperations = await this.db
       .select()
-      .from(operations)
-      .where(eq(operations.transactionId, transactionId));
+      .from(operationsTable)
+      .where(eq(operationsTable.transactionId, transactionId));
 
     return transactionOperations;
   }

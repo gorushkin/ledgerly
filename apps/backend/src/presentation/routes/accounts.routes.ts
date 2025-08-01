@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { uniqueIdSchema } from 'src/libs/validators';
+import { validators } from 'src/libs/';
 
 export const registerAccountsRoutes = (app: FastifyInstance) => {
   const accountController = app.container.controllers.account;
@@ -11,7 +11,7 @@ export const registerAccountsRoutes = (app: FastifyInstance) => {
   });
 
   app.get('/:id', async (request) => {
-    const { id } = uniqueIdSchema.parse(request.params);
+    const { id } = validators.uniqueIdSchema.parse(request.params);
     const userId = request.user.userId;
 
     return accountController.getById(userId, id);
@@ -32,7 +32,7 @@ export const registerAccountsRoutes = (app: FastifyInstance) => {
   });
 
   app.delete('/:id', async (request, reply) => {
-    const { id } = uniqueIdSchema.parse(request.params);
+    const { id } = validators.uniqueIdSchema.parse(request.params);
     const userId = request.user.userId;
 
     await accountController.delete(userId, id);
@@ -41,7 +41,7 @@ export const registerAccountsRoutes = (app: FastifyInstance) => {
   });
 
   app.put('/:id', async (request, reply) => {
-    const { id } = uniqueIdSchema.parse(request.params);
+    const { id } = validators.uniqueIdSchema.parse(request.params);
     const userId = request.user.userId;
 
     try {
