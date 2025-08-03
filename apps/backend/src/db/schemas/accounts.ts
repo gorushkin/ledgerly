@@ -8,7 +8,7 @@ import { users } from './users';
 export const accountsTable = sqliteTable(
   'accounts',
   {
-    balance: real('initial_balance').notNull(),
+    balance: real('balance').notNull(),
     createdAt,
     description,
     id: uuidPrimary,

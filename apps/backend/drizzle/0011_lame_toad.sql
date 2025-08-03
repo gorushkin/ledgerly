@@ -1,0 +1,1 @@
+ALTER TABLE `accounts` ADD `balance` real NOT NULL;

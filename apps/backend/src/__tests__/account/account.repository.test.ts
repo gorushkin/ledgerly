@@ -3,6 +3,7 @@ import {
   AccountInsertDTO,
   UsersResponse,
 } from '@ledgerly/shared/types';
+import dayjs from 'dayjs';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import {
   ForeignKeyConstraintError,
@@ -55,6 +56,36 @@ describe('AccountRepository', async () => {
       expect(account.originalCurrency).toBe(newAccount.originalCurrency);
       expect(account.type).toBe(newAccount.type);
       expect(account.userId).toBe(newAccount.userId);
+    });
+
+    it('should set balance equal to initialBalance on creation', async () => {
+      const newAccount: AccountInsertDTO = {
+        initialBalance: 1500,
+        name: 'Balance Test Account',
+        originalCurrency: 'USD',
+        type: 'cash',
+        userId: user.id,
+      };
+
+      const account = await accountRepository.create(newAccount);
+
+      expect(account.balance).toBe(newAccount.initialBalance);
+      expect(account.initialBalance).toBe(newAccount.initialBalance);
+    });
+
+    it('should handle negative initialBalance correctly', async () => {
+      const newAccount: AccountInsertDTO = {
+        initialBalance: -500,
+        name: 'Negative Balance Account',
+        originalCurrency: 'USD',
+        type: 'cash',
+        userId: user.id,
+      };
+
+      const account = await accountRepository.create(newAccount);
+
+      expect(account.balance).toBe(-500);
+      expect(account.initialBalance).toBe(-500);
     });
 
     it('should not allow duplicate account names for the same user', async () => {
@@ -389,6 +420,29 @@ describe('AccountRepository', async () => {
         }),
       );
     });
+
+    it('should only update allowed fields', async () => {
+      const maliciousData = {
+        createdAt: new Date().toISOString(),
+        id: 'malicious-id',
+        initialBalance: 2000,
+        name: 'Updated Account',
+        originalCurrency: 'EUR',
+        type: 'savings' as const,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const result = await accountRepository.update(
+        user.id,
+        account.id,
+        maliciousData,
+      );
+
+      expect(result?.id).toBe(account.id);
+      expect(result?.userId).toBe(user.id);
+      expect(result?.name).toBe(maliciousData.name);
+      expect(result?.originalCurrency).toBe(maliciousData.originalCurrency);
+    });
   });
 
   describe('delete', () => {
@@ -438,6 +492,59 @@ describe('AccountRepository', async () => {
     it('should return undefined when account does not exist', async () => {
       const result = await accountRepository.delete('non-existent-id', user.id);
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('timestamp behavior', () => {
+    it('should set createdAt and updatedAt on creation', async () => {
+      const beforeCreate = dayjs();
+
+      const newAccount: AccountInsertDTO = {
+        initialBalance: 1000,
+        name: 'Timestamp Test Account',
+        originalCurrency: 'USD',
+        type: 'cash',
+        userId: user.id,
+      };
+
+      const account = await accountRepository.create(newAccount);
+      const accountDate = dayjs(account.createdAt);
+
+      const afterCreate = dayjs();
+
+      expect(account.createdAt).toBeDefined();
+      expect(account.updatedAt).toBeDefined();
+      expect(dayjs(account.createdAt)).toBeInstanceOf(dayjs);
+      expect(dayjs(account.updatedAt)).toBeInstanceOf(dayjs);
+
+      expect(beforeCreate.unix()).toBeLessThanOrEqual(accountDate.unix());
+      expect(accountDate.unix()).toBeLessThanOrEqual(afterCreate.unix());
+    });
+
+    it('should update updatedAt on account update', async () => {
+      const account = await testDB.createTestAccount(user.id);
+      const originalUpdatedAt = dayjs(account?.updatedAt);
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const updatedData: AccountInsertDTO = {
+        initialBalance: 2000,
+        name: 'Updated Timestamp Account',
+        originalCurrency: 'EUR',
+        type: 'savings',
+        userId: user.id,
+      };
+
+      const updatedAccount = await accountRepository.update(
+        user.id,
+        account.id,
+        updatedData,
+      );
+
+      const newUpdatedAt = dayjs(updatedAccount?.updatedAt);
+
+      expect(updatedAccount?.updatedAt).not.toBe(originalUpdatedAt);
+      expect(originalUpdatedAt.unix()).toBeLessThanOrEqual(newUpdatedAt.unix());
     });
   });
 });

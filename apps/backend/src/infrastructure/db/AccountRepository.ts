@@ -32,7 +32,11 @@ export class AccountRepository extends BaseRepository {
       () =>
         this.db
           .insert(accountsTable)
-          .values({ ...data, balance: data.initialBalance })
+          .values({
+            ...data,
+            balance: data.initialBalance,
+            ...this.createTimestamps,
+          })
           .returning()
           .get(),
       'Failed to create account',
@@ -62,7 +66,7 @@ export class AccountRepository extends BaseRepository {
     userId: UUID,
     id: UUID,
     data: AccountUpdateDbDTO,
-  ): Promise<AccountDbRowDTO> {
+  ): Promise<AccountDbRowDTO | undefined> {
     return this.executeDatabaseOperation(
       () => {
         const safeData = this.getSafeUpdate(data, [
@@ -74,7 +78,7 @@ export class AccountRepository extends BaseRepository {
 
         return this.db
           .update(accountsTable)
-          .set(safeData)
+          .set({ ...safeData, ...this.updateTimestamp })
           .where(
             and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)),
           )
