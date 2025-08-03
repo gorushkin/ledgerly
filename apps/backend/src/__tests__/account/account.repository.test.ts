@@ -17,6 +17,7 @@ const firstUserAccounts = ['firstUserAccount1', 'firstUserAccount2'];
 const secondUserAccounts = ['secondUserAccount1', 'secondUserAccount2'];
 
 const accountData: AccountInsertDTO = {
+  balance: 0,
   initialBalance: 1000,
   name: 'Test Account',
   originalCurrency: 'USD',
@@ -40,6 +41,7 @@ describe('AccountRepository', async () => {
   describe('create', () => {
     it('should create a new account successfully', async () => {
       const newAccount: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 100,
         name: 'Test Account',
         originalCurrency: 'USD',
@@ -58,38 +60,9 @@ describe('AccountRepository', async () => {
       expect(account.userId).toBe(newAccount.userId);
     });
 
-    it('should set balance equal to initialBalance on creation', async () => {
-      const newAccount: AccountInsertDTO = {
-        initialBalance: 1500,
-        name: 'Balance Test Account',
-        originalCurrency: 'USD',
-        type: 'cash',
-        userId: user.id,
-      };
-
-      const account = await accountRepository.create(newAccount);
-
-      expect(account.balance).toBe(newAccount.initialBalance);
-      expect(account.initialBalance).toBe(newAccount.initialBalance);
-    });
-
-    it('should handle negative initialBalance correctly', async () => {
-      const newAccount: AccountInsertDTO = {
-        initialBalance: -500,
-        name: 'Negative Balance Account',
-        originalCurrency: 'USD',
-        type: 'cash',
-        userId: user.id,
-      };
-
-      const account = await accountRepository.create(newAccount);
-
-      expect(account.balance).toBe(-500);
-      expect(account.initialBalance).toBe(-500);
-    });
-
     it('should not allow duplicate account names for the same user', async () => {
       const newAccount: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 100,
         name: 'Unique Account',
         originalCurrency: 'USD',
@@ -121,6 +94,7 @@ describe('AccountRepository', async () => {
       });
 
       const firstUserAccount: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 1000,
         name: accountName,
         originalCurrency: 'USD',
@@ -129,6 +103,7 @@ describe('AccountRepository', async () => {
       };
 
       const secondUserAccount: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 1000,
         name: accountName,
         originalCurrency: 'EUR',
@@ -157,6 +132,7 @@ describe('AccountRepository', async () => {
 
     it('should throw an error if the original currency does not exist', async () => {
       const newAccount: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 100,
         name: 'Test Account',
         originalCurrency: 'XYZ',
@@ -177,6 +153,7 @@ describe('AccountRepository', async () => {
 
     it('should throw an error if the user does not exist', async () => {
       const newAccount: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 100,
         name: 'Test Account',
         originalCurrency: 'USD',
@@ -301,6 +278,7 @@ describe('AccountRepository', async () => {
       const user2 = await testDB.createUser();
 
       const updatedAccountData: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'EUR',
@@ -326,6 +304,7 @@ describe('AccountRepository', async () => {
 
     it('should return undefined when account belongs to different user', async () => {
       const updatedAccountData: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'EUR',
@@ -344,6 +323,7 @@ describe('AccountRepository', async () => {
 
     it('should not allow updating to duplicate name within same user', async () => {
       const updatedAccountData: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'EUR',
@@ -401,9 +381,10 @@ describe('AccountRepository', async () => {
 
     it('should validate currency when updating', async () => {
       const updatedAccountData: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 2000,
         name: 'Updated Account',
-        originalCurrency: 'XYZ', // Non-existent currency
+        originalCurrency: 'XYZ',
         type: 'savings',
         userId: user.id,
       };
@@ -500,6 +481,7 @@ describe('AccountRepository', async () => {
       const beforeCreate = dayjs();
 
       const newAccount: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 1000,
         name: 'Timestamp Test Account',
         originalCurrency: 'USD',
@@ -528,6 +510,7 @@ describe('AccountRepository', async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const updatedData: AccountInsertDTO = {
+        balance: 0,
         initialBalance: 2000,
         name: 'Updated Timestamp Account',
         originalCurrency: 'EUR',

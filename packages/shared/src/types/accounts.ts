@@ -1,13 +1,9 @@
-import { z } from "zod";
-
 export type AccountType =
   | "cash"
   | "debit"
   | "credit"
   | "savings"
   | "investment";
-
-import { accountResponseSchema } from "../validation";
 
 import { UUID } from "./auth";
 
@@ -21,7 +17,7 @@ type AccountBaseDTO = {
   userId: UUID;
 };
 
-export type AccountInsertDTO = Omit<AccountBaseDTO, "balance">;
+export type AccountInsertDTO = AccountBaseDTO;
 
 export type AccountUpdateDbDTO = {
   initialBalance?: number;
@@ -42,4 +38,8 @@ export type AccountUpdateDTO = Partial<
   Omit<AccountBaseDTO, "userId" | "balance">
 >;
 
-export type AccountResponseDTO = z.infer<typeof accountResponseSchema>;
+export type AccountResponseDTO = AccountBaseDTO & {
+  createdAt: string;
+  id: UUID;
+  updatedAt: string;
+};

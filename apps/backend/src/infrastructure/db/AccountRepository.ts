@@ -34,7 +34,6 @@ export class AccountRepository extends BaseRepository {
           .insert(accountsTable)
           .values({
             ...data,
-            balance: data.initialBalance,
             ...this.createTimestamps,
           })
           .returning()
