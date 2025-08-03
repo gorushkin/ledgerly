@@ -1,6 +1,6 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import {
-  AccountCreate,
+  AccountCreateDTO,
   AccountResponse,
   AccountType,
   UUID,
@@ -24,7 +24,7 @@ const firstUserAccounts = [
   },
 ];
 
-const getUserTestAccounts = (userId: UUID): AccountCreate[] => {
+const getUserTestAccounts = (userId: UUID): AccountCreateDTO[] => {
   return firstUserAccounts.map((account) => ({
     ...account,
     userId,

@@ -1,7 +1,6 @@
 import {
-  AccountCreate,
-  AccountResponse,
-  AccountUpdate,
+  AccountCreateDTO,
+  AccountUpdateDTO,
   UUID,
 } from '@ledgerly/shared/types';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
@@ -63,7 +62,7 @@ export class AccountService extends BaseService {
     return this.ensureAccountExistsAndOwned(userId, id);
   }
 
-  async create(data: AccountCreate): Promise<AccountResponse> {
+  async create(data: AccountCreateDTO): Promise<AccountResponse> {
     await this.validateCurrency(data.originalCurrency);
 
     return this.accountRepository.create(data);
@@ -72,7 +71,7 @@ export class AccountService extends BaseService {
   async update(
     userId: UUID,
     id: UUID,
-    data: AccountUpdate,
+    data: AccountUpdateDTO,
   ): Promise<AccountResponse> {
     if (data.originalCurrency) {
       await this.validateCurrency(data.originalCurrency);

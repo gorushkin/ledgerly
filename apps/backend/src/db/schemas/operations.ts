@@ -1,6 +1,6 @@
 import { sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
 
-import { accounts } from './accounts';
+import { accountsTable } from './accounts';
 import { categories } from './categories';
 import {
   description,
@@ -16,7 +16,7 @@ import { users } from './users';
 export const operationsTable = sqliteTable('operations', {
   accountId: text('account_id')
     .notNull()
-    .references(() => accounts.id),
+    .references(() => accountsTable.id),
   categoryId: text('category_id')
     .notNull()
     .references(() => categories.id),

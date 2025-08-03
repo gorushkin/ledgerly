@@ -24,7 +24,7 @@ import { DataBase } from 'src/types';
 
 import * as schema from './schemas';
 import {
-  accounts,
+  accountsTable,
   categories,
   operationsTable,
   transactionsTable,
@@ -148,9 +148,11 @@ export class TestDB {
       name?: string;
       originalCurrency?: string;
       type?: AccountType;
+      initialBalance?: number;
     },
   ) => {
     const accountData = {
+      initialBalance: 0,
       name: 'Test Account',
       originalCurrency: 'USD',
       type: ACCOUNT_TYPES[0],
@@ -159,8 +161,10 @@ export class TestDB {
     };
 
     const account = await this.db
-      .insert(accounts)
+      .insert(accountsTable)
       .values({
+        balance: accountData.initialBalance ?? 0,
+        initialBalance: accountData.initialBalance ?? 0,
         name: accountData.name,
         originalCurrency: accountData.originalCurrency,
         type: accountData.type,
@@ -435,7 +439,7 @@ export const createTestDb = () => {
     };
 
     const account = await db
-      .insert(accounts)
+      .insert(accountsTable)
       .values({
         name: accountData.name,
         originalCurrency: accountData.originalCurrency,

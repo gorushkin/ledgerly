@@ -2,7 +2,7 @@ import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
 import { db } from '../index';
 import { transactionsTable } from '../schemas';
-import { accounts } from '../schemas/accounts';
+import { accountsTable } from '../schemas/accounts';
 import { categories } from '../schemas/categories';
 import { users } from '../schemas/users';
 
@@ -44,7 +44,7 @@ const seedCategories = async (userId: string) => {
 const seedAccounts = async (userId: string) => {
   try {
     const insertedWallets = await db
-      .insert(accounts)
+      .insert(accountsTable)
       .values([
         {
           id: ACCOUNT_ID1,
@@ -144,7 +144,7 @@ const seedUser = async () => {
 const deleteData = async () => {
   try {
     await db.delete(transactionsTable);
-    await db.delete(accounts);
+    await db.delete(accountsTable);
     await db.delete(categories);
     await db.delete(users);
 

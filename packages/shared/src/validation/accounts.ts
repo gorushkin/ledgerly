@@ -23,6 +23,15 @@ export const accountCreateSchema = z.object({
   userId: uuid,
 });
 
+export const accountUpdateSchema = z
+  .object({
+    description: defaultText,
+    name: notNullText,
+    originalCurrency: currencyCode,
+    type,
+  })
+  .partial();
+
 export const accountResponseSchema = z
   .object({
     createdAt,
@@ -30,5 +39,3 @@ export const accountResponseSchema = z
     updatedAt,
   })
   .merge(accountCreateSchema);
-
-export const accountUpdateSchema = accountCreateSchema.partial();
