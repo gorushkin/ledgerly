@@ -89,7 +89,7 @@ describe('AuthService', () => {
 
   describe('validateUser', () => {
     it('should validate user with correct credentials', async () => {
-      const mockUser = { email, id, name, password: hashedPassword };
+      const mockUser = { email, hashedPassword, id, name };
 
       mockUsersRepository.getUserByEmailWithPassword.mockResolvedValue(
         mockUser,
@@ -101,10 +101,12 @@ describe('AuthService', () => {
       expect(
         mockUsersRepository.getUserByEmailWithPassword,
       ).toHaveBeenCalledWith(email);
+
       expect(mockPasswordManager.compare).toHaveBeenCalledWith(
         password,
         hashedPassword,
       );
+
       expect(result).toEqual({
         email: mockUser.email,
         id: mockUser.id,
