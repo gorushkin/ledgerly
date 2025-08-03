@@ -8,7 +8,6 @@ import {
   defaultText,
   updatedAt,
   uuid,
-  defaultNumber,
   currencyCode,
 } from "./baseValidations";
 
@@ -16,7 +15,7 @@ const type = z.enum(ACCOUNT_TYPE_VALUES);
 
 export const accountCreateSchema = z.object({
   description: defaultText,
-  initialBalance: defaultNumber,
+  initialBalance: z.number(),
   name: notNullText,
   originalCurrency: currencyCode,
   type,
