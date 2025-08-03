@@ -1,6 +1,6 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import { CategoryCreate, CategoryResponse, UUID } from '@ledgerly/shared/types';
-import { createTestDb } from 'src/db/test-db';
+import { TestDB } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
 import { describe, beforeEach, it, expect } from 'vitest';
 
@@ -14,12 +14,12 @@ const firstUserCategory = [
 ];
 
 describe('Category Integration Tests', () => {
-  let testDbInstance: ReturnType<typeof createTestDb>;
   let server: ReturnType<typeof createServer>;
   let authToken: string;
   let userId: string;
   let categories: CategoryResponse[];
   const headers: Record<string, string> = {};
+  let testDB: TestDB;
 
   const testUser = {
     email: 'test@example.com',
@@ -28,12 +28,12 @@ describe('Category Integration Tests', () => {
   };
 
   beforeEach(async () => {
-    testDbInstance = createTestDb();
-    server = createServer(testDbInstance.db);
-    await testDbInstance.setupTestDb();
+    testDB = new TestDB();
+    await testDB.setupTestDb();
+    server = createServer(testDB.db);
     await server.ready();
 
-    const user = await testDbInstance.createUser(testUser);
+    const user = await testDB.createUser(testUser);
 
     const token = server.jwt.sign({
       email: user.email,
@@ -46,7 +46,7 @@ describe('Category Integration Tests', () => {
     userId = decoded.userId;
 
     const promises = firstUserCategory.map((account) =>
-      testDbInstance.createTestCategory(userId, account),
+      testDB.createTestCategory(userId, account),
     );
 
     categories = await Promise.all(promises);
