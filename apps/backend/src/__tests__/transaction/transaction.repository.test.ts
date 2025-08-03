@@ -2,7 +2,7 @@ import {
   AccountResponseDTO,
   CategoryResponse,
   OperationCreateDTO,
-  UsersResponse,
+  UsersResponseDTO,
   UUID,
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
@@ -65,7 +65,7 @@ const getUserTransactionDTO = (params: {
 
 describe('TransactionRepository', () => {
   let transactionRepository: TransactionRepository;
-  let user: UsersResponse;
+  let user: UsersResponseDTO;
   let testCategory: CategoryResponse;
   let testAccount1: AccountResponseDTO;
   let testAccount2: AccountResponseDTO;

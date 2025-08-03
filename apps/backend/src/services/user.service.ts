@@ -1,4 +1,8 @@
-import { UsersUpdate, PasswordChange, UUID } from '@ledgerly/shared/types';
+import {
+  UsersUpdateDTO,
+  UserChangePasswordDTO,
+  UUID,
+} from '@ledgerly/shared/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import {
@@ -17,7 +21,7 @@ export class UserService {
     return this.validateUser(id);
   }
 
-  async validateUser(id: UUID): Promise<UsersUpdate> {
+  async validateUser(id: UUID): Promise<UsersUpdateDTO> {
     const existingUser = await this.usersRepository.getUserById(id);
 
     if (!existingUser) {
@@ -27,7 +31,7 @@ export class UserService {
     return existingUser;
   }
 
-  async update(id: UUID, profileData: UsersUpdate) {
+  async update(id: UUID, profileData: UsersUpdateDTO) {
     await this.validateUser(id);
 
     if (profileData?.email) {
@@ -43,7 +47,7 @@ export class UserService {
     return this.usersRepository.updateUserProfile(id, profileData);
   }
 
-  async changePassword(id: UUID, passwordData: PasswordChange) {
+  async changePassword(id: UUID, passwordData: UserChangePasswordDTO) {
     const userWithPassword =
       await this.usersRepository.getUserByIdWithPassword(id);
 

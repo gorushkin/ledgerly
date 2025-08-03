@@ -1,28 +1,28 @@
-import { z } from "zod";
-
-import {
-  usersResponseSchema,
-  usersCreateSchema,
-  usersUpdateSchema,
-  passwordChangeSchema,
-} from "../validation";
-
 import { UUID } from "./auth";
 
 export type UserBaseDTO = {
   email: string;
-  id: UUID;
   name: string;
 };
 
-export type UserDbInsertDTO = Omit<UserBaseDTO, "id"> & {
+export type UserDbInsertDTO = UserBaseDTO & {
   password: string;
 };
 
-export type UserDbRowDTO = UserBaseDTO;
+export type UserDbRowDTO = UserBaseDTO & {
+  id: UUID;
+};
 export type UserDbUpdateDTO = Partial<UserBaseDTO>;
 
-export type UsersCreate = z.infer<typeof usersCreateSchema>;
-export type UsersResponse = z.infer<typeof usersResponseSchema>;
-export type UsersUpdate = z.infer<typeof usersUpdateSchema>;
-export type PasswordChange = z.infer<typeof passwordChangeSchema>;
+export type UsersCreateDTO = UserBaseDTO & {
+  password: string;
+};
+
+export type UsersResponseDTO = UserBaseDTO & {
+  id: UUID;
+};
+export type UsersUpdateDTO = Partial<UserBaseDTO>;
+export type UserChangePasswordDTO = {
+  currentPassword: string;
+  newPassword: string;
+};

@@ -1,4 +1,4 @@
-import { UsersResponse } from '@ledgerly/shared/types';
+import { UsersResponseDTO } from '@ledgerly/shared/types';
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
 import { RecordAlreadyExistsError } from 'src/presentation/errors';
 import { describe, beforeEach, beforeAll, it, expect } from 'vitest';
@@ -9,7 +9,7 @@ describe('CategoryRepository', () => {
   let testDbInstance: ReturnType<typeof createTestDb>;
   let categoryRepository: CategoryRepository;
 
-  let user: UsersResponse;
+  let user: UsersResponseDTO;
 
   beforeAll(async () => {
     testDbInstance = createTestDb();

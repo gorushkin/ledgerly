@@ -10,7 +10,7 @@ import {
   TransactionDbRecordDTO,
   TransactionDbRowDTO,
   TransactionResponseDTO,
-  UsersResponse,
+  UsersResponseDTO,
   UUID,
 } from '@ledgerly/shared/types';
 import { createClient } from '@libsql/client';
@@ -117,7 +117,7 @@ export class TestDB {
     email?: string;
     name?: string;
     password?: string;
-  }): Promise<UsersResponse> => {
+  }): Promise<UsersResponseDTO> => {
     const userData = {
       email: params?.email ?? `test-${Date.now()}@example.com`,
       name: params?.name ?? `Test User ${this.userCounter.getNextName()}`,
@@ -397,7 +397,7 @@ export const createTestDb = () => {
     email?: string;
     name?: string;
     password?: string;
-  }): Promise<UsersResponse> => {
+  }): Promise<UsersResponseDTO> => {
     const userData = {
       email: params?.email ?? `test-${Date.now()}@example.com`,
       name: params?.name ?? 'Test User',

@@ -1,7 +1,7 @@
 import {
   AccountDbRowDTO,
   AccountInsertDTO,
-  UsersResponse,
+  UsersResponseDTO,
 } from '@ledgerly/shared/types';
 import dayjs from 'dayjs';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
@@ -29,7 +29,7 @@ describe('AccountRepository', async () => {
   let testDB: TestDB;
 
   let accountRepository: AccountRepository;
-  let user: UsersResponse;
+  let user: UsersResponseDTO;
 
   beforeEach(async () => {
     testDB = new TestDB();

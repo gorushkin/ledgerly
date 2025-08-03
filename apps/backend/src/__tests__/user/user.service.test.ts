@@ -149,7 +149,7 @@ describe('UserService', () => {
     it('should change password successfully', async () => {
       const passwordData = { currentPassword, newPassword };
       const mockUser = { email, id, name };
-      const mockUserWithPassword = { ...mockUser, password: hashedPassword };
+      const mockUserWithPassword = { ...mockUser, hashedPassword };
 
       mockUsersRepository.getUserById.mockResolvedValue(mockUser);
       mockUsersRepository.getUserByIdWithPassword.mockResolvedValue(

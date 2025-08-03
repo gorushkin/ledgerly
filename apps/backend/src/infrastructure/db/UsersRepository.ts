@@ -1,8 +1,8 @@
 import {
   UserDbRowDTO,
-  UsersCreate,
-  UsersResponse,
-  UsersUpdate,
+  UsersCreateDTO,
+  UsersResponseDTO,
+  UsersUpdateDTO,
 } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { usersTable } from 'src/db/schemas';
@@ -50,7 +50,7 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async getUserById(id: string): Promise<UsersResponse | undefined> {
+  async getUserById(id: string): Promise<UsersResponseDTO | undefined> {
     return this.executeDatabaseOperation(
       async () =>
         this.db
@@ -76,8 +76,8 @@ export class UsersRepository extends BaseRepository {
 
   async updateUserProfile(
     id: string,
-    data: UsersUpdate,
-  ): Promise<UsersResponse> {
+    data: UsersUpdateDTO,
+  ): Promise<UsersResponseDTO> {
     return this.executeDatabaseOperation(async () => {
       const updateData: Partial<typeof usersTable.$inferInsert> = {};
 
@@ -108,7 +108,7 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async create(data: UsersCreate): Promise<UsersResponse> {
+  async create(data: UsersCreateDTO): Promise<UsersResponseDTO> {
     return this.executeDatabaseOperation(
       async () =>
         this.db.insert(usersTable).values(data).returning(userSelect).get(),
@@ -116,7 +116,7 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async deleteUser(id: string): Promise<UsersResponse | undefined> {
+  async deleteUser(id: string): Promise<UsersResponseDTO | undefined> {
     return this.executeDatabaseOperation(
       async () =>
         this.db
@@ -129,7 +129,7 @@ export class UsersRepository extends BaseRepository {
   }
 
   // TODO: remove this method
-  async getAll(): Promise<UsersResponse[]> {
+  async getAll(): Promise<UsersResponseDTO[]> {
     return this.executeDatabaseOperation(
       async () => this.db.select(userSelect).from(usersTable).all(),
       'Failed to fetch all users',

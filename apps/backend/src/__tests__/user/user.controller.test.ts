@@ -1,4 +1,4 @@
-import { PasswordChange, UsersUpdate } from '@ledgerly/shared/types';
+import { UserChangePasswordDTO, UsersUpdateDTO } from '@ledgerly/shared/types';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { UserService } from 'src/services/user.service';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -125,7 +125,7 @@ describe('UserController', () => {
       const invalidData = {
         email: 'valid@email.com',
         name: 123,
-      } as unknown as UsersUpdate;
+      } as unknown as UsersUpdateDTO;
 
       await expect(controller.update('1', invalidData)).rejects.toThrow(
         ZodError,
@@ -159,7 +159,7 @@ describe('UserController', () => {
     it('should throw ZodError for missing oldPassword', async () => {
       const invalidData = {
         newPassword: 'newPassword123',
-      } as unknown as PasswordChange;
+      } as unknown as UserChangePasswordDTO;
 
       await expect(controller.changePassword('1', invalidData)).rejects.toThrow(
         ZodError,
@@ -169,7 +169,7 @@ describe('UserController', () => {
     it('should throw ZodError for missing newPassword', async () => {
       const invalidData = {
         currentPassword: 'oldPassword123',
-      } as PasswordChange;
+      } as UserChangePasswordDTO;
 
       await expect(controller.changePassword('1', invalidData)).rejects.toThrow(
         ZodError,
