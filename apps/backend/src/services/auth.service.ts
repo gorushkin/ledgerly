@@ -23,13 +23,13 @@ export class AuthService {
 
     const isPasswordValid = await this.passwordManager.compare(
       password,
-      userWithPassword.password,
+      userWithPassword.hashedPassword,
     );
 
     if (!isPasswordValid) {
       throw new InvalidPasswordError();
     }
-    const { password: _, ...userWithoutPassword } = userWithPassword;
+    const { hashedPassword: _, ...userWithoutPassword } = userWithPassword;
     return userWithoutPassword;
   }
 

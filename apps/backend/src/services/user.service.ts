@@ -53,7 +53,7 @@ export class UserService {
 
     const isCurrentPasswordValid = await this.passwordManager.compare(
       passwordData.currentPassword,
-      userWithPassword.password,
+      userWithPassword.hashedPassword,
     );
 
     if (!isCurrentPasswordValid) {

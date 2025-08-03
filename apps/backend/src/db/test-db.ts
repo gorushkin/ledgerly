@@ -28,7 +28,7 @@ import {
   categories,
   operationsTable,
   transactionsTable,
-  users,
+  usersTable,
 } from './schemas';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -129,7 +129,7 @@ export class TestDB {
     const hashedPassword = await passwordManager.hash(userData.password);
 
     const user = await this.db
-      .insert(users)
+      .insert(usersTable)
       .values({
         email: userData.email,
         id: crypto.randomUUID(),
@@ -409,7 +409,7 @@ export const createTestDb = () => {
     const hashedPassword = await passwordManager.hash(userData.password);
 
     const user = await db
-      .insert(users)
+      .insert(usersTable)
       .values({
         email: userData.email,
         id: crypto.randomUUID(),

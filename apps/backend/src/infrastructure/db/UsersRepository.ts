@@ -1,23 +1,24 @@
 import {
+  UserDbRowDTO,
   UsersCreate,
   UsersResponse,
   UsersUpdate,
 } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
-import { users } from 'src/db/schemas';
+import { usersTable } from 'src/db/schemas';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
 
 const userSelect = {
-  email: users.email,
-  id: users.id,
-  name: users.name,
+  email: usersTable.email,
+  id: usersTable.id,
+  name: usersTable.name,
 } as const;
 
-const userWithPasswordSelect = {
+const userWitHashedPasswordSelect = {
   ...userSelect,
-  password: users.password,
+  hashedPassword: usersTable.password,
 } as const;
 
 export class UsersRepository extends BaseRepository {
@@ -25,13 +26,13 @@ export class UsersRepository extends BaseRepository {
     super(db);
   }
 
-  async findByEmail(email: string): Promise<UsersResponse | undefined> {
+  async findByEmail(email: string): Promise<UserDbRowDTO | undefined> {
     return this.executeDatabaseOperation(
       async () =>
         this.db
           .select(userSelect)
-          .from(users)
-          .where(eq(users.email, email))
+          .from(usersTable)
+          .where(eq(usersTable.email, email))
           .get(),
       `Failed to find user with email ${email}`,
     );
@@ -41,9 +42,9 @@ export class UsersRepository extends BaseRepository {
     return this.executeDatabaseOperation(
       async () =>
         this.db
-          .select(userWithPasswordSelect)
-          .from(users)
-          .where(eq(users.email, email))
+          .select(userWitHashedPasswordSelect)
+          .from(usersTable)
+          .where(eq(usersTable.email, email))
           .get(),
       `Failed to find user with email ${email}`,
     );
@@ -52,7 +53,11 @@ export class UsersRepository extends BaseRepository {
   async getUserById(id: string): Promise<UsersResponse | undefined> {
     return this.executeDatabaseOperation(
       async () =>
-        this.db.select(userSelect).from(users).where(eq(users.id, id)).get(),
+        this.db
+          .select(userSelect)
+          .from(usersTable)
+          .where(eq(usersTable.id, id))
+          .get(),
       `Failed to fetch user with ID ${id}`,
     );
   }
@@ -61,9 +66,9 @@ export class UsersRepository extends BaseRepository {
     return this.executeDatabaseOperation(
       async () =>
         this.db
-          .select(userWithPasswordSelect)
-          .from(users)
-          .where(eq(users.id, id))
+          .select(userWitHashedPasswordSelect)
+          .from(usersTable)
+          .where(eq(usersTable.id, id))
           .get(),
       `Failed to fetch user with password for ID ${id}`,
     );
@@ -74,18 +79,18 @@ export class UsersRepository extends BaseRepository {
     data: UsersUpdate,
   ): Promise<UsersResponse> {
     return this.executeDatabaseOperation(async () => {
-      const updateData: Partial<typeof users.$inferInsert> = {};
+      const updateData: Partial<typeof usersTable.$inferInsert> = {};
 
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined) {
-          updateData[key as keyof typeof users.$inferInsert] = value;
+          updateData[key as keyof typeof usersTable.$inferInsert] = value;
         }
       });
 
       return this.db
-        .update(users)
+        .update(usersTable)
         .set(updateData)
-        .where(eq(users.id, id))
+        .where(eq(usersTable.id, id))
         .returning(userSelect)
         .get();
     }, `Failed to update user profile with ID ${id}`);
@@ -95,9 +100,9 @@ export class UsersRepository extends BaseRepository {
     await this.executeDatabaseOperation(
       async () =>
         this.db
-          .update(users)
+          .update(usersTable)
           .set({ password: hashedPassword })
-          .where(eq(users.id, id))
+          .where(eq(usersTable.id, id))
           .run(),
       `Failed to update password for user with ID ${id}`,
     );
@@ -106,7 +111,7 @@ export class UsersRepository extends BaseRepository {
   async create(data: UsersCreate): Promise<UsersResponse> {
     return this.executeDatabaseOperation(
       async () =>
-        this.db.insert(users).values(data).returning(userSelect).get(),
+        this.db.insert(usersTable).values(data).returning(userSelect).get(),
       'Failed to create user',
     );
   }
@@ -115,8 +120,8 @@ export class UsersRepository extends BaseRepository {
     return this.executeDatabaseOperation(
       async () =>
         this.db
-          .delete(users)
-          .where(eq(users.id, id))
+          .delete(usersTable)
+          .where(eq(usersTable.id, id))
           .returning(userSelect)
           .get(),
       `Failed to delete user with ID ${id}`,
@@ -126,7 +131,7 @@ export class UsersRepository extends BaseRepository {
   // TODO: remove this method
   async getAll(): Promise<UsersResponse[]> {
     return this.executeDatabaseOperation(
-      async () => this.db.select(userSelect).from(users).all(),
+      async () => this.db.select(userSelect).from(usersTable).all(),
       'Failed to fetch all users',
     );
   }

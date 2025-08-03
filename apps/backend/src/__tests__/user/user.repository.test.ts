@@ -1,37 +1,31 @@
-import { describe, beforeEach, it, expect, beforeAll } from 'vitest';
+import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
+import { describe, beforeEach, it, expect } from 'vitest';
 
-import { createTestDb } from '../../db/test-db';
+import { TestDB } from '../../db/test-db';
 import { UsersRepository } from '../../infrastructure/db/UsersRepository';
 
 describe('UsersRepository', () => {
-  let testDbInstance: ReturnType<typeof createTestDb>;
+  const passwordManager = new PasswordManager();
+  let testDB: TestDB;
+
   let userRepository: UsersRepository;
 
   const email = 'test@example.com';
   const password = 'password123';
   const name = 'Test User';
 
-  beforeAll(async () => {
-    testDbInstance = createTestDb();
-    await testDbInstance.setupTestDb();
-    userRepository = new UsersRepository(testDbInstance.db);
-    testDbInstance = createTestDb();
-    await testDbInstance.setupTestDb();
-  });
-
   beforeEach(async () => {
-    await testDbInstance.cleanupTestDb();
-    testDbInstance = createTestDb();
-    await testDbInstance.setupTestDb();
-    userRepository = new UsersRepository(testDbInstance.db);
+    testDB = new TestDB();
+    await testDB.setupTestDb();
+
+    userRepository = new UsersRepository(testDB.db);
   });
 
   describe('getUserById', () => {
     it('should get user by id successfully', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
-      const user = await userRepository.create({ email, name, password });
+      const user = await testDB.createUser({ email, name, password });
       const foundUser = await userRepository.getUserById(user.id);
+
       expect(foundUser).toBeDefined();
       expect(foundUser?.id).toBe(user.id);
       expect(foundUser?.email).toBe(email);
@@ -48,9 +42,7 @@ describe('UsersRepository', () => {
 
   describe('getUserByIdWithPassword', () => {
     it('should get user with password by id', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
-      const user = await userRepository.create({ email, name, password });
+      const user = await testDB.createUser({ email, name, password });
 
       const foundUser = await userRepository.getUserByIdWithPassword(user.id);
 
@@ -58,7 +50,13 @@ describe('UsersRepository', () => {
       expect(foundUser?.id).toBe(user.id);
       expect(foundUser?.email).toBe(email);
       expect(foundUser?.name).toBe(name);
-      expect(foundUser?.password).toBe(password);
+
+      const compareResult = await passwordManager.compare(
+        password,
+        foundUser?.hashedPassword ?? '',
+      );
+
+      expect(compareResult).toBe(true);
     });
 
     it('should return undefined for non-existent user', async () => {
@@ -71,16 +69,20 @@ describe('UsersRepository', () => {
 
   describe('getUserByEmailWithPassword', () => {
     it('should get user with password by email', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
-      await userRepository.create({ email, name, password });
+      await testDB.createUser({ email, name, password });
 
       const foundUser = await userRepository.getUserByEmailWithPassword(email);
 
       expect(foundUser).toBeDefined();
       expect(foundUser?.email).toBe(email);
       expect(foundUser?.name).toBe(name);
-      expect(foundUser?.password).toBe(password);
+
+      const compareResult = await passwordManager.compare(
+        password,
+        foundUser?.hashedPassword ?? '',
+      );
+
+      expect(compareResult).toBe(true);
     });
 
     it('should return undefined for non-existent email', async () => {
@@ -94,9 +96,8 @@ describe('UsersRepository', () => {
 
   describe('updateUserProfile', () => {
     it('should update user profile successfully', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
-      const user = await userRepository.create({ email, name, password });
+      const user = await testDB.createUser({ email, name, password });
+
       const updateData = { email: 'updated@email.com', name: 'Updated Name' };
 
       const updatedUser = await userRepository.updateUserProfile(
@@ -110,9 +111,8 @@ describe('UsersRepository', () => {
     });
 
     it('should update only provided fields', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
-      const user = await userRepository.create({ email, name, password });
+      const user = await testDB.createUser({ email, name, password });
+
       const updateData = { name: 'Only Name Updated' };
 
       const updatedUser = await userRepository.updateUserProfile(
@@ -127,9 +127,7 @@ describe('UsersRepository', () => {
 
   describe('deleteUser', () => {
     it('should delete user successfully', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
-      const user = await userRepository.create({ email, name, password });
+      const user = await testDB.createUser({ email, name, password });
 
       const deletedUser = await userRepository.deleteUser(user.id);
 
@@ -181,9 +179,7 @@ describe('UsersRepository', () => {
 
   describe('findByEmail', () => {
     it('should find a user by email', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
-      await userRepository.create({ email, name, password });
+      await testDB.createUser({ email, name, password });
 
       const user = await userRepository.findByEmail(email);
 
@@ -201,9 +197,7 @@ describe('UsersRepository', () => {
 
   describe('updatePassword', () => {
     it('should update user password', async () => {
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of userRepository.create()
-      const user = await userRepository.create({ email, name, password });
+      const user = await testDB.createUser({ email, name, password });
 
       const newHashedPassword = 'newpassword123';
 
@@ -211,7 +205,7 @@ describe('UsersRepository', () => {
 
       const updatedUser = await userRepository.getUserByIdWithPassword(user.id);
 
-      expect(updatedUser?.password).toBe(newHashedPassword);
+      expect(updatedUser?.hashedPassword).toBe(newHashedPassword);
     });
 
     it.todo('should handle database errors when updating user password');

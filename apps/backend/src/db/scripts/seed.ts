@@ -4,7 +4,7 @@ import { db } from '../index';
 import { transactionsTable } from '../schemas';
 import { accountsTable } from '../schemas/accounts';
 import { categories } from '../schemas/categories';
-import { users } from '../schemas/users';
+import { usersTable } from '../schemas/users';
 
 const CATEGORY_ID1 = '3a04352a-68f2-4c96-9b0d-dc0df9957441';
 const CATEGORY_ID2 = '0022c3b2-24f5-483d-9c0b-fccc2b46972d';
@@ -74,7 +74,7 @@ const seedUser = async () => {
     const passwordManager = new PasswordManager();
     const hashedPassword = await passwordManager.hash(USER_PASSWORD);
     const insertedUser = await db
-      .insert(users)
+      .insert(usersTable)
       .values({
         email: USER_EMAIL,
         id: USER_ID,
@@ -146,7 +146,7 @@ const deleteData = async () => {
     await db.delete(transactionsTable);
     await db.delete(accountsTable);
     await db.delete(categories);
-    await db.delete(users);
+    await db.delete(usersTable);
 
     console.info('Data deleted successfully');
   } catch (error) {

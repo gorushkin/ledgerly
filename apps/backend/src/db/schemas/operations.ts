@@ -11,7 +11,7 @@ import {
   isTombstone,
 } from './common';
 import { transactionsTable } from './transactions';
-import { users } from './users';
+import { usersTable } from './users';
 
 export const operationsTable = sqliteTable('operations', {
   accountId: text('account_id')
@@ -33,5 +33,5 @@ export const operationsTable = sqliteTable('operations', {
   updatedAt,
   userId: text('user_id')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => usersTable.id, { onDelete: 'cascade' }),
 });

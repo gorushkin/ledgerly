@@ -4,4 +4,4 @@ export { currencies } from './currencies';
 export { operationsTable } from './operations';
 export { transactionsTable } from './transactions';
 export { settings } from './settings';
-export { users } from './users';
+export { usersTable } from './users';

@@ -2,7 +2,7 @@ import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import { createdAt, updatedAt } from './common';
 import { currencies } from './currencies';
-import { users } from './users';
+import { usersTable } from './users';
 
 export const settings = sqliteTable('settings', {
   baseCurrency: text('base_currency')
@@ -13,5 +13,5 @@ export const settings = sqliteTable('settings', {
   updatedAt,
   userId: text('user_id')
     .notNull()
-    .references(() => users.id),
+    .references(() => usersTable.id),
 });

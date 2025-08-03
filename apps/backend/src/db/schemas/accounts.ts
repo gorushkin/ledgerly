@@ -3,7 +3,7 @@ import { sqliteTable, text, uniqueIndex, real } from 'drizzle-orm/sqlite-core';
 
 import { createdAt, description, updatedAt, uuidPrimary } from './common';
 import { currencies } from './currencies';
-import { users } from './users';
+import { usersTable } from './users';
 
 export const accountsTable = sqliteTable(
   'accounts',
@@ -25,7 +25,7 @@ export const accountsTable = sqliteTable(
     updatedAt,
     userId: text('user_id')
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => usersTable.id, { onDelete: 'cascade' }),
   },
   (table) => [
     uniqueIndex('user_id_name_unique_idx').on(table.userId, table.name),
