@@ -7,7 +7,7 @@ import {
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
-import { describe, afterAll, beforeEach, it, expect } from 'vitest';
+import { describe, beforeEach, it, expect } from 'vitest';
 
 const url = `/api${ROUTES.accounts}`;
 
@@ -73,10 +73,6 @@ describe('Accounts Integration Tests', async () => {
     );
 
     accounts = await Promise.all(promises);
-  });
-
-  afterAll(async () => {
-    await testDB.cleanupTestDb();
   });
 
   describe('GET /api/accounts', () => {

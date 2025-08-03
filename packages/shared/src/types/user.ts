@@ -21,7 +21,9 @@ export type UsersCreateDTO = UserBaseDTO & {
 export type UsersResponseDTO = UserBaseDTO & {
   id: UUID;
 };
+
 export type UsersUpdateDTO = Partial<UserBaseDTO>;
+
 export type UserChangePasswordDTO = {
   currentPassword: string;
   newPassword: string;

@@ -1,28 +1,22 @@
 import { UsersResponseDTO } from '@ledgerly/shared/types';
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
 import { RecordAlreadyExistsError } from 'src/presentation/errors';
-import { describe, beforeEach, beforeAll, it, expect } from 'vitest';
+import { describe, beforeEach, it, expect } from 'vitest';
 
-import { createTestDb } from '../../db/test-db';
+import { TestDB } from '../../db/test-db';
 
 describe('CategoryRepository', () => {
-  let testDbInstance: ReturnType<typeof createTestDb>;
+  let testDB: TestDB;
+
   let categoryRepository: CategoryRepository;
 
   let user: UsersResponseDTO;
 
-  beforeAll(async () => {
-    testDbInstance = createTestDb();
-    await testDbInstance.setupTestDb();
-    categoryRepository = new CategoryRepository(testDbInstance.db);
-    user = await testDbInstance.createUser();
-  });
-
   beforeEach(async () => {
-    testDbInstance = createTestDb();
-    await testDbInstance.setupTestDb();
-    categoryRepository = new CategoryRepository(testDbInstance.db);
-    user = await testDbInstance.createUser();
+    testDB = new TestDB();
+    await testDB.setupTestDb();
+    categoryRepository = new CategoryRepository(testDB.db);
+    user = await testDB.createUser();
   });
 
   describe('getAll', () => {
@@ -33,13 +27,13 @@ describe('CategoryRepository', () => {
     });
 
     it('should return only user categories', async () => {
-      const user2 = await testDbInstance.createUser();
+      const user2 = await testDB.createUser();
 
-      await testDbInstance.createTestCategory(user.id, {
+      await testDB.createTestCategory(user.id, {
         name: 'User1 Category',
       });
 
-      await testDbInstance.createTestCategory(user2.id, {
+      await testDB.createTestCategory(user2.id, {
         name: 'User2 Category',
       });
 
@@ -50,11 +44,11 @@ describe('CategoryRepository', () => {
     });
 
     it('should return multiple categories for user', async () => {
-      await testDbInstance.createTestCategory(user.id, {
+      await testDB.createTestCategory(user.id, {
         name: 'Food',
       });
 
-      await testDbInstance.createTestCategory(user.id, {
+      await testDB.createTestCategory(user.id, {
         name: 'Transport',
       });
 
@@ -99,7 +93,7 @@ describe('CategoryRepository', () => {
     });
 
     it('should allow same category name for different users', async () => {
-      const user2 = await testDbInstance.createUser({
+      const user2 = await testDB.createUser({
         email: '',
         name: 'User2',
       });
@@ -146,7 +140,7 @@ describe('CategoryRepository', () => {
 
   describe('getById', () => {
     it('should return category when exists and belongs to user', async () => {
-      const created = await testDbInstance.createTestCategory(user.id);
+      const created = await testDB.createTestCategory(user.id);
 
       const found = await categoryRepository.getById(user.id, created.id);
 
@@ -163,8 +157,8 @@ describe('CategoryRepository', () => {
     });
 
     it('should return undefined when category belongs to different user', async () => {
-      const user2 = await testDbInstance.createUser();
-      const created = await testDbInstance.createTestCategory(user.id);
+      const user2 = await testDB.createUser();
+      const created = await testDB.createTestCategory(user.id);
 
       const result = await categoryRepository.getById(user2.id, created.id);
 
@@ -174,7 +168,7 @@ describe('CategoryRepository', () => {
 
   describe('getByName', () => {
     it('should return category by name when exists and belongs to user', async () => {
-      const created = await testDbInstance.createTestCategory(user.id);
+      const created = await testDB.createTestCategory(user.id);
 
       const found = await categoryRepository.getByName(user.id, created.name);
 
@@ -189,9 +183,9 @@ describe('CategoryRepository', () => {
     });
 
     it('should return undefined when category with name exists but belongs to another user', async () => {
-      const user2 = await testDbInstance.createUser();
+      const user2 = await testDB.createUser();
 
-      await testDbInstance.createTestCategory(user2.id, {
+      await testDB.createTestCategory(user2.id, {
         name: 'SharedName',
       });
 
@@ -203,7 +197,7 @@ describe('CategoryRepository', () => {
 
   describe('update', () => {
     it('should update category when it belongs to user', async () => {
-      const created = await testDbInstance.createTestCategory(user.id, {
+      const created = await testDB.createTestCategory(user.id, {
         name: 'Original',
       });
 
@@ -219,8 +213,8 @@ describe('CategoryRepository', () => {
     });
 
     it('should return undefined when category belongs to different user', async () => {
-      const user2 = await testDbInstance.createUser();
-      const created = await testDbInstance.createTestCategory(user.id, {
+      const user2 = await testDB.createUser();
+      const created = await testDB.createTestCategory(user.id, {
         name: 'Test',
       });
       const updateData = { ...created, name: 'Hacked' };
@@ -237,7 +231,7 @@ describe('CategoryRepository', () => {
 
   describe('delete', () => {
     it('should delete category when it exists and belongs to user', async () => {
-      const created = await testDbInstance.createTestCategory(user.id, {
+      const created = await testDB.createTestCategory(user.id, {
         name: 'Test Category',
       });
 
@@ -260,9 +254,9 @@ describe('CategoryRepository', () => {
     });
 
     it('should return undefined when category belongs to different user', async () => {
-      const user2 = await testDbInstance.createUser();
+      const user2 = await testDB.createUser();
 
-      const created = await testDbInstance.createTestCategory(user.id, {
+      const created = await testDB.createTestCategory(user.id, {
         name: 'Test Category',
       });
 
@@ -275,13 +269,13 @@ describe('CategoryRepository', () => {
     });
 
     it('should not affect other user categories when deleting', async () => {
-      const user2 = await testDbInstance.createUser();
+      const user2 = await testDB.createUser();
 
-      const user1Category = await testDbInstance.createTestCategory(user.id, {
+      const user1Category = await testDB.createTestCategory(user.id, {
         name: 'User1 Category',
       });
 
-      const user2Category = await testDbInstance.createTestCategory(user2.id, {
+      const user2Category = await testDB.createTestCategory(user2.id, {
         name: 'User2 Category',
       });
 
@@ -293,11 +287,11 @@ describe('CategoryRepository', () => {
     });
 
     it('should delete only specified category', async () => {
-      const category1 = await testDbInstance.createTestCategory(user.id, {
+      const category1 = await testDB.createTestCategory(user.id, {
         name: 'Category 1',
       });
 
-      const category2 = await testDbInstance.createTestCategory(user.id, {
+      const category2 = await testDB.createTestCategory(user.id, {
         name: 'Category 2',
       });
 

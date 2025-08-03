@@ -1,6 +1,6 @@
 import {
   AccountResponseDTO,
-  CategoryResponse,
+  CategoryResponseDTO,
   OperationCreateDTO,
   UsersResponseDTO,
   UUID,
@@ -32,7 +32,7 @@ type TestDBTransactionParams = {
 const getUserTransactionDTO = (params: {
   testAccount1: AccountResponseDTO;
   testAccount2: AccountResponseDTO;
-  testCategory: CategoryResponse;
+  testCategory: CategoryResponseDTO;
   userId: UUID;
   description?: string;
 }): TestDBTransactionParams => {
@@ -66,7 +66,7 @@ const getUserTransactionDTO = (params: {
 describe('TransactionRepository', () => {
   let transactionRepository: TransactionRepository;
   let user: UsersResponseDTO;
-  let testCategory: CategoryResponse;
+  let testCategory: CategoryResponseDTO;
   let testAccount1: AccountResponseDTO;
   let testAccount2: AccountResponseDTO;
   let testDB: TestDB;

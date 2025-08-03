@@ -3,7 +3,7 @@ import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { db } from '../index';
 import { transactionsTable } from '../schemas';
 import { accountsTable } from '../schemas/accounts';
-import { categories } from '../schemas/categories';
+import { categoriesTable } from '../schemas/categories';
 import { usersTable } from '../schemas/users';
 
 const CATEGORY_ID1 = '3a04352a-68f2-4c96-9b0d-dc0df9957441';
@@ -26,7 +26,7 @@ class SeedError extends Error {
 
 const seedCategories = async (userId: string) => {
   const insertedCategories = await db
-    .insert(categories)
+    .insert(categoriesTable)
     .values([
       { id: CATEGORY_ID1, name: 'Продукты', userId },
       { id: CATEGORY_ID2, name: 'Транспорт', userId },
@@ -145,7 +145,7 @@ const deleteData = async () => {
   try {
     await db.delete(transactionsTable);
     await db.delete(accountsTable);
-    await db.delete(categories);
+    await db.delete(categoriesTable);
     await db.delete(usersTable);
 
     console.info('Data deleted successfully');

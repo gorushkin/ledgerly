@@ -1,5 +1,5 @@
 import { UUID } from "./auth";
-import { OperationCreateDTO, OperationResponseDTO } from "./operations";
+import { OperationCreateDTO, OperationResponseDTO } from "./operation";
 
 type TransactionBaseDTO = {
   description: string;

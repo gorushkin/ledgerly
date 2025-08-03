@@ -1,7 +1,7 @@
 import { sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
 
 import { accountsTable } from './accounts';
-import { categories } from './categories';
+import { categoriesTable } from './categories';
 import {
   description,
   createdAt,
@@ -19,7 +19,7 @@ export const operationsTable = sqliteTable('operations', {
     .references(() => accountsTable.id),
   categoryId: text('category_id')
     .notNull()
-    .references(() => categories.id),
+    .references(() => categoriesTable.id),
   createdAt,
   description,
   hash,
