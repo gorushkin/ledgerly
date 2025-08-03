@@ -1,10 +1,34 @@
-import { z } from "zod";
+import { UUID } from "./auth";
+import { OperationCreateDTO, OperationResponseDTO } from "./operations";
 
-import {
-  transactionCreateSchema,
-  transactionResponseSchema,
-} from "../validation";
+type TransactionBaseDTO = {
+  description: string;
+  hash: string;
+  id: UUID;
+  postingDate: string;
+  transactionDate: string;
+  userId: UUID;
+};
 
-export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
+export type TransactionDbRecordDTO = TransactionBaseDTO;
 
-export type TransactionResponse = z.infer<typeof transactionResponseSchema>;
+export type TransactionDbRowDTO = TransactionBaseDTO & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TransactionDbPreHashDTO = Omit<TransactionDbRecordDTO, "hash">;
+
+// transactions with operations
+
+export type TransactionCreateDTO = TransactionBaseDTO & {
+  operations: OperationCreateDTO[];
+};
+
+export type TransactionPreHashDTO = Omit<TransactionCreateDTO, "hash">;
+
+export type TransactionUpdateDTO = TransactionCreateDTO;
+
+export type TransactionResponseDTO = TransactionDbRowDTO & {
+  operations: OperationResponseDTO[];
+};

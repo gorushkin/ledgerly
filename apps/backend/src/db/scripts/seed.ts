@@ -1,7 +1,7 @@
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
 import { db } from '../index';
-import { transactions } from '../schemas';
+import { transactionsTable } from '../schemas';
 import { accounts } from '../schemas/accounts';
 import { categories } from '../schemas/categories';
 import { users } from '../schemas/users';
@@ -143,7 +143,7 @@ const seedUser = async () => {
 
 const deleteData = async () => {
   try {
-    await db.delete(transactions);
+    await db.delete(transactionsTable);
     await db.delete(accounts);
     await db.delete(categories);
     await db.delete(users);

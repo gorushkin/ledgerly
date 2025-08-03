@@ -1,121 +1,97 @@
 import {
-  TransactionCreate,
-  TransactionResponse,
+  TransactionDbRecordDTO,
+  TransactionDbRowDTO,
   UUID,
 } from '@ledgerly/shared/types';
-import { eq } from 'drizzle-orm';
-import { operations, transactions } from 'src/db/schemas';
+import { eq, and } from 'drizzle-orm';
+import { transactionsTable } from 'src/db/schemas';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
-import { OperationRepository } from './OperationRepository';
 
 export class TransactionRepository extends BaseRepository {
-  constructor(
-    db: DataBase,
-    private readonly operationRepository: OperationRepository,
-  ) {
+  constructor(db: DataBase) {
     super(db);
   }
 
-  async getAll(userId: UUID): Promise<TransactionResponse[]> {
+  async getAll(): Promise<TransactionDbRecordDTO[]> {
     return this.executeDatabaseOperation(async () => {
-      const transactionsList = await this.db
-        .select()
-        .from(transactions)
-        .where(eq(transactions.userId, userId))
-        .all();
-
-      const transactionsWithOperations = await Promise.all(
-        // TODO: fix n + 1 problem
-        transactionsList.map(async (transaction) => {
-          const operations = await this.operationRepository.getByTransactionId(
-            transaction.id,
-          );
-
-          return {
-            description: transaction.description,
-            id: transaction.id,
-            operations,
-            postingDate: transaction.postingDate,
-            transactionDate: transaction.transactionDate,
-          };
-        }),
-      );
-      return transactionsWithOperations;
+      return await this.db.select().from(transactionsTable).all();
     }, 'Failed to fetch transactions');
   }
 
-  async getTransactionById(
-    id: string,
-  ): Promise<TransactionResponse | undefined> {
+  async getAllByUserId(userId: UUID): Promise<TransactionDbRecordDTO[]> {
     return this.executeDatabaseOperation(async () => {
-      const transaction = await this.db
+      return await this.db
         .select()
-        .from(transactions)
-        .where(eq(transactions.id, id))
+        .from(transactionsTable)
+        .where(eq(transactionsTable.userId, userId))
+        .all();
+    }, 'Failed to fetch transactions');
+  }
+
+  async getById(
+    userId: UUID,
+    id: UUID,
+  ): Promise<TransactionDbRecordDTO | undefined> {
+    return this.executeDatabaseOperation(async () => {
+      return this.db
+        .select()
+        .from(transactionsTable)
+        .where(
+          and(
+            eq(transactionsTable.id, id),
+            eq(transactionsTable.userId, userId),
+          ),
+        )
         .get();
-
-      if (!transaction) return undefined;
-
-      const operations = await this.operationRepository.getByTransactionId(
-        transaction.id,
-      );
-
-      return {
-        description: transaction.description,
-        id: transaction.id,
-        operations,
-        postingDate: transaction.postingDate,
-        transactionDate: transaction.transactionDate,
-      };
     }, 'Failed to fetch transaction');
   }
 
-  async create(dto: TransactionCreate): Promise<TransactionResponse> {
+  async create(
+    dto: TransactionDbRecordDTO,
+    tx?: DataBase,
+  ): Promise<TransactionDbRowDTO> {
     return this.executeDatabaseOperation(async () => {
-      return await this.db.transaction(async (tx) => {
-        const now = new Date().toISOString();
+      const dbClient = tx ?? this.db;
 
-        const [createdTransaction] = await tx
-          .insert(transactions)
-          .values({
-            ...dto,
-            createdAt: now,
-            updatedAt: now,
-            userId: dto.userId,
-          })
-          .returning();
-
-        if (dto.operations.length === 0) {
-          return { ...createdTransaction, operations: [] };
-        }
-
-        const createdOperations = await tx
-          .insert(operations)
-          .values(
-            dto.operations.map((op) => ({
-              ...op,
-              createdAt: now,
-              transactionId: createdTransaction.id,
-              updatedAt: now,
-              userId: dto.userId,
-            })),
-          )
-          .returning();
-
-        return { ...createdTransaction, operations: createdOperations };
-      });
+      return await dbClient
+        .insert(transactionsTable)
+        .values({
+          ...dto,
+          ...this.createTimestamps,
+          userId: dto.userId,
+        })
+        .returning()
+        .get();
     }, 'Failed to create transaction');
   }
 
   async delete(id: string): Promise<void> {
     return this.executeDatabaseOperation(async () => {
-      await this.db.delete(transactions).where(eq(transactions.id, id));
+      await this.db
+        .delete(transactionsTable)
+        .where(eq(transactionsTable.id, id));
     }, 'Failed to delete transaction');
   }
 
-  update(_id: number, _data: unknown): Promise<unknown> {
-    throw new Error('Method not implemented.');
+  async update(
+    userId: UUID,
+    id: UUID,
+    data: TransactionDbRecordDTO,
+  ): Promise<TransactionDbRowDTO | undefined> {
+    return this.executeDatabaseOperation(async () => {
+      return await this.db
+        .update(transactionsTable)
+        .set({ ...data, ...this.updateTimestamp })
+        .where(
+          and(
+            eq(transactionsTable.id, id),
+            eq(transactionsTable.userId, userId),
+          ),
+        )
+        .returning()
+        .get();
+    }, 'Failed to update transaction');
   }
 }

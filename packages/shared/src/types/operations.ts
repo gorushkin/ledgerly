@@ -1,10 +1,21 @@
-import { z } from "zod";
+import { UUID } from "./auth";
 
-import {
-  operationResponseSchema,
-  operationCreateSchema,
-} from "../validation/operations";
+export type OperationBaseDTO = {
+  accountId: UUID;
+  categoryId: UUID;
+  description: string;
+  hash: string;
+  id: UUID;
+  localAmount: number;
+  originalAmount: number;
+};
 
-export type OperationCreateDTO = z.infer<typeof operationCreateSchema>;
+export type OperationCreateDTO = OperationBaseDTO;
 
-export type OperationResponseDTO = z.infer<typeof operationResponseSchema>;
+export type OperationRaw = Omit<OperationBaseDTO, "hash">;
+
+export type OperationResponseDTO = OperationCreateDTO & {
+  createdAt: string;
+  updatedAt: string;
+  userId: UUID;
+};

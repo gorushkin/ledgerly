@@ -5,23 +5,29 @@ import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import {
   AccountType,
   OperationCreateDTO,
-  TransactionCreate,
+  OperationResponseDTO,
+  TransactionCreateDTO,
+  TransactionDbRecordDTO,
+  TransactionDbRowDTO,
+  TransactionResponseDTO,
   UsersResponse,
   UUID,
 } from '@ledgerly/shared/types';
 import { createClient } from '@libsql/client';
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
+import { generateId } from 'src/libs';
+import { getTransactionWithHash } from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
 
 import * as schema from './schemas';
 import {
   accounts,
   categories,
-  operations,
-  transactions,
+  operationsTable,
+  transactionsTable,
   users,
 } from './schemas';
 
@@ -42,10 +48,10 @@ class Counter {
     return this.count;
   }
 
-  getNewCount() {
+  getNextName(suffix = ''): string {
     this.increment();
     if (this.name) {
-      return `${this.name}-${this.count}`;
+      return `${this.name}-${this.count}${suffix ? `-${suffix}` : ''}`;
     }
 
     return this.count.toString();
@@ -71,23 +77,6 @@ export class TestDB {
   }
 
   test = async () => {
-    // try {
-    //   const userTableResult = await this.db.all(
-    //     sql`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`,
-    //   );
-    //   console.info('result: ', userTableResult);
-    //   if (userTableResult.length > 0) {
-    //     console.info('✅ Users table exists');
-    //     // Дополнительная проверка структуры таблицы users
-    //     const tableInfo = await this.db.all(sql`PRAGMA table_info(users);`);
-    //     console.info('📋 Users table structure:', tableInfo);
-    //   } else {
-    //     console.info('❌ Users table not found');
-    //   }
-    // } catch (error) {
-    //   console.error('❌ Error checking users table:', error);
-    // }
-
     try {
       const transactionTableResult = await this.db.all(
         sql`SELECT name FROM sqlite_master WHERE type='table' AND name='transactions';`,
@@ -131,7 +120,7 @@ export class TestDB {
   }): Promise<UsersResponse> => {
     const userData = {
       email: params?.email ?? `test-${Date.now()}@example.com`,
-      name: params?.name ?? `Test User ${this.userCounter.getNewCount()}`,
+      name: params?.name ?? `Test User ${this.userCounter.getNextName()}`,
       password: params?.password ?? 'test123',
     };
 
@@ -227,54 +216,21 @@ export class TestDB {
     }
   };
 
-  createTestOperations = async (params: {
-    transactionId: UUID;
-    userId: UUID;
-    data: OperationCreateDTO[];
-  }) => {
-    const { data, transactionId, userId } = params;
-
-    if (data.length === 0) {
-      return null;
-    }
-
-    const operation = await this.db
-      .insert(operations)
-      .values(
-        data.map((op) => ({
-          ...op,
-          transactionId,
-          userId,
-        })),
-      )
-      .returning()
-      .all();
-
-    return operation;
-  };
-
   createTestTransaction = async (params: {
     userId: UUID;
-    data?: TransactionCreate;
-    operationData?: {
-      accountId?: UUID;
-      categoryId?: UUID;
+    data?: {
       description?: string;
-      localAmount?: number;
-      originalAmount?: number;
+      postingDate: string;
+      transactionDate: string;
       userId: UUID;
-    }[];
-  }) => {
-    const { data, operationData = [], userId } = params;
+      operations?: OperationCreateDTO[];
+    };
+  }): Promise<TransactionDbRowDTO> => {
+    const { data, userId } = params;
 
-    if (operationData.length > 0 && data && data.operations.length > 0) {
-      throw new Error(
-        'You cannot specify both operationData and operations in data',
-      );
-    }
-    const transactionData: TransactionCreate = {
-      description: this.transactionCounter.getNewCount(),
-      operations: [],
+    const transactionData = {
+      description: this.transactionCounter.getNextName(userId),
+      id: generateId(),
       postingDate: new Date().toString(),
       transactionDate: new Date().toString(),
       ...data,
@@ -282,47 +238,99 @@ export class TestDB {
     };
 
     const transaction = await this.db
-      .insert(transactions)
-      .values(transactionData)
+      .insert(transactionsTable)
+      .values(getTransactionWithHash(transactionData))
       .returning()
       .get();
 
-    const operationsResultFromTransaction = await this.createTestOperations({
-      data: transactionData.operations,
-      transactionId: transaction.id,
-      userId,
-    });
-
-    const operationsResultOperationData = await this.createTestOperations({
-      data: operationData.map((op) => ({
-        accountId: op.accountId ?? this.uuid,
-        categoryId: op.categoryId ?? this.uuid,
-        description: op.description ?? this.operationCounter.getNewCount(),
-        localAmount: op.localAmount ?? 0,
-        originalAmount: op.originalAmount ?? 0,
-        transactionId: transaction.id,
-      })),
-      transactionId: transaction.id,
-      userId,
-    });
-
-    return {
-      operations:
-        operationsResultFromTransaction ?? operationsResultOperationData ?? [],
-      transaction,
-    };
+    return transaction;
   };
 
-  getAllTransactions = async (userId: UUID) => {
-    return this.db.transaction(async (tx) => {
-      const transactionsList = await tx
-        .select()
-        .from(transactions)
-        .where(eq(transactions.userId, userId))
-        .all();
+  getOperationsByTransactionIds = async (
+    transactionsList: Omit<TransactionResponseDTO, 'operations'>[],
+  ): Promise<TransactionResponseDTO[]> => {
+    const transactionResponseMap = new Map<UUID, TransactionResponseDTO>();
 
-      return transactionsList;
+    const ids = transactionsList.map((transaction) => {
+      transactionResponseMap.set(transaction.id, {
+        ...transaction,
+        operations: [],
+      });
+      return transaction.id;
     });
+
+    if (ids.length === 0) return [];
+
+    const operations = await this.db
+      .select()
+      .from(operationsTable)
+      .where(inArray(operationsTable.transactionId, ids))
+      .all();
+
+    operations.forEach((op) => {
+      const transaction = transactionResponseMap.get(op.transactionId);
+      if (transaction) {
+        transaction.operations.push(op);
+      }
+    });
+
+    return Array.from(transactionResponseMap.values());
+  };
+
+  getOperationsByTransactionId = async (
+    transactionId: UUID,
+  ): Promise<OperationResponseDTO[]> => {
+    const operationsList = await this.db
+      .select()
+      .from(operationsTable)
+      .where(eq(operationsTable.transactionId, transactionId))
+      .all();
+
+    return operationsList;
+  };
+
+  getAllTransactions = async (): Promise<TransactionDbRecordDTO[]> => {
+    const transactionsList = await this.db
+      .select()
+      .from(transactionsTable)
+      .all();
+
+    return transactionsList;
+  };
+
+  getAllAggregatedTransactions = async (): Promise<
+    TransactionResponseDTO[]
+  > => {
+    const transactionsList = await this.db
+      .select()
+      .from(transactionsTable)
+      .all();
+
+    return this.getOperationsByTransactionIds(transactionsList);
+  };
+
+  getTransactionById = async (
+    transactionId: UUID,
+  ): Promise<TransactionDbRowDTO | undefined> => {
+    const transaction = await this.db
+      .select()
+      .from(transactionsTable)
+      .where(eq(transactionsTable.id, transactionId))
+      .get();
+
+    return transaction;
+  };
+
+  getAllTransactionsByUserId = async (
+    userId: UUID,
+  ): Promise<TransactionResponseDTO[]> => {
+    const transactionsList = await this.db
+      .select()
+      .from(transactionsTable)
+      .where(eq(transactionsTable.userId, userId))
+      .all();
+
+    return this.getOperationsByTransactionIds(transactionsList);
   };
 }
 
@@ -464,9 +472,9 @@ export const createTestDb = () => {
 
   const createTestTransactionWithOperations = async (
     userId: UUID,
-    params?: TransactionCreate,
+    params?: TransactionCreateDTO,
   ) => {
-    const transactionData: TransactionCreate = {
+    const transactionData: TransactionCreateDTO = {
       description: 'Test transaction',
       operations: [],
       postingDate: new Date().toString(),
@@ -477,7 +485,7 @@ export const createTestDb = () => {
 
     const transactionWithOperations = await db.transaction(async (tx) => {
       const transaction = await tx
-        .insert(transactions)
+        .insert(transactionsTable)
         .values(transactionData)
         .returning()
         .get();
@@ -487,7 +495,7 @@ export const createTestDb = () => {
       }
 
       const createdOperations = await tx
-        .insert(operations)
+        .insert(operationsTable)
         .values(
           transactionData.operations.map((op) => ({
             ...op,
