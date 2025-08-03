@@ -32,7 +32,7 @@ export type AccountDbRowDTO = AccountBaseDTO & {
   updatedAt: string;
 };
 
-export type AccountCreateDTO = AccountBaseDTO;
+export type AccountCreateDTO = Omit<AccountBaseDTO, "balance">;
 
 export type AccountUpdateDTO = Partial<
   Omit<AccountBaseDTO, "userId" | "balance">

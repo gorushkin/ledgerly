@@ -16,8 +16,7 @@ describe('AccountService', () => {
 
   const accountId = 'account-id';
 
-  const accountData: AccountCreateDTO = {
-    balance: 0,
+  const accountDataInsert: AccountCreateDTO = {
     initialBalance: 1000,
     name: 'Test Account',
     originalCurrency: 'USD',
@@ -36,127 +35,143 @@ describe('AccountService', () => {
 
   describe('getAll', () => {
     it('should call the repository method with the correct user ID', async () => {
-      const userId = accountData.userId;
-      console.log('userId: ', userId);
+      const userId = accountDataInsert.userId;
       await accountService.getAll(userId);
 
-      // expect(accountRepository.getAll).toHaveBeenCalledWith(userId);
+      expect(accountRepository.getAll).toHaveBeenCalledWith(userId);
     });
   });
 
-  describe.skip('create', () => {
+  describe('create', () => {
     it('should validate currency before creating account', async () => {
       currencyRepository.getById.mockResolvedValue({ code: 'USD' });
 
-      await accountService.create(accountData);
+      await accountService.create(accountDataInsert);
 
       expect(currencyRepository.getById).toHaveBeenCalledWith(
-        accountData.originalCurrency,
+        accountDataInsert.originalCurrency,
       );
     });
 
     it('should call repository create with correct data when currency is valid', async () => {
       currencyRepository.getById.mockResolvedValue({
-        code: accountData.originalCurrency,
+        code: accountDataInsert.originalCurrency,
       });
 
-      accountRepository.create.mockResolvedValue(accountData);
+      accountRepository.create.mockResolvedValue(accountDataInsert);
 
-      const newAccount = await accountService.create(accountData);
+      const newAccount = await accountService.create(accountDataInsert);
 
       expect(accountRepository.create).toHaveBeenCalledWith({
-        ...accountData,
-        userId: accountData.userId,
+        ...accountDataInsert,
+        balance: accountDataInsert.initialBalance,
+        userId: accountDataInsert.userId,
       });
 
-      expect(newAccount).toEqual(accountData);
+      expect(newAccount).toEqual(accountDataInsert);
     });
 
     it('should throw error when currency does not exist', async () => {
       currencyRepository.getById.mockResolvedValue(null);
 
-      await expect(accountService.create(accountData)).rejects.toThrow(
+      await expect(accountService.create(accountDataInsert)).rejects.toThrow(
         'Currency with code USD not found',
       );
     });
+
+    it('should fill balance with initialBalance', async () => {
+      currencyRepository.getById.mockResolvedValue({
+        code: accountDataInsert.originalCurrency,
+      });
+
+      accountRepository.create.mockResolvedValue(accountDataInsert);
+
+      await accountService.create(accountDataInsert);
+
+      expect(accountRepository.create).toHaveBeenCalledWith({
+        ...accountDataInsert,
+        balance: accountDataInsert.initialBalance,
+        userId: accountDataInsert.userId,
+      });
+    });
   });
 
-  describe.skip('update', () => {
+  describe('update', () => {
     afterEach(() => {
       vi.clearAllMocks();
       vi.resetAllMocks();
     });
 
     it('should validate currency and account before updating account', async () => {
-      const userId = accountData.userId;
+      const userId = accountDataInsert.userId;
 
       currencyRepository.getById.mockResolvedValue({
-        code: accountData.originalCurrency,
+        code: accountDataInsert.originalCurrency,
       });
 
       accountRepository.getById.mockResolvedValue({
-        userId: accountData.userId,
+        userId: accountDataInsert.userId,
       });
 
-      await accountService.update(userId, accountId, accountData);
+      await accountService.update(userId, accountId, accountDataInsert);
 
       expect(currencyRepository.getById).toHaveBeenCalledWith(
-        accountData.originalCurrency,
+        accountDataInsert.originalCurrency,
       );
     });
 
     it('should call repository update with correct parameters when currency is valid', async () => {
-      const userId = accountData.userId;
+      const userId = accountDataInsert.userId;
 
       currencyRepository.getById.mockResolvedValue({
-        code: accountData.originalCurrency,
+        code: accountDataInsert.originalCurrency,
       });
 
-      accountRepository.getById.mockResolvedValue(accountData);
-      accountRepository.update.mockResolvedValue(accountData);
+      accountRepository.getById.mockResolvedValue(accountDataInsert);
+      accountRepository.update.mockResolvedValue(accountDataInsert);
 
       const updatedAccount = await accountService.update(
         userId,
         accountId,
-        accountData,
+        accountDataInsert,
       );
 
       expect(currencyRepository.getById).toHaveBeenCalledWith(
-        accountData.originalCurrency,
+        accountDataInsert.originalCurrency,
       );
 
       expect(accountRepository.update).toHaveBeenCalledWith(
         userId,
         accountId,
-        accountData,
+        accountDataInsert,
       );
 
-      expect(updatedAccount).toEqual(accountData);
+      expect(updatedAccount).toEqual(accountDataInsert);
     });
 
     it('should throw error when currency does not exist', async () => {
-      const userId = accountData.userId;
+      const userId = accountDataInsert.userId;
 
       accountRepository.getById.mockResolvedValue({
-        userId: accountData.userId,
+        userId: accountDataInsert.userId,
       });
 
       await expect(
-        accountService.update(userId, accountId, accountData),
+        accountService.update(userId, accountId, accountDataInsert),
       ).rejects.toThrow('Currency with code USD not found');
     });
   });
 
-  describe.skip('delete', () => {
-    const userId = accountData.userId;
+  describe('delete', () => {
+    const userId = accountDataInsert.userId;
 
     it('should call repository delete with correct parameters', async () => {
       currencyRepository.getById.mockResolvedValue({
-        code: accountData.originalCurrency,
+        code: accountDataInsert.originalCurrency,
       });
 
       accountRepository.getById.mockResolvedValue({
-        userId: accountData.userId,
+        userId: accountDataInsert.userId,
       });
 
       await accountService.delete(userId, accountId);
@@ -167,8 +182,8 @@ describe('AccountService', () => {
     it('should return result from repository', async () => {
       const expectedResult = {
         id: accountId,
-        ...accountData,
-        userId: accountData.userId,
+        ...accountDataInsert,
+        userId: accountDataInsert.userId,
       };
 
       accountRepository.getById.mockResolvedValue(expectedResult);
@@ -182,7 +197,7 @@ describe('AccountService', () => {
 
     it('should throw error when account does not exist', async () => {
       currencyRepository.getById.mockResolvedValue({
-        code: accountData.originalCurrency,
+        code: accountDataInsert.originalCurrency,
       });
 
       accountRepository.getById.mockResolvedValue(null);
@@ -193,37 +208,37 @@ describe('AccountService', () => {
     });
   });
 
-  describe.skip('getById', () => {
+  describe('getById', () => {
     it('should call the repository method with correct parameters', async () => {
-      accountRepository.getById.mockResolvedValue(accountData);
+      accountRepository.getById.mockResolvedValue(accountDataInsert);
 
-      await accountService.getById(accountData.userId, accountId);
+      await accountService.getById(accountDataInsert.userId, accountId);
 
       expect(accountRepository.getById).toHaveBeenCalledWith(
-        accountData.userId,
+        accountDataInsert.userId,
         accountId,
       );
     });
 
     it('should return account when found', async () => {
-      accountRepository.getById.mockResolvedValue(accountData);
+      accountRepository.getById.mockResolvedValue(accountDataInsert);
 
       const result = await accountService.getById(
-        accountData.userId,
+        accountDataInsert.userId,
         accountId,
       );
 
-      expect(result).toEqual(accountData);
+      expect(result).toEqual(accountDataInsert);
     });
 
     it('should throw NotFoundError when account not found', async () => {
       accountRepository.getById.mockResolvedValue(null);
 
       await expect(
-        accountService.getById(accountData.userId, accountId),
+        accountService.getById(accountDataInsert.userId, accountId),
       ).rejects.toThrowError(
         new NotFoundError(`Account not found`, {
-          attemptedUserId: accountData.userId,
+          attemptedUserId: accountDataInsert.userId,
           entity: 'Account',
           entityId: accountId,
           reason: 'missing',
@@ -232,26 +247,26 @@ describe('AccountService', () => {
     });
   });
 
-  describe.skip('validateAndGetAccount', () => {
+  describe('validateAndGetAccount', () => {
     it('should throw error when account does not exist', async () => {
-      const userId = accountData.userId;
+      const userId = accountDataInsert.userId;
 
       currencyRepository.getById.mockResolvedValue({
-        code: accountData.originalCurrency,
+        code: accountDataInsert.originalCurrency,
       });
 
       await expect(
-        accountService.update(userId, accountId, accountData),
+        accountService.update(userId, accountId, accountDataInsert),
       ).rejects.toThrowError(new NotFoundError(`Account not found`));
     });
 
     it('should throw error when account does not belong to user', async () => {
       const userId = 'another-user-id';
 
-      accountRepository.getById.mockResolvedValue(accountData);
+      accountRepository.getById.mockResolvedValue(accountDataInsert);
 
       currencyRepository.getById.mockResolvedValue({
-        code: accountData.originalCurrency,
+        code: accountDataInsert.originalCurrency,
       });
 
       const errorPromise = accountService.ensureAccountExistsAndOwned(
@@ -276,22 +291,22 @@ describe('AccountService', () => {
     });
   });
 
-  describe.skip('validateCurrency', () => {
+  describe('validateCurrency', () => {
     it('should throw error when currency does not exist', async () => {
       currencyRepository.getById.mockResolvedValue(null);
 
-      await expect(accountService.create(accountData)).rejects.toThrow(
+      await expect(accountService.create(accountDataInsert)).rejects.toThrow(
         'Currency with code USD not found',
       );
     });
 
     it('should pass when currency exists', async () => {
       currencyRepository.getById.mockResolvedValue({
-        code: accountData.originalCurrency,
+        code: accountDataInsert.originalCurrency,
       });
 
       await expect(
-        accountService.validateCurrency(accountData.originalCurrency),
+        accountService.validateCurrency(accountDataInsert.originalCurrency),
       ).resolves.not.toThrow();
     });
   });
