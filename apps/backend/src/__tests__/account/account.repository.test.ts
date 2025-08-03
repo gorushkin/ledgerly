@@ -8,9 +8,9 @@ import {
   ForeignKeyConstraintError,
   RecordAlreadyExistsError,
 } from 'src/presentation/errors';
-import { describe, beforeEach, beforeAll, it, expect } from 'vitest';
+import { describe, beforeEach, it, expect } from 'vitest';
 
-import { createTestDb } from '../../db/test-db';
+import { TestDB } from '../../db/test-db';
 
 const firstUserAccounts = ['firstUserAccount1', 'firstUserAccount2'];
 const secondUserAccounts = ['secondUserAccount1', 'secondUserAccount2'];
@@ -22,25 +22,17 @@ const accountData: AccountCreate = {
   userId: 'non-existent-user-id',
 };
 
-describe('AccountRepository', () => {
-  let testDbInstance: ReturnType<typeof createTestDb>;
+describe('AccountRepository', async () => {
+  let testDB: TestDB;
 
   let accountRepository: AccountRepository;
   let user: UsersResponse;
 
-  beforeAll(async () => {
-    testDbInstance = createTestDb();
-    await testDbInstance.setupTestDb();
-    accountRepository = new AccountRepository(testDbInstance.db);
-    user = await testDbInstance.createUser();
-  });
-
   beforeEach(async () => {
-    await testDbInstance.cleanupTestDb();
-    testDbInstance = createTestDb();
-    await testDbInstance.setupTestDb();
-    accountRepository = new AccountRepository(testDbInstance.db);
-    user = await testDbInstance.createUser();
+    testDB = new TestDB();
+    await testDB.setupTestDb();
+    accountRepository = new AccountRepository(testDB.db);
+    user = await testDB.createUser();
   });
 
   describe('create', () => {
@@ -88,7 +80,7 @@ describe('AccountRepository', () => {
     it('should allow same account names for different users', async () => {
       const accountName = 'Shared Account Name';
 
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
       });
@@ -165,13 +157,13 @@ describe('AccountRepository', () => {
 
   describe('getAll', () => {
     beforeEach(async () => {
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
       });
 
       for (const name of firstUserAccounts) {
-        await testDbInstance.createTestAccount(user.id, {
+        await testDB.createTestAccount(user.id, {
           name,
           originalCurrency: 'USD',
           type: 'cash',
@@ -179,7 +171,7 @@ describe('AccountRepository', () => {
       }
 
       for (const name of secondUserAccounts) {
-        await testDbInstance.createTestAccount(secondUser.id, {
+        await testDB.createTestAccount(secondUser.id, {
           name,
           originalCurrency: 'USD',
           type: 'cash',
@@ -199,7 +191,7 @@ describe('AccountRepository', () => {
     });
 
     it('should not retrieve accounts for a different user', async () => {
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user2@example.com',
         name: 'Second User',
       });
@@ -220,7 +212,7 @@ describe('AccountRepository', () => {
     let account: AccountResponse;
 
     beforeEach(async () => {
-      account = await testDbInstance.createTestAccount(user.id);
+      account = await testDB.createTestAccount(user.id);
     });
 
     it('should retrieve an account by ID', async () => {
@@ -243,7 +235,7 @@ describe('AccountRepository', () => {
     });
 
     it('should return undefined if user does not own the account', async () => {
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
       });
@@ -261,7 +253,7 @@ describe('AccountRepository', () => {
     let account: AccountResponse;
 
     beforeEach(async () => {
-      account = await testDbInstance.createTestAccount(user.id);
+      account = await testDB.createTestAccount(user.id);
     });
 
     it('should update account when it belongs to user', async () => {
@@ -336,13 +328,13 @@ describe('AccountRepository', () => {
     });
 
     it('should allow updating to name that exists for different user', async () => {
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
       });
 
       // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of accountRepository.create()
+      // Should create test data via testDB.db.insert() instead of accountRepository.create()
       const secondUserAccount = await accountRepository.create({
         name: 'Shared Account Name',
         originalCurrency: 'USD',
@@ -392,7 +384,7 @@ describe('AccountRepository', () => {
     let account: AccountResponse;
 
     beforeEach(async () => {
-      account = await testDbInstance.createTestAccount(user.id);
+      account = await testDB.createTestAccount(user.id);
     });
 
     it('should delete account when it exists and belongs to user', async () => {
@@ -412,7 +404,7 @@ describe('AccountRepository', () => {
     });
 
     it('should return undefined when account belongs to different user', async () => {
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
       });
