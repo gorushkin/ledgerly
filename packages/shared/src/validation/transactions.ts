@@ -21,6 +21,7 @@ export const transactionCreateSchema = transactionBaseSchema.extend({
   operations: operationsSchema,
 });
 
+// TODO: make it less stricter
 export const transactionUpdateSchema = transactionCreateSchema;
 
 export const transactionResponseSchema = transactionBaseSchema.extend({

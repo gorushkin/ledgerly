@@ -77,23 +77,6 @@ export class TestDB {
   }
 
   test = async () => {
-    // try {
-    //   const userTableResult = await this.db.all(
-    //     sql`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`,
-    //   );
-    //   console.info('result: ', userTableResult);
-    //   if (userTableResult.length > 0) {
-    //     console.info('✅ Users table exists');
-    //     // Дополнительная проверка структуры таблицы users
-    //     const tableInfo = await this.db.all(sql`PRAGMA table_info(users);`);
-    //     console.info('📋 Users table structure:', tableInfo);
-    //   } else {
-    //     console.info('❌ Users table not found');
-    //   }
-    // } catch (error) {
-    //   console.error('❌ Error checking users table:', error);
-    // }
-
     try {
       const transactionTableResult = await this.db.all(
         sql`SELECT name FROM sqlite_master WHERE type='table' AND name='transactions';`,
@@ -233,32 +216,6 @@ export class TestDB {
     }
   };
 
-  // createTestOperations = async (params: {
-  //   transactionId: UUID;
-  //   userId: UUID;
-  //   data: OperationRaw[];
-  // }): Promise<OperationResponseDTO[]> => {
-  //   const { data, transactionId, userId } = params;
-
-  //   if (data.length === 0) {
-  //     return [];
-  //   }
-
-  //   const operation = await this.db
-  //     .insert(operationsTable)
-  //     .values(
-  //       data.map((op) => ({
-  //         ...getOperationWithHash(op),
-  //         transactionId,
-  //         userId,
-  //       })),
-  //     )
-  //     .returning()
-  //     .all();
-
-  //   return operation;
-  // };
-
   createTestTransaction = async (params: {
     userId: UUID;
     data?: {
@@ -287,114 +244,6 @@ export class TestDB {
       .get();
 
     return transaction;
-  };
-
-  // createAggregatedTestTransaction = async (params: {
-  //   userId: UUID;
-  //   data?: {
-  //     description?: string;
-  //     postingDate: string;
-  //     transactionDate: string;
-  //     userId: UUID;
-  //     operations?: OperationCreateDTO[];
-  //   };
-  //   operationData?: {
-  //     accountId?: UUID;
-  //     categoryId?: UUID;
-  //     description?: string;
-  //     localAmount?: number;
-  //     originalAmount?: number;
-  //     userId: UUID;
-  //   }[];
-  // }): Promise<TransactionResponseDTO> => {
-  //   const { data, operationData = [], userId } = params;
-
-  //   if (
-  //     operationData.length > 0 &&
-  //     data?.operations &&
-  //     data?.operations?.length > 0
-  //   ) {
-  //     throw new Error(
-  //       'You cannot specify both operationData and operations in data',
-  //     );
-  //   }
-
-  //   const transactionData: TransactionPreHashDTO = {
-  //     description: this.transactionCounter.getNextName(userId),
-  //     id: generateId(),
-  //     operations: [],
-  //     postingDate: new Date().toString(),
-  //     transactionDate: new Date().toString(),
-  //     ...data,
-  //     userId,
-  //   };
-
-  //   const transaction = await this.db
-  //     .insert(transactionsTable)
-  //     .values(getAggregatedTransactionWithHash(transactionData))
-  //     .returning()
-  //     .get();
-
-  //   const operationsResultFromTransaction = await this.createTestOperations({
-  //     data: transactionData.operations,
-  //     transactionId: transaction.id,
-  //     userId,
-  //   });
-
-  //   const operationsResultOperationData = await this.createTestOperations({
-  //     data: operationData.map((op) => ({
-  //       accountId: op.accountId ?? this.uuid,
-  //       categoryId: op.categoryId ?? this.uuid,
-  //       description: op.description ?? this.operationCounter.getNextName(),
-  //       id: generateId(),
-  //       localAmount: op.localAmount ?? 0,
-  //       originalAmount: op.originalAmount ?? 0,
-  //       transactionId: transaction.id,
-  //     })),
-  //     transactionId: transaction.id,
-  //     userId,
-  //   });
-
-  //   const operations = [
-  //     ...operationsResultFromTransaction,
-  //     ...operationsResultOperationData,
-  //   ];
-
-  //   return {
-  //     ...transaction,
-  //     operations,
-  //   };
-  // };
-
-  // getAllTransactionsByUserId = async (userId: UUID) => {
-  //   return this.db.transaction(async (tx) => {
-  //     const transactionsList = await tx
-  //       .select()
-  //       .from(transactionsTable)
-  //       .where(eq(transactionsTable.userId, userId))
-  //       .all();
-
-  //     return transactionsList;
-  //   });
-  // };
-
-  getOperationsByTransactionId2 = async (transactionId: UUID) => {
-    // return this.db.transaction(async (tx) => {
-    //   const operationsList = await tx
-    //     .select()
-    //     .from(operationsTable)
-    //     .where(eq(operationsTable.transactionId, transactionId))
-    //     .all();
-
-    //   return operationsList;
-    // });
-    const operationsList = await this.db
-      .select()
-      .from(operationsTable)
-      .where(eq(operationsTable.transactionId, transactionId))
-      .all();
-
-    return operationsList;
   };
 
   getOperationsByTransactionIds = async (
