@@ -41,33 +41,33 @@ const seedCategories = async (userId: string) => {
   return insertedCategories;
 };
 
-const seedAccounts = async (userId: string) => {
-  try {
-    const insertedWallets = await db
-      .insert(accountsTable)
-      .values([
-        {
-          id: ACCOUNT_ID1,
-          name: 'Tinkoff RUB',
-          originalCurrency: 'RUB',
-          type: 'cash',
-          userId,
-        },
-        {
-          id: ACCOUNT_ID2,
-          name: 'Tinkoff USD',
-          originalCurrency: 'USD',
-          type: 'cash',
-          userId,
-        },
-      ])
-      .returning();
+// const seedAccounts = async (userId: string) => {
+//   try {
+//     const insertedWallets = await db
+//       .insert(accountsTable)
+//       .values([
+//         {
+//           id: ACCOUNT_ID1,
+//           name: 'Tinkoff RUB',
+//           originalCurrency: 'RUB',
+//           type: 'cash',
+//           userId,
+//         },
+//         {
+//           id: ACCOUNT_ID2,
+//           name: 'Tinkoff USD',
+//           originalCurrency: 'USD',
+//           type: 'cash',
+//           userId,
+//         },
+//       ])
+//       .returning();
 
-    return insertedWallets;
-  } catch {
-    throw new SeedError('Failed to seed accounts');
-  }
-};
+//     return insertedWallets;
+//   } catch {
+//     throw new SeedError('Failed to seed accounts');
+//   }
+// };
 
 const seedUser = async () => {
   try {
