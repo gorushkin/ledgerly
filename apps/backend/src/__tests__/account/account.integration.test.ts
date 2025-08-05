@@ -34,7 +34,7 @@ const getUserTestAccounts = (userId: UUID): AccountCreateDTO[] => {
   }));
 };
 
-describe('Accounts Integration Tests', async () => {
+describe('Accounts Integration Tests', () => {
   let testDB: TestDB;
 
   let server: ReturnType<typeof createServer>;

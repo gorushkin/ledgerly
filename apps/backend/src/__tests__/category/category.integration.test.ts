@@ -80,7 +80,7 @@ describe('Category Integration Tests', () => {
     });
   });
 
-  describe('GET /categories/:id', async () => {
+  describe('GET /categories/:id', () => {
     it('should return a category by id for the authenticated user', async () => {
       const response = await server.inject({
         headers,
