@@ -31,6 +31,11 @@ jobs:
           echo "DATABASE_URL=file:./data/sqlite.db" > .env
           echo "JWT_SECRET=test-secret-key" >> .env
 
+      - name: Display .env file contents
+        run: |
+          echo "Contents of .env file:"
+          cat .env
+
       - name: TypeScript type check (backend only)
         run: pnpm --filter backend run type-check
 
