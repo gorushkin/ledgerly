@@ -13,32 +13,13 @@ export const DB_ERROR_CODES: Record<DB_ERROR_CODES, string> = {
   NOT_FOUND: 'notFound',
 };
 
-// `Record with ${field} = ${value} already exists in table ${tableName}`
-// `Foreign key constraint failed: ${field} = ${value} does not exist in referenced table for ${tableName}`,
-// `Record with id ${id} not found in table ${tableName}`
-
 export class DatabaseError extends AppError {
   constructor(params: {
     message: string;
     context?: DBErrorContext;
     cause?: Error;
   }) {
-    super(params.message, 500, params.cause);
-  }
-}
-
-export class RecordNotFoundError extends DatabaseError {
-  constructor({
-    context,
-    message,
-  }: {
-    message?: string;
-    context?: DBErrorContext;
-  }) {
-    super({
-      context,
-      message: message ?? DB_ERROR_CODES.NOT_FOUND,
-    });
+    super(params.message, 500, 'DatabaseError', params.cause);
   }
 }
 

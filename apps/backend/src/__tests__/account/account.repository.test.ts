@@ -9,6 +9,7 @@ import {
   ForeignKeyConstraintError,
   RecordAlreadyExistsError,
 } from 'src/presentation/errors';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { describe, beforeEach, it, expect } from 'vitest';
 
 import { TestDB } from '../../db/test-db';
@@ -70,7 +71,7 @@ describe('AccountRepository', async () => {
         userId: user.id,
       };
 
-      await testDB.createTestAccount(user.id, {
+      await testDB.createAccount(user.id, {
         ...newAccount,
       });
 
@@ -111,10 +112,10 @@ describe('AccountRepository', async () => {
         userId: secondUser.id,
       };
 
-      const account1 = await testDB.createTestAccount(user.id, {
+      const account1 = await testDB.createAccount(user.id, {
         ...firstUserAccount,
       });
-      const account2 = await testDB.createTestAccount(secondUser.id, {
+      const account2 = await testDB.createAccount(secondUser.id, {
         ...secondUserAccount,
       });
 
@@ -181,7 +182,7 @@ describe('AccountRepository', async () => {
       });
 
       for (const name of firstUserAccounts) {
-        await testDB.createTestAccount(user.id, {
+        await testDB.createAccount(user.id, {
           name,
           originalCurrency: 'USD',
           type: 'cash',
@@ -189,7 +190,7 @@ describe('AccountRepository', async () => {
       }
 
       for (const name of secondUserAccounts) {
-        await testDB.createTestAccount(secondUser.id, {
+        await testDB.createAccount(secondUser.id, {
           name,
           originalCurrency: 'USD',
           type: 'cash',
@@ -230,7 +231,7 @@ describe('AccountRepository', async () => {
     let account: AccountDbRowDTO;
 
     beforeEach(async () => {
-      account = await testDB.createTestAccount(user.id);
+      account = await testDB.createAccount(user.id);
     });
 
     it('should retrieve an account by ID', async () => {
@@ -244,12 +245,12 @@ describe('AccountRepository', async () => {
     });
 
     it('should return undefined if account does not exist', async () => {
-      const retrievedAccount = await accountRepository.getById(
+      const retrievedAccount = accountRepository.getById(
         'non-existent-account-id',
         user.id,
       );
 
-      expect(retrievedAccount).toBeUndefined();
+      await expect(retrievedAccount).rejects.toThrowError(NotFoundError);
     });
 
     it('should return undefined if user does not own the account', async () => {
@@ -258,12 +259,12 @@ describe('AccountRepository', async () => {
         name: 'Second User',
       });
 
-      const retrievedAccount = await accountRepository.getById(
+      const retrievedAccount = accountRepository.getById(
         account.id,
         secondUser.id,
       );
 
-      expect(retrievedAccount).toBeUndefined();
+      await expect(retrievedAccount).rejects.toThrowError(NotFoundError);
     });
   });
 
@@ -271,7 +272,7 @@ describe('AccountRepository', async () => {
     let account: AccountDbRowDTO;
 
     beforeEach(async () => {
-      account = await testDB.createTestAccount(user.id);
+      account = await testDB.createAccount(user.id);
     });
 
     it('should update account when it belongs to user', async () => {
@@ -312,13 +313,13 @@ describe('AccountRepository', async () => {
         userId: user.id,
       };
 
-      const updatedAccount = await accountRepository.update(
+      const updatedAccount = accountRepository.update(
         'non-existent-account-id',
         account.id,
         updatedAccountData,
       );
 
-      expect(updatedAccount).toBeUndefined();
+      await expect(updatedAccount).rejects.toThrowError(NotFoundError);
     });
 
     it('should not allow updating to duplicate name within same user', async () => {
@@ -331,7 +332,7 @@ describe('AccountRepository', async () => {
         userId: user.id,
       };
 
-      await testDB.createTestAccount(user.id, {
+      await testDB.createAccount(user.id, {
         initialBalance: 2000,
         name: updatedAccountData.name,
         originalCurrency: 'USD',
@@ -357,7 +358,7 @@ describe('AccountRepository', async () => {
         name: 'Second User',
       });
 
-      const secondUserAccount = await testDB.createTestAccount(secondUser.id, {
+      const secondUserAccount = await testDB.createAccount(secondUser.id, {
         initialBalance: 2000,
         name: 'Shared Account Name',
         originalCurrency: 'USD',
@@ -430,7 +431,7 @@ describe('AccountRepository', async () => {
     let account: AccountDbRowDTO;
 
     beforeEach(async () => {
-      account = await testDB.createTestAccount(user.id);
+      account = await testDB.createAccount(user.id);
     });
 
     it('should delete account when it exists and belongs to user', async () => {
@@ -438,14 +439,12 @@ describe('AccountRepository', async () => {
 
       expect(deleted).toBeUndefined();
 
-      const retrievedAccount = await accountRepository.getById(
-        user.id,
-        account.id,
-      );
+      const retrievedAccount = accountRepository.getById(user.id, account.id);
 
       const userAccounts = await accountRepository.getAll(user.id);
 
-      expect(retrievedAccount).toBeUndefined();
+      await expect(retrievedAccount).rejects.toThrowError(NotFoundError);
+
       expect(userAccounts.length).toBe(0);
     });
 
@@ -455,7 +454,7 @@ describe('AccountRepository', async () => {
         name: 'Second User',
       });
 
-      await testDB.createTestAccount(secondUser.id, {
+      await testDB.createAccount(secondUser.id, {
         initialBalance: 2000,
         name: 'Shared Account Name',
         originalCurrency: 'USD',
@@ -504,7 +503,7 @@ describe('AccountRepository', async () => {
     });
 
     it('should update updatedAt on account update', async () => {
-      const account = await testDB.createTestAccount(user.id);
+      const account = await testDB.createAccount(user.id);
       const originalUpdatedAt = dayjs(account?.updatedAt);
 
       await new Promise((resolve) => setTimeout(resolve, 1000));

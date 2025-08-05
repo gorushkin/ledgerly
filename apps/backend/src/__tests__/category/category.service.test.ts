@@ -1,6 +1,6 @@
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
 import { RecordAlreadyExistsError } from 'src/presentation/errors';
-import { UserNotFoundError } from 'src/presentation/errors/auth.errors';
+import { AuthErrors } from 'src/presentation/errors/auth.errors';
 import { CategoryService } from 'src/services/category.service';
 import { UserService } from 'src/services/user.service';
 import { describe, vi, it, expect, beforeEach } from 'vitest';
@@ -50,10 +50,12 @@ describe('CategoryService', () => {
     });
 
     it('should throw an error if user is not valid', async () => {
-      mockUserService.validateUser.mockRejectedValue(new UserNotFoundError());
+      mockUserService.validateUser.mockRejectedValue(
+        new AuthErrors.UserNotFoundError(),
+      );
 
       await expect(service.getAll(userId)).rejects.toThrowError(
-        UserNotFoundError,
+        AuthErrors.UserNotFoundError,
       );
     });
   });
@@ -100,10 +102,12 @@ describe('CategoryService', () => {
     it('should throw an error if user is not valid', async () => {
       const categoryId = '1';
 
-      mockUserService.validateUser.mockRejectedValue(new UserNotFoundError());
+      mockUserService.validateUser.mockRejectedValue(
+        new AuthErrors.UserNotFoundError(),
+      );
 
       await expect(service.getById(userId, categoryId)).rejects.toThrowError(
-        UserNotFoundError,
+        AuthErrors.UserNotFoundError,
       );
     });
   });
@@ -139,10 +143,12 @@ describe('CategoryService', () => {
         userId: '0055a5ca-faf1-46f2-afbe-6d36b1544b75',
       };
 
-      mockUserService.validateUser.mockRejectedValue(new UserNotFoundError());
+      mockUserService.validateUser.mockRejectedValue(
+        new AuthErrors.UserNotFoundError(),
+      );
 
       await expect(service.create(newCategory)).rejects.toThrowError(
-        UserNotFoundError,
+        AuthErrors.UserNotFoundError,
       );
     });
   });
@@ -215,11 +221,13 @@ describe('CategoryService', () => {
         userId,
       };
 
-      mockUserService.validateUser.mockRejectedValue(new UserNotFoundError());
+      mockUserService.validateUser.mockRejectedValue(
+        new AuthErrors.UserNotFoundError(),
+      );
 
       await expect(
         service.update(userId, categoryId, updateData),
-      ).rejects.toThrowError(UserNotFoundError);
+      ).rejects.toThrowError(AuthErrors.UserNotFoundError);
     });
 
     it('should throw an error if category name is not unique', async () => {
@@ -287,10 +295,12 @@ describe('CategoryService', () => {
     it('should throw an error if user is not valid', async () => {
       const categoryId = '1';
 
-      mockUserService.validateUser.mockRejectedValue(new UserNotFoundError());
+      mockUserService.validateUser.mockRejectedValue(
+        new AuthErrors.UserNotFoundError(),
+      );
 
       await expect(service.delete(userId, categoryId)).rejects.toThrowError(
-        UserNotFoundError,
+        AuthErrors.UserNotFoundError,
       );
     });
 

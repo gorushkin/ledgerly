@@ -1,17 +1,15 @@
-import {
-  NotFoundError,
-  ForbiddenError,
-  ErrorMeta,
-} from 'src/presentation/errors';
+import { ErrorMeta } from 'src/presentation/errors';
+import { AuthErrors } from 'src/presentation/errors/auth.errors';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 
 export abstract class BaseService {
   protected ensureEntityExists<T>(
     entity: T | undefined | null,
     message = 'Entity not found',
-    meta?: ErrorMeta,
+    _meta?: ErrorMeta,
   ): T {
     if (!entity) {
-      throw new NotFoundError(message, meta);
+      throw new NotFoundError(message);
     }
     return entity;
   }
@@ -19,10 +17,10 @@ export abstract class BaseService {
   protected ensureAuthorized(
     condition: boolean,
     message = 'Access denied',
-    meta?: ErrorMeta,
+    _meta?: ErrorMeta,
   ): void {
     if (!condition) {
-      throw new ForbiddenError(message, meta);
+      throw new AuthErrors.UnauthorizedError(message);
     }
   }
 }

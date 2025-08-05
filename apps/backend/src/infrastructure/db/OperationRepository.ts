@@ -1,9 +1,12 @@
 import {
-  OperationCreateDTO,
+  OperationDBRowDTO,
+  OperationInsertDTO,
   OperationResponseDTO,
+  UUID,
 } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { operationsTable } from 'src/db/schemas';
+import { InvalidDataError } from 'src/presentation/errors';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -13,32 +16,59 @@ export class OperationRepository extends BaseRepository {
     super(db);
   }
 
-  getAll(): Promise<OperationResponseDTO[]> {
-    throw new Error('Method not implemented.');
-  }
-
-  getById(_id: string): Promise<OperationResponseDTO | undefined> {
-    throw new Error('Method not implemented.');
-  }
-
-  create(_dto: OperationCreateDTO): Promise<OperationResponseDTO> {
-    throw new Error('Method not implemented.');
-  }
-  update(_id: number, _data: unknown): Promise<OperationResponseDTO> {
-    throw new Error('Method not implemented.');
-  }
-  delete(_id: number): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
-
   async getByTransactionId(
     transactionId: string,
   ): Promise<OperationResponseDTO[]> {
-    const transactionOperations = await this.db
-      .select()
-      .from(operationsTable)
-      .where(eq(operationsTable.transactionId, transactionId));
+    return this.executeDatabaseOperation(
+      async () => {
+        return this.db
+          .select()
+          .from(operationsTable)
+          .where(eq(operationsTable.transactionId, transactionId))
+          .all();
+      },
+      'Failed to fetch operations by transaction ID',
+      { field: 'transactionId', tableName: 'operations' },
+    );
+  }
 
-    return transactionOperations;
+  async bulkInsert(
+    operations: OperationInsertDTO[],
+    tx?: DataBase,
+  ): Promise<OperationDBRowDTO[]> {
+    return this.executeDatabaseOperation(
+      async () => {
+        if (operations.length === 0) {
+          throw new InvalidDataError(
+            'Cannot create transaction without operations',
+          );
+        }
+
+        const dbClient = tx ?? this.db;
+
+        return dbClient.insert(operationsTable).values(operations).returning();
+      },
+      'Failed to bulk insert operations',
+      { field: 'operations', tableName: 'operations' },
+    );
+  }
+  async deleteByTransactionId(
+    transactionId: UUID,
+    tx?: DataBase,
+  ): Promise<number | void> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const dbClient = tx ?? this.db;
+
+        const res = await dbClient
+          .delete(operationsTable)
+          .where(eq(operationsTable.transactionId, transactionId))
+          .execute();
+
+        return res.rowsAffected;
+      },
+      'Failed to delete operations by transaction ID',
+      { field: 'transactionId', tableName: 'operations' },
+    );
   }
 }

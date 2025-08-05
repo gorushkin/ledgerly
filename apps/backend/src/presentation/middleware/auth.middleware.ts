@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 
-import { UnauthorizedError } from '../errors/auth.errors';
+import { AuthErrors } from '../errors/auth.errors';
 
 export async function authMiddleware(
   request: FastifyRequest,
@@ -10,7 +10,7 @@ export async function authMiddleware(
     const token = request.headers.authorization?.replace('Bearer ', '');
 
     if (!token) {
-      throw new UnauthorizedError('Authentication required');
+      throw new AuthErrors.UnauthorizedError('Authentication required');
     }
 
     const decoded = await request.jwtVerify<{
@@ -19,6 +19,6 @@ export async function authMiddleware(
     }>();
     request.user = decoded;
   } catch {
-    throw new UnauthorizedError('Invalid or expired token');
+    throw new AuthErrors.UnauthorizedError('Invalid or expired token');
   }
 }

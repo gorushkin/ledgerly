@@ -1,8 +1,7 @@
 import { sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
 
-import { usersTable } from '../schema';
-
 import { createdAt, updatedAt, uuidPrimary } from './common';
+import { usersTable } from './users';
 
 export const categoriesTable = sqliteTable(
   'categories',

@@ -4,16 +4,14 @@ import { fileURLToPath } from 'url';
 import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import {
   AccountType,
-  OperationCreateDTO,
-  OperationResponseDTO,
+  OperationInsertDTO,
   TransactionDbRecordDTO,
   TransactionDbRowDTO,
-  TransactionResponseDTO,
   UsersResponseDTO,
   UUID,
 } from '@ledgerly/shared/types';
 import { createClient } from '@libsql/client';
-import { sql, eq, inArray } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
@@ -25,7 +23,6 @@ import * as schema from './schemas';
 import {
   accountsTable,
   categoriesTable,
-  operationsTable,
   transactionsTable,
   usersTable,
 } from './schemas';
@@ -141,7 +138,7 @@ export class TestDB {
     return user;
   };
 
-  createTestAccount = async (
+  createAccount = async (
     userId: UUID,
     params?: {
       name?: string;
@@ -175,7 +172,7 @@ export class TestDB {
     return account;
   };
 
-  createTestCategory = (
+  createCategory = (
     userId: UUID,
     params?: {
       name?: string;
@@ -197,36 +194,40 @@ export class TestDB {
       .get();
   };
 
-  testTransactionsTable = async () => {
-    try {
-      const tableCheck = await this.db.all(
-        sql`SELECT name FROM sqlite_master WHERE type='table' AND name='transactions';`,
-      );
-      console.log('📋 Table check BEFORE transaction:', tableCheck);
+  createOperation = async (params: {
+    userId: UUID;
+    accountId: UUID;
+    categoryId: UUID;
+    transactionId: UUID;
+    description?: string;
+  }) => {
+    const operationData: OperationInsertDTO = {
+      accountId: params.accountId,
+      categoryId: params.categoryId,
+      description: params.description ?? 'Test Operation',
+      hash: `hash-${this.operationCounter.getNextName()}`,
+      id: this.uuid,
+      localAmount: 100,
+      originalAmount: 100,
+      transactionId: params.transactionId,
+      userId: params.userId,
+    };
 
-      const allTables = await this.db.all(
-        sql`SELECT name FROM sqlite_master WHERE type='table';`,
-      );
-      console.log(
-        '📋 All tables:',
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        allTables.map((t) => t?.name),
-      );
-    } catch (error) {
-      console.error('❌ Error checking tables BEFORE:', error);
-    }
+    const operation = await this.db
+      .insert(schema.operationsTable) // Assuming 'operations' is the correct table name
+      .values(operationData)
+      .returning()
+      .get();
+
+    return operation;
   };
 
-  createTestTransaction = async (params: {
+  createTransaction = async (params: {
     userId: UUID;
     data?: {
       description?: string;
       postingDate: string;
       transactionDate: string;
-      userId: UUID;
-      operations?: OperationCreateDTO[];
     };
   }): Promise<TransactionDbRowDTO> => {
     const { data, userId } = params;
@@ -249,49 +250,6 @@ export class TestDB {
     return transaction;
   };
 
-  getOperationsByTransactionIds = async (
-    transactionsList: Omit<TransactionResponseDTO, 'operations'>[],
-  ): Promise<TransactionResponseDTO[]> => {
-    const transactionResponseMap = new Map<UUID, TransactionResponseDTO>();
-
-    const ids = transactionsList.map((transaction) => {
-      transactionResponseMap.set(transaction.id, {
-        ...transaction,
-        operations: [],
-      });
-      return transaction.id;
-    });
-
-    if (ids.length === 0) return [];
-
-    const operations = await this.db
-      .select()
-      .from(operationsTable)
-      .where(inArray(operationsTable.transactionId, ids))
-      .all();
-
-    operations.forEach((op) => {
-      const transaction = transactionResponseMap.get(op.transactionId);
-      if (transaction) {
-        transaction.operations.push(op);
-      }
-    });
-
-    return Array.from(transactionResponseMap.values());
-  };
-
-  getOperationsByTransactionId = async (
-    transactionId: UUID,
-  ): Promise<OperationResponseDTO[]> => {
-    const operationsList = await this.db
-      .select()
-      .from(operationsTable)
-      .where(eq(operationsTable.transactionId, transactionId))
-      .all();
-
-    return operationsList;
-  };
-
   getAllTransactions = async (): Promise<TransactionDbRecordDTO[]> => {
     const transactionsList = await this.db
       .select()
@@ -299,17 +257,6 @@ export class TestDB {
       .all();
 
     return transactionsList;
-  };
-
-  getAllAggregatedTransactions = async (): Promise<
-    TransactionResponseDTO[]
-  > => {
-    const transactionsList = await this.db
-      .select()
-      .from(transactionsTable)
-      .all();
-
-    return this.getOperationsByTransactionIds(transactionsList);
   };
 
   getTransactionById = async (
@@ -324,15 +271,24 @@ export class TestDB {
     return transaction;
   };
 
-  getAllTransactionsByUserId = async (
-    userId: UUID,
-  ): Promise<TransactionResponseDTO[]> => {
-    const transactionsList = await this.db
+  getOperationsByTransactionId = async (
+    transactionId: UUID,
+  ): Promise<OperationInsertDTO[]> => {
+    const operations = await this.db
       .select()
-      .from(transactionsTable)
-      .where(eq(transactionsTable.userId, userId))
+      .from(schema.operationsTable)
+      .where(eq(schema.operationsTable.transactionId, transactionId))
       .all();
 
-    return this.getOperationsByTransactionIds(transactionsList);
+    return operations;
+  };
+
+  getAllOperations = async (): Promise<OperationInsertDTO[]> => {
+    const operations = await this.db
+      .select()
+      .from(schema.operationsTable)
+      .all();
+
+    return operations;
   };
 }

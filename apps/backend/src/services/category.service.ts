@@ -6,7 +6,7 @@ import {
 } from '@ledgerly/shared/types';
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
 import { RecordAlreadyExistsError } from 'src/presentation/errors';
-import { CategoryNotFoundError } from 'src/presentation/errors/category.errors';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 
 import { UserService } from './user.service';
 
@@ -30,7 +30,7 @@ export class CategoryService {
     const category = await this.categoryRepository.getById(userId, id);
 
     if (!category) {
-      throw new CategoryNotFoundError(
+      throw new NotFoundError(
         `Category with id ${id} not found for user ${userId}`,
       );
     }

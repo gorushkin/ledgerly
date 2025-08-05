@@ -9,7 +9,7 @@ export class TransactionController {
   ) {}
 
   getAll(userId: UUID) {
-    return this.transactionService.getAll(userId);
+    return this.transactionService.getAllByUserId(userId);
   }
 
   // async getById(id: string): Promise<TransactionResponse> {
