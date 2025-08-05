@@ -8,9 +8,26 @@ export class TransactionService {
     private readonly transactionRepository: TransactionRepository,
     private readonly userService: UserService,
   ) {}
-  async getAll(userId: UUID): Promise<TransactionResponseDTO[]> {
-    await this.userService.validateUser(userId);
+  getAllByUserId(_userId: UUID): Promise<TransactionResponseDTO[]> {
+    throw new Error('Method not implemented.');
+  }
 
-    return await this.transactionRepository.getAllByUserId(userId);
+  getById(
+    _userId: UUID,
+    _id: UUID,
+  ): Promise<TransactionResponseDTO | undefined> {
+    throw new Error('Method not implemented.');
+  }
+
+  create(): Promise<TransactionResponseDTO> {
+    throw new Error('Method not implemented.');
+  }
+
+  update(): Promise<TransactionResponseDTO> {
+    throw new Error('Method not implemented.');
+  }
+
+  delete(): Promise<void> {
+    throw new Error('Method not implemented.');
   }
 }

@@ -71,7 +71,10 @@ export class BaseRepository {
         throw error;
       }
 
-      console.error(`Database error: ${errorMessage}`, error);
+      if (process.env.NODE_ENV !== 'test') {
+        console.error(`Database error: ${errorMessage}`, error);
+      }
+
       throw new DatabaseError({
         cause: error as Error,
         context,

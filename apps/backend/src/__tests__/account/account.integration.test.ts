@@ -69,7 +69,7 @@ describe('Accounts Integration Tests', async () => {
     const testAccounts = getUserTestAccounts(userId);
 
     const promises = testAccounts.map((account) =>
-      testDB.createTestAccount(userId, account),
+      testDB.createAccount(userId, account),
     );
 
     accounts = await Promise.all(promises);

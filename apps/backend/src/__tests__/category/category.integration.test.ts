@@ -50,7 +50,7 @@ describe('Category Integration Tests', () => {
     userId = decoded.userId;
 
     const promises = firstUserCategory.map((account) =>
-      testDB.createTestCategory(userId, account),
+      testDB.createCategory(userId, account),
     );
 
     categories = await Promise.all(promises);

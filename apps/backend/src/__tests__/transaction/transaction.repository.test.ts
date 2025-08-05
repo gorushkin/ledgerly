@@ -19,14 +19,6 @@ type TestDBTransactionParams = {
     userId: UUID;
     operations?: OperationCreateDTO[];
   };
-  operationData?: {
-    accountId?: UUID;
-    categoryId?: UUID;
-    description?: string;
-    localAmount?: number;
-    originalAmount?: number;
-    userId: UUID;
-  }[];
 };
 
 const getUserTransactionDTO = (params: {
@@ -36,8 +28,7 @@ const getUserTransactionDTO = (params: {
   userId: UUID;
   description?: string;
 }): TestDBTransactionParams => {
-  const { description, testAccount1, testAccount2, testCategory, userId } =
-    params;
+  const { description, userId } = params;
 
   return {
     data: {
@@ -47,18 +38,6 @@ const getUserTransactionDTO = (params: {
       transactionDate: new Date().toString(),
       userId: userId,
     },
-    operationData: [
-      {
-        accountId: testAccount1.id,
-        categoryId: testCategory.id,
-        userId: userId,
-      },
-      {
-        accountId: testAccount2.id,
-        categoryId: testCategory.id,
-        userId: userId,
-      },
-    ],
     userId: userId,
   };
 };
@@ -83,13 +62,13 @@ describe('TransactionRepository', () => {
 
     user = await testDB.createUser();
 
-    testCategory = await testDB.createTestCategory(user.id);
+    testCategory = await testDB.createCategory(user.id);
 
-    testAccount1 = await testDB.createTestAccount(user.id, {
+    testAccount1 = await testDB.createAccount(user.id, {
       name: 'Test Account 1',
     });
 
-    testAccount2 = await testDB.createTestAccount(user.id, {
+    testAccount2 = await testDB.createAccount(user.id, {
       name: 'Test Account 2',
     });
 
@@ -181,7 +160,7 @@ describe('TransactionRepository', () => {
   describe('delete', () => {
     it('should delete a transaction by id with operations', async () => {
       const promises = transactionsToAdd.map((params) =>
-        testDB.createTestTransaction(params),
+        testDB.createTransaction(params),
       );
 
       const allTransactions = await Promise.all(promises);
@@ -212,7 +191,7 @@ describe('TransactionRepository', () => {
   describe('getAllByUserId', () => {
     it('should return all transactions for a specific user', async () => {
       const promises = transactionsToAdd.map((params) =>
-        testDB.createTestTransaction(params),
+        testDB.createTransaction(params),
       );
 
       await Promise.all(promises);
@@ -251,7 +230,7 @@ describe('TransactionRepository', () => {
   describe('getAll', () => {
     it('should return all transactions for all users', async () => {
       const promises = transactionsToAdd.map((params) =>
-        testDB.createTestTransaction(params),
+        testDB.createTransaction(params),
       );
 
       await Promise.all(promises);
@@ -287,7 +266,7 @@ describe('TransactionRepository', () => {
   describe('getTransactionById', () => {
     it('should return transaction by id and userId', async () => {
       const promises = transactionsToAdd.map((params) =>
-        testDB.createTestTransaction(params),
+        testDB.createTransaction(params),
       );
 
       const allTransactions = await Promise.all(promises);
@@ -310,7 +289,7 @@ describe('TransactionRepository', () => {
 
     it('should return undefined for a non-existing transaction', async () => {
       const promises = transactionsToAdd.map((params) =>
-        testDB.createTestTransaction(params),
+        testDB.createTransaction(params),
       );
 
       await Promise.all(promises);
@@ -329,13 +308,13 @@ describe('TransactionRepository', () => {
     it('returns undefined if user does not own the transaction', async () => {
       await Promise.all(
         firstUserTransactionData.map((params) =>
-          testDB.createTestTransaction(params),
+          testDB.createTransaction(params),
         ),
       );
 
       const secondUserTransactions = await Promise.all(
         secondUserTransactionData.map((params) =>
-          testDB.createTestTransaction(params),
+          testDB.createTransaction(params),
         ),
       );
 
@@ -354,7 +333,7 @@ describe('TransactionRepository', () => {
   describe('update', () => {
     it('should update a transaction with valid data', async () => {
       const promises = transactionsToAdd.map((params) =>
-        testDB.createTestTransaction(params),
+        testDB.createTransaction(params),
       );
 
       const allTransactions = await Promise.all(promises);
@@ -419,13 +398,13 @@ describe('TransactionRepository', () => {
     it('returns undefined if transaction does not exist or belongs to another user', async () => {
       await Promise.all(
         firstUserTransactionData.map((params) =>
-          testDB.createTestTransaction(params),
+          testDB.createTransaction(params),
         ),
       );
 
       const secondUserTransactions = await Promise.all(
         secondUserTransactionData.map((params) =>
-          testDB.createTestTransaction(params),
+          testDB.createTransaction(params),
         ),
       );
 
@@ -453,7 +432,7 @@ describe('TransactionRepository', () => {
     it('updates updatedAt timestamp', async () => {
       const transactions = await Promise.all(
         firstUserTransactionData.map((params) =>
-          testDB.createTestTransaction(params),
+          testDB.createTransaction(params),
         ),
       );
 
