@@ -1,42 +1,45 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import {
-  AccountCreate,
-  AccountResponse,
+  AccountCreateDTO,
+  AccountInsertDTO,
   AccountType,
   UUID,
 } from '@ledgerly/shared/types';
-import { createTestDb } from 'src/db/test-db';
+import { TestDB } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
-import { describe, afterAll, beforeEach, it, expect } from 'vitest';
+import { describe, beforeEach, it, expect } from 'vitest';
 
 const url = `/api${ROUTES.accounts}`;
 
 const firstUserAccounts = [
   {
+    initialBalance: 1000,
     name: 'Test Account',
     originalCurrency: 'USD',
     type: 'cash' as AccountType,
   },
   {
+    initialBalance: 1000,
     name: 'Savings Account',
     originalCurrency: 'EUR',
     type: 'cash' as AccountType,
   },
 ];
 
-const getUserTestAccounts = (userId: UUID): AccountCreate[] => {
+const getUserTestAccounts = (userId: UUID): AccountCreateDTO[] => {
   return firstUserAccounts.map((account) => ({
     ...account,
     userId,
   }));
 };
 
-describe('Accounts Integration Tests', () => {
-  let testDbInstance: ReturnType<typeof createTestDb>;
+describe('Accounts Integration Tests', async () => {
+  let testDB: TestDB;
+
   let server: ReturnType<typeof createServer>;
   let authToken: string;
   let userId: string;
-  let accounts: AccountResponse[];
+  let accounts: AccountInsertDTO[];
 
   const testUser = {
     email: 'test@example.com',
@@ -45,13 +48,13 @@ describe('Accounts Integration Tests', () => {
   };
 
   beforeEach(async () => {
-    testDbInstance = createTestDb();
-    server = createServer(testDbInstance.db);
-    await testDbInstance.setupTestDb();
+    testDB = new TestDB();
+    server = createServer(testDB.db);
+    await testDB.setupTestDb();
 
     await server.ready();
 
-    const user = await testDbInstance.createUser(testUser);
+    const user = await testDB.createUser(testUser);
 
     const token = server.jwt.sign({
       email: user.email,
@@ -66,14 +69,10 @@ describe('Accounts Integration Tests', () => {
     const testAccounts = getUserTestAccounts(userId);
 
     const promises = testAccounts.map((account) =>
-      testDbInstance.createTestAccount(userId, account),
+      testDB.createTestAccount(userId, account),
     );
 
     accounts = await Promise.all(promises);
-  });
-
-  afterAll(async () => {
-    await testDbInstance.cleanupTestDb();
   });
 
   describe('GET /api/accounts', () => {
@@ -104,7 +103,7 @@ describe('Accounts Integration Tests', () => {
         url: `${url}/${accounts[0].id}`,
       });
 
-      const account = JSON.parse(response.body) as AccountResponse;
+      const account = JSON.parse(response.body) as AccountInsertDTO;
 
       expect(response.statusCode).toBe(200);
       expect(account.name).toBe(accounts[0].name);
@@ -115,6 +114,7 @@ describe('Accounts Integration Tests', () => {
     it('should create a new account', async () => {
       const newAccount = {
         description: 'This is a new account',
+        initialBalance: 500,
         name: 'New Account',
         originalCurrency: 'USD',
         type: 'cash' as AccountType,
@@ -129,7 +129,7 @@ describe('Accounts Integration Tests', () => {
         url,
       });
 
-      const createdAccount = JSON.parse(response.body) as AccountResponse;
+      const createdAccount = JSON.parse(response.body) as AccountInsertDTO;
 
       expect(response.statusCode).toBe(201);
       expect(createdAccount.name).toBe(newAccount.name);
@@ -147,7 +147,7 @@ describe('Accounts Integration Tests', () => {
 
       const accountsAfterCreation = JSON.parse(
         finalResponse.body,
-      ) as AccountResponse[];
+      ) as AccountInsertDTO[];
 
       expect(accountsAfterCreation.length).toBe(firstUserAccounts.length + 1);
       expect(accountsAfterCreation).toContainEqual(createdAccount);
@@ -178,7 +178,7 @@ describe('Accounts Integration Tests', () => {
 
       const accountsAfterDeletion = JSON.parse(
         finalResponse.body,
-      ) as AccountResponse[];
+      ) as AccountInsertDTO[];
 
       expect(accountsAfterDeletion.length).toBe(firstUserAccounts.length - 1);
       expect(accountsAfterDeletion).not.toContainEqual(accountToDelete);
@@ -203,7 +203,7 @@ describe('Accounts Integration Tests', () => {
         url: `${url}/${accountToUpdate.id}`,
       });
 
-      const updatedAccount = JSON.parse(response.body) as AccountResponse;
+      const updatedAccount = JSON.parse(response.body) as AccountInsertDTO;
 
       expect(response.statusCode).toBe(200);
       expect(updatedAccount.name).toBe(updatedData.name);
@@ -221,7 +221,7 @@ describe('Accounts Integration Tests', () => {
 
       const accountsAfterUpdate = JSON.parse(
         finalResponse.body,
-      ) as AccountResponse[];
+      ) as AccountInsertDTO[];
 
       expect(accountsAfterUpdate).toContainEqual(updatedAccount);
     });

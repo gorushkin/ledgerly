@@ -1,9 +1,10 @@
 import { sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
 
-import { createdAt, updatedAt, uuidPrimary } from './common';
-import { users } from './users';
+import { usersTable } from '../schema';
 
-export const categories = sqliteTable(
+import { createdAt, updatedAt, uuidPrimary } from './common';
+
+export const categoriesTable = sqliteTable(
   'categories',
   {
     createdAt,
@@ -12,7 +13,7 @@ export const categories = sqliteTable(
     updatedAt,
     userId: text('user_id')
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => usersTable.id, { onDelete: 'cascade' }),
   },
   (table) => [unique().on(table.userId, table.name)],
 );

@@ -71,6 +71,20 @@
       "when": 1753939673973,
       "tag": "0009_slim_hedge_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1754212455288,
+      "tag": "0010_pink_skrulls",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1754215051242,
+      "tag": "0011_lame_toad",
+      "breakpoints": true
     }
   ]
 }

@@ -2,9 +2,9 @@ import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
 import { db } from '../index';
 import { transactionsTable } from '../schemas';
-import { accounts } from '../schemas/accounts';
-import { categories } from '../schemas/categories';
-import { users } from '../schemas/users';
+import { accountsTable } from '../schemas/accounts';
+import { categoriesTable } from '../schemas/categories';
+import { usersTable } from '../schemas/users';
 
 const CATEGORY_ID1 = '3a04352a-68f2-4c96-9b0d-dc0df9957441';
 const CATEGORY_ID2 = '0022c3b2-24f5-483d-9c0b-fccc2b46972d';
@@ -26,7 +26,7 @@ class SeedError extends Error {
 
 const seedCategories = async (userId: string) => {
   const insertedCategories = await db
-    .insert(categories)
+    .insert(categoriesTable)
     .values([
       { id: CATEGORY_ID1, name: 'Продукты', userId },
       { id: CATEGORY_ID2, name: 'Транспорт', userId },
@@ -44,7 +44,7 @@ const seedCategories = async (userId: string) => {
 const seedAccounts = async (userId: string) => {
   try {
     const insertedWallets = await db
-      .insert(accounts)
+      .insert(accountsTable)
       .values([
         {
           id: ACCOUNT_ID1,
@@ -74,7 +74,7 @@ const seedUser = async () => {
     const passwordManager = new PasswordManager();
     const hashedPassword = await passwordManager.hash(USER_PASSWORD);
     const insertedUser = await db
-      .insert(users)
+      .insert(usersTable)
       .values({
         email: USER_EMAIL,
         id: USER_ID,
@@ -144,9 +144,9 @@ const seedUser = async () => {
 const deleteData = async () => {
   try {
     await db.delete(transactionsTable);
-    await db.delete(accounts);
-    await db.delete(categories);
-    await db.delete(users);
+    await db.delete(accountsTable);
+    await db.delete(categoriesTable);
+    await db.delete(usersTable);
 
     console.info('Data deleted successfully');
   } catch (error) {

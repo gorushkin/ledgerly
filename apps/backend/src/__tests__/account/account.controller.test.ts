@@ -1,4 +1,8 @@
-import { AccountCreate, AccountUpdate, UUID } from '@ledgerly/shared/types';
+import {
+  AccountCreateDTO,
+  AccountUpdateDTO,
+  UUID,
+} from '@ledgerly/shared/types';
 import { AccountController } from 'src/presentation/controllers/account.controller';
 import { AccountService } from 'src/services/account.service';
 import { describe, vi, beforeEach, it, expect } from 'vitest';
@@ -59,7 +63,7 @@ describe('AccountController', () => {
     it('should call accountService.create with correct data', async () => {
       const userId: UUID = 'a2035d76-f6b1-4546-8637-6f034f4ade50';
 
-      const requestBody: AccountCreate = {
+      const requestBody: AccountCreateDTO = {
         description: 'Test Account',
         initialBalance: 1000,
         name: 'New Account',
@@ -100,30 +104,29 @@ describe('AccountController', () => {
   describe('update', () => {
     const userId: UUID = 'a2035d76-f6b1-4546-8637-6f034f4ade50';
     const id = 'b2035d76-f6b1-4546-8637-6f034f4ade50';
-    const requestBody: AccountUpdate = {
+
+    const requestBody: AccountUpdateDTO = {
       description: 'Test Account',
       initialBalance: 1000,
       name: 'New Account',
       originalCurrency: 'USD',
       type: 'cash',
-      userId,
     };
 
     it('should call accountService.update with correct data', async () => {
-      const mockAccountResponse = { id: userId, ...requestBody };
+      await accountController.update(userId, id, requestBody);
 
-      mockAccountService.update.mockResolvedValue(mockAccountResponse);
-
-      const result = await accountController.update(userId, id, requestBody);
+      const { initialBalance, ...mockAccountResponse } = {
+        ...requestBody,
+      };
 
       expect(mockAccountService.update).toHaveBeenCalledWith(
         userId,
         id,
-        requestBody,
+        mockAccountResponse,
       );
 
       expect(mockAccountService.update).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(mockAccountResponse);
     });
 
     it('should handle invalid requestBody gracefully', async () => {

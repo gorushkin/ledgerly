@@ -79,4 +79,19 @@ export class BaseRepository {
       });
     }
   }
+
+  protected getSafeUpdate<
+    TInput extends Record<string, unknown>,
+    TAllowed extends keyof TInput,
+  >(data: TInput, allowedFields: readonly TAllowed[]): Pick<TInput, TAllowed> {
+    const result = {} as Pick<TInput, TAllowed>;
+
+    for (const key of allowedFields) {
+      if (key in data) {
+        result[key] = data[key];
+      }
+    }
+
+    return result;
+  }
 }

@@ -1,6 +1,6 @@
-import { createTestDb } from 'src/db/test-db';
+import { TestDB } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 type AuthSuccessResponse = {
   token: string;
@@ -12,17 +12,15 @@ type AuthErrorResponse = {
 };
 
 describe('Auth Integration Tests', () => {
-  let testDbInstance: ReturnType<typeof createTestDb>;
+  let testDB: TestDB;
+
   let server: ReturnType<typeof createServer>;
 
   beforeEach(async () => {
-    testDbInstance = createTestDb();
-    server = createServer(testDbInstance.db);
-    await testDbInstance.setupTestDb();
-  });
+    testDB = new TestDB();
 
-  afterAll(async () => {
-    await testDbInstance.cleanupTestDb();
+    server = createServer(testDB.db);
+    await testDB.setupTestDb();
   });
 
   const testUser = {

@@ -37,6 +37,7 @@
     "ts-check": "pnpm run -r --parallel ts-check"
   },
   "dependencies": {
+    "dayjs": "^1.11.13",
     "tsconfig-paths": "^4.2.0",
     "zod": "^3.24.3"
   },

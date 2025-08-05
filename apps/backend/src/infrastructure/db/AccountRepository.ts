@@ -1,11 +1,11 @@
 import {
-  AccountCreate,
-  AccountResponse,
-  AccountUpdate,
+  AccountInsertDTO,
+  AccountDbRowDTO,
+  AccountUpdateDbDTO,
   UUID,
 } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
-import { accounts } from 'src/db/schemas/accounts';
+import { accountsTable } from 'src/db/schemas/accounts';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -15,28 +15,29 @@ export class AccountRepository extends BaseRepository {
     super(db);
   }
 
-  // async getSuperAll() {
-  //   return this.executeDatabaseOperation<AccountResponse[]>(
-  //     () => this.db.select().from(accounts).all(),
-  //     'Failed to fetch all accounts',
-  //   );
-  // }
-
-  async getAll(userId: UUID): Promise<AccountResponse[]> {
-    return this.executeDatabaseOperation<AccountResponse[]>(
+  async getAll(userId: UUID): Promise<AccountDbRowDTO[]> {
+    return this.executeDatabaseOperation<AccountDbRowDTO[]>(
       () =>
         this.db
           .select()
-          .from(accounts)
-          .where(eq(accounts.userId, userId))
+          .from(accountsTable)
+          .where(eq(accountsTable.userId, userId))
           .all(),
       'Failed to fetch accounts',
     );
   }
 
-  create(data: AccountCreate): Promise<AccountResponse> {
+  create(data: AccountInsertDTO): Promise<AccountDbRowDTO> {
     return this.executeDatabaseOperation(
-      () => this.db.insert(accounts).values(data).returning().get(),
+      () =>
+        this.db
+          .insert(accountsTable)
+          .values({
+            ...data,
+            ...this.createTimestamps,
+          })
+          .returning()
+          .get(),
       'Failed to create account',
       {
         field: 'accountName',
@@ -46,13 +47,15 @@ export class AccountRepository extends BaseRepository {
     );
   }
 
-  getById(userId: UUID, id: UUID): Promise<AccountResponse | undefined> {
-    return this.executeDatabaseOperation<AccountResponse | undefined>(
+  getById(userId: UUID, id: UUID): Promise<AccountDbRowDTO | undefined> {
+    return this.executeDatabaseOperation<AccountDbRowDTO | undefined>(
       () =>
         this.db
           .select()
-          .from(accounts)
-          .where(and(eq(accounts.id, id), eq(accounts.userId, userId)))
+          .from(accountsTable)
+          .where(
+            and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)),
+          )
           .get(),
       'Failed to fetch account by ID',
     );
@@ -61,16 +64,26 @@ export class AccountRepository extends BaseRepository {
   async update(
     userId: UUID,
     id: UUID,
-    data: AccountUpdate,
-  ): Promise<AccountResponse> {
+    data: AccountUpdateDbDTO,
+  ): Promise<AccountDbRowDTO | undefined> {
     return this.executeDatabaseOperation(
-      () =>
-        this.db
-          .update(accounts)
-          .set(data)
-          .where(and(eq(accounts.id, id), eq(accounts.userId, userId)))
+      () => {
+        const safeData = this.getSafeUpdate(data, [
+          'initialBalance',
+          'name',
+          'originalCurrency',
+          'type',
+        ]);
+
+        return this.db
+          .update(accountsTable)
+          .set({ ...safeData, ...this.updateTimestamp })
+          .where(
+            and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)),
+          )
           .returning()
-          .get(),
+          .get();
+      },
       `Failed to update account with ID ${id}`,
       {
         field: 'accountName',
@@ -83,8 +96,8 @@ export class AccountRepository extends BaseRepository {
   async delete(userId: UUID, id: UUID): Promise<void> {
     return this.executeDatabaseOperation<void>(async () => {
       await this.db
-        .delete(accounts)
-        .where(and(eq(accounts.id, id), eq(accounts.userId, userId)))
+        .delete(accountsTable)
+        .where(and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)))
         .run();
     }, `Failed to delete account with ID ${id}`);
   }

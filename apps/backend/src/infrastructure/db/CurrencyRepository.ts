@@ -1,6 +1,6 @@
 import { Currency } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
-import { currencies } from 'src/db/schema';
+import { currenciesTable } from 'src/db/schema';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -12,7 +12,7 @@ export class CurrencyRepository extends BaseRepository {
 
   getAll(): Promise<Currency[]> {
     return this.executeDatabaseOperation(
-      () => this.db.select().from(currencies).all(),
+      () => this.db.select().from(currenciesTable).all(),
       'Failed to fetch currencies',
     );
   }
@@ -20,7 +20,11 @@ export class CurrencyRepository extends BaseRepository {
   getById(id: string): Promise<Currency | undefined> {
     return this.executeDatabaseOperation(
       () =>
-        this.db.select().from(currencies).where(eq(currencies.code, id)).get(),
+        this.db
+          .select()
+          .from(currenciesTable)
+          .where(eq(currenciesTable.code, id))
+          .get(),
       `Failed to fetch currency with ID ${id}`,
     );
   }

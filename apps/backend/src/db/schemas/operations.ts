@@ -1,7 +1,7 @@
 import { sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
 
-import { accounts } from './accounts';
-import { categories } from './categories';
+import { accountsTable } from './accounts';
+import { categoriesTable } from './categories';
 import {
   description,
   createdAt,
@@ -11,15 +11,15 @@ import {
   isTombstone,
 } from './common';
 import { transactionsTable } from './transactions';
-import { users } from './users';
+import { usersTable } from './users';
 
 export const operationsTable = sqliteTable('operations', {
   accountId: text('account_id')
     .notNull()
-    .references(() => accounts.id),
+    .references(() => accountsTable.id),
   categoryId: text('category_id')
     .notNull()
-    .references(() => categories.id),
+    .references(() => categoriesTable.id),
   createdAt,
   description,
   hash,
@@ -33,5 +33,5 @@ export const operationsTable = sqliteTable('operations', {
   updatedAt,
   userId: text('user_id')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => usersTable.id, { onDelete: 'cascade' }),
 });

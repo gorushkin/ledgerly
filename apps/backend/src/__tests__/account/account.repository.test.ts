@@ -1,51 +1,48 @@
 import {
-  AccountCreate,
-  AccountResponse,
-  UsersResponse,
+  AccountDbRowDTO,
+  AccountInsertDTO,
+  UsersResponseDTO,
 } from '@ledgerly/shared/types';
+import dayjs from 'dayjs';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import {
   ForeignKeyConstraintError,
   RecordAlreadyExistsError,
 } from 'src/presentation/errors';
-import { describe, beforeEach, beforeAll, it, expect } from 'vitest';
+import { describe, beforeEach, it, expect } from 'vitest';
 
-import { createTestDb } from '../../db/test-db';
+import { TestDB } from '../../db/test-db';
 
 const firstUserAccounts = ['firstUserAccount1', 'firstUserAccount2'];
 const secondUserAccounts = ['secondUserAccount1', 'secondUserAccount2'];
 
-const accountData: AccountCreate = {
+const accountData: AccountInsertDTO = {
+  balance: 0,
+  initialBalance: 1000,
   name: 'Test Account',
   originalCurrency: 'USD',
   type: 'cash',
   userId: 'non-existent-user-id',
 };
 
-describe('AccountRepository', () => {
-  let testDbInstance: ReturnType<typeof createTestDb>;
+describe('AccountRepository', async () => {
+  let testDB: TestDB;
 
   let accountRepository: AccountRepository;
-  let user: UsersResponse;
-
-  beforeAll(async () => {
-    testDbInstance = createTestDb();
-    await testDbInstance.setupTestDb();
-    accountRepository = new AccountRepository(testDbInstance.db);
-    user = await testDbInstance.createUser();
-  });
+  let user: UsersResponseDTO;
 
   beforeEach(async () => {
-    await testDbInstance.cleanupTestDb();
-    testDbInstance = createTestDb();
-    await testDbInstance.setupTestDb();
-    accountRepository = new AccountRepository(testDbInstance.db);
-    user = await testDbInstance.createUser();
+    testDB = new TestDB();
+    await testDB.setupTestDb();
+    accountRepository = new AccountRepository(testDB.db);
+    user = await testDB.createUser();
   });
 
   describe('create', () => {
     it('should create a new account successfully', async () => {
-      const newAccount: AccountCreate = {
+      const newAccount: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 100,
         name: 'Test Account',
         originalCurrency: 'USD',
         type: 'cash',
@@ -64,15 +61,18 @@ describe('AccountRepository', () => {
     });
 
     it('should not allow duplicate account names for the same user', async () => {
-      const newAccount: AccountCreate = {
+      const newAccount: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 100,
         name: 'Unique Account',
         originalCurrency: 'USD',
         type: 'cash',
         userId: user.id,
       };
 
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      await accountRepository.create(newAccount);
+      await testDB.createTestAccount(user.id, {
+        ...newAccount,
+      });
 
       await expect(accountRepository.create(newAccount)).rejects.toThrowError(
         new RecordAlreadyExistsError({
@@ -88,29 +88,35 @@ describe('AccountRepository', () => {
     it('should allow same account names for different users', async () => {
       const accountName = 'Shared Account Name';
 
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
       });
 
-      const firstUserAccount: AccountCreate = {
+      const firstUserAccount: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 1000,
         name: accountName,
         originalCurrency: 'USD',
         type: 'cash',
         userId: user.id,
       };
 
-      const secondUserAccount: AccountCreate = {
+      const secondUserAccount: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 1000,
         name: accountName,
         originalCurrency: 'EUR',
         type: 'savings',
         userId: secondUser.id,
       };
 
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of accountRepository.create()
-      const account1 = await accountRepository.create(firstUserAccount);
-      const account2 = await accountRepository.create(secondUserAccount);
+      const account1 = await testDB.createTestAccount(user.id, {
+        ...firstUserAccount,
+      });
+      const account2 = await testDB.createTestAccount(secondUser.id, {
+        ...secondUserAccount,
+      });
 
       expect(account1).toHaveProperty('id');
       expect(account1.name).toBe(accountName);
@@ -125,7 +131,9 @@ describe('AccountRepository', () => {
     });
 
     it('should throw an error if the original currency does not exist', async () => {
-      const newAccount: AccountCreate = {
+      const newAccount: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 100,
         name: 'Test Account',
         originalCurrency: 'XYZ',
         type: 'cash',
@@ -144,7 +152,9 @@ describe('AccountRepository', () => {
     });
 
     it('should throw an error if the user does not exist', async () => {
-      const newAccount: AccountCreate = {
+      const newAccount: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 100,
         name: 'Test Account',
         originalCurrency: 'USD',
         type: 'cash',
@@ -165,13 +175,13 @@ describe('AccountRepository', () => {
 
   describe('getAll', () => {
     beforeEach(async () => {
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
       });
 
       for (const name of firstUserAccounts) {
-        await testDbInstance.createTestAccount(user.id, {
+        await testDB.createTestAccount(user.id, {
           name,
           originalCurrency: 'USD',
           type: 'cash',
@@ -179,7 +189,7 @@ describe('AccountRepository', () => {
       }
 
       for (const name of secondUserAccounts) {
-        await testDbInstance.createTestAccount(secondUser.id, {
+        await testDB.createTestAccount(secondUser.id, {
           name,
           originalCurrency: 'USD',
           type: 'cash',
@@ -199,7 +209,7 @@ describe('AccountRepository', () => {
     });
 
     it('should not retrieve accounts for a different user', async () => {
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user2@example.com',
         name: 'Second User',
       });
@@ -217,10 +227,10 @@ describe('AccountRepository', () => {
   });
 
   describe('getById', () => {
-    let account: AccountResponse;
+    let account: AccountDbRowDTO;
 
     beforeEach(async () => {
-      account = await testDbInstance.createTestAccount(user.id);
+      account = await testDB.createTestAccount(user.id);
     });
 
     it('should retrieve an account by ID', async () => {
@@ -243,7 +253,7 @@ describe('AccountRepository', () => {
     });
 
     it('should return undefined if user does not own the account', async () => {
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
       });
@@ -258,18 +268,22 @@ describe('AccountRepository', () => {
   });
 
   describe('update', () => {
-    let account: AccountResponse;
+    let account: AccountDbRowDTO;
 
     beforeEach(async () => {
-      account = await testDbInstance.createTestAccount(user.id);
+      account = await testDB.createTestAccount(user.id);
     });
 
     it('should update account when it belongs to user', async () => {
-      const updatedAccountData: AccountCreate = {
+      const user2 = await testDB.createUser();
+
+      const updatedAccountData: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'EUR',
         type: 'savings',
-        userId: user.id,
+        userId: user2.id,
       };
 
       const updatedAccount = await accountRepository.update(
@@ -289,7 +303,9 @@ describe('AccountRepository', () => {
     });
 
     it('should return undefined when account belongs to different user', async () => {
-      const updatedAccountData: AccountCreate = {
+      const updatedAccountData: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'EUR',
         type: 'savings',
@@ -306,20 +322,20 @@ describe('AccountRepository', () => {
     });
 
     it('should not allow updating to duplicate name within same user', async () => {
-      const updatedAccountData: AccountCreate = {
+      const updatedAccountData: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'EUR',
         type: 'savings',
         userId: user.id,
       };
 
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of accountRepository.create()
-      await accountRepository.create({
+      await testDB.createTestAccount(user.id, {
+        initialBalance: 2000,
         name: updatedAccountData.name,
         originalCurrency: 'USD',
         type: 'cash',
-        userId: user.id,
       });
 
       await expect(
@@ -336,18 +352,16 @@ describe('AccountRepository', () => {
     });
 
     it('should allow updating to name that exists for different user', async () => {
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
       });
 
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of accountRepository.create()
-      const secondUserAccount = await accountRepository.create({
+      const secondUserAccount = await testDB.createTestAccount(secondUser.id, {
+        initialBalance: 2000,
         name: 'Shared Account Name',
         originalCurrency: 'USD',
         type: 'cash',
-        userId: secondUser.id,
       });
 
       const updatedSecondUserAccount = await accountRepository.update(
@@ -357,7 +371,6 @@ describe('AccountRepository', () => {
           name: accountData.name,
           originalCurrency: 'USD',
           type: 'cash',
-          userId: secondUser.id,
         },
       );
 
@@ -367,9 +380,11 @@ describe('AccountRepository', () => {
     });
 
     it('should validate currency when updating', async () => {
-      const updatedAccountData: AccountCreate = {
+      const updatedAccountData: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 2000,
         name: 'Updated Account',
-        originalCurrency: 'XYZ', // Non-existent currency
+        originalCurrency: 'XYZ',
         type: 'savings',
         userId: user.id,
       };
@@ -386,13 +401,36 @@ describe('AccountRepository', () => {
         }),
       );
     });
+
+    it('should only update allowed fields', async () => {
+      const maliciousData = {
+        createdAt: new Date().toISOString(),
+        id: 'malicious-id',
+        initialBalance: 2000,
+        name: 'Updated Account',
+        originalCurrency: 'EUR',
+        type: 'savings' as const,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const result = await accountRepository.update(
+        user.id,
+        account.id,
+        maliciousData,
+      );
+
+      expect(result?.id).toBe(account.id);
+      expect(result?.userId).toBe(user.id);
+      expect(result?.name).toBe(maliciousData.name);
+      expect(result?.originalCurrency).toBe(maliciousData.originalCurrency);
+    });
   });
 
   describe('delete', () => {
-    let account: AccountResponse;
+    let account: AccountDbRowDTO;
 
     beforeEach(async () => {
-      account = await testDbInstance.createTestAccount(user.id);
+      account = await testDB.createTestAccount(user.id);
     });
 
     it('should delete account when it exists and belongs to user', async () => {
@@ -412,17 +450,16 @@ describe('AccountRepository', () => {
     });
 
     it('should return undefined when account belongs to different user', async () => {
-      const secondUser = await testDbInstance.createUser({
+      const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
       });
 
-      // TODO: Replace with direct DB insert to avoid circular dependency in tests
-      // Should create test data via testDbInstance.db.insert() instead of accountRepository.create()
-
-      await accountRepository.create({
-        ...accountData,
-        userId: secondUser.id,
+      await testDB.createTestAccount(secondUser.id, {
+        initialBalance: 2000,
+        name: 'Shared Account Name',
+        originalCurrency: 'USD',
+        type: 'cash',
       });
 
       const deleted = await accountRepository.delete(account.id, secondUser.id);
@@ -436,6 +473,61 @@ describe('AccountRepository', () => {
     it('should return undefined when account does not exist', async () => {
       const result = await accountRepository.delete('non-existent-id', user.id);
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('timestamp behavior', () => {
+    it('should set createdAt and updatedAt on creation', async () => {
+      const beforeCreate = dayjs();
+
+      const newAccount: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 1000,
+        name: 'Timestamp Test Account',
+        originalCurrency: 'USD',
+        type: 'cash',
+        userId: user.id,
+      };
+
+      const account = await accountRepository.create(newAccount);
+      const accountDate = dayjs(account.createdAt);
+
+      const afterCreate = dayjs();
+
+      expect(account.createdAt).toBeDefined();
+      expect(account.updatedAt).toBeDefined();
+      expect(dayjs(account.createdAt)).toBeInstanceOf(dayjs);
+      expect(dayjs(account.updatedAt)).toBeInstanceOf(dayjs);
+
+      expect(beforeCreate.unix()).toBeLessThanOrEqual(accountDate.unix());
+      expect(accountDate.unix()).toBeLessThanOrEqual(afterCreate.unix());
+    });
+
+    it('should update updatedAt on account update', async () => {
+      const account = await testDB.createTestAccount(user.id);
+      const originalUpdatedAt = dayjs(account?.updatedAt);
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const updatedData: AccountInsertDTO = {
+        balance: 0,
+        initialBalance: 2000,
+        name: 'Updated Timestamp Account',
+        originalCurrency: 'EUR',
+        type: 'savings',
+        userId: user.id,
+      };
+
+      const updatedAccount = await accountRepository.update(
+        user.id,
+        account.id,
+        updatedData,
+      );
+
+      const newUpdatedAt = dayjs(updatedAccount?.updatedAt);
+
+      expect(updatedAccount?.updatedAt).not.toBe(originalUpdatedAt);
+      expect(originalUpdatedAt.unix()).toBeLessThanOrEqual(newUpdatedAt.unix());
     });
   });
 });

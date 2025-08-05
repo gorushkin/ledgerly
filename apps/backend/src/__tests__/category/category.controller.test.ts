@@ -1,4 +1,4 @@
-import { CategoryCreate } from '@ledgerly/shared/types';
+import { CategoryCreateDTO } from '@ledgerly/shared/types';
 import { CategoryController } from 'src/presentation/controllers/category.controller';
 import { CategoryService } from 'src/services/category.service';
 import { it, expect, beforeEach, describe, vi } from 'vitest';
@@ -22,7 +22,7 @@ describe('CategoryController', () => {
     ['empty object', {}],
     ['null value', null],
     ['undefined value', undefined],
-  ] as [string, CategoryCreate][];
+  ] as [string, CategoryCreateDTO][];
 
   const categoryController = new CategoryController(
     mockCategoryService as unknown as CategoryService,

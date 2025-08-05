@@ -1,11 +1,11 @@
 import {
-  CategoryCreate,
-  CategoryResponse,
-  CategoryUpdate,
+  CategoryDBInsertDTO,
+  CategoryDBRowDTO,
+  CategoryDBUpdateDTO,
   UUID,
 } from '@ledgerly/shared/types';
 import { eq, and } from 'drizzle-orm';
-import { categories } from 'src/db/schema';
+import { categoriesTable } from 'src/db/schema';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -15,13 +15,13 @@ export class CategoryRepository extends BaseRepository {
     super(db);
   }
 
-  async getAll(userId: UUID): Promise<CategoryResponse[]> {
-    return this.executeDatabaseOperation<CategoryResponse[]>(
-      () =>
+  async getAll(userId: UUID): Promise<CategoryDBRowDTO[]> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO[]>(
+      async () =>
         this.db
           .select()
-          .from(categories)
-          .where(eq(categories.userId, userId))
+          .from(categoriesTable)
+          .where(eq(categoriesTable.userId, userId))
           .all(),
       'Failed to fetch categories',
     );
@@ -30,14 +30,17 @@ export class CategoryRepository extends BaseRepository {
   async getById(
     userId: UUID,
     categoryId: UUID,
-  ): Promise<CategoryResponse | undefined> {
-    return this.executeDatabaseOperation<CategoryResponse | undefined>(
+  ): Promise<CategoryDBRowDTO | undefined> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
       () =>
         this.db
           .select()
-          .from(categories)
+          .from(categoriesTable)
           .where(
-            and(eq(categories.id, categoryId), eq(categories.userId, userId)),
+            and(
+              eq(categoriesTable.id, categoryId),
+              eq(categoriesTable.userId, userId),
+            ),
           )
           .get(),
       'Failed to fetch category by ID',
@@ -47,16 +50,16 @@ export class CategoryRepository extends BaseRepository {
   async getByName(
     userId: UUID,
     categoryName: string,
-  ): Promise<CategoryResponse | undefined> {
-    return this.executeDatabaseOperation<CategoryResponse | undefined>(
+  ): Promise<CategoryDBRowDTO | undefined> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
       () =>
         this.db
           .select()
-          .from(categories)
+          .from(categoriesTable)
           .where(
             and(
-              eq(categories.name, categoryName),
-              eq(categories.userId, userId),
+              eq(categoriesTable.name, categoryName),
+              eq(categoriesTable.userId, userId),
             ),
           )
           .get(),
@@ -67,14 +70,16 @@ export class CategoryRepository extends BaseRepository {
   update(
     userId: UUID,
     id: UUID,
-    requestBody: CategoryUpdate,
-  ): Promise<CategoryResponse | undefined> {
-    return this.executeDatabaseOperation<CategoryResponse | undefined>(
+    requestBody: CategoryDBUpdateDTO,
+  ): Promise<CategoryDBRowDTO | undefined> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
       () => {
         return this.db
-          .update(categories)
+          .update(categoriesTable)
           .set({ name: requestBody.name })
-          .where(and(eq(categories.id, id), eq(categories.userId, userId)))
+          .where(
+            and(eq(categoriesTable.id, id), eq(categoriesTable.userId, userId)),
+          )
           .returning()
           .get();
       },
@@ -83,11 +88,11 @@ export class CategoryRepository extends BaseRepository {
     );
   }
 
-  async create(requestBody: CategoryCreate): Promise<CategoryResponse> {
-    return this.executeDatabaseOperation<CategoryResponse>(
+  async create(requestBody: CategoryDBInsertDTO): Promise<CategoryDBRowDTO> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO>(
       async () =>
         this.db
-          .insert(categories)
+          .insert(categoriesTable)
           .values({
             name: requestBody.name,
             userId: requestBody.userId,
@@ -102,13 +107,16 @@ export class CategoryRepository extends BaseRepository {
   async delete(
     userId: UUID,
     categoryId: UUID,
-  ): Promise<CategoryResponse | undefined> {
-    return this.executeDatabaseOperation<CategoryResponse | undefined>(
+  ): Promise<CategoryDBRowDTO | undefined> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
       async () =>
         await this.db
-          .delete(categories)
+          .delete(categoriesTable)
           .where(
-            and(eq(categories.id, categoryId), eq(categories.userId, userId)),
+            and(
+              eq(categoriesTable.id, categoryId),
+              eq(categoriesTable.userId, userId),
+            ),
           )
           .returning()
           .get(),

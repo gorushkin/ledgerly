@@ -1,20 +1,20 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import {
   ErrorResponse,
-  UsersResponse,
+  UsersResponseDTO,
   UUID,
   ValidationError,
 } from '@ledgerly/shared/types';
-import { createTestDb } from 'src/db/test-db';
+import { TestDB } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
-import { describe, it, expect, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 const url = `/api${ROUTES.user}`;
 
 const passwordUrl = `${url}/password`;
 
 describe('User Integration Tests', () => {
-  let testDbInstance: ReturnType<typeof createTestDb>;
+  let testDB: TestDB;
   let server: ReturnType<typeof createServer>;
   let authToken: string;
   let userId: string;
@@ -26,9 +26,9 @@ describe('User Integration Tests', () => {
   };
 
   beforeEach(async () => {
-    testDbInstance = createTestDb();
-    server = createServer(testDbInstance.db);
-    await testDbInstance.setupTestDb();
+    testDB = new TestDB();
+    server = createServer(testDB.db);
+    await testDB.setupTestDb();
 
     const response = await server.inject({
       method: 'POST',
@@ -44,10 +44,6 @@ describe('User Integration Tests', () => {
     userId = decoded.userId;
   });
 
-  afterAll(async () => {
-    await testDbInstance.cleanupTestDb();
-  });
-
   describe('GET /api/user', () => {
     it('should get user profile successfully', async () => {
       const response = await server.inject({
@@ -60,7 +56,7 @@ describe('User Integration Tests', () => {
 
       expect(1).toBe(1);
 
-      const user = JSON.parse(response.body) as UsersResponse;
+      const user = JSON.parse(response.body) as UsersResponseDTO;
 
       expect(response.statusCode).toBe(200);
       expect(user).toHaveProperty('email', testUser.email);
@@ -126,7 +122,7 @@ describe('User Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const user = JSON.parse(response.body) as UsersResponse;
+      const user = JSON.parse(response.body) as UsersResponseDTO;
       expect(user).toHaveProperty('email', updatedData.email);
       expect(user).toHaveProperty('name', updatedData.name);
       expect(user).not.toHaveProperty('password');
@@ -225,7 +221,7 @@ describe('User Integration Tests', () => {
         url,
       });
 
-      const result = JSON.parse(response.body) as UsersResponse;
+      const result = JSON.parse(response.body) as UsersResponseDTO;
       expect(response.statusCode).toBe(200);
       expect(result).toHaveProperty('message', 'Profile successfully deleted');
 

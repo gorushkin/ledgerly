@@ -1,5 +1,5 @@
 import { UUID } from "./auth";
-import { OperationCreateDTO, OperationResponseDTO } from "./operations";
+import { OperationCreateDTO, OperationResponseDTO } from "./operation";
 
 type TransactionBaseDTO = {
   description: string;
@@ -27,7 +27,12 @@ export type TransactionCreateDTO = TransactionBaseDTO & {
 
 export type TransactionPreHashDTO = Omit<TransactionCreateDTO, "hash">;
 
-export type TransactionUpdateDTO = TransactionCreateDTO;
+export type TransactionUpdateDTO = Partial<
+  Omit<TransactionBaseDTO, "userId" | "balance">
+> & {
+  hash?: string;
+  operations?: OperationCreateDTO[];
+};
 
 export type TransactionResponseDTO = TransactionDbRowDTO & {
   operations: OperationResponseDTO[];

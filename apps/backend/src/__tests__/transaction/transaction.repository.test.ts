@@ -1,8 +1,8 @@
 import {
-  AccountResponse,
-  CategoryResponse,
+  AccountResponseDTO,
+  CategoryResponseDTO,
   OperationCreateDTO,
-  UsersResponse,
+  UsersResponseDTO,
   UUID,
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
@@ -30,9 +30,9 @@ type TestDBTransactionParams = {
 };
 
 const getUserTransactionDTO = (params: {
-  testAccount1: AccountResponse;
-  testAccount2: AccountResponse;
-  testCategory: CategoryResponse;
+  testAccount1: AccountResponseDTO;
+  testAccount2: AccountResponseDTO;
+  testCategory: CategoryResponseDTO;
   userId: UUID;
   description?: string;
 }): TestDBTransactionParams => {
@@ -65,10 +65,10 @@ const getUserTransactionDTO = (params: {
 
 describe('TransactionRepository', () => {
   let transactionRepository: TransactionRepository;
-  let user: UsersResponse;
-  let testCategory: CategoryResponse;
-  let testAccount1: AccountResponse;
-  let testAccount2: AccountResponse;
+  let user: UsersResponseDTO;
+  let testCategory: CategoryResponseDTO;
+  let testAccount1: AccountResponseDTO;
+  let testAccount2: AccountResponseDTO;
   let testDB: TestDB;
 
   let firstUserTransactionData: TestDBTransactionParams[];

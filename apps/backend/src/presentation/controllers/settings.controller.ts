@@ -5,7 +5,7 @@ export class SettingsController {
   constructor(private readonly repo: SettingsRepository) {}
 
   getAll() {
-    return this.repo.getSettings();
+    throw new Error('Method getAll not implemented.');
   }
 
   update(_id: string, _updatedAccount: TransactionResponseDTO) {

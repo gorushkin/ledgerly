@@ -1,7 +1,7 @@
 import {
-  CategoryResponse,
-  CategoryCreate,
-  CategoryUpdate,
+  CategoryCreateDTO,
+  CategoryResponseDTO,
+  CategoryUpdateDTO,
   UUID,
 } from '@ledgerly/shared/types';
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
@@ -15,7 +15,7 @@ export class CategoryService {
     private readonly categoryRepository: CategoryRepository,
     private readonly userService: UserService,
   ) {}
-  async getAll(userId: UUID): Promise<CategoryResponse[]> {
+  async getAll(userId: UUID): Promise<CategoryResponseDTO[]> {
     await this.userService.validateUser(userId);
 
     return this.categoryRepository.getAll(userId);
@@ -24,7 +24,7 @@ export class CategoryService {
   async validateAndGetCategory(
     userId: UUID,
     id: UUID,
-  ): Promise<CategoryResponse> {
+  ): Promise<CategoryResponseDTO> {
     await this.userService.validateUser(userId);
 
     const category = await this.categoryRepository.getById(userId, id);
@@ -41,15 +41,18 @@ export class CategoryService {
   async getByName(
     userId: UUID,
     name: string,
-  ): Promise<CategoryResponse | undefined> {
+  ): Promise<CategoryResponseDTO | undefined> {
     return this.categoryRepository.getByName(userId, name);
   }
 
-  async getById(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {
+  async getById(
+    userId: UUID,
+    id: UUID,
+  ): Promise<CategoryResponseDTO | undefined> {
     return this.validateAndGetCategory(userId, id);
   }
 
-  async create(requestBody: CategoryCreate): Promise<CategoryResponse> {
+  async create(requestBody: CategoryCreateDTO): Promise<CategoryResponseDTO> {
     await this.userService.validateUser(requestBody.userId);
 
     const existingCategory = await this.categoryRepository.getByName(
@@ -73,8 +76,8 @@ export class CategoryService {
   async update(
     userId: UUID,
     id: UUID,
-    requestBody: CategoryUpdate,
-  ): Promise<CategoryResponse | undefined> {
+    requestBody: CategoryUpdateDTO,
+  ): Promise<CategoryResponseDTO | undefined> {
     await this.validateAndGetCategory(userId, id);
 
     const existingCategoryByName = await this.categoryRepository.getByName(
@@ -95,7 +98,10 @@ export class CategoryService {
     return this.categoryRepository.update(userId, id, requestBody);
   }
 
-  async delete(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {
+  async delete(
+    userId: UUID,
+    id: UUID,
+  ): Promise<CategoryResponseDTO | undefined> {
     await this.validateAndGetCategory(userId, id);
 
     return this.categoryRepository.delete(userId, id);

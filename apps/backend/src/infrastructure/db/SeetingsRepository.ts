@@ -1,5 +1,4 @@
 import { SettingsResponseDTO } from '@ledgerly/shared/types';
-import { settings } from 'src/db/schemas';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -10,10 +9,9 @@ export class SettingsRepository extends BaseRepository {
   }
 
   getSettings(): Promise<SettingsResponseDTO[]> {
-    return this.withErrorHandling(
-      () => this.db.select().from(settings).all(),
-      'Failed to fetch settings',
-    );
+    return this.executeDatabaseOperation(() => {
+      throw new Error('Method not implemented.');
+    }, 'Failed to fetch settings');
   }
 
   updateSettings(_data: SettingsResponseDTO): Promise<SettingsResponseDTO> {

@@ -1,6 +1,10 @@
 import { ROUTES } from '@ledgerly/shared/routes';
-import { CategoryCreate, CategoryResponse, UUID } from '@ledgerly/shared/types';
-import { createTestDb } from 'src/db/test-db';
+import {
+  CategoryCreateDTO,
+  CategoryResponseDTO,
+  UUID,
+} from '@ledgerly/shared/types';
+import { TestDB } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
 import { describe, beforeEach, it, expect } from 'vitest';
 
@@ -14,12 +18,12 @@ const firstUserCategory = [
 ];
 
 describe('Category Integration Tests', () => {
-  let testDbInstance: ReturnType<typeof createTestDb>;
   let server: ReturnType<typeof createServer>;
   let authToken: string;
   let userId: string;
-  let categories: CategoryResponse[];
+  let categories: CategoryResponseDTO[];
   const headers: Record<string, string> = {};
+  let testDB: TestDB;
 
   const testUser = {
     email: 'test@example.com',
@@ -28,12 +32,12 @@ describe('Category Integration Tests', () => {
   };
 
   beforeEach(async () => {
-    testDbInstance = createTestDb();
-    server = createServer(testDbInstance.db);
-    await testDbInstance.setupTestDb();
+    testDB = new TestDB();
+    await testDB.setupTestDb();
+    server = createServer(testDB.db);
     await server.ready();
 
-    const user = await testDbInstance.createUser(testUser);
+    const user = await testDB.createUser(testUser);
 
     const token = server.jwt.sign({
       email: user.email,
@@ -46,7 +50,7 @@ describe('Category Integration Tests', () => {
     userId = decoded.userId;
 
     const promises = firstUserCategory.map((account) =>
-      testDbInstance.createTestCategory(userId, account),
+      testDB.createTestCategory(userId, account),
     );
 
     categories = await Promise.all(promises);
@@ -62,7 +66,7 @@ describe('Category Integration Tests', () => {
         url,
       });
 
-      const categories = JSON.parse(response.body) as CategoryResponse[];
+      const categories = JSON.parse(response.body) as CategoryResponseDTO[];
 
       expect(response.statusCode).toBe(200);
 
@@ -86,7 +90,7 @@ describe('Category Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const category = JSON.parse(response.body) as CategoryResponse;
+      const category = JSON.parse(response.body) as CategoryResponseDTO;
 
       expect(category.name).toBe(firstUserCategory[0].name);
       expect(category.userId).toBe(userId);
@@ -95,7 +99,7 @@ describe('Category Integration Tests', () => {
 
   describe('POST /categories', () => {
     it('should create a new category for the authenticated user', async () => {
-      const newCategory: CategoryCreate = {
+      const newCategory: CategoryCreateDTO = {
         name: 'New Category',
         userId,
       };
@@ -107,7 +111,7 @@ describe('Category Integration Tests', () => {
         url,
       });
 
-      const createdCategory = JSON.parse(response.body) as CategoryResponse;
+      const createdCategory = JSON.parse(response.body) as CategoryResponseDTO;
 
       expect(response.statusCode).toBe(201);
       expect(createdCategory.name).toBe(newCategory.name);
@@ -117,7 +121,7 @@ describe('Category Integration Tests', () => {
 
   describe('PUT /categories/:id', () => {
     it('should update an existing category for the authenticated user', async () => {
-      const updatedCategory: CategoryCreate = {
+      const updatedCategory: CategoryCreateDTO = {
         name: 'Updated Category',
         userId,
       };
@@ -131,7 +135,7 @@ describe('Category Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const category = JSON.parse(response.body) as CategoryResponse;
+      const category = JSON.parse(response.body) as CategoryResponseDTO;
 
       expect(category.name).toBe(updatedCategory.name);
       expect(category.userId).toBe(userId);

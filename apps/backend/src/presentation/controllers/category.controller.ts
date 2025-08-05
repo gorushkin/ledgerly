@@ -1,4 +1,4 @@
-import { CategoryResponse, UUID } from '@ledgerly/shared/types';
+import { CategoryResponseDTO, UUID } from '@ledgerly/shared/types';
 import {
   categoryCreateSchema,
   categoryUpdateSchema,
@@ -14,11 +14,14 @@ export class CategoryController {
       : {};
   }
 
-  async getAll(userId: UUID): Promise<CategoryResponse[]> {
+  async getAll(userId: UUID): Promise<CategoryResponseDTO[]> {
     return this.categoryService.getAll(userId);
   }
 
-  async getById(userId: UUID, id: UUID): Promise<CategoryResponse | undefined> {
+  async getById(
+    userId: UUID,
+    id: UUID,
+  ): Promise<CategoryResponseDTO | undefined> {
     return this.categoryService.getById(userId, id);
   }
 
