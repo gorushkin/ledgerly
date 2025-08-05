@@ -15,7 +15,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
+          # Убираем cache: "npm" так как используем pnpm
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
