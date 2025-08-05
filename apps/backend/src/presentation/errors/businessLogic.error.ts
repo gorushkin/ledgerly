@@ -14,7 +14,7 @@ export class BusinessLogicError extends AppError {
 export class UnbalancedTransactionError extends BusinessLogicError {
   constructor(diff: number) {
     super(
-      `Сумма операций не сбалансирована. Разница: ${diff}`,
+      `Transaction operations are not balanced. Difference: ${diff}`,
       400,
       'UnbalancedTransactionError',
     );

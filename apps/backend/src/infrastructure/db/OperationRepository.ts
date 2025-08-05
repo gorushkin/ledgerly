@@ -39,7 +39,9 @@ export class OperationRepository extends BaseRepository {
     return this.executeDatabaseOperation(
       async () => {
         if (operations.length === 0) {
-          throw new InvalidDataError('Нельзя создать транзакцию без операций');
+          throw new InvalidDataError(
+            'Cannot create transaction without operations',
+          );
         }
 
         const dbClient = tx ?? this.db;
