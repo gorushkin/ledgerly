@@ -8,6 +8,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
@@ -22,6 +25,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Create .env file for tests
+        run: |
+          echo "DATABASE_URL=file:./data/sqlite.db" > .env
+          echo "JWT_SECRET=test-secret-key" >> .env
 
       - name: TypeScript type check (backend only)
         run: pnpm --filter backend run type-check
