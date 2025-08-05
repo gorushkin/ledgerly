@@ -1,11 +1,7 @@
 import { RegisterDto, UsersResponseDTO } from '@ledgerly/shared/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
-import {
-  InvalidPasswordError,
-  UserExistsError,
-  UserNotFoundError,
-} from 'src/presentation/errors/auth.errors';
+import { AuthErrors } from 'src/presentation/errors/auth.errors';
 
 export class AuthService {
   constructor(
@@ -21,7 +17,7 @@ export class AuthService {
       await this.usersRepository.getUserByEmailWithPassword(email);
 
     if (!userWithPassword) {
-      throw new UserNotFoundError();
+      throw new AuthErrors.UserNotFoundError();
     }
 
     const isPasswordValid = await this.passwordManager.compare(
@@ -30,7 +26,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new InvalidPasswordError();
+      throw new AuthErrors.InvalidPasswordError();
     }
     const { hashedPassword: _, ...userWithoutPassword } = userWithPassword;
     return userWithoutPassword;
@@ -40,7 +36,7 @@ export class AuthService {
     const existingUser = await this.usersRepository.findByEmail(data.email);
 
     if (existingUser) {
-      throw new UserExistsError();
+      throw new AuthErrors.UserExistsError();
     }
 
     const hashedPassword = await this.passwordManager.hash(data.password);

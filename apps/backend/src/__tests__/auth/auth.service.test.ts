@@ -1,10 +1,6 @@
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
-import {
-  UserExistsError,
-  UserNotFoundError,
-  InvalidPasswordError,
-} from 'src/presentation/errors/auth.errors';
+import { AuthErrors } from 'src/presentation/errors/auth.errors';
 import { AuthService } from 'src/services/auth.service';
 import { describe, vi, beforeEach, expect, it } from 'vitest';
 
@@ -69,7 +65,7 @@ describe('AuthService', () => {
           name,
           password,
         }),
-      ).rejects.toThrowError(UserExistsError);
+      ).rejects.toThrowError(AuthErrors.UserExistsError);
     });
 
     it.todo('should call findByEmail with correct email');
@@ -118,7 +114,7 @@ describe('AuthService', () => {
       mockUsersRepository.getUserByEmailWithPassword.mockResolvedValue(null);
 
       await expect(service.validateUser(email, password)).rejects.toThrow(
-        UserNotFoundError,
+        AuthErrors.UserNotFoundError,
       );
     });
 
@@ -131,7 +127,7 @@ describe('AuthService', () => {
       mockPasswordManager.compare.mockResolvedValue(false);
 
       await expect(service.validateUser(email, password)).rejects.toThrowError(
-        InvalidPasswordError,
+        AuthErrors.InvalidPasswordError,
       );
     });
 

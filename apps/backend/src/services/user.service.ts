@@ -5,11 +5,7 @@ import {
 } from '@ledgerly/shared/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
-import {
-  UserNotFoundError,
-  InvalidPasswordError,
-  EmailAlreadyExistsError,
-} from 'src/presentation/errors/auth.errors';
+import { AuthErrors } from 'src/presentation/errors/auth.errors';
 
 export class UserService {
   constructor(
@@ -25,7 +21,7 @@ export class UserService {
     const existingUser = await this.usersRepository.getUserById(id);
 
     if (!existingUser) {
-      throw new UserNotFoundError();
+      throw new AuthErrors.UserNotFoundError();
     }
 
     return existingUser;
@@ -40,7 +36,7 @@ export class UserService {
       );
 
       if (existingUser && existingUser.id !== id) {
-        throw new EmailAlreadyExistsError();
+        throw new AuthErrors.EmailAlreadyExistsError();
       }
     }
 
@@ -52,7 +48,7 @@ export class UserService {
       await this.usersRepository.getUserByIdWithPassword(id);
 
     if (!userWithPassword) {
-      throw new UserNotFoundError();
+      throw new AuthErrors.UserNotFoundError();
     }
 
     const isCurrentPasswordValid = await this.passwordManager.compare(
@@ -61,7 +57,7 @@ export class UserService {
     );
 
     if (!isCurrentPasswordValid) {
-      throw new InvalidPasswordError();
+      throw new AuthErrors.InvalidPasswordError();
     }
 
     const hashedNewPassword = await this.passwordManager.hash(

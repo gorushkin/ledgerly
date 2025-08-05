@@ -1,7 +1,7 @@
 import { AccountCreateDTO } from '@ledgerly/shared/types';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
-import { NotFoundError } from 'src/presentation/errors';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { AccountService } from 'src/services/account.service';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -236,14 +236,7 @@ describe('AccountService', () => {
 
       await expect(
         accountService.getById(accountDataInsert.userId, accountId),
-      ).rejects.toThrowError(
-        new NotFoundError(`Account not found`, {
-          attemptedUserId: accountDataInsert.userId,
-          entity: 'Account',
-          entityId: accountId,
-          reason: 'missing',
-        }),
-      );
+      ).rejects.toThrowError(new NotFoundError(`Account not found`));
     });
   });
 

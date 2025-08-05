@@ -6,6 +6,7 @@ import {
 } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import { accountsTable } from 'src/db/schemas/accounts';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -49,14 +50,21 @@ export class AccountRepository extends BaseRepository {
 
   getById(userId: UUID, id: UUID): Promise<AccountDbRowDTO | undefined> {
     return this.executeDatabaseOperation<AccountDbRowDTO | undefined>(
-      () =>
-        this.db
+      async () => {
+        const account = await this.db
           .select()
           .from(accountsTable)
           .where(
             and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)),
           )
-          .get(),
+          .get();
+
+        if (!account) {
+          throw new NotFoundError(`Account with ID ${id} not found`);
+        }
+
+        return account;
+      },
       'Failed to fetch account by ID',
     );
   }
@@ -67,7 +75,7 @@ export class AccountRepository extends BaseRepository {
     data: AccountUpdateDbDTO,
   ): Promise<AccountDbRowDTO | undefined> {
     return this.executeDatabaseOperation(
-      () => {
+      async () => {
         const safeData = this.getSafeUpdate(data, [
           'initialBalance',
           'name',
@@ -75,7 +83,7 @@ export class AccountRepository extends BaseRepository {
           'type',
         ]);
 
-        return this.db
+        const updatedAccount = await this.db
           .update(accountsTable)
           .set({ ...safeData, ...this.updateTimestamp })
           .where(
@@ -83,6 +91,12 @@ export class AccountRepository extends BaseRepository {
           )
           .returning()
           .get();
+
+        if (!updatedAccount) {
+          throw new NotFoundError(`Account with ID ${id} not found`);
+        }
+
+        return updatedAccount;
       },
       `Failed to update account with ID ${id}`,
       {

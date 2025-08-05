@@ -16,7 +16,7 @@ const userSelect = {
   name: usersTable.name,
 } as const;
 
-const userWitHashedPasswordSelect = {
+const userWithHashedPasswordSelect = {
   ...userSelect,
   hashedPassword: usersTable.password,
 } as const;
@@ -42,7 +42,7 @@ export class UsersRepository extends BaseRepository {
     return this.executeDatabaseOperation(
       async () =>
         this.db
-          .select(userWitHashedPasswordSelect)
+          .select(userWithHashedPasswordSelect)
           .from(usersTable)
           .where(eq(usersTable.email, email))
           .get(),
@@ -66,7 +66,7 @@ export class UsersRepository extends BaseRepository {
     return this.executeDatabaseOperation(
       async () =>
         this.db
-          .select(userWitHashedPasswordSelect)
+          .select(userWithHashedPasswordSelect)
           .from(usersTable)
           .where(eq(usersTable.id, id))
           .get(),

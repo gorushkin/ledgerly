@@ -6,7 +6,7 @@ import {
 } from '@ledgerly/shared/types';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
-import { NotFoundError } from 'src/presentation/errors';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 
 import { BaseService } from './baseService';
 
@@ -22,10 +22,7 @@ export class AccountService extends BaseService {
     const currency = await this.currencyRepository.getById(currencyCode);
 
     if (!currency) {
-      throw new NotFoundError(`Currency with code ${currencyCode} not found`, {
-        entity: 'Currency',
-        entityId: currencyCode,
-      });
+      throw new NotFoundError(`Currency with code ${currencyCode} not found`);
     }
   }
 
@@ -59,7 +56,7 @@ export class AccountService extends BaseService {
     return account;
   }
 
-  async getById(userId: UUID, id: UUID): Promise<AccountUpdateDTO> {
+  async getById(userId: UUID, id: UUID): Promise<AccountResponseDTO> {
     return this.ensureAccountExistsAndOwned(userId, id);
   }
 

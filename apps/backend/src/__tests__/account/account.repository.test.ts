@@ -9,6 +9,7 @@ import {
   ForeignKeyConstraintError,
   RecordAlreadyExistsError,
 } from 'src/presentation/errors';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { describe, beforeEach, it, expect } from 'vitest';
 
 import { TestDB } from '../../db/test-db';
@@ -244,12 +245,12 @@ describe('AccountRepository', async () => {
     });
 
     it('should return undefined if account does not exist', async () => {
-      const retrievedAccount = await accountRepository.getById(
+      const retrievedAccount = accountRepository.getById(
         'non-existent-account-id',
         user.id,
       );
 
-      expect(retrievedAccount).toBeUndefined();
+      await expect(retrievedAccount).rejects.toThrowError(NotFoundError);
     });
 
     it('should return undefined if user does not own the account', async () => {
@@ -258,12 +259,12 @@ describe('AccountRepository', async () => {
         name: 'Second User',
       });
 
-      const retrievedAccount = await accountRepository.getById(
+      const retrievedAccount = accountRepository.getById(
         account.id,
         secondUser.id,
       );
 
-      expect(retrievedAccount).toBeUndefined();
+      await expect(retrievedAccount).rejects.toThrowError(NotFoundError);
     });
   });
 
@@ -312,13 +313,13 @@ describe('AccountRepository', async () => {
         userId: user.id,
       };
 
-      const updatedAccount = await accountRepository.update(
+      const updatedAccount = accountRepository.update(
         'non-existent-account-id',
         account.id,
         updatedAccountData,
       );
 
-      expect(updatedAccount).toBeUndefined();
+      await expect(updatedAccount).rejects.toThrowError(NotFoundError);
     });
 
     it('should not allow updating to duplicate name within same user', async () => {
@@ -438,14 +439,12 @@ describe('AccountRepository', async () => {
 
       expect(deleted).toBeUndefined();
 
-      const retrievedAccount = await accountRepository.getById(
-        user.id,
-        account.id,
-      );
+      const retrievedAccount = accountRepository.getById(user.id, account.id);
 
       const userAccounts = await accountRepository.getAll(user.id);
 
-      expect(retrievedAccount).toBeUndefined();
+      await expect(retrievedAccount).rejects.toThrowError(NotFoundError);
+
       expect(userAccounts.length).toBe(0);
     });
 
