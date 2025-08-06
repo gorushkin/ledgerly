@@ -1,0 +1,49 @@
+name: CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ vars.DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          # Remove cache: "npm" since we use pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create .env file for tests
+        run: |
+          echo "DATABASE_URL=file:./data/sqlite.db" > .env
+          echo "JWT_SECRET=test-secret-key" >> .env
+
+      - name: Display .env file contents
+        run: |
+          echo "Contents of .env file:"
+          cat .env
+
+      - name: TypeScript type check (backend only)
+        run: pnpm --filter backend run type-check
+
+      - name: Run linting (backend only)
+        run: pnpm --filter backend run lint
+
+      - name: Run tests (backend only)
+        run: pnpm --filter backend run test
+
+      - name: Build projects (backend only)
+        run: pnpm --filter backend run build

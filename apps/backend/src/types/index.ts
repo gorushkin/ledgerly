@@ -16,11 +16,11 @@ export abstract class BaseRepositoryNew {
   }
 }
 
-export interface JWTPayload {
+export type JWTPayload = {
   userId: string;
   email: string;
-}
+};
 
-export interface TokenGenerator {
+export type TokenGenerator = {
   signToken(payload: JWTPayload): Promise<string>;
-}
+};

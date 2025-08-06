@@ -10,10 +10,12 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: resolve(__dirname, '../../.env') });
 
 const envSchema = z.object({
-  DATABASE_URL: z.string({
-    invalid_type_error: 'DATABASE_URL must be a string',
-    required_error: 'DATABASE_URL is required',
-  }),
+  DATABASE_URL: z
+    .string({
+      invalid_type_error: 'DATABASE_URL must be a string',
+      required_error: 'DATABASE_URL is required',
+    })
+    .default('file:./data/sqlite.db'), // Add default for tests
   EXPIRES_IN: z.string().default('1h'),
 });
 

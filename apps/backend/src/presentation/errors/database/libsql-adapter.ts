@@ -15,8 +15,8 @@ export function adaptLibsqlError(
   if (context) {
     if (error.code === UNIQUE) {
       return {
-        field: context.field,
-        table: context.tableName,
+        field: context.field ?? '',
+        table: context.tableName ?? '',
         type: 'unique',
         value: context.value,
       };
@@ -24,8 +24,8 @@ export function adaptLibsqlError(
 
     if (error.code === FOREIGNKEY) {
       return {
-        field: context.field,
-        table: context.tableName,
+        field: context.field ?? '',
+        table: context.tableName ?? '',
         type: 'foreign_key',
         value: context.value,
       };

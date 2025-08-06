@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
 import '@fastify/jwt';
 import { UUID } from '@ledgerly/shared/types';
 import { AppContainer } from 'src/di/types';

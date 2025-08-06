@@ -26,10 +26,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const accountRepository = new AccountRepository(db);
   const categoryRepository = new CategoryRepository(db);
   const currencyRepository = new CurrencyRepository(db);
-  const transactionRepository = new TransactionRepository(
-    db,
-    operationRepository,
-  );
+  const transactionRepository = new TransactionRepository(db);
   const userRepository = new UsersRepository(db);
 
   const repositories: AppContainer['repositories'] = {

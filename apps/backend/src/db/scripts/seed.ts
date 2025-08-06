@@ -9,9 +9,6 @@ import { usersTable } from '../schemas/users';
 const CATEGORY_ID1 = '3a04352a-68f2-4c96-9b0d-dc0df9957441';
 const CATEGORY_ID2 = '0022c3b2-24f5-483d-9c0b-fccc2b46972d';
 
-const ACCOUNT_ID1 = '3a3c164d-a33a-4d61-8dd9-626dbb7d6a5b';
-const ACCOUNT_ID2 = '0055a5ca-faf1-46f2-afbe-6d36b1544b75';
-
 const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const USER_EMAIL = 'test@example.com';
 const USER_NAME = 'Test User';
@@ -41,33 +38,35 @@ const seedCategories = async (userId: string) => {
   return insertedCategories;
 };
 
-const seedAccounts = async (userId: string) => {
-  try {
-    const insertedWallets = await db
-      .insert(accountsTable)
-      .values([
-        {
-          id: ACCOUNT_ID1,
-          name: 'Tinkoff RUB',
-          originalCurrency: 'RUB',
-          type: 'cash',
-          userId,
-        },
-        {
-          id: ACCOUNT_ID2,
-          name: 'Tinkoff USD',
-          originalCurrency: 'USD',
-          type: 'cash',
-          userId,
-        },
-      ])
-      .returning();
+// TODO: The seedAccounts function is temporarily disabled due to ongoing changes in the accounts schema.
+//       Re-enable this function once the schema migration is complete and account seeding is required for tests or development.
+// const seedAccounts = async (userId: string) => {
+//   try {
+//     const insertedWallets = await db
+//       .insert(accountsTable)
+//       .values([
+//         {
+//           id: ACCOUNT_ID1,
+//           name: 'Tinkoff RUB',
+//           originalCurrency: 'RUB',
+//           type: 'cash',
+//           userId,
+//         },
+//         {
+//           id: ACCOUNT_ID2,
+//           name: 'Tinkoff USD',
+//           originalCurrency: 'USD',
+//           type: 'cash',
+//           userId,
+//         },
+//       ])
+//       .returning();
 
-    return insertedWallets;
-  } catch {
-    throw new SeedError('Failed to seed accounts');
-  }
-};
+//     return insertedWallets;
+//   } catch {
+//     throw new SeedError('Failed to seed accounts');
+//   }
+// };
 
 const seedUser = async () => {
   try {

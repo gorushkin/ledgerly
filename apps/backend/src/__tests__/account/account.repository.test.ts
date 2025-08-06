@@ -26,7 +26,7 @@ const accountData: AccountInsertDTO = {
   userId: 'non-existent-user-id',
 };
 
-describe('AccountRepository', async () => {
+describe('AccountRepository', () => {
   let testDB: TestDB;
 
   let accountRepository: AccountRepository;

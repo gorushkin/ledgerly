@@ -2,6 +2,7 @@ import { ROUTES } from '@ledgerly/shared/routes';
 import {
   AccountCreateDTO,
   AccountInsertDTO,
+  AccountResponseDTO,
   AccountType,
   UUID,
 } from '@ledgerly/shared/types';
@@ -33,13 +34,13 @@ const getUserTestAccounts = (userId: UUID): AccountCreateDTO[] => {
   }));
 };
 
-describe('Accounts Integration Tests', async () => {
+describe('Accounts Integration Tests', () => {
   let testDB: TestDB;
 
   let server: ReturnType<typeof createServer>;
   let authToken: string;
   let userId: string;
-  let accounts: AccountInsertDTO[];
+  let accounts: AccountResponseDTO[];
 
   const testUser = {
     email: 'test@example.com',
