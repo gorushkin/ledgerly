@@ -1,6 +1,7 @@
 import { UsersResponseDTO } from '@ledgerly/shared/types';
 import { CategoryRepository } from 'src/infrastructure/db/CategoryRepository';
 import { RecordAlreadyExistsError } from 'src/presentation/errors';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { describe, beforeEach, it, expect } from 'vitest';
 
 import { TestDB } from '../../db/test-db';
@@ -151,18 +152,17 @@ describe('CategoryRepository', () => {
     it('should return undefined when category does not exist', async () => {
       const nonExistentId = crypto.randomUUID();
 
-      const result = await categoryRepository.getById(user.id, nonExistentId);
-
-      expect(result).toBeUndefined();
+      const result = categoryRepository.getById(user.id, nonExistentId);
+      await expect(result).rejects.toThrowError(NotFoundError);
     });
 
     it('should return undefined when category belongs to different user', async () => {
       const user2 = await testDB.createUser();
       const created = await testDB.createCategory(user.id);
 
-      const result = await categoryRepository.getById(user2.id, created.id);
+      const result = categoryRepository.getById(user2.id, created.id);
 
-      expect(result).toBeUndefined();
+      await expect(result).rejects.toThrowError(NotFoundError);
     });
   });
 
@@ -177,9 +177,9 @@ describe('CategoryRepository', () => {
     });
 
     it('should return undefined when category with given name does not exist', async () => {
-      const result = await categoryRepository.getByName(user.id, 'Nonexistent');
+      const result = categoryRepository.getByName(user.id, 'Nonexistent');
 
-      expect(result).toBeUndefined();
+      await expect(result).rejects.toThrowError(NotFoundError);
     });
 
     it('should return undefined when category with name exists but belongs to another user', async () => {
@@ -189,9 +189,9 @@ describe('CategoryRepository', () => {
         name: 'SharedName',
       });
 
-      const result = await categoryRepository.getByName(user.id, 'SharedName');
+      const result = categoryRepository.getByName(user.id, 'SharedName');
 
-      expect(result).toBeUndefined();
+      await expect(result).rejects.toThrowError(NotFoundError);
     });
   });
 
@@ -219,13 +219,13 @@ describe('CategoryRepository', () => {
       });
       const updateData = { ...created, name: 'Hacked' };
 
-      const result = await categoryRepository.update(
+      const result = categoryRepository.update(
         user2.id,
         created.id,
         updateData,
       );
 
-      expect(result).toBeUndefined();
+      await expect(result).rejects.toThrowError(NotFoundError);
     });
   });
 
@@ -235,22 +235,18 @@ describe('CategoryRepository', () => {
         name: 'Test Category',
       });
 
-      const deleted = await categoryRepository.delete(user.id, created.id);
+      await categoryRepository.delete(user.id, created.id);
 
-      expect(deleted).toBeDefined();
-      expect(deleted?.id).toBe(created.id);
-      expect(deleted?.name).toBe('Test Category');
-
-      const found = await categoryRepository.getById(user.id, created.id);
-      expect(found).toBeUndefined();
+      const found = categoryRepository.getById(user.id, created.id);
+      await expect(found).rejects.toThrowError(NotFoundError);
     });
 
     it('should return undefined when category does not exist', async () => {
       const nonExistentId = crypto.randomUUID();
 
-      const result = await categoryRepository.delete(user.id, nonExistentId);
+      const result = categoryRepository.delete(user.id, nonExistentId);
 
-      expect(result).toBeUndefined();
+      await expect(result).rejects.toThrowError(NotFoundError);
     });
 
     it('should return undefined when category belongs to different user', async () => {
@@ -260,9 +256,9 @@ describe('CategoryRepository', () => {
         name: 'Test Category',
       });
 
-      const result = await categoryRepository.delete(user2.id, created.id);
+      const result = categoryRepository.delete(user2.id, created.id);
 
-      expect(result).toBeUndefined();
+      await expect(result).rejects.toThrowError(NotFoundError);
 
       const stillExists = await categoryRepository.getById(user.id, created.id);
       expect(stillExists).toBeDefined();
