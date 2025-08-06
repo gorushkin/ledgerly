@@ -109,7 +109,7 @@ export class AccountRepository extends BaseRepository {
         .where(and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)))
         .run();
 
-      if (!rowsAffected) {
+      if (rowsAffected === 0) {
         throw new NotFoundError(`Account with ID ${id} not found`);
       }
     }, `Failed to delete account with ID ${id}`);
