@@ -31,65 +31,57 @@ export class CategoryRepository extends BaseRepository {
   async getById(
     userId: UUID,
     categoryId: UUID,
-  ): Promise<CategoryDBRowDTO | undefined> {
-    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
-      async () => {
-        const category = await this.db
-          .select()
-          .from(categoriesTable)
-          .where(
-            and(
-              eq(categoriesTable.id, categoryId),
-              eq(categoriesTable.userId, userId),
-            ),
-          )
-          .get();
+  ): Promise<CategoryDBRowDTO | void> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | void>(async () => {
+      const category = await this.db
+        .select()
+        .from(categoriesTable)
+        .where(
+          and(
+            eq(categoriesTable.id, categoryId),
+            eq(categoriesTable.userId, userId),
+          ),
+        )
+        .get();
 
-        if (!category) {
-          throw new NotFoundError(`Category with ID ${categoryId} not found`);
-        }
+      if (!category) {
+        throw new NotFoundError(`Category with ID ${categoryId} not found`);
+      }
 
-        return category;
-      },
-      'Failed to fetch category by ID',
-    );
+      return category;
+    }, 'Failed to fetch category by ID');
   }
 
   async getByName(
     userId: UUID,
     categoryName: string,
-  ): Promise<CategoryDBRowDTO | undefined> {
-    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
-      async () => {
-        const updatedCategory = await this.db
-          .select()
-          .from(categoriesTable)
-          .where(
-            and(
-              eq(categoriesTable.name, categoryName),
-              eq(categoriesTable.userId, userId),
-            ),
-          )
-          .get();
+  ): Promise<CategoryDBRowDTO | void> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | void>(async () => {
+      const updatedCategory = await this.db
+        .select()
+        .from(categoriesTable)
+        .where(
+          and(
+            eq(categoriesTable.name, categoryName),
+            eq(categoriesTable.userId, userId),
+          ),
+        )
+        .get();
 
-        if (!updatedCategory) {
-          throw new NotFoundError(
-            `Category with name ${categoryName} not found`,
-          );
-        }
+      if (!updatedCategory) {
+        throw new NotFoundError(`Category with name ${categoryName} not found`);
+      }
 
-        return updatedCategory;
-      },
-      'Failed to fetch category by name',
-    );
+      return updatedCategory;
+    }, 'Failed to fetch category by name');
   }
 
   update(
     userId: UUID,
     id: UUID,
     requestBody: CategoryDBUpdateDTO,
-  ): Promise<CategoryDBRowDTO | undefined> {
-    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
+  ): Promise<CategoryDBRowDTO | void> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | void>(
       async () => {
         const category = await this.db
           .update(categoriesTable)
