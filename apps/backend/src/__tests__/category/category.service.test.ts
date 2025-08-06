@@ -9,6 +9,7 @@ describe('CategoryService', () => {
   const mockCategoryRepository = {
     create: vi.fn(),
     delete: vi.fn(),
+    existsByName: vi.fn(),
     getAll: vi.fn(),
     getById: vi.fn(),
     getByName: vi.fn(),
@@ -131,6 +132,8 @@ describe('CategoryService', () => {
         id: userId,
       });
 
+      mockCategoryRepository.existsByName.mockResolvedValue(null);
+
       const result = await service.create(newCategory);
 
       expect(mockCategoryRepository.create).toHaveBeenCalledWith(newCategory);
@@ -252,6 +255,7 @@ describe('CategoryService', () => {
       };
 
       mockCategoryRepository.getById.mockResolvedValue(category);
+      mockCategoryRepository.existsByName.mockResolvedValue(existingCategory);
       mockCategoryRepository.getByName.mockResolvedValue(existingCategory);
       mockUserService.validateUser.mockResolvedValue(true);
 

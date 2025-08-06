@@ -76,6 +76,26 @@ export class CategoryRepository extends BaseRepository {
     }, 'Failed to fetch category by name');
   }
 
+  async existsByName(
+    userId: UUID,
+    categoryName: string,
+  ): Promise<CategoryDBRowDTO | null> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | null>(async () => {
+      const category = await this.db
+        .select()
+        .from(categoriesTable)
+        .where(
+          and(
+            eq(categoriesTable.userId, userId),
+            eq(categoriesTable.name, categoryName),
+          ),
+        )
+        .get();
+
+      return category ?? null;
+    }, 'Failed to check category existence');
+  }
+
   update(
     userId: UUID,
     id: UUID,

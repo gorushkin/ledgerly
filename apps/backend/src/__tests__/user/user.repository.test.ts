@@ -1,4 +1,5 @@
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { describe, beforeEach, it, expect } from 'vitest';
 
 import { TestDB } from '../../db/test-db';
@@ -34,9 +35,9 @@ describe('UsersRepository', () => {
     });
 
     it('should return undefined for non-existent user', async () => {
-      const foundUser = await userRepository.getUserById('non-existent-id');
+      const foundUser = userRepository.getUserById('non-existent-id');
 
-      expect(foundUser).toBeUndefined();
+      await expect(foundUser).rejects.toThrowError(NotFoundError);
     });
   });
 
@@ -129,19 +130,16 @@ describe('UsersRepository', () => {
     it('should delete user successfully', async () => {
       const user = await testDB.createUser({ email, name, password });
 
-      const deletedUser = await userRepository.deleteUser(user.id);
+      await userRepository.deleteUser(user.id);
 
-      expect(deletedUser).toBeDefined();
-      expect(deletedUser?.id).toBe(user.id);
-
-      const foundUser = await userRepository.getUserById(user.id);
-      expect(foundUser).toBeUndefined();
+      const foundUser = userRepository.getUserById(user.id);
+      await expect(foundUser).rejects.toThrowError(NotFoundError);
     });
 
     it('should return undefined when trying to delete non-existent user', async () => {
-      const result = await userRepository.deleteUser('non-existent-id');
+      const result = userRepository.deleteUser('non-existent-id');
 
-      expect(result).toBeUndefined();
+      await expect(result).rejects.toThrowError(NotFoundError);
     });
   });
 

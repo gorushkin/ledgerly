@@ -195,6 +195,94 @@ describe('CategoryRepository', () => {
     });
   });
 
+  describe('existsByName', () => {
+    it('should return category when exists and belongs to user', async () => {
+      const created = await testDB.createCategory(user.id, {
+        name: 'TestCategory',
+      });
+
+      const found = await categoryRepository.existsByName(
+        user.id,
+        created.name,
+      );
+
+      expect(found).toBeDefined();
+      expect(found?.id).toBe(created.id);
+      expect(found?.name).toBe(created.name);
+      expect(found?.userId).toBe(user.id);
+    });
+
+    it('should return null when category with given name does not exist', async () => {
+      const found = await categoryRepository.existsByName(
+        user.id,
+        'NonexistentCategory',
+      );
+
+      expect(found).toBeNull();
+    });
+
+    it('should return null when category with name exists but belongs to another user', async () => {
+      const user2 = await testDB.createUser({
+        email: 'user2@example.com',
+        name: 'User2',
+      });
+
+      await testDB.createCategory(user2.id, {
+        name: 'SharedCategoryName',
+      });
+
+      const found = await categoryRepository.existsByName(
+        user.id,
+        'SharedCategoryName',
+      );
+
+      expect(found).toBeNull();
+    });
+
+    it('should return correct category when multiple categories exist', async () => {
+      const foodCategory = await testDB.createCategory(user.id, {
+        name: 'Food',
+      });
+
+      const transportCategory = await testDB.createCategory(user.id, {
+        name: 'Transport',
+      });
+
+      const foundFood = await categoryRepository.existsByName(user.id, 'Food');
+      const foundTransport = await categoryRepository.existsByName(
+        user.id,
+        'Transport',
+      );
+      const foundNonExistent = await categoryRepository.existsByName(
+        user.id,
+        'Entertainment',
+      );
+
+      expect(foundFood).toBeDefined();
+      expect(foundFood?.id).toBe(foodCategory.id);
+      expect(foundFood?.name).toBe('Food');
+
+      expect(foundTransport).toBeDefined();
+      expect(foundTransport?.id).toBe(transportCategory.id);
+      expect(foundTransport?.name).toBe('Transport');
+
+      expect(foundNonExistent).toBeNull();
+    });
+
+    it('should be case sensitive', async () => {
+      const category = await testDB.createCategory(user.id, {
+        name: 'Food',
+      });
+
+      const exactMatch = await categoryRepository.existsByName(user.id, 'Food');
+      const wrongCase = await categoryRepository.existsByName(user.id, 'food');
+
+      expect(exactMatch).toBeDefined();
+      expect(exactMatch?.id).toBe(category.id);
+      expect(wrongCase).toBeNull();
+    });
+  });
+
   describe('update', () => {
     it('should update category when it belongs to user', async () => {
       const created = await testDB.createCategory(user.id, {

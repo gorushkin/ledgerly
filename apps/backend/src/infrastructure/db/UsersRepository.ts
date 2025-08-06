@@ -6,6 +6,7 @@ import {
 } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { usersTable } from 'src/db/schemas';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -50,16 +51,20 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async getUserById(id: string): Promise<UsersResponseDTO | undefined> {
-    return this.executeDatabaseOperation(
-      async () =>
-        this.db
-          .select(userSelect)
-          .from(usersTable)
-          .where(eq(usersTable.id, id))
-          .get(),
-      `Failed to fetch user with ID ${id}`,
-    );
+  async getUserById(id: string): Promise<UsersResponseDTO> {
+    return this.executeDatabaseOperation(async () => {
+      const user = await this.db
+        .select(userSelect)
+        .from(usersTable)
+        .where(eq(usersTable.id, id))
+        .get();
+
+      if (!user) {
+        throw new NotFoundError(`User with ID ${id} not found`);
+      }
+
+      return user;
+    }, `Failed to fetch user with ID ${id}`);
   }
 
   async getUserByIdWithPassword(id: string) {
@@ -87,25 +92,33 @@ export class UsersRepository extends BaseRepository {
         }
       });
 
-      return this.db
+      const updatedUserProfile = await this.db
         .update(usersTable)
         .set(updateData)
         .where(eq(usersTable.id, id))
         .returning(userSelect)
         .get();
+
+      if (!updatedUserProfile) {
+        throw new NotFoundError(`User with ID ${id} not found`);
+      }
+
+      return updatedUserProfile;
     }, `Failed to update user profile with ID ${id}`);
   }
 
   async updateUserPassword(id: string, hashedPassword: string): Promise<void> {
-    await this.executeDatabaseOperation(
-      async () =>
-        this.db
-          .update(usersTable)
-          .set({ password: hashedPassword })
-          .where(eq(usersTable.id, id))
-          .run(),
-      `Failed to update password for user with ID ${id}`,
-    );
+    await this.executeDatabaseOperation(async () => {
+      const { rowsAffected } = await this.db
+        .update(usersTable)
+        .set({ password: hashedPassword })
+        .where(eq(usersTable.id, id))
+        .run();
+
+      if (rowsAffected === 0) {
+        throw new NotFoundError(`User with ID ${id} not found`);
+      }
+    }, `Failed to update password for user with ID ${id}`);
   }
 
   async create(data: UsersCreateDTO): Promise<UsersResponseDTO> {
@@ -116,16 +129,17 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async deleteUser(id: string): Promise<UsersResponseDTO | undefined> {
-    return this.executeDatabaseOperation(
-      async () =>
-        this.db
-          .delete(usersTable)
-          .where(eq(usersTable.id, id))
-          .returning(userSelect)
-          .get(),
-      `Failed to delete user with ID ${id}`,
-    );
+  async deleteUser(id: string): Promise<void> {
+    return this.executeDatabaseOperation(async () => {
+      const { rowsAffected } = await this.db
+        .delete(usersTable)
+        .where(eq(usersTable.id, id))
+        .run();
+
+      if (rowsAffected === 0) {
+        throw new NotFoundError(`User with ID ${id} not found`);
+      }
+    }, `Failed to delete user with ID ${id}`);
   }
 
   // TODO: remove this method

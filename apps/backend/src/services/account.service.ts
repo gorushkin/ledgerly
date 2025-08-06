@@ -33,7 +33,7 @@ export class AccountService extends BaseService {
   async ensureAccountExistsAndOwned(
     userId: UUID,
     id: UUID,
-  ): Promise<AccountResponseDTO> {
+  ): Promise<AccountResponseDTO | void> {
     const account = this.ensureEntityExists(
       await this.accountRepository.getById(userId, id),
       'Account not found',
@@ -56,7 +56,7 @@ export class AccountService extends BaseService {
     return account;
   }
 
-  async getById(userId: UUID, id: UUID): Promise<AccountResponseDTO> {
+  async getById(userId: UUID, id: UUID): Promise<AccountResponseDTO | void> {
     return this.ensureAccountExistsAndOwned(userId, id);
   }
 
@@ -73,7 +73,7 @@ export class AccountService extends BaseService {
     userId: UUID,
     id: UUID,
     data: AccountUpdateDTO,
-  ): Promise<AccountResponseDTO | undefined> {
+  ): Promise<AccountResponseDTO | void> {
     if (data.originalCurrency) {
       await this.validateCurrency(data.originalCurrency);
     }
