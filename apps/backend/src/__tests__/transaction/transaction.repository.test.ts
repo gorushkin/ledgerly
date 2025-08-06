@@ -9,6 +9,7 @@ import { TestDB } from 'src/db/test-db';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
 import { generateId } from 'src/libs';
 import { hashGenerator } from 'src/libs';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { beforeEach, describe, expect, it } from 'vitest';
 type TestDBTransactionParams = {
   userId: UUID;
@@ -184,7 +185,9 @@ describe('TransactionRepository', () => {
     });
 
     it('does nothing if transaction does not exist (no error)', async () => {
-      await transactionRepository.delete('non-existing-id');
+      const result = transactionRepository.delete('non-existing-id');
+
+      await expect(result).rejects.toThrowError(NotFoundError);
     });
   });
 
@@ -297,12 +300,12 @@ describe('TransactionRepository', () => {
       const nonExistingTransactionId = 'non-existing-id' as UUID;
       const userId = user.id;
 
-      const transaction = await transactionRepository.getById(
+      const transaction = transactionRepository.getById(
         userId,
         nonExistingTransactionId,
       );
 
-      expect(transaction).toBeUndefined();
+      await expect(transaction).rejects.toThrowError(NotFoundError);
     });
 
     it('returns undefined if user does not own the transaction', async () => {
@@ -321,12 +324,12 @@ describe('TransactionRepository', () => {
       const nonOwnerUserId = user.id;
       const transactionId = secondUserTransactions[0].id;
 
-      const transaction = await transactionRepository.getById(
+      const transaction = transactionRepository.getById(
         nonOwnerUserId,
         transactionId,
       );
 
-      expect(transaction).toBeUndefined();
+      await expect(transaction).rejects.toThrowError(NotFoundError);
     });
   });
 
@@ -411,22 +414,24 @@ describe('TransactionRepository', () => {
       const nonExistingTransactionId = 'non-existing-id' as UUID;
       const userId = user.id;
 
-      const transactionWithNonExistingId = await transactionRepository.getById(
+      const transactionWithNonExistingId = transactionRepository.getById(
         userId,
         nonExistingTransactionId,
       );
 
-      expect(transactionWithNonExistingId).toBeUndefined();
+      await expect(transactionWithNonExistingId).rejects.toThrowError(
+        NotFoundError,
+      );
 
       const nonOwnerUserId = user.id;
       const transactionId = secondUserTransactions[0].id;
 
-      const nonOwnerUserTransaction = await transactionRepository.getById(
+      const nonOwnerUserTransaction = transactionRepository.getById(
         nonOwnerUserId,
         transactionId,
       );
 
-      expect(nonOwnerUserTransaction).toBeUndefined();
+      await expect(nonOwnerUserTransaction).rejects.toThrowError(NotFoundError);
     });
 
     it('updates updatedAt timestamp', async () => {

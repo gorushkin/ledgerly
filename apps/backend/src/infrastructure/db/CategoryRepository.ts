@@ -6,6 +6,7 @@ import {
 } from '@ledgerly/shared/types';
 import { eq, and } from 'drizzle-orm';
 import { categoriesTable } from 'src/db/schema';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -30,51 +31,79 @@ export class CategoryRepository extends BaseRepository {
   async getById(
     userId: UUID,
     categoryId: UUID,
-  ): Promise<CategoryDBRowDTO | undefined> {
-    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
-      () =>
-        this.db
-          .select()
-          .from(categoriesTable)
-          .where(
-            and(
-              eq(categoriesTable.id, categoryId),
-              eq(categoriesTable.userId, userId),
-            ),
-          )
-          .get(),
-      'Failed to fetch category by ID',
-    );
+  ): Promise<CategoryDBRowDTO | void> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | void>(async () => {
+      const category = await this.db
+        .select()
+        .from(categoriesTable)
+        .where(
+          and(
+            eq(categoriesTable.id, categoryId),
+            eq(categoriesTable.userId, userId),
+          ),
+        )
+        .get();
+
+      if (!category) {
+        throw new NotFoundError(`Category with ID ${categoryId} not found`);
+      }
+
+      return category;
+    }, 'Failed to fetch category by ID');
   }
 
   async getByName(
     userId: UUID,
     categoryName: string,
-  ): Promise<CategoryDBRowDTO | undefined> {
-    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
-      () =>
-        this.db
-          .select()
-          .from(categoriesTable)
-          .where(
-            and(
-              eq(categoriesTable.name, categoryName),
-              eq(categoriesTable.userId, userId),
-            ),
-          )
-          .get(),
-      'Failed to fetch category by name',
-    );
+  ): Promise<CategoryDBRowDTO | void> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | void>(async () => {
+      const updatedCategory = await this.db
+        .select()
+        .from(categoriesTable)
+        .where(
+          and(
+            eq(categoriesTable.name, categoryName),
+            eq(categoriesTable.userId, userId),
+          ),
+        )
+        .get();
+
+      if (!updatedCategory) {
+        throw new NotFoundError(`Category with name ${categoryName} not found`);
+      }
+
+      return updatedCategory;
+    }, 'Failed to fetch category by name');
+  }
+
+  async existsByName(
+    userId: UUID,
+    categoryName: string,
+  ): Promise<CategoryDBRowDTO | null> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | null>(async () => {
+      const category = await this.db
+        .select()
+        .from(categoriesTable)
+        .where(
+          and(
+            eq(categoriesTable.userId, userId),
+            eq(categoriesTable.name, categoryName),
+          ),
+        )
+        .get();
+
+      return category ?? null;
+    }, 'Failed to check category existence');
   }
 
   update(
     userId: UUID,
     id: UUID,
     requestBody: CategoryDBUpdateDTO,
-  ): Promise<CategoryDBRowDTO | undefined> {
-    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
-      () => {
-        return this.db
+  ): Promise<CategoryDBRowDTO | void> {
+    return this.executeDatabaseOperation<CategoryDBRowDTO | void>(
+      async () => {
+        const category = await this.db
           .update(categoriesTable)
           .set({ name: requestBody.name })
           .where(
@@ -82,6 +111,12 @@ export class CategoryRepository extends BaseRepository {
           )
           .returning()
           .get();
+
+        if (!category) {
+          throw new NotFoundError(`Category with ID ${id} not found`);
+        }
+
+        return category;
       },
       'Failed to update category',
       { field: 'name', tableName: 'categories', value: requestBody.name },
@@ -104,23 +139,21 @@ export class CategoryRepository extends BaseRepository {
     );
   }
 
-  async delete(
-    userId: UUID,
-    categoryId: UUID,
-  ): Promise<CategoryDBRowDTO | undefined> {
-    return this.executeDatabaseOperation<CategoryDBRowDTO | undefined>(
-      async () =>
-        await this.db
-          .delete(categoriesTable)
-          .where(
-            and(
-              eq(categoriesTable.id, categoryId),
-              eq(categoriesTable.userId, userId),
-            ),
-          )
-          .returning()
-          .get(),
-      'Failed to delete category',
-    );
+  async delete(userId: UUID, categoryId: UUID): Promise<void> {
+    return this.executeDatabaseOperation<void>(async () => {
+      const { rowsAffected } = await this.db
+        .delete(categoriesTable)
+        .where(
+          and(
+            eq(categoriesTable.id, categoryId),
+            eq(categoriesTable.userId, userId),
+          ),
+        )
+        .run();
+
+      if (rowsAffected === 0) {
+        throw new NotFoundError(`Category with ID ${categoryId} not found`);
+      }
+    }, 'Failed to delete category');
   }
 }

@@ -38,13 +38,6 @@ export class CategoryService {
     return category;
   }
 
-  async getByName(
-    userId: UUID,
-    name: string,
-  ): Promise<CategoryResponseDTO | undefined> {
-    return this.categoryRepository.getByName(userId, name);
-  }
-
   async getById(
     userId: UUID,
     id: UUID,
@@ -55,7 +48,7 @@ export class CategoryService {
   async create(requestBody: CategoryCreateDTO): Promise<CategoryResponseDTO> {
     await this.userService.validateUser(requestBody.userId);
 
-    const existingCategory = await this.categoryRepository.getByName(
+    const existingCategory = await this.categoryRepository.existsByName(
       requestBody.userId,
       requestBody.name,
     );
@@ -77,10 +70,10 @@ export class CategoryService {
     userId: UUID,
     id: UUID,
     requestBody: CategoryUpdateDTO,
-  ): Promise<CategoryResponseDTO | undefined> {
+  ): Promise<CategoryResponseDTO | void> {
     await this.validateAndGetCategory(userId, id);
 
-    const existingCategoryByName = await this.categoryRepository.getByName(
+    const existingCategoryByName = await this.categoryRepository.existsByName(
       userId,
       requestBody.name,
     );
@@ -98,10 +91,7 @@ export class CategoryService {
     return this.categoryRepository.update(userId, id, requestBody);
   }
 
-  async delete(
-    userId: UUID,
-    id: UUID,
-  ): Promise<CategoryResponseDTO | undefined> {
+  async delete(userId: UUID, id: UUID): Promise<void> {
     await this.validateAndGetCategory(userId, id);
 
     return this.categoryRepository.delete(userId, id);

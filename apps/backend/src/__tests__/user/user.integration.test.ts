@@ -10,6 +10,7 @@ import { createServer } from 'src/presentation/server';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 const url = `/api${ROUTES.user}`;
+const fakeUserId = '999999';
 
 const passwordUrl = `${url}/password`;
 
@@ -78,7 +79,7 @@ describe('User Integration Tests', () => {
       const fakeToken = server.jwt.sign(
         {
           email: 'fake@example.com',
-          userId: '999999',
+          userId: fakeUserId,
         },
         { expiresIn: '1h' },
       );
@@ -93,8 +94,8 @@ describe('User Integration Tests', () => {
 
       const error = JSON.parse(response.body) as ErrorResponse;
 
-      expect(response.statusCode).toBe(401);
-      expect(error.message).toBe('User not found');
+      expect(response.statusCode).toBe(404);
+      expect(error.message).toBe(`User with ID ${fakeUserId} not found`);
     });
 
     it.todo('should fail with invalid auth token');
@@ -169,7 +170,7 @@ describe('User Integration Tests', () => {
       const fakeToken = server.jwt.sign(
         {
           email: 'fake@example.com',
-          userId: '999999',
+          userId: fakeUserId,
         },
         { expiresIn: '1h' },
       );
@@ -187,9 +188,9 @@ describe('User Integration Tests', () => {
       });
       const error = JSON.parse(response.body) as ErrorResponse;
 
-      expect(response.statusCode).toBe(401);
+      expect(response.statusCode).toBe(404);
 
-      expect(error.message).toBe('User not found');
+      expect(error.message).toBe(`User with ID ${fakeUserId} not found`);
     });
 
     it.todo('should update only name field when email is not provided');
@@ -233,7 +234,7 @@ describe('User Integration Tests', () => {
         url,
       });
 
-      expect(getResponse.statusCode).toBe(401);
+      expect(getResponse.statusCode).toBe(404);
     });
 
     it('should fail without auth token', async () => {
@@ -249,7 +250,7 @@ describe('User Integration Tests', () => {
       const fakeToken = server.jwt.sign(
         {
           email: 'fake@example.com',
-          userId: '999999',
+          userId: fakeUserId,
         },
         { expiresIn: '1h' },
       );
@@ -262,9 +263,9 @@ describe('User Integration Tests', () => {
         url,
       });
 
-      expect(response.statusCode).toBe(401);
+      expect(response.statusCode).toBe(404);
       const error = JSON.parse(response.body) as ErrorResponse;
-      expect(error.message).toBe('User not found');
+      expect(error.message).toBe(`User with ID ${fakeUserId} not found`);
     });
 
     it.todo(

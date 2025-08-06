@@ -5,6 +5,7 @@ import {
 } from '@ledgerly/shared/types';
 import { eq, and } from 'drizzle-orm';
 import { transactionsTable } from 'src/db/schemas';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -33,9 +34,9 @@ export class TransactionRepository extends BaseRepository {
   async getById(
     userId: UUID,
     id: UUID,
-  ): Promise<TransactionDbRecordDTO | undefined> {
+  ): Promise<TransactionDbRecordDTO | void> {
     return this.executeDatabaseOperation(async () => {
-      return this.db
+      const transaction = await this.db
         .select()
         .from(transactionsTable)
         .where(
@@ -45,6 +46,12 @@ export class TransactionRepository extends BaseRepository {
           ),
         )
         .get();
+
+      if (!transaction) {
+        throw new NotFoundError(`Transaction with ID ${id} not found`);
+      }
+
+      return transaction;
     }, 'Failed to fetch transaction');
   }
 
@@ -69,9 +76,14 @@ export class TransactionRepository extends BaseRepository {
 
   async delete(id: string): Promise<void> {
     return this.executeDatabaseOperation(async () => {
-      await this.db
+      const { rowsAffected } = await this.db
         .delete(transactionsTable)
-        .where(eq(transactionsTable.id, id));
+        .where(eq(transactionsTable.id, id))
+        .run();
+
+      if (rowsAffected === 0) {
+        throw new NotFoundError(`Transaction with id ${id} not found`);
+      }
     }, 'Failed to delete transaction');
   }
 
@@ -79,9 +91,9 @@ export class TransactionRepository extends BaseRepository {
     userId: UUID,
     id: UUID,
     data: TransactionDbRecordDTO,
-  ): Promise<TransactionDbRowDTO | undefined> {
+  ): Promise<TransactionDbRowDTO | void> {
     return this.executeDatabaseOperation(async () => {
-      return await this.db
+      const updatedTransaction = await this.db
         .update(transactionsTable)
         .set({ ...data, ...this.updateTimestamp })
         .where(
@@ -92,6 +104,12 @@ export class TransactionRepository extends BaseRepository {
         )
         .returning()
         .get();
+
+      if (!updatedTransaction) {
+        throw new NotFoundError(`Transaction with ID ${id} not found`);
+      }
+
+      return updatedTransaction;
     }, 'Failed to update transaction');
   }
 }

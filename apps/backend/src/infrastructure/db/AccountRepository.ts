@@ -48,32 +48,27 @@ export class AccountRepository extends BaseRepository {
     );
   }
 
-  getById(userId: UUID, id: UUID): Promise<AccountDbRowDTO | undefined> {
-    return this.executeDatabaseOperation<AccountDbRowDTO | undefined>(
-      async () => {
-        const account = await this.db
-          .select()
-          .from(accountsTable)
-          .where(
-            and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)),
-          )
-          .get();
+  getById(userId: UUID, id: UUID): Promise<AccountDbRowDTO | void> {
+    return this.executeDatabaseOperation<AccountDbRowDTO | void>(async () => {
+      const account = await this.db
+        .select()
+        .from(accountsTable)
+        .where(and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)))
+        .get();
 
-        if (!account) {
-          throw new NotFoundError(`Account with ID ${id} not found`);
-        }
+      if (!account) {
+        throw new NotFoundError(`Account with ID ${id} not found`);
+      }
 
-        return account;
-      },
-      'Failed to fetch account by ID',
-    );
+      return account;
+    }, 'Failed to fetch account by ID');
   }
 
   async update(
     userId: UUID,
     id: UUID,
     data: AccountUpdateDbDTO,
-  ): Promise<AccountDbRowDTO | undefined> {
+  ): Promise<AccountDbRowDTO | void> {
     return this.executeDatabaseOperation(
       async () => {
         const safeData = this.getSafeUpdate(data, [
@@ -109,10 +104,14 @@ export class AccountRepository extends BaseRepository {
 
   async delete(userId: UUID, id: UUID): Promise<void> {
     return this.executeDatabaseOperation<void>(async () => {
-      await this.db
+      const { rowsAffected } = await this.db
         .delete(accountsTable)
         .where(and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)))
         .run();
+
+      if (rowsAffected === 0) {
+        throw new NotFoundError(`Account with ID ${id} not found`);
+      }
     }, `Failed to delete account with ID ${id}`);
   }
 }
