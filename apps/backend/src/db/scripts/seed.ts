@@ -38,6 +38,8 @@ const seedCategories = async (userId: string) => {
   return insertedCategories;
 };
 
+// TODO: The seedAccounts function is temporarily disabled due to ongoing changes in the accounts schema.
+//       Re-enable this function once the schema migration is complete and account seeding is required for tests or development.
 // const seedAccounts = async (userId: string) => {
 //   try {
 //     const insertedWallets = await db
