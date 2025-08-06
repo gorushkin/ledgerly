@@ -78,7 +78,8 @@ export class TransactionRepository extends BaseRepository {
     return this.executeDatabaseOperation(async () => {
       const { rowsAffected } = await this.db
         .delete(transactionsTable)
-        .where(eq(transactionsTable.id, id));
+        .where(eq(transactionsTable.id, id))
+        .run();
 
       if (rowsAffected === 0) {
         throw new NotFoundError(`Transaction with id ${id} not found`);
