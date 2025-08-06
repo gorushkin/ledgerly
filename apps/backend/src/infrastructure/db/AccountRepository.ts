@@ -109,10 +109,14 @@ export class AccountRepository extends BaseRepository {
 
   async delete(userId: UUID, id: UUID): Promise<void> {
     return this.executeDatabaseOperation<void>(async () => {
-      await this.db
+      const { rowsAffected } = await this.db
         .delete(accountsTable)
         .where(and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)))
         .run();
+
+      if (!rowsAffected) {
+        throw new NotFoundError(`Account with ID ${id} not found`);
+      }
     }, `Failed to delete account with ID ${id}`);
   }
 }

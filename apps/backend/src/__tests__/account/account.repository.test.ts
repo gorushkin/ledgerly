@@ -461,17 +461,17 @@ describe('AccountRepository', () => {
         type: 'cash',
       });
 
-      const deleted = await accountRepository.delete(account.id, secondUser.id);
+      const deleted = accountRepository.delete(account.id, secondUser.id);
+      await expect(deleted).rejects.toThrowError(NotFoundError);
 
       const secondUserAccounts = await accountRepository.getAll(secondUser.id);
 
       expect(secondUserAccounts.length).toBe(1);
-      expect(deleted).toBeUndefined();
     });
 
     it('should return undefined when account does not exist', async () => {
-      const result = await accountRepository.delete('non-existent-id', user.id);
-      expect(result).toBeUndefined();
+      const result = accountRepository.delete('non-existent-id', user.id);
+      await expect(result).rejects.toThrowError(NotFoundError);
     });
   });
 
