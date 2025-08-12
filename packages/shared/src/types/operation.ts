@@ -12,15 +12,22 @@ export type OperationBaseDTO = {
   userId: UUID;
 };
 
-export type OperationInsertDTO = OperationBaseDTO;
+export type OperationInsertDTO = OperationBaseDTO & {
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type OperationDBRowDTO = OperationBaseDTO & {
   createdAt: string;
   updatedAt: string;
 };
 
-export type OperationCreateDTO = OperationBaseDTO;
+export type OperationCreateDTO = OperationBaseDTO & {
+  createdAt: string;
+  updatedAt: string;
+};
 
-export type OperationRaw = Omit<OperationBaseDTO, "hash">;
+export type OperationDbPreHashDTO = Omit<OperationCreateDTO, "hash">;
 
 export type OperationResponseDTO = OperationCreateDTO & {
   createdAt: string;

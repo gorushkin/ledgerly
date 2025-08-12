@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto';
 
-import { TransactionDbRecordDTO } from '@ledgerly/shared/types';
+import {
+  OperationResponseDTO,
+  TransactionDbInsertDTO,
+} from '@ledgerly/shared/types';
 
-export const sha256Sync = (input: string): string => {
+const sha256Sync = (input: string): string => {
   return createHash('sha256').update(input).digest('hex');
 };
 
@@ -18,15 +21,57 @@ const objHashGenerator = <T extends Record<string, unknown>>(
   return sha256Sync(stringifyObjectByFields(obj, fields));
 };
 
+const TRANSACTION_HASH_FIELDS: (keyof Omit<TransactionDbInsertDTO, 'hash'>)[] =
+  ['description', 'postingDate', 'transactionDate'];
+
+const OPERATION_HASH_FIELDS: (keyof Omit<OperationResponseDTO, 'hash'>)[] = [
+  'accountId',
+  'categoryId',
+  'description',
+  'id',
+  'isTombstone',
+  'localAmount',
+  'originalAmount',
+  'transactionId',
+  'updatedAt',
+];
+
+export const getTransactionHash = (
+  transaction: Omit<TransactionDbInsertDTO, 'hash'>,
+): string => {
+  return objHashGenerator(transaction, TRANSACTION_HASH_FIELDS);
+};
+
+export const getOperationHash = (
+  operation: Omit<OperationResponseDTO, 'hash'>,
+): string => {
+  return objHashGenerator(operation, OPERATION_HASH_FIELDS);
+};
+
 export const getTransactionWithHash = (
-  transaction: Omit<TransactionDbRecordDTO, 'hash'>,
-): TransactionDbRecordDTO => {
+  transaction: Omit<TransactionDbInsertDTO, 'hash'>,
+): TransactionDbInsertDTO => {
   return {
     ...transaction,
-    hash: objHashGenerator(transaction, [
-      'description',
-      'postingDate',
-      'transactionDate',
-    ]),
+    hash: getTransactionHash(transaction),
   };
+};
+
+const validateHash = <T extends Record<string, unknown>>(
+  obj: T,
+  fields: (keyof T)[],
+  actualHash: string,
+): boolean => {
+  const expected = objHashGenerator(obj, fields);
+  return expected === actualHash;
+};
+
+export const validateTransactionHash = (
+  tx: TransactionDbInsertDTO,
+): boolean => {
+  return validateHash(tx, TRANSACTION_HASH_FIELDS, tx.hash);
+};
+
+export const validateOperationHash = (op: OperationResponseDTO): boolean => {
+  return validateHash(op, OPERATION_HASH_FIELDS, op.hash);
 };

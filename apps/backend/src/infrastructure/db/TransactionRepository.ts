@@ -1,12 +1,12 @@
 import {
-  TransactionDbRecordDTO,
+  TransactionDbInsertDTO,
   TransactionDbRowDTO,
   UUID,
 } from '@ledgerly/shared/types';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { transactionsTable } from 'src/db/schemas';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
-import { DataBase } from 'src/types';
+import { DataBase, TxType } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
 
@@ -15,26 +15,28 @@ export class TransactionRepository extends BaseRepository {
     super(db);
   }
 
-  async getAll(): Promise<TransactionDbRecordDTO[]> {
+  // getAll is for admin only
+  async getAll(): Promise<TransactionDbRowDTO[]> {
     return this.executeDatabaseOperation(async () => {
       return await this.db.select().from(transactionsTable).all();
     }, 'Failed to fetch transactions');
   }
 
-  async getAllByUserId(userId: UUID): Promise<TransactionDbRecordDTO[]> {
+  async getAllByUserId(
+    userId: UUID,
+    _opts: { limit?: number; cursor?: string; accountId?: UUID } = {},
+  ): Promise<TransactionDbRowDTO[]> {
     return this.executeDatabaseOperation(async () => {
       return await this.db
         .select()
         .from(transactionsTable)
         .where(eq(transactionsTable.userId, userId))
+        .orderBy(desc(transactionsTable.createdAt))
         .all();
     }, 'Failed to fetch transactions');
   }
 
-  async getById(
-    userId: UUID,
-    id: UUID,
-  ): Promise<TransactionDbRecordDTO | void> {
+  async getById(userId: UUID, id: UUID): Promise<TransactionDbRowDTO> {
     return this.executeDatabaseOperation(async () => {
       const transaction = await this.db
         .select()
@@ -56,8 +58,8 @@ export class TransactionRepository extends BaseRepository {
   }
 
   async create(
-    dto: TransactionDbRecordDTO,
-    tx?: DataBase,
+    dto: TransactionDbInsertDTO,
+    tx?: TxType,
   ): Promise<TransactionDbRowDTO> {
     return this.executeDatabaseOperation(async () => {
       const dbClient = tx ?? this.db;
@@ -74,11 +76,19 @@ export class TransactionRepository extends BaseRepository {
     }, 'Failed to create transaction');
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(userId: UUID, id: string, tx?: TxType): Promise<void> {
+    // TODO: add checking if user owns the transaction
     return this.executeDatabaseOperation(async () => {
-      const { rowsAffected } = await this.db
+      const dbClient = tx ?? this.db;
+
+      const { rowsAffected } = await dbClient
         .delete(transactionsTable)
-        .where(eq(transactionsTable.id, id))
+        .where(
+          and(
+            eq(transactionsTable.id, id),
+            eq(transactionsTable.userId, userId),
+          ),
+        )
         .run();
 
       if (rowsAffected === 0) {
@@ -90,10 +100,13 @@ export class TransactionRepository extends BaseRepository {
   async update(
     userId: UUID,
     id: UUID,
-    data: TransactionDbRecordDTO,
-  ): Promise<TransactionDbRowDTO | void> {
+    data: TransactionDbInsertDTO,
+    tx?: TxType,
+  ): Promise<TransactionDbRowDTO> {
     return this.executeDatabaseOperation(async () => {
-      const updatedTransaction = await this.db
+      const dbClient = tx ?? this.db;
+
+      const updatedTransaction = await dbClient
         .update(transactionsTable)
         .set({ ...data, ...this.updateTimestamp })
         .where(

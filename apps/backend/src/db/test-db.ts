@@ -5,7 +5,7 @@ import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import {
   AccountType,
   OperationInsertDTO,
-  TransactionDbRecordDTO,
+  TransactionDbInsertDTO,
   TransactionDbRowDTO,
   UsersResponseDTO,
   UUID,
@@ -221,7 +221,7 @@ export class TestDB {
     return transaction;
   };
 
-  getAllTransactions = async (): Promise<TransactionDbRecordDTO[]> => {
+  getAllTransactions = async (): Promise<TransactionDbInsertDTO[]> => {
     const transactionsList = await this.db
       .select()
       .from(transactionsTable)

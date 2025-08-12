@@ -167,7 +167,7 @@ describe('TransactionRepository', () => {
       expect(transactionToBeDeleted).toBeDefined();
       expect(allTransactions).toHaveLength(transactionsToAdd.length);
 
-      await transactionRepository.delete(idTransactionToDelete);
+      await transactionRepository.delete(user.id, idTransactionToDelete);
 
       const retrievedDeletedTransaction = await testDB.getTransactionById(
         idTransactionToDelete,
@@ -177,9 +177,35 @@ describe('TransactionRepository', () => {
     });
 
     it('does nothing if transaction does not exist (no error)', async () => {
-      const result = transactionRepository.delete('non-existing-id');
+      const result = transactionRepository.delete(user.id, 'non-existing-id');
 
       await expect(result).rejects.toThrowError(NotFoundError);
+    });
+
+    it('should throw NotFoundError if transaction does not belong to user', async () => {
+      await Promise.all(
+        firstUserTransactionData.map((params) =>
+          testDB.createTransaction(params),
+        ),
+      );
+
+      const secondUserTransactions = await Promise.all(
+        secondUserTransactionData.map((params) =>
+          testDB.createTransaction(params),
+        ),
+      );
+
+      const nonOwnerUserId = user.id;
+      const transactionId = secondUserTransactions[0].id;
+
+      const deleteNonOwnerTransaction = transactionRepository.delete(
+        nonOwnerUserId,
+        transactionId,
+      );
+
+      await expect(deleteNonOwnerTransaction).rejects.toThrowError(
+        NotFoundError,
+      );
     });
   });
 
@@ -220,6 +246,9 @@ describe('TransactionRepository', () => {
 
       expect(transactions).toEqual([]);
     });
+
+    it.todo('return transactions sorted by createdAt with pagination');
+    it.todo('return transactions filtered by accountId');
   });
 
   describe('getAll', () => {

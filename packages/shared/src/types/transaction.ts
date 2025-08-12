@@ -10,14 +10,14 @@ type TransactionBaseDTO = {
   userId: UUID;
 };
 
-export type TransactionDbRecordDTO = TransactionBaseDTO;
+export type TransactionDbInsertDTO = TransactionBaseDTO;
 
 export type TransactionDbRowDTO = TransactionBaseDTO & {
   createdAt: string;
   updatedAt: string;
 };
 
-export type TransactionDbPreHashDTO = Omit<TransactionDbRecordDTO, "hash">;
+export type TransactionDbPreHashDTO = Omit<TransactionDbInsertDTO, "hash">;
 
 // transactions with operations
 
