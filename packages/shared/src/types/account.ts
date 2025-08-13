@@ -1,14 +1,14 @@
 export type AccountType =
-  | "cash"
-  | "debit"
-  | "credit"
-  | "savings"
-  | "investment";
+  | "asset"
+  | "liability"
+  | "equity"
+  | "income"
+  | "expense";
 
 import { UUID } from "./auth";
 
 type AccountBaseDTO = {
-  balance: number;
+  currentClearedBalanceLocal: number;
   description?: string;
   initialBalance: number;
   name: string;
@@ -32,7 +32,10 @@ export type AccountDbRowDTO = AccountBaseDTO & {
   updatedAt: string;
 };
 
-export type AccountCreateDTO = Omit<AccountBaseDTO, "balance">;
+export type AccountCreateDTO = Omit<
+  AccountBaseDTO,
+  "currentClearedBalanceLocal"
+>;
 
 export type AccountUpdateDTO = Partial<
   Omit<AccountBaseDTO, "userId" | "balance">

@@ -17,9 +17,10 @@ const firstUserAccounts = [
     initialBalance: 1000,
     name: 'Test Account',
     originalCurrency: 'USD',
-    type: 'cash' as AccountType,
+    type: 'asset' as AccountType,
   },
   {
+    currentClearedBalanceLocal: 0,
     initialBalance: 1000,
     name: 'Savings Account',
     originalCurrency: 'EUR',
@@ -118,7 +119,7 @@ describe('Accounts Integration Tests', () => {
         initialBalance: 500,
         name: 'New Account',
         originalCurrency: 'USD',
-        type: 'cash' as AccountType,
+        type: 'asset' as AccountType,
       };
 
       const response = await server.inject({

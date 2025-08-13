@@ -68,7 +68,7 @@ describe('AccountController', () => {
         initialBalance: 1000,
         name: 'New Account',
         originalCurrency: 'USD',
-        type: 'cash',
+        type: 'liability',
         userId,
       };
 
@@ -110,7 +110,7 @@ describe('AccountController', () => {
       initialBalance: 1000,
       name: 'New Account',
       originalCurrency: 'USD',
-      type: 'cash',
+      type: 'liability',
     };
 
     it('should call accountService.update with correct data', async () => {

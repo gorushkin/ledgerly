@@ -1,6 +1,5 @@
 import {
   AccountResponseDTO,
-  CategoryResponseDTO,
   OperationCreateDTO,
   UsersResponseDTO,
   UUID,
@@ -25,7 +24,6 @@ type TestDBTransactionParams = {
 const getUserTransactionDTO = (params: {
   testAccount1: AccountResponseDTO;
   testAccount2: AccountResponseDTO;
-  testCategory: CategoryResponseDTO;
   userId: UUID;
   description?: string;
 }): TestDBTransactionParams => {
@@ -46,7 +44,6 @@ const getUserTransactionDTO = (params: {
 describe('TransactionRepository', () => {
   let transactionRepository: TransactionRepository;
   let user: UsersResponseDTO;
-  let testCategory: CategoryResponseDTO;
   let testAccount1: AccountResponseDTO;
   let testAccount2: AccountResponseDTO;
   let testDB: TestDB;
@@ -63,8 +60,6 @@ describe('TransactionRepository', () => {
 
     user = await testDB.createUser();
 
-    testCategory = await testDB.createCategory(user.id);
-
     testAccount1 = await testDB.createAccount(user.id, {
       name: 'Test Account 1',
     });
@@ -79,7 +74,6 @@ describe('TransactionRepository', () => {
       description: 'User 1 Transaction 1',
       testAccount1,
       testAccount2,
-      testCategory,
       userId: user.id,
     });
 
@@ -87,7 +81,6 @@ describe('TransactionRepository', () => {
       description: 'User 1 Transaction 2',
       testAccount1,
       testAccount2,
-      testCategory,
       userId: user.id,
     });
 
@@ -100,7 +93,6 @@ describe('TransactionRepository', () => {
       description: 'User 2 Transaction 1',
       testAccount1,
       testAccount2,
-      testCategory,
       userId: secondUser.id,
     });
 

@@ -20,15 +20,8 @@ export const registerAccountsRoutes = (app: FastifyInstance) => {
   app.post('/', async (request, reply) => {
     const userId = request.user.userId;
 
-    try {
-      const account = await accountController.create(userId, request.body);
-      reply.status(201).send(account);
-    } catch (error) {
-      reply.status(500).send({
-        message:
-          error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
+    const account = await accountController.create(userId, request.body);
+    reply.status(201).send(account);
   });
 
   app.delete('/:id', async (request, reply) => {
@@ -44,18 +37,11 @@ export const registerAccountsRoutes = (app: FastifyInstance) => {
     const { id } = validators.uniqueIdSchema.parse(request.params);
     const userId = request.user.userId;
 
-    try {
-      const updatedAccount = await accountController.update(
-        userId,
-        id,
-        request.body,
-      );
-      reply.status(200).send(updatedAccount);
-    } catch (error) {
-      reply.status(500).send({
-        message:
-          error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
+    const updatedAccount = await accountController.update(
+      userId,
+      id,
+      request.body,
+    );
+    reply.status(200).send(updatedAccount);
   });
 };

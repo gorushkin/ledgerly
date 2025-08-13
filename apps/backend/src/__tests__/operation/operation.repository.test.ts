@@ -1,5 +1,4 @@
 import {
-  CategoryResponseDTO,
   AccountResponseDTO,
   UserDbRowDTO,
   TransactionDbRowDTO,
@@ -53,7 +52,6 @@ const operationsDescriptions = [
 describe('OperationRepository', () => {
   let operationRepository: OperationRepository;
   let testDB: TestDB;
-  let testCategory: CategoryResponseDTO;
   let testAccount: AccountResponseDTO;
   let transaction1: TransactionDbRowDTO;
   let user: UserDbRowDTO;
@@ -69,7 +67,6 @@ describe('OperationRepository', () => {
 
     user = await testDB.createUser();
 
-    testCategory = await testDB.createCategory(user.id);
     testAccount = await testDB.createAccount(user.id, {
       name: 'Test Account 1',
     });
@@ -89,7 +86,6 @@ describe('OperationRepository', () => {
     ].map((description) => {
       const data = createOperationData({
         accountId: testAccount.id,
-        categoryId: testCategory.id,
         description,
         transactionId: transaction1.id,
         userId: user.id,
@@ -103,7 +99,6 @@ describe('OperationRepository', () => {
     operationsToInsert = operationsDescriptions.map((description) =>
       createOperationData({
         accountId: testAccount.id,
-        categoryId: testCategory.id,
         description,
         transactionId: transaction1.id,
         userId: user.id,
@@ -121,7 +116,6 @@ describe('OperationRepository', () => {
 
     const transactionTwoOperationOneData = {
       accountId: testAccount.id,
-      categoryId: testCategory.id,
       description: transactionTwoOperationOneDescription,
       transactionId: transaction2.id,
       userId: user.id,
@@ -129,7 +123,6 @@ describe('OperationRepository', () => {
 
     const transactionTwoOperationTwoData = {
       accountId: testAccount.id,
-      categoryId: testCategory.id,
       description: transactionTwoOperationTwoDescription,
       transactionId: transaction2.id,
       userId: user.id,
@@ -181,7 +174,6 @@ describe('OperationRepository', () => {
 
         expect(operation).toMatchObject({
           accountId: match.accountId,
-          categoryId: match.categoryId,
           description: match.description,
           hash: match.hash,
           id: match.id,

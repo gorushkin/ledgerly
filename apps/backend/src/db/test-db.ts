@@ -20,12 +20,7 @@ import { getTransactionWithHash } from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
 
 import * as schema from './schemas';
-import {
-  accountsTable,
-  categoriesTable,
-  transactionsTable,
-  usersTable,
-} from './schemas';
+import { accountsTable, transactionsTable, usersTable } from './schemas';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -159,7 +154,7 @@ export class TestDB {
     const account = await this.db
       .insert(accountsTable)
       .values({
-        balance: accountData.initialBalance ?? 0,
+        currentClearedBalanceLocal: accountData.initialBalance ?? 0,
         initialBalance: accountData.initialBalance ?? 0,
         name: accountData.name,
         originalCurrency: accountData.originalCurrency,
@@ -172,38 +167,14 @@ export class TestDB {
     return account;
   };
 
-  createCategory = (
-    userId: UUID,
-    params?: {
-      name?: string;
-    },
-  ) => {
-    const categoryData = {
-      name: 'Test Category',
-      ...params,
-      userId,
-    };
-
-    return this.db
-      .insert(categoriesTable)
-      .values({
-        id: crypto.randomUUID(),
-        ...categoryData,
-      })
-      .returning()
-      .get();
-  };
-
   createOperation = async (params: {
     userId: UUID;
     accountId: UUID;
-    categoryId: UUID;
     transactionId: UUID;
     description?: string;
   }) => {
     const operationData: OperationInsertDTO = {
       accountId: params.accountId,
-      categoryId: params.categoryId,
       description: params.description ?? 'Test Operation',
       hash: `hash-${this.operationCounter.getNextName()}`,
       id: this.uuid,
