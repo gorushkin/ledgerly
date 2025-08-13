@@ -5,9 +5,6 @@ import { transactionsTable } from '../schemas';
 import { accountsTable } from '../schemas/accounts';
 import { usersTable } from '../schemas/users';
 
-const CATEGORY_ID1 = '3a04352a-68f2-4c96-9b0d-dc0df9957441';
-const CATEGORY_ID2 = '0022c3b2-24f5-483d-9c0b-fccc2b46972d';
-
 const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const USER_EMAIL = 'test@example.com';
 const USER_NAME = 'Test User';
