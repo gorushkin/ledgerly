@@ -8,8 +8,8 @@ import { usersTable } from './users';
 export const accountsTable = sqliteTable(
   'accounts',
   {
-    balance: real('balance').notNull(),
     createdAt,
+    currentClearedBalanceLocal: real('current_cleared_balance_local').notNull(),
     description,
     id: uuidPrimary,
     initialBalance: real('initial_balance').notNull(),

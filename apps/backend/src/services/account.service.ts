@@ -65,7 +65,7 @@ export class AccountService extends BaseService {
 
     return this.accountRepository.create({
       ...data,
-      balance: data.initialBalance,
+      currentClearedBalanceLocal: data.initialBalance,
     });
   }
 

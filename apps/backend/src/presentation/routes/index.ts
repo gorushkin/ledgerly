@@ -5,7 +5,6 @@ import { authMiddleware } from '../middleware';
 
 import { registerAccountsRoutes } from './accounts.routes';
 import { authRoutes } from './auth.routes';
-import { registerCategoriesRoutes } from './categories.routes';
 import { registerCurrenciesRoutes } from './currencies.routes';
 import { registerTransactionsRoutes } from './transactions.routes';
 import { registerUserRoutes } from './user.routes';
@@ -32,10 +31,6 @@ export const registerRoutes = (fastify: FastifyInstance) => {
 
     protectedApp.register(registerAccountsRoutes, {
       prefix: ROUTES.accounts,
-    });
-
-    protectedApp.register(registerCategoriesRoutes, {
-      prefix: ROUTES.categories,
     });
 
     protectedApp.register(registerUserRoutes, {

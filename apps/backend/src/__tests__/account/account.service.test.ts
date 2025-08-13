@@ -20,7 +20,7 @@ describe('AccountService', () => {
     initialBalance: 1000,
     name: 'Test Account',
     originalCurrency: 'USD',
-    type: 'cash',
+    type: 'liability',
     userId: 'first-user-id',
   };
 
@@ -64,7 +64,7 @@ describe('AccountService', () => {
 
       expect(accountRepository.create).toHaveBeenCalledWith({
         ...accountDataInsert,
-        balance: accountDataInsert.initialBalance,
+        currentClearedBalanceLocal: accountDataInsert.initialBalance,
         userId: accountDataInsert.userId,
       });
 
@@ -90,7 +90,7 @@ describe('AccountService', () => {
 
       expect(accountRepository.create).toHaveBeenCalledWith({
         ...accountDataInsert,
-        balance: accountDataInsert.initialBalance,
+        currentClearedBalanceLocal: accountDataInsert.initialBalance,
         userId: accountDataInsert.userId,
       });
     });

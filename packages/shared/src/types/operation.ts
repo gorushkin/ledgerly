@@ -2,7 +2,6 @@ import { UUID } from "./auth";
 
 export type OperationBaseDTO = {
   accountId: UUID;
-  categoryId: UUID;
   description: string;
   hash: string;
   id: UUID;

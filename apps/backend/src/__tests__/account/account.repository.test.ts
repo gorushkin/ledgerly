@@ -18,11 +18,11 @@ const firstUserAccounts = ['firstUserAccount1', 'firstUserAccount2'];
 const secondUserAccounts = ['secondUserAccount1', 'secondUserAccount2'];
 
 const accountData: AccountInsertDTO = {
-  balance: 0,
+  currentClearedBalanceLocal: 0,
   initialBalance: 1000,
   name: 'Test Account',
   originalCurrency: 'USD',
-  type: 'cash',
+  type: 'asset',
   userId: 'non-existent-user-id',
 };
 
@@ -42,11 +42,11 @@ describe('AccountRepository', () => {
   describe('create', () => {
     it('should create a new account successfully', async () => {
       const newAccount: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 100,
         name: 'Test Account',
         originalCurrency: 'USD',
-        type: 'cash',
+        type: 'asset',
         userId: user.id,
       };
 
@@ -63,11 +63,11 @@ describe('AccountRepository', () => {
 
     it('should not allow duplicate account names for the same user', async () => {
       const newAccount: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 100,
         name: 'Unique Account',
         originalCurrency: 'USD',
-        type: 'cash',
+        type: 'asset',
         userId: user.id,
       };
 
@@ -95,20 +95,20 @@ describe('AccountRepository', () => {
       });
 
       const firstUserAccount: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 1000,
         name: accountName,
         originalCurrency: 'USD',
-        type: 'cash',
+        type: 'asset',
         userId: user.id,
       };
 
       const secondUserAccount: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 1000,
         name: accountName,
         originalCurrency: 'EUR',
-        type: 'savings',
+        type: 'expense',
         userId: secondUser.id,
       };
 
@@ -133,11 +133,11 @@ describe('AccountRepository', () => {
 
     it('should throw an error if the original currency does not exist', async () => {
       const newAccount: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 100,
         name: 'Test Account',
         originalCurrency: 'XYZ',
-        type: 'cash',
+        type: 'asset',
         userId: user.id,
       };
 
@@ -154,11 +154,11 @@ describe('AccountRepository', () => {
 
     it('should throw an error if the user does not exist', async () => {
       const newAccount: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 100,
         name: 'Test Account',
         originalCurrency: 'USD',
-        type: 'cash',
+        type: 'asset',
         userId: 'non-existent-user-id',
       };
 
@@ -185,7 +185,7 @@ describe('AccountRepository', () => {
         await testDB.createAccount(user.id, {
           name,
           originalCurrency: 'USD',
-          type: 'cash',
+          type: 'asset',
         });
       }
 
@@ -193,7 +193,7 @@ describe('AccountRepository', () => {
         await testDB.createAccount(secondUser.id, {
           name,
           originalCurrency: 'USD',
-          type: 'cash',
+          type: 'asset',
         });
       }
     });
@@ -279,11 +279,11 @@ describe('AccountRepository', () => {
       const user2 = await testDB.createUser();
 
       const updatedAccountData: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'EUR',
-        type: 'savings',
+        type: 'expense',
         userId: user2.id,
       };
 
@@ -305,11 +305,11 @@ describe('AccountRepository', () => {
 
     it('should return undefined when account belongs to different user', async () => {
       const updatedAccountData: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'EUR',
-        type: 'savings',
+        type: 'expense',
         userId: user.id,
       };
 
@@ -324,11 +324,11 @@ describe('AccountRepository', () => {
 
     it('should not allow updating to duplicate name within same user', async () => {
       const updatedAccountData: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'EUR',
-        type: 'savings',
+        type: 'expense',
         userId: user.id,
       };
 
@@ -336,7 +336,7 @@ describe('AccountRepository', () => {
         initialBalance: 2000,
         name: updatedAccountData.name,
         originalCurrency: 'USD',
-        type: 'cash',
+        type: 'asset',
       });
 
       await expect(
@@ -362,7 +362,7 @@ describe('AccountRepository', () => {
         initialBalance: 2000,
         name: 'Shared Account Name',
         originalCurrency: 'USD',
-        type: 'cash',
+        type: 'asset',
       });
 
       const updatedSecondUserAccount = await accountRepository.update(
@@ -371,7 +371,7 @@ describe('AccountRepository', () => {
         {
           name: accountData.name,
           originalCurrency: 'USD',
-          type: 'cash',
+          type: 'asset',
         },
       );
 
@@ -382,11 +382,11 @@ describe('AccountRepository', () => {
 
     it('should validate currency when updating', async () => {
       const updatedAccountData: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'XYZ',
-        type: 'savings',
+        type: 'expense',
         userId: user.id,
       };
 
@@ -410,7 +410,7 @@ describe('AccountRepository', () => {
         initialBalance: 2000,
         name: 'Updated Account',
         originalCurrency: 'EUR',
-        type: 'savings' as const,
+        type: 'expense' as const,
         updatedAt: new Date().toISOString(),
       };
 
@@ -458,7 +458,7 @@ describe('AccountRepository', () => {
         initialBalance: 2000,
         name: 'Shared Account Name',
         originalCurrency: 'USD',
-        type: 'cash',
+        type: 'asset',
       });
 
       const deleted = accountRepository.delete(account.id, secondUser.id);
@@ -480,11 +480,11 @@ describe('AccountRepository', () => {
       const beforeCreate = dayjs();
 
       const newAccount: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 1000,
         name: 'Timestamp Test Account',
         originalCurrency: 'USD',
-        type: 'cash',
+        type: 'asset',
         userId: user.id,
       };
 
@@ -509,11 +509,11 @@ describe('AccountRepository', () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const updatedData: AccountInsertDTO = {
-        balance: 0,
+        currentClearedBalanceLocal: 0,
         initialBalance: 2000,
         name: 'Updated Timestamp Account',
         originalCurrency: 'EUR',
-        type: 'savings',
+        type: 'expense',
         userId: user.id,
       };
 

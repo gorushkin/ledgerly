@@ -14,12 +14,14 @@ const url = `/api${ROUTES.accounts}`;
 
 const firstUserAccounts = [
   {
+    currentClearedBalanceLocal: 0,
     initialBalance: 1000,
     name: 'Test Account',
     originalCurrency: 'USD',
     type: 'cash' as AccountType,
   },
   {
+    currentClearedBalanceLocal: 0,
     initialBalance: 1000,
     name: 'Savings Account',
     originalCurrency: 'EUR',
@@ -114,11 +116,12 @@ describe('Accounts Integration Tests', () => {
   describe('POST /api/accounts', () => {
     it('should create a new account', async () => {
       const newAccount = {
+        currentClearedBalanceLocal: 0,
         description: 'This is a new account',
         initialBalance: 500,
         name: 'New Account',
         originalCurrency: 'USD',
-        type: 'cash' as AccountType,
+        type: 'asset' as AccountType,
       };
 
       const response = await server.inject({

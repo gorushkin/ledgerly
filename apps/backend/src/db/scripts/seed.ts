@@ -3,7 +3,6 @@ import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { db } from '../index';
 import { transactionsTable } from '../schemas';
 import { accountsTable } from '../schemas/accounts';
-import { categoriesTable } from '../schemas/categories';
 import { usersTable } from '../schemas/users';
 
 const CATEGORY_ID1 = '3a04352a-68f2-4c96-9b0d-dc0df9957441';
@@ -20,23 +19,6 @@ class SeedError extends Error {
     this.name = 'SeedError';
   }
 }
-
-const seedCategories = async (userId: string) => {
-  const insertedCategories = await db
-    .insert(categoriesTable)
-    .values([
-      { id: CATEGORY_ID1, name: 'Продукты', userId },
-      { id: CATEGORY_ID2, name: 'Транспорт', userId },
-      { name: 'Жильё', userId },
-      { name: 'Развлечения', userId },
-      { name: 'Здоровье', userId },
-      { name: 'Одежда', userId },
-      { name: 'Доход', userId },
-    ])
-    .returning();
-
-  return insertedCategories;
-};
 
 // TODO: The seedAccounts function is temporarily disabled due to ongoing changes in the accounts schema.
 //       Re-enable this function once the schema migration is complete and account seeding is required for tests or development.
@@ -144,7 +126,6 @@ const deleteData = async () => {
   try {
     await db.delete(transactionsTable);
     await db.delete(accountsTable);
-    await db.delete(categoriesTable);
     await db.delete(usersTable);
 
     console.info('Data deleted successfully');
@@ -157,11 +138,8 @@ export const addData = async () => {
   try {
     console.info('Starting seeding...');
 
-    const user = await seedUser();
+    await seedUser();
     console.info('User seeded');
-
-    await seedCategories(user.id);
-    console.info('Categories seeded');
 
     // const insertedAccounts = await seedAccounts(user.id);
     // console.info('Accounts seeded');
