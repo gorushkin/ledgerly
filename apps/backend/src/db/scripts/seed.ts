@@ -17,36 +17,6 @@ class SeedError extends Error {
   }
 }
 
-// TODO: The seedAccounts function is temporarily disabled due to ongoing changes in the accounts schema.
-//       Re-enable this function once the schema migration is complete and account seeding is required for tests or development.
-// const seedAccounts = async (userId: string) => {
-//   try {
-//     const insertedWallets = await db
-//       .insert(accountsTable)
-//       .values([
-//         {
-//           id: ACCOUNT_ID1,
-//           name: 'Tinkoff RUB',
-//           originalCurrency: 'RUB',
-//           type: 'cash',
-//           userId,
-//         },
-//         {
-//           id: ACCOUNT_ID2,
-//           name: 'Tinkoff USD',
-//           originalCurrency: 'USD',
-//           type: 'cash',
-//           userId,
-//         },
-//       ])
-//       .returning();
-
-//     return insertedWallets;
-//   } catch {
-//     throw new SeedError('Failed to seed accounts');
-//   }
-// };
-
 const seedUser = async () => {
   try {
     const passwordManager = new PasswordManager();
@@ -68,57 +38,6 @@ const seedUser = async () => {
   }
 };
 
-// const seedTransaction = async (_accounts: AccountResponse[]) => {
-//   try {
-//     const insertedTransaction = await db
-//       .insert(transactions)
-//       .values({
-//         description: 'Test transaction',
-//         postingDate: new Date().toISOString(),
-//         transactionDate: new Date().toISOString(),
-//       })
-//       .returning();
-
-//     return insertedTransaction[0];
-//   } catch {
-//     throw new SeedError('Failed to seed transaction');
-//   }
-// };
-
-// const seedOperations = async (
-//   transaction: { id: string },
-//   accounts: AccountResponse[],
-//   categories: CategoryResponse[],
-// ) => {
-//   try {
-//     const insertedOperations = await db
-//       .insert(operations)
-//       .values([
-//         {
-//           accountId: accounts[0].id,
-//           categoryId: categories[0].id,
-//           description: 'Test operation 1',
-//           localAmount: 100,
-//           originalAmount: 100,
-//           transactionId: transaction.id,
-//         },
-//         {
-//           accountId: accounts[1].id,
-//           categoryId: categories[1].id,
-//           description: 'Test operation 2',
-//           localAmount: -100,
-//           originalAmount: -1,
-//           transactionId: transaction.id,
-//         },
-//       ])
-//       .returning();
-
-//     return insertedOperations;
-//   } catch {
-//     throw new SeedError('Failed to seed operations');
-//   }
-// };
-
 const deleteData = async () => {
   try {
     await db.delete(transactionsTable);
@@ -137,15 +56,6 @@ export const addData = async () => {
 
     await seedUser();
     console.info('User seeded');
-
-    // const insertedAccounts = await seedAccounts(user.id);
-    // console.info('Accounts seeded');
-
-    // const transaction = await seedTransaction(insertedAccounts);
-    // console.info('Transaction seeded');
-
-    // await seedOperations(transaction, insertedAccounts, insertedCategories);
-    // console.info('Operations seeded');
 
     console.info('Seeding completed successfully');
   } catch (error) {
