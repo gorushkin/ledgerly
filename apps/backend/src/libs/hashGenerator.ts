@@ -26,7 +26,6 @@ const TRANSACTION_HASH_FIELDS: (keyof Omit<TransactionDbInsertDTO, 'hash'>)[] =
 
 const OPERATION_HASH_FIELDS: (keyof Omit<OperationResponseDTO, 'hash'>)[] = [
   'accountId',
-  'categoryId',
   'description',
   'id',
   'isTombstone',

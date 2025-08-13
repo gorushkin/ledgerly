@@ -27,9 +27,11 @@ describe('TransactionService', () => {
   const mockTx = { id: 'mock-transaction' };
 
   const db = {
-    transaction: vi.fn().mockImplementation(async (callback) => {
-      return await callback(mockTx);
-    }),
+    transaction: vi
+      .fn()
+      .mockImplementation(async (callback: (db: unknown) => Promise<void>) => {
+        return await callback(mockTx);
+      }),
   } as unknown as DataBase;
 
   const accountDataInsert: AccountCreateDTO = {
@@ -170,7 +172,6 @@ describe('TransactionService', () => {
       const operations: OperationDbPreHashDTO[] = [
         {
           accountId: 'account-1',
-          categoryId: 'category-1',
           createdAt: new Date().toISOString(),
           description: 'Operation 1',
           id: 'operation-5',
@@ -182,7 +183,6 @@ describe('TransactionService', () => {
         },
         {
           accountId: 'account-2',
-          categoryId: 'category-2',
           createdAt: new Date().toISOString(),
           description: 'Operation 2',
           id: 'operation-6',

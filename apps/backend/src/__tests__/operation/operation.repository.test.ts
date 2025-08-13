@@ -13,7 +13,7 @@ import {
   ForeignKeyConstraintError,
   InvalidDataError,
 } from 'src/presentation/errors';
-import { DataBase } from 'src/types';
+import { TxType } from 'src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createOperationData = (params: {
@@ -25,7 +25,7 @@ const createOperationData = (params: {
 }): OperationInsertDTO => {
   return {
     accountId: params.accountId ?? generateId(),
-    categoryId: params.categoryId ?? generateId(),
+    createdAt: new Date().toISOString(),
     description: 'Test Operation',
     hash: 'test-hash',
     id: generateId(),
@@ -33,6 +33,7 @@ const createOperationData = (params: {
     localAmount: 100,
     originalAmount: 100,
     transactionId: params.transactionId ?? generateId(),
+    updatedAt: new Date().toISOString(),
     userId: params.userId ?? generateId(),
     ...params,
   };
@@ -164,7 +165,7 @@ describe('OperationRepository', () => {
     it('should add a bulk of operations', async () => {
       const operations = await operationRepository.bulkInsert(
         operationsToInsert,
-        testDB.db,
+        testDB.db as unknown as TxType,
       );
 
       expect(operations).toHaveLength(operationsToInsert.length);
@@ -207,7 +208,7 @@ describe('OperationRepository', () => {
             };
           },
         }),
-      } as unknown as DataBase;
+      } as unknown as TxType;
 
       await operationRepository.bulkInsert(operationsToInsert, tx);
 
@@ -225,7 +226,10 @@ describe('OperationRepository', () => {
     });
 
     it('should handle empty operations array', async () => {
-      const operations = operationRepository.bulkInsert([], testDB.db);
+      const operations = operationRepository.bulkInsert(
+        [],
+        testDB.db as unknown as TxType,
+      );
 
       await expect(operations).rejects.toThrow(InvalidDataError);
     });
@@ -237,7 +241,7 @@ describe('OperationRepository', () => {
 
       const operations = operationRepository.bulkInsert(
         [invalidOperationData],
-        testDB.db,
+        testDB.db as unknown as TxType,
       );
 
       await expect(operations).rejects.toThrow(ForeignKeyConstraintError);

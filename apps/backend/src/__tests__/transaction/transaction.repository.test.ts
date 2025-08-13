@@ -9,6 +9,7 @@ import { TransactionRepository } from 'src/infrastructure/db/TransactionReposito
 import { generateId } from 'src/libs';
 import { hashGenerator } from 'src/libs';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
+import { TxType } from 'src/types';
 import { beforeEach, describe, expect, it } from 'vitest';
 type TestDBTransactionParams = {
   userId: UUID;
@@ -116,7 +117,7 @@ describe('TransactionRepository', () => {
 
       const createdTransaction = await transactionRepository.create(
         hashGenerator.getTransactionWithHash(transactionData),
-        testDB.db,
+        testDB.db as unknown as TxType,
       );
 
       expect(createdTransaction).toHaveProperty('id');
@@ -136,7 +137,7 @@ describe('TransactionRepository', () => {
 
       const createdTransaction = await transactionRepository.create(
         hashGenerator.getTransactionWithHash(transactionData),
-        testDB.db,
+        testDB.db as unknown as TxType,
       );
 
       expect(createdTransaction).toHaveProperty('id');

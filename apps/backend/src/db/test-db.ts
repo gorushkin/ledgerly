@@ -175,12 +175,14 @@ export class TestDB {
   }) => {
     const operationData: OperationInsertDTO = {
       accountId: params.accountId,
+      createdAt: new Date().toISOString(),
       description: params.description ?? 'Test Operation',
       hash: `hash-${this.operationCounter.getNextName()}`,
       id: this.uuid,
       localAmount: 100,
       originalAmount: 100,
       transactionId: params.transactionId,
+      updatedAt: new Date().toISOString(),
       userId: params.userId,
     };
 
