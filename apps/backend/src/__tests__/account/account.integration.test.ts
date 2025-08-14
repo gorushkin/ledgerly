@@ -230,7 +230,7 @@ describe('Accounts Integration Tests', () => {
   });
 
   // Authentication & Authorization Tests
-  describe.skip('Authentication & Authorization', () => {
+  describe.todo('Authentication & Authorization', () => {
     // - should return 401 when no auth token provided
     // - should return 401 when invalid auth token provided
     // - should return 401 when expired auth token provided
@@ -240,7 +240,7 @@ describe('Accounts Integration Tests', () => {
   });
 
   // Validation Tests for POST /api/accounts
-  describe.skip('POST /api/accounts - Validation', () => {
+  describe.todo('POST /api/accounts - Validation', () => {
     // - should return 400 when name is empty
     // - should return 400 when name is missing
     // - should return 400 when name is not a string
@@ -260,7 +260,7 @@ describe('Accounts Integration Tests', () => {
   });
 
   // Validation Tests for PUT /api/accounts/:id
-  describe.skip('PUT /api/accounts/:id - Validation', () => {
+  describe.todo('PUT /api/accounts/:id - Validation', () => {
     // - should return 400 when name is empty string
     // - should return 400 when name is not a string
     // - should return 400 when originalCurrency is empty
@@ -276,14 +276,14 @@ describe('Accounts Integration Tests', () => {
   });
 
   // Edge Cases for GET /api/accounts/:id
-  describe.skip('GET /api/accounts/:id - Edge Cases', () => {
+  describe.todo('GET /api/accounts/:id - Edge Cases', () => {
     // - should return 404 when account ID doesn't exist
     // - should return 400 when account ID is invalid UUID format
     // - should return 404 when account belongs to different user
   });
 
   // Edge Cases for DELETE /api/accounts/:id
-  describe.skip('DELETE /api/accounts/:id - Edge Cases', () => {
+  describe.todo('DELETE /api/accounts/:id - Edge Cases', () => {
     // - should return 404 when account ID doesn't exist
     // - should return 400 when account ID is invalid UUID format
     // - should return 404 when trying to delete another user's account
@@ -291,14 +291,14 @@ describe('Accounts Integration Tests', () => {
   });
 
   // Foreign Key Constraint Tests
-  describe.skip('Foreign Key Constraints', () => {
+  describe.todo('Foreign Key Constraints', () => {
     // - should handle user deletion cascading to accounts
     // - should prevent creation with non-existent currency
     // - should prevent update with non-existent currency
   });
 
   // Business Logic Tests
-  describe.skip('Business Logic', () => {
+  describe.todo('Business Logic', () => {
     // - should allow multiple accounts with same name for different users
     // - should preserve other fields when partially updating account
     // - should handle account creation with all optional fields
@@ -307,7 +307,7 @@ describe('Accounts Integration Tests', () => {
   });
 
   // Database Consistency Tests
-  describe.skip('Database Consistency', () => {
+  describe.todo('Database Consistency', () => {
     // - should maintain unique constraint on (userId, name)
     // - should properly set created_at and updated_at timestamps
     // - should handle database connection errors gracefully
@@ -315,7 +315,7 @@ describe('Accounts Integration Tests', () => {
   });
 
   // Content-Type and Request Format Tests
-  describe.skip('Request Format', () => {
+  describe.todo('Request Format', () => {
     // - should return 400 when Content-Type is not application/json
     // - should return 400 when request body is not valid JSON
     // - should return 400 when request body is null
@@ -323,7 +323,7 @@ describe('Accounts Integration Tests', () => {
   });
 
   // Response Format Tests
-  describe.skip('Response Format', () => {
+  describe.todo('Response Format', () => {
     // - should return proper error format for validation errors
     // - should include all required fields in successful responses
     // - should not include sensitive data in responses
@@ -331,7 +331,7 @@ describe('Accounts Integration Tests', () => {
   });
 
   // Performance and Limits Tests
-  describe.skip('Performance & Limits', () => {
+  describe.todo('Performance & Limits', () => {
     // - should handle very long account names (within limits)
     // - should handle maximum number of accounts per user
     // - should handle special characters in account names

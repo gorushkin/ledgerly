@@ -63,7 +63,7 @@ describe('TransactionService', () => {
     );
   });
 
-  describe.skip('getAllByUserId', () => {
+  describe('getAllByUserId', () => {
     it('should call the repository method with the correct user ID and return empty array', async () => {
       const userId = accountDataInsert.userId;
 
@@ -111,7 +111,7 @@ describe('TransactionService', () => {
     });
   });
 
-  describe.skip('getById', () => {
+  describe('getById', () => {
     it('should return transaction by ID', async () => {
       transactionRepository.getById.mockResolvedValue(transactionOneRecord);
       operationRepository.getByTransactionId.mockResolvedValue(
