@@ -2,12 +2,13 @@ import { UUID } from "./auth";
 
 export type OperationBaseDTO = {
   accountId: UUID;
+  baseAmount: number;
   description: string;
   hash: string;
   id: UUID;
   isTombstone?: boolean;
-  localAmount: number;
-  originalAmount: number;
+  localAmount: number | null;
+  rateBasePerLocal: string | null;
   transactionId: UUID;
   userId: UUID;
 };

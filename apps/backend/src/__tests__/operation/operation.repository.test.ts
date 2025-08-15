@@ -8,6 +8,7 @@ import {
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
+import { getOperationHash } from 'src/libs/hashGenerator';
 import { generateId } from 'src/libs/idGenerator';
 import {
   ForeignKeyConstraintError,
@@ -23,19 +24,24 @@ const createOperationData = (params: {
   description?: string;
   userId?: UUID;
 }): OperationInsertDTO => {
-  return {
+  const presHash = {
     accountId: params.accountId ?? generateId(),
+    baseAmount: 100,
     createdAt: new Date().toISOString(),
     description: 'Test Operation',
-    hash: 'test-hash',
     id: generateId(),
     isTombstone: false,
     localAmount: 100,
-    originalAmount: 100,
+    rateBasePerLocal: '1.0',
     transactionId: params.transactionId ?? generateId(),
     updatedAt: new Date().toISOString(),
     userId: params.userId ?? generateId(),
     ...params,
+  };
+
+  return {
+    ...presHash,
+    hash: getOperationHash(presHash),
   };
 };
 
@@ -143,6 +149,7 @@ describe('OperationRepository', () => {
       expect(transactionOneOperations).toHaveLength(insertedOperations.length);
 
       transactionOneOperations.forEach((operation, index) => {
+        console.log('operation: ', typeof operation.baseAmount);
         expect(operation).toMatchObject({
           description: insertedOperations[index].description,
           transactionId: transaction1.id,
@@ -175,12 +182,12 @@ describe('OperationRepository', () => {
 
         expect(operation).toMatchObject({
           accountId: match.accountId,
+          baseAmount: match.baseAmount,
           description: match.description,
           hash: match.hash,
           id: match.id,
           isTombstone: match.isTombstone,
           localAmount: match.localAmount,
-          originalAmount: match.originalAmount,
           transactionId: transaction1.id,
           userId: user.id,
         });

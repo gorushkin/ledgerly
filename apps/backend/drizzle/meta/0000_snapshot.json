@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "cbc4c981-4291-45ea-8b6b-e17daabf7e82",
+  "id": "cac52d01-5236-4145-a4f7-5cfcd688817a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -15,6 +15,13 @@
           "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
+        "current_cleared_balance_local": {
+          "name": "current_cleared_balance_local",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "description": {
           "name": "description",
           "type": "text",
@@ -27,6 +34,13 @@
           "name": "id",
           "type": "text",
           "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "initial_balance": {
+          "name": "initial_balance",
+          "type": "real",
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -50,7 +64,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'cash'"
+          "default": "'asset'"
         },
         "updated_at": {
           "name": "updated_at",
@@ -110,67 +124,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "categories": {
-      "name": "categories",
-      "columns": {
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "categories_user_id_users_id_fk": {
-          "name": "categories_user_id_users_id_fk",
-          "tableFrom": "categories",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "transactions": {
       "name": "transactions",
       "columns": {
@@ -190,12 +143,27 @@
           "autoincrement": false,
           "default": "''"
         },
+        "hash": {
+          "name": "hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false
+        },
+        "is_tombstone": {
+          "name": "is_tombstone",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         },
         "posting_date": {
           "name": "posting_date",
@@ -288,9 +256,9 @@
           "notNull": true,
           "autoincrement": false
         },
-        "category_id": {
-          "name": "category_id",
-          "type": "text",
+        "base_amount": {
+          "name": "base_amount",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -311,6 +279,13 @@
           "autoincrement": false,
           "default": "''"
         },
+        "hash": {
+          "name": "hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "id": {
           "name": "id",
           "type": "text",
@@ -318,18 +293,26 @@
           "notNull": true,
           "autoincrement": false
         },
+        "is_tombstone": {
+          "name": "is_tombstone",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
         "local_amount": {
           "name": "local_amount",
-          "type": "real",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
-        "original_amount": {
-          "name": "original_amount",
-          "type": "real",
+        "rate_base_per_local": {
+          "name": "rate_base_per_local",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "transaction_id": {
@@ -346,9 +329,46 @@
           "notNull": true,
           "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_operations_tx": {
+          "name": "idx_operations_tx",
+          "columns": [
+            "transaction_id"
+          ],
+          "isUnique": false
+        },
+        "idx_operations_account": {
+          "name": "idx_operations_account",
+          "columns": [
+            "account_id"
+          ],
+          "isUnique": false
+        },
+        "idx_operations_user": {
+          "name": "idx_operations_user",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "u_operations_user_hash": {
+          "name": "u_operations_user_hash",
+          "columns": [
+            "user_id",
+            "hash"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "operations_account_id_accounts_id_fk": {
           "name": "operations_account_id_accounts_id_fk",
@@ -360,20 +380,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "operations_category_id_categories_id_fk": {
-          "name": "operations_category_id_categories_id_fk",
-          "tableFrom": "operations",
-          "tableTo": "categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
         "operations_transaction_id_transactions_id_fk": {
@@ -382,6 +389,19 @@
           "tableTo": "transactions",
           "columnsFrom": [
             "transaction_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "operations_user_id_users_id_fk": {
+          "name": "operations_user_id_users_id_fk",
+          "tableFrom": "operations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
           ],
           "columnsTo": [
             "id"

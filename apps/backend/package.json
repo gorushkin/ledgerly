@@ -27,7 +27,8 @@
     "delete:migrations": "rm -rf ./drizzle",
     "delete:all": "pnpm delete:db && pnpm delete:migrations",
     "full-reset:db": "pnpm delete:all && pnpm generate && pnpm migrate",
-    "testDB": "tsx src/db/test-db.ts"
+    "testDB": "tsx src/db/test-db.ts",
+    "seed:currencies": "tsx src/db/scripts/currenciesSeed.ts"
   },
   "keywords": [],
   "author": "",

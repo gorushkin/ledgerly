@@ -30,7 +30,8 @@ const OPERATION_HASH_FIELDS: (keyof Omit<OperationResponseDTO, 'hash'>)[] = [
   'id',
   'isTombstone',
   'localAmount',
-  'originalAmount',
+  'baseAmount',
+  'rateBasePerLocal',
   'transactionId',
   'updatedAt',
 ];

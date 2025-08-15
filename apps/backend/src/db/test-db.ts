@@ -21,6 +21,7 @@ import { DataBase } from 'src/types';
 
 import * as schema from './schemas';
 import { accountsTable, transactionsTable, usersTable } from './schemas';
+import { seedCurrencies } from './scripts/currenciesSeed';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -90,9 +91,9 @@ export class TestDB {
 
   async setupTestDb() {
     await this.db.run(sql`PRAGMA foreign_keys = ON;`);
-
     const migrationsFolder = join(__dirname, '../../drizzle');
     await migrate(this.db, { migrationsFolder });
+    await seedCurrencies(this.db);
   }
 
   async cleanupTestDb() {
@@ -175,12 +176,13 @@ export class TestDB {
   }) => {
     const operationData: OperationInsertDTO = {
       accountId: params.accountId,
+      baseAmount: 100,
       createdAt: new Date().toISOString(),
       description: params.description ?? 'Test Operation',
       hash: `hash-${this.operationCounter.getNextName()}`,
       id: this.uuid,
       localAmount: 100,
-      originalAmount: 100,
+      rateBasePerLocal: '1.0',
       transactionId: params.transactionId,
       updatedAt: new Date().toISOString(),
       userId: params.userId,
