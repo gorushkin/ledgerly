@@ -47,6 +47,7 @@ describe('AccountRepository', () => {
     it('should create a new account successfully', async () => {
       const newAccount: AccountDbInsert = {
         currentClearedBalanceLocal: 0,
+        description: 'This is a test account',
         initialBalance: 100,
         name: 'Test Account',
         originalCurrency: USD,

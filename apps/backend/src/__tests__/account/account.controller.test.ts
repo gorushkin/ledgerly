@@ -69,7 +69,6 @@ describe('AccountController', () => {
         name: 'New Account',
         originalCurrency: 'USD',
         type: 'liability',
-        userId,
       };
 
       const mockAccountResponse = { id: userId, ...requestBody };
@@ -107,7 +106,6 @@ describe('AccountController', () => {
 
     const requestBody: AccountUpdateDTO = {
       description: 'Test Account',
-      initialBalance: 1000,
       name: 'New Account',
       originalCurrency: 'USD',
       type: 'liability',
@@ -116,7 +114,7 @@ describe('AccountController', () => {
     it('should call accountService.update with correct data', async () => {
       await accountController.update(userId, id, requestBody);
 
-      const { initialBalance, ...mockAccountResponse } = {
+      const { ...mockAccountResponse } = {
         ...requestBody,
       };
 
