@@ -1,5 +1,4 @@
 import {
-  AccountCreateDTO,
   OperationDbPreHashDTO,
   TransactionDbPreHashDTO,
 } from '@ledgerly/shared/types';
@@ -24,6 +23,8 @@ describe('TransactionService', () => {
     getByTransactionIds: vi.fn(),
   };
 
+  const userId = 'test-user-id';
+
   const mockTx = { id: 'mock-transaction' };
 
   const db = {
@@ -34,17 +35,8 @@ describe('TransactionService', () => {
       }),
   } as unknown as DataBase;
 
-  const accountDataInsert: AccountCreateDTO = {
-    initialBalance: 1000,
-    name: 'Test Account',
-    originalCurrency: 'USD',
-    type: 'liability',
-    userId: 'first-user-id',
-  };
-
   const transactionOneRecord = {
     id: 'transaction-1',
-    userId: accountDataInsert.userId,
   };
 
   const transactionOneOperations = [
@@ -65,8 +57,6 @@ describe('TransactionService', () => {
 
   describe('getAllByUserId', () => {
     it('should call the repository method with the correct user ID and return empty array', async () => {
-      const userId = accountDataInsert.userId;
-
       transactionRepository.getAllByUserId.mockResolvedValue([]);
 
       await transactionService.getAllByUserId(userId);
@@ -75,8 +65,6 @@ describe('TransactionService', () => {
     });
 
     it('should return transactions with operations', async () => {
-      const userId = accountDataInsert.userId;
-
       const transactionsList = [
         transactionOneRecord,
         { id: 'transaction-2', operations: [], userId },
@@ -119,7 +107,7 @@ describe('TransactionService', () => {
       );
 
       const result = await transactionService.getById(
-        accountDataInsert.userId,
+        userId,
         transactionOneRecord.id,
       );
 
@@ -133,10 +121,7 @@ describe('TransactionService', () => {
       transactionRepository.getById.mockResolvedValue(null);
 
       await expect(
-        transactionService.getById(
-          accountDataInsert.userId,
-          transactionOneRecord.id,
-        ),
+        transactionService.getById(userId, transactionOneRecord.id),
       ).rejects.toThrowError(new Error('Transaction not found'));
     });
 
@@ -149,18 +134,13 @@ describe('TransactionService', () => {
       });
 
       await expect(
-        transactionService.getById(
-          accountDataInsert.userId,
-          transactionOneRecord.id,
-        ),
+        transactionService.getById(userId, transactionOneRecord.id),
       ).rejects.toThrowError(new Error('Transaction not found'));
     });
   });
 
   describe('create', () => {
     it('should create transaction with valid balanced operations', async () => {
-      const userId = accountDataInsert.userId;
-
       const newTransaction: TransactionDbPreHashDTO = {
         description: 'Test Transaction',
         id: 'new-transaction-id',

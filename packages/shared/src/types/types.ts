@@ -13,3 +13,11 @@ export type ValidationError = {
     },
   ];
 };
+
+export type IsoDatetimeString = string;
+// export type IsoDatetimeString = string & { readonly __brand: "ISO-8601" };
+
+export type CurrencyCode = string;
+// export type CurrencyCode = string & { readonly __brand: "CurrencyCode" };
+
+// export type IsoDatetimeString = z.infer<typeof isoDatetime>;

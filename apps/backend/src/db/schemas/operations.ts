@@ -11,9 +11,9 @@ import {
   description,
   createdAt,
   updatedAt,
-  clientGeneratedId,
   hash,
   isTombstone,
+  stop_uuidPrimary,
 } from './common';
 import { transactionsTable } from './transactions';
 import { usersTable } from './users';
@@ -28,7 +28,7 @@ export const operationsTable = sqliteTable(
     createdAt,
     description,
     hash,
-    id: clientGeneratedId,
+    id: stop_uuidPrimary,
     isTombstone,
     localAmount: integer('local_amount'),
     rateBasePerLocal: text('rate_base_per_local'),

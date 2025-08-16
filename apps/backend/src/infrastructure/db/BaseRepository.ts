@@ -12,45 +12,50 @@ import { DataBase } from 'src/types';
 export type NormalizedDbError =
   | { type: 'unique'; table: string; field: string; value?: string }
   | { type: 'foreign_key'; table: string; field: string; value?: string }
+  | { type: 'primary_key'; table: string; field: string; value?: string }
   | { type: 'unknown'; original: Error };
+
+type RetryAwareContext = DBErrorContext & {
+  retryOnPkCollision?: boolean;
+  maxPkCollisionRetries?: number;
+};
+
+const DEFAULT_MAX_RETRIES = 3;
 
 export class BaseRepository {
   constructor(readonly db: DataBase) {}
+
   protected get createTimestamps() {
     const now = new Date().toISOString();
-    return {
-      createdAt: now,
-      updatedAt: now,
-    };
+    return { createdAt: now, updatedAt: now };
   }
 
   protected get updateTimestamp() {
-    return {
-      updatedAt: new Date().toISOString(),
-    };
+    return { updatedAt: new Date().toISOString() };
+  }
+
+  protected get uuid(): { id: string } {
+    return { id: crypto.randomUUID() };
   }
 
   protected async executeDatabaseOperation<T>(
     operation: () => Promise<T>,
     errorMessage: string,
-    context?: DBErrorContext,
+    context?: RetryAwareContext,
   ): Promise<T> {
-    try {
-      return await operation();
-    } catch (error) {
-      const normalized = adaptLibsqlError(error, context);
+    const retryEnabled = context?.retryOnPkCollision ?? true;
+    const maxRetries = context?.maxPkCollisionRetries ?? DEFAULT_MAX_RETRIES;
 
-      if (normalized) {
-        switch (normalized.type) {
-          case 'unique':
-            throw new RecordAlreadyExistsError({
-              context: {
-                field: normalized.field,
-                tableName: normalized.table,
-                value: normalized.value,
-              },
-            });
-          case 'foreign_key':
+    let attempt = 0;
+
+    while (true) {
+      try {
+        return await operation();
+      } catch (error) {
+        const normalized = adaptLibsqlError(error, context);
+
+        if (normalized) {
+          if (normalized.type === 'foreign_key') {
             throw new ForeignKeyConstraintError({
               context: {
                 field: normalized.field,
@@ -58,28 +63,57 @@ export class BaseRepository {
                 value: normalized.value,
               },
             });
-          case 'unknown':
-            break;
+          }
+
+          if (normalized.type === 'unique') {
+            throw new RecordAlreadyExistsError({
+              context: {
+                field: normalized.field,
+                tableName: normalized.table,
+                value: normalized.value,
+              },
+            });
+          }
+
+          if (normalized.type === 'primary_key') {
+            if (retryEnabled && attempt < maxRetries) {
+              attempt++;
+              if (process.env.NODE_ENV !== 'test') {
+                console.error(
+                  `PK/UNIQUE collision detected (attempt ${attempt}/${maxRetries}). Retrying…`,
+                  {
+                    field: normalized.field,
+                    table: normalized.table,
+                    value: normalized.value,
+                  },
+                );
+              }
+              continue;
+            }
+
+            throw new RecordAlreadyExistsError({
+              context: {
+                field: normalized.field,
+                tableName: normalized.table,
+                value: normalized.value,
+              },
+            });
+          }
         }
-      }
 
-      if (error instanceof InvalidDataError) {
-        throw error;
-      }
+        if (error instanceof InvalidDataError) throw error;
+        if (error instanceof BusinessLogicError) throw error;
 
-      if (error instanceof BusinessLogicError) {
-        throw error;
-      }
+        if (process.env.NODE_ENV !== 'test') {
+          console.error(`Database error: ${errorMessage}`, error);
+        }
 
-      if (process.env.NODE_ENV !== 'test') {
-        console.error(`Database error: ${errorMessage}`, error);
+        throw new DatabaseError({
+          cause: error as Error,
+          context,
+          message: errorMessage,
+        });
       }
-
-      throw new DatabaseError({
-        cause: error as Error,
-        context,
-        message: errorMessage,
-      });
     }
   }
 
@@ -88,13 +122,9 @@ export class BaseRepository {
     TAllowed extends keyof TInput,
   >(data: TInput, allowedFields: readonly TAllowed[]): Pick<TInput, TAllowed> {
     const result = {} as Pick<TInput, TAllowed>;
-
     for (const key of allowedFields) {
-      if (key in data) {
-        result[key] = data[key];
-      }
+      if (key in data) result[key] = data[key];
     }
-
     return result;
   }
 }

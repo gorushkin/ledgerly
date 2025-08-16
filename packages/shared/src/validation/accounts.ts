@@ -2,39 +2,40 @@ import { z } from "zod";
 
 import { ACCOUNT_TYPE_VALUES } from "../constants";
 
-import {
-  createdAt,
-  notNullText,
-  defaultText,
-  updatedAt,
-  uuid,
-  currencyCode,
-} from "./baseValidations";
+import { notNullText, defaultText, currencyCode } from "./baseValidations";
 
-const type = z.enum(ACCOUNT_TYPE_VALUES);
+const accountType = z.enum(ACCOUNT_TYPE_VALUES);
 
 export const accountCreateSchema = z.object({
   description: defaultText,
   initialBalance: z.number(),
   name: notNullText,
   originalCurrency: currencyCode,
-  type,
-  userId: uuid,
+  type: accountType,
 });
 
-export const accountUpdateSchema = z
-  .object({
-    description: defaultText,
-    name: notNullText,
-    originalCurrency: currencyCode,
-    type,
+export const accountUpdateSchema = accountCreateSchema
+  .pick({
+    description: true,
+    name: true,
+    // check if originalCurrency should be changed
+    originalCurrency: true,
+    type: true,
   })
   .partial();
 
-export const accountResponseSchema = z
-  .object({
-    createdAt,
-    id: uuid,
-    updatedAt,
-  })
-  .merge(accountCreateSchema);
+export const isoDatetime = z.string();
+// export const isoDatetime = z.string().datetime().brand<"IsoDatetimeString">();
+export type IsoDatetimeString = z.infer<typeof isoDatetime>;
+
+export const accountResponseSchema = z.object({
+  createdAt: isoDatetime,
+  currentClearedBalanceLocal: z.number(),
+  description: z.string(),
+  id: z.string().uuid(),
+  initialBalance: z.number(),
+  name: z.string(),
+  originalCurrency: z.string().length(3),
+  type: accountType,
+  updatedAt: isoDatetime,
+});

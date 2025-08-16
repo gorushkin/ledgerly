@@ -37,16 +37,16 @@ export const seedCurrencies = async (dataBase: DataBase = db) => {
 };
 
 // ✅ Для прямого запуска скрипта
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
+// if (import.meta.url === `file://${process.argv[1]}`) {
+//   const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
 
-  seedCurrencies(databaseUrl)
-    .then(() => {
-      console.info('🏁 Script completed');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('💥 Script failed:', error);
-      process.exit(1);
-    });
-}
+//   seedCurrencies(databaseUrl)
+//     .then(() => {
+//       console.info('🏁 Script completed');
+//       process.exit(0);
+//     })
+//     .catch((error) => {
+//       console.error('💥 Script failed:', error);
+//       process.exit(1);
+//     });
+// }

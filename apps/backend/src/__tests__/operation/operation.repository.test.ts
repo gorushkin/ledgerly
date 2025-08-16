@@ -1,10 +1,10 @@
 import {
-  AccountResponseDTO,
   UserDbRowDTO,
   TransactionDbRowDTO,
   OperationDBRowDTO,
   OperationInsertDTO,
   UUID,
+  AccountEntity,
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
@@ -59,7 +59,7 @@ const operationsDescriptions = [
 describe('OperationRepository', () => {
   let operationRepository: OperationRepository;
   let testDB: TestDB;
-  let testAccount: AccountResponseDTO;
+  let testAccount: AccountEntity;
   let transaction1: TransactionDbRowDTO;
   let user: UserDbRowDTO;
   let insertedOperations: OperationDBRowDTO[];

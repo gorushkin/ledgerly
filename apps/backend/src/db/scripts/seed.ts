@@ -1,5 +1,3 @@
-import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-
 import { db } from '../index';
 import { transactionsTable } from '../schemas';
 import { accountsTable } from '../schemas/accounts';
@@ -17,27 +15,6 @@ class SeedError extends Error {
   }
 }
 
-const seedUser = async () => {
-  try {
-    const passwordManager = new PasswordManager();
-    const hashedPassword = await passwordManager.hash(USER_PASSWORD);
-    const insertedUser = await db
-      .insert(usersTable)
-      .values({
-        email: USER_EMAIL,
-        id: USER_ID,
-        name: USER_NAME,
-        password: hashedPassword,
-      })
-      .returning();
-
-    return insertedUser[0];
-  } catch (error) {
-    console.error('Error details:', error);
-    throw new SeedError('Failed to seed user');
-  }
-};
-
 const deleteData = async () => {
   try {
     await db.delete(transactionsTable);
@@ -53,9 +30,6 @@ const deleteData = async () => {
 export const addData = async () => {
   try {
     console.info('Starting seeding...');
-
-    await seedUser();
-    console.info('User seeded');
 
     console.info('Seeding completed successfully');
   } catch (error) {

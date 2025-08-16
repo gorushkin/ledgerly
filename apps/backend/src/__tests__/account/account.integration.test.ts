@@ -1,7 +1,7 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import {
   AccountCreateDTO,
-  AccountInsertDTO,
+  AccountDbInsert,
   AccountResponseDTO,
   AccountType,
   UUID,
@@ -14,6 +14,7 @@ const url = `/api${ROUTES.accounts}`;
 
 const firstUserAccounts = [
   {
+    description: 'This is a test account',
     initialBalance: 1000,
     name: 'Test Account',
     originalCurrency: 'USD',
@@ -21,6 +22,7 @@ const firstUserAccounts = [
   },
   {
     currentClearedBalanceLocal: 0,
+    description: 'Savings account for future expenses',
     initialBalance: 1000,
     name: 'Savings Account',
     originalCurrency: 'EUR',
@@ -105,7 +107,7 @@ describe('Accounts Integration Tests', () => {
         url: `${url}/${accounts[0].id}`,
       });
 
-      const account = JSON.parse(response.body) as AccountInsertDTO;
+      const account = JSON.parse(response.body) as AccountDbInsert;
 
       expect(response.statusCode).toBe(200);
       expect(account.name).toBe(accounts[0].name);
@@ -131,7 +133,7 @@ describe('Accounts Integration Tests', () => {
         url,
       });
 
-      const createdAccount = JSON.parse(response.body) as AccountInsertDTO;
+      const createdAccount = JSON.parse(response.body) as AccountDbInsert;
 
       expect(response.statusCode).toBe(201);
       expect(createdAccount.name).toBe(newAccount.name);
@@ -149,7 +151,7 @@ describe('Accounts Integration Tests', () => {
 
       const accountsAfterCreation = JSON.parse(
         finalResponse.body,
-      ) as AccountInsertDTO[];
+      ) as AccountDbInsert[];
 
       expect(accountsAfterCreation.length).toBe(firstUserAccounts.length + 1);
       expect(accountsAfterCreation).toContainEqual(createdAccount);
@@ -180,7 +182,7 @@ describe('Accounts Integration Tests', () => {
 
       const accountsAfterDeletion = JSON.parse(
         finalResponse.body,
-      ) as AccountInsertDTO[];
+      ) as AccountDbInsert[];
 
       expect(accountsAfterDeletion.length).toBe(firstUserAccounts.length - 1);
       expect(accountsAfterDeletion).not.toContainEqual(accountToDelete);
@@ -205,7 +207,7 @@ describe('Accounts Integration Tests', () => {
         url: `${url}/${accountToUpdate.id}`,
       });
 
-      const updatedAccount = JSON.parse(response.body) as AccountInsertDTO;
+      const updatedAccount = JSON.parse(response.body) as AccountDbInsert;
 
       expect(response.statusCode).toBe(200);
       expect(updatedAccount.name).toBe(updatedData.name);
@@ -223,7 +225,7 @@ describe('Accounts Integration Tests', () => {
 
       const accountsAfterUpdate = JSON.parse(
         finalResponse.body,
-      ) as AccountInsertDTO[];
+      ) as AccountDbInsert[];
 
       expect(accountsAfterUpdate).toContainEqual(updatedAccount);
     });

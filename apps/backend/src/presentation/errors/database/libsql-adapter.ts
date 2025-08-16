@@ -5,6 +5,7 @@ import { NormalizedDbError } from '../../../infrastructure/db/BaseRepository';
 
 const UNIQUE = 'SQLITE_CONSTRAINT_UNIQUE';
 const FOREIGNKEY = 'SQLITE_CONSTRAINT_FOREIGNKEY';
+const PRIMARYKEY = 'SQLITE_CONSTRAINT_PRIMARYKEY';
 
 export function adaptLibsqlError(
   error: unknown,
@@ -27,6 +28,15 @@ export function adaptLibsqlError(
         field: context.field ?? '',
         table: context.tableName ?? '',
         type: 'foreign_key',
+        value: context.value,
+      };
+    }
+
+    if (error.code === PRIMARYKEY) {
+      return {
+        field: context.field ?? '',
+        table: context.tableName ?? '',
+        type: 'primary_key',
         value: context.value,
       };
     }

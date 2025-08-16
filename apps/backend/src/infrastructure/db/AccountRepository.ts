@@ -1,7 +1,7 @@
 import {
-  AccountInsertDTO,
-  AccountDbRowDTO,
-  AccountUpdateDbDTO,
+  AccountDbInsert,
+  AccountDbRow,
+  AccountDbUpdate,
   UUID,
 } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
@@ -16,8 +16,8 @@ export class AccountRepository extends BaseRepository {
     super(db);
   }
 
-  async getAll(userId: UUID): Promise<AccountDbRowDTO[]> {
-    return this.executeDatabaseOperation<AccountDbRowDTO[]>(
+  async getAll(userId: UUID): Promise<AccountDbRow[]> {
+    return this.executeDatabaseOperation<AccountDbRow[]>(
       () =>
         this.db
           .select()
@@ -28,14 +28,16 @@ export class AccountRepository extends BaseRepository {
     );
   }
 
-  create(data: AccountInsertDTO): Promise<AccountDbRowDTO> {
+  create(data: AccountDbInsert): Promise<AccountDbRow> {
     return this.executeDatabaseOperation(
-      () =>
+      async () =>
         this.db
           .insert(accountsTable)
           .values({
             ...data,
+            ...this.uuid,
             ...this.createTimestamps,
+            currentClearedBalanceLocal: data.currentClearedBalanceLocal ?? 0,
           })
           .returning()
           .get(),
@@ -48,8 +50,8 @@ export class AccountRepository extends BaseRepository {
     );
   }
 
-  getById(userId: UUID, id: UUID): Promise<AccountDbRowDTO | void> {
-    return this.executeDatabaseOperation<AccountDbRowDTO | void>(async () => {
+  getById(userId: UUID, id: UUID): Promise<AccountDbRow> {
+    return this.executeDatabaseOperation<AccountDbRow>(async () => {
       const account = await this.db
         .select()
         .from(accountsTable)
@@ -67,8 +69,8 @@ export class AccountRepository extends BaseRepository {
   async update(
     userId: UUID,
     id: UUID,
-    data: AccountUpdateDbDTO,
-  ): Promise<AccountDbRowDTO | void> {
+    data: AccountDbUpdate,
+  ): Promise<AccountDbRow> {
     return this.executeDatabaseOperation(
       async () => {
         const safeData = this.getSafeUpdate(data, [

@@ -15,7 +15,6 @@ import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { generateId } from 'src/libs';
 import { getTransactionWithHash } from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
 
@@ -64,8 +63,17 @@ export class TestDB {
     this.db = drizzle(client, { schema });
   }
 
-  get uuid() {
-    return crypto.randomUUID();
+  protected get createTimestamps() {
+    const now = new Date().toISOString();
+    return { createdAt: now, updatedAt: now };
+  }
+
+  protected get updateTimestamp() {
+    return { updatedAt: new Date().toISOString() };
+  }
+
+  protected get uuid() {
+    return { id: crypto.randomUUID() };
   }
 
   test = async () => {
@@ -124,9 +132,10 @@ export class TestDB {
       .insert(usersTable)
       .values({
         email: userData.email,
-        id: crypto.randomUUID(),
+        ...this.uuid,
         name: userData.name,
         password: hashedPassword,
+        ...this.createTimestamps,
       })
       .returning()
       .get();
@@ -161,6 +170,8 @@ export class TestDB {
         originalCurrency: accountData.originalCurrency,
         type: accountData.type,
         userId: accountData.userId,
+        ...this.createTimestamps,
+        ...this.uuid,
       })
       .returning()
       .get();
@@ -180,7 +191,7 @@ export class TestDB {
       createdAt: new Date().toISOString(),
       description: params.description ?? 'Test Operation',
       hash: `hash-${this.operationCounter.getNextName()}`,
-      id: this.uuid,
+      ...this.uuid,
       localAmount: 100,
       rateBasePerLocal: '1.0',
       transactionId: params.transactionId,
@@ -209,16 +220,21 @@ export class TestDB {
 
     const transactionData = {
       description: this.transactionCounter.getNextName(userId),
-      id: generateId(),
       postingDate: new Date().toString(),
       transactionDate: new Date().toString(),
       ...data,
+      ...this.uuid,
       userId,
     };
 
+    const withHash = getTransactionWithHash(transactionData);
+
     const transaction = await this.db
       .insert(transactionsTable)
-      .values(getTransactionWithHash(transactionData))
+      .values({
+        ...withHash,
+        ...this.createTimestamps,
+      })
       .returning()
       .get();
 

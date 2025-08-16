@@ -1,4 +1,4 @@
-import { AccountCreateDTO } from '@ledgerly/shared/types';
+import { AccountServiceCreate } from '@ledgerly/shared/types';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
@@ -16,7 +16,8 @@ describe('AccountService', () => {
 
   const accountId = 'account-id';
 
-  const accountDataInsert: AccountCreateDTO = {
+  const accountDataInsert: AccountServiceCreate = {
+    description: 'Test Description',
     initialBalance: 1000,
     name: 'Test Account',
     originalCurrency: 'USD',

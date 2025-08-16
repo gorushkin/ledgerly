@@ -1,7 +1,7 @@
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_VALUES } from '@ledgerly/shared/constants';
 import { sqliteTable, text, uniqueIndex, real } from 'drizzle-orm/sqlite-core';
 
-import { createdAt, description, updatedAt, uuidPrimary } from './common';
+import { createdAt, description, updatedAt, uuid } from './common';
 import { currenciesTable } from './currencies';
 import { usersTable } from './users';
 
@@ -11,7 +11,7 @@ export const accountsTable = sqliteTable(
     createdAt,
     currentClearedBalanceLocal: real('current_cleared_balance_local').notNull(),
     description,
-    id: uuidPrimary,
+    id: uuid,
     initialBalance: real('initial_balance').notNull(),
     name: text('name').notNull(),
     originalCurrency: text('original_currency')

@@ -8,7 +8,6 @@ import { DataBase } from 'src/types';
 import { db as defaultDb } from '../db';
 
 import { registerRoutes } from './routes';
-
 export function createServer(db: DataBase = defaultDb) {
   const fastify = Fastify({
     logger: false,
