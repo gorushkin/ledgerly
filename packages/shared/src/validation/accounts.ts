@@ -2,12 +2,17 @@ import { z } from "zod";
 
 import { ACCOUNT_TYPE_VALUES } from "../constants";
 
-import { notNullText, defaultText, currencyCode } from "./baseValidations";
+import {
+  notNullText,
+  requiredText,
+  currencyCode,
+  uuid,
+} from "./baseValidations";
 
 const accountType = z.enum(ACCOUNT_TYPE_VALUES);
 
 export const accountCreateSchema = z.object({
-  description: defaultText,
+  description: requiredText,
   initialBalance: z.number(),
   name: notNullText,
   originalCurrency: currencyCode,
@@ -31,11 +36,11 @@ export type IsoDatetimeString = z.infer<typeof isoDatetime>;
 export const accountResponseSchema = z.object({
   createdAt: isoDatetime,
   currentClearedBalanceLocal: z.number(),
-  description: z.string(),
-  id: z.string().uuid(),
+  description: requiredText,
+  id: uuid,
   initialBalance: z.number(),
-  name: z.string(),
-  originalCurrency: z.string().length(3),
+  name: requiredText,
+  originalCurrency: currencyCode,
   type: accountType,
   updatedAt: isoDatetime,
 });
