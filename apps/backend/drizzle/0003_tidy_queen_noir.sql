@@ -1,1 +1,0 @@
-ALTER TABLE `operations` ADD `user_id` text NOT NULL REFERENCES users(id);

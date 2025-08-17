@@ -13,6 +13,12 @@ export const dateText = z.string().refine((d) => !isNaN(Date.parse(d)), {
   message: "Invalid date format",
 });
 
+export const uniqueIdSchema = z.object({
+  id: uuid,
+});
+
 export const currencyCode = z
   .string()
   .length(3, "Currency code must be exactly 3 characters");
+
+export const isoDatetime = z.string().datetime().brand<"IsoDatetimeString">();

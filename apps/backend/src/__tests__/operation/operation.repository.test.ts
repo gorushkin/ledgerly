@@ -1,19 +1,20 @@
 import {
-  AccountResponseDTO,
   UserDbRowDTO,
   TransactionDbRowDTO,
   OperationDBRowDTO,
   OperationInsertDTO,
   UUID,
+  AccountEntity,
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
+import { getOperationHash } from 'src/libs/hashGenerator';
 import { generateId } from 'src/libs/idGenerator';
 import {
   ForeignKeyConstraintError,
   InvalidDataError,
 } from 'src/presentation/errors';
-import { DataBase } from 'src/types';
+import { TxType } from 'src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createOperationData = (params: {
@@ -23,18 +24,24 @@ const createOperationData = (params: {
   description?: string;
   userId?: UUID;
 }): OperationInsertDTO => {
-  return {
+  const presHash = {
     accountId: params.accountId ?? generateId(),
-    categoryId: params.categoryId ?? generateId(),
+    baseAmount: 100,
+    createdAt: new Date().toISOString(),
     description: 'Test Operation',
-    hash: 'test-hash',
     id: generateId(),
     isTombstone: false,
     localAmount: 100,
-    originalAmount: 100,
+    rateBasePerLocal: '1.0',
     transactionId: params.transactionId ?? generateId(),
+    updatedAt: new Date().toISOString(),
     userId: params.userId ?? generateId(),
     ...params,
+  };
+
+  return {
+    ...presHash,
+    hash: getOperationHash(presHash),
   };
 };
 
@@ -52,7 +59,7 @@ const operationsDescriptions = [
 describe('OperationRepository', () => {
   let operationRepository: OperationRepository;
   let testDB: TestDB;
-  let testAccount: AccountResponseDTO;
+  let testAccount: AccountEntity;
   let transaction1: TransactionDbRowDTO;
   let user: UserDbRowDTO;
   let insertedOperations: OperationDBRowDTO[];
@@ -164,7 +171,7 @@ describe('OperationRepository', () => {
     it('should add a bulk of operations', async () => {
       const operations = await operationRepository.bulkInsert(
         operationsToInsert,
-        testDB.db,
+        testDB.db as unknown as TxType,
       );
 
       expect(operations).toHaveLength(operationsToInsert.length);
@@ -174,12 +181,12 @@ describe('OperationRepository', () => {
 
         expect(operation).toMatchObject({
           accountId: match.accountId,
+          baseAmount: match.baseAmount,
           description: match.description,
           hash: match.hash,
           id: match.id,
           isTombstone: match.isTombstone,
           localAmount: match.localAmount,
-          originalAmount: match.originalAmount,
           transactionId: transaction1.id,
           userId: user.id,
         });
@@ -207,7 +214,7 @@ describe('OperationRepository', () => {
             };
           },
         }),
-      } as unknown as DataBase;
+      } as unknown as TxType;
 
       await operationRepository.bulkInsert(operationsToInsert, tx);
 
@@ -225,7 +232,10 @@ describe('OperationRepository', () => {
     });
 
     it('should handle empty operations array', async () => {
-      const operations = operationRepository.bulkInsert([], testDB.db);
+      const operations = operationRepository.bulkInsert(
+        [],
+        testDB.db as unknown as TxType,
+      );
 
       await expect(operations).rejects.toThrow(InvalidDataError);
     });
@@ -237,7 +247,7 @@ describe('OperationRepository', () => {
 
       const operations = operationRepository.bulkInsert(
         [invalidOperationData],
-        testDB.db,
+        testDB.db as unknown as TxType,
       );
 
       await expect(operations).rejects.toThrow(ForeignKeyConstraintError);

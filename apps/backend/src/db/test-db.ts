@@ -5,7 +5,7 @@ import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import {
   AccountType,
   OperationInsertDTO,
-  TransactionDbRecordDTO,
+  TransactionDbInsertDTO,
   TransactionDbRowDTO,
   UsersResponseDTO,
   UUID,
@@ -14,13 +14,14 @@ import { createClient } from '@libsql/client';
 import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
+import { isoDatetime } from 'node_modules/@ledgerly/shared/src/validation/baseValidations';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { generateId } from 'src/libs';
 import { getTransactionWithHash } from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
 
 import * as schema from './schemas';
 import { accountsTable, transactionsTable, usersTable } from './schemas';
+import { seedCurrencies } from './scripts/currenciesSeed';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -63,8 +64,18 @@ export class TestDB {
     this.db = drizzle(client, { schema });
   }
 
-  get uuid() {
-    return crypto.randomUUID();
+  protected get createTimestamps() {
+    const now = isoDatetime.parse(new Date().toISOString());
+    return { createdAt: now, updatedAt: now };
+  }
+
+  protected get updateTimestamp() {
+    const now = isoDatetime.parse(new Date().toISOString());
+    return { updatedAt: now };
+  }
+
+  protected get uuid() {
+    return { id: crypto.randomUUID() };
   }
 
   test = async () => {
@@ -90,9 +101,9 @@ export class TestDB {
 
   async setupTestDb() {
     await this.db.run(sql`PRAGMA foreign_keys = ON;`);
-
     const migrationsFolder = join(__dirname, '../../drizzle');
     await migrate(this.db, { migrationsFolder });
+    await seedCurrencies(this.db);
   }
 
   async cleanupTestDb() {
@@ -123,9 +134,10 @@ export class TestDB {
       .insert(usersTable)
       .values({
         email: userData.email,
-        id: crypto.randomUUID(),
+        ...this.uuid,
         name: userData.name,
         password: hashedPassword,
+        ...this.createTimestamps,
       })
       .returning()
       .get();
@@ -160,6 +172,8 @@ export class TestDB {
         originalCurrency: accountData.originalCurrency,
         type: accountData.type,
         userId: accountData.userId,
+        ...this.createTimestamps,
+        ...this.uuid,
       })
       .returning()
       .get();
@@ -175,17 +189,22 @@ export class TestDB {
   }) => {
     const operationData: OperationInsertDTO = {
       accountId: params.accountId,
+      baseAmount: 100,
       description: params.description ?? 'Test Operation',
       hash: `hash-${this.operationCounter.getNextName()}`,
-      id: this.uuid,
+      ...this.uuid,
       localAmount: 100,
-      originalAmount: 100,
+      rateBasePerLocal: '1.0',
       transactionId: params.transactionId,
+      ...this.createTimestamps,
       userId: params.userId,
     };
 
     const operation = await this.db
       .insert(schema.operationsTable) // Assuming 'operations' is the correct table name
+      // TODO: fix
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       .values(operationData)
       .returning()
       .get();
@@ -205,23 +224,28 @@ export class TestDB {
 
     const transactionData = {
       description: this.transactionCounter.getNextName(userId),
-      id: generateId(),
       postingDate: new Date().toString(),
       transactionDate: new Date().toString(),
       ...data,
+      ...this.uuid,
       userId,
     };
 
+    const withHash = getTransactionWithHash(transactionData);
+
     const transaction = await this.db
       .insert(transactionsTable)
-      .values(getTransactionWithHash(transactionData))
+      .values({
+        ...withHash,
+        ...this.createTimestamps,
+      })
       .returning()
       .get();
 
     return transaction;
   };
 
-  getAllTransactions = async (): Promise<TransactionDbRecordDTO[]> => {
+  getAllTransactions = async (): Promise<TransactionDbInsertDTO[]> => {
     const transactionsList = await this.db
       .select()
       .from(transactionsTable)

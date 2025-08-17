@@ -8,12 +8,6 @@ import { AccountService } from 'src/services/account.service';
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
 
-  private getNonNullObject(requestBody: unknown): object {
-    return typeof requestBody === 'object' && requestBody !== null
-      ? requestBody
-      : {};
-  }
-
   async getAll(userId: UUID) {
     return this.accountService.getAll(userId);
   }
@@ -23,19 +17,13 @@ export class AccountController {
   }
 
   async create(userId: UUID, requestBody: unknown) {
-    const accountCreateDto = accountCreateSchema.parse({
-      ...this.getNonNullObject(requestBody),
-      userId,
-    });
+    const accountCreateDto = accountCreateSchema.parse(requestBody);
 
-    return this.accountService.create(accountCreateDto);
+    return this.accountService.create({ ...accountCreateDto, userId });
   }
 
-  async update(userId: UUID, id: UUID, updatedAccount: unknown) {
-    const accountUpdateDto = accountUpdateSchema.parse({
-      ...this.getNonNullObject(updatedAccount),
-      id,
-    });
+  async update(userId: UUID, id: UUID, requestBody: unknown) {
+    const accountUpdateDto = accountUpdateSchema.parse(requestBody);
 
     return this.accountService.update(userId, id, accountUpdateDto);
   }

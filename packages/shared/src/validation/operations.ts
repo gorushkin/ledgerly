@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-import { defaultText, notNullText, uuid } from "./baseValidations";
+import { requiredText, notNullText, uuid } from "./baseValidations";
 
 export const operationCreateSchema = z.object({
   accountId: uuid,
   categoryId: uuid,
-  description: defaultText,
+  description: requiredText,
   hash: notNullText,
   id: uuid,
   localAmount: z.number(),

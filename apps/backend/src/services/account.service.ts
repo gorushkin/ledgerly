@@ -1,7 +1,7 @@
 import {
-  AccountCreateDTO,
-  AccountResponseDTO,
-  AccountUpdateDTO,
+  AccountEntity,
+  AccountServiceCreate,
+  AccountServiceUpdate,
   UUID,
 } from '@ledgerly/shared/types';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
@@ -26,14 +26,14 @@ export class AccountService extends BaseService {
     }
   }
 
-  async getAll(userId: UUID): Promise<AccountResponseDTO[]> {
+  async getAll(userId: UUID): Promise<AccountEntity[]> {
     return this.accountRepository.getAll(userId);
   }
 
   async ensureAccountExistsAndOwned(
     userId: UUID,
     id: UUID,
-  ): Promise<AccountResponseDTO | void> {
+  ): Promise<AccountEntity> {
     const account = this.ensureEntityExists(
       await this.accountRepository.getById(userId, id),
       'Account not found',
@@ -56,11 +56,11 @@ export class AccountService extends BaseService {
     return account;
   }
 
-  async getById(userId: UUID, id: UUID): Promise<AccountResponseDTO | void> {
+  async getById(userId: UUID, id: UUID): Promise<AccountEntity> {
     return this.ensureAccountExistsAndOwned(userId, id);
   }
 
-  async create(data: AccountCreateDTO): Promise<AccountResponseDTO> {
+  async create(data: AccountServiceCreate): Promise<AccountEntity> {
     await this.validateCurrency(data.originalCurrency);
 
     return this.accountRepository.create({
@@ -72,8 +72,8 @@ export class AccountService extends BaseService {
   async update(
     userId: UUID,
     id: UUID,
-    data: AccountUpdateDTO,
-  ): Promise<AccountResponseDTO | void> {
+    data: AccountServiceUpdate,
+  ): Promise<AccountEntity | void> {
     if (data.originalCurrency) {
       await this.validateCurrency(data.originalCurrency);
     }

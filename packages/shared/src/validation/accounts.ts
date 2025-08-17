@@ -3,38 +3,41 @@ import { z } from "zod";
 import { ACCOUNT_TYPE_VALUES } from "../constants";
 
 import {
-  createdAt,
   notNullText,
-  defaultText,
-  updatedAt,
-  uuid,
+  requiredText,
   currencyCode,
+  uuid,
+  isoDatetime,
 } from "./baseValidations";
 
-const type = z.enum(ACCOUNT_TYPE_VALUES);
+const accountType = z.enum(ACCOUNT_TYPE_VALUES);
 
 export const accountCreateSchema = z.object({
-  description: defaultText,
+  description: requiredText,
   initialBalance: z.number(),
   name: notNullText,
   originalCurrency: currencyCode,
-  type,
-  userId: uuid,
+  type: accountType,
 });
 
-export const accountUpdateSchema = z
-  .object({
-    description: defaultText,
-    name: notNullText,
-    originalCurrency: currencyCode,
-    type,
+export const accountUpdateSchema = accountCreateSchema
+  .pick({
+    description: true,
+    name: true,
+    // check if originalCurrency should be changed
+    originalCurrency: true,
+    type: true,
   })
   .partial();
 
-export const accountResponseSchema = z
-  .object({
-    createdAt,
-    id: uuid,
-    updatedAt,
-  })
-  .merge(accountCreateSchema);
+export const accountResponseSchema = z.object({
+  createdAt: isoDatetime,
+  currentClearedBalanceLocal: z.number(),
+  description: requiredText,
+  id: uuid,
+  initialBalance: z.number(),
+  name: requiredText,
+  originalCurrency: currencyCode,
+  type: accountType,
+  updatedAt: isoDatetime,
+});

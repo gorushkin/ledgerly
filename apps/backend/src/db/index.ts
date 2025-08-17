@@ -8,15 +8,23 @@ import * as schemas from './schemas';
 
 dotenv.config();
 
-const dbUrl = config.dbUrl;
-// const dbUrl = config.dbUrl || 'file:./data/sqlite.db';
+const isTestEnvironment =
+  process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
 
-if (!dbUrl) {
-  throw new Error('Database URL is not defined');
+let db: ReturnType<typeof drizzle>;
+
+if (isTestEnvironment) {
+  const client = createClient({ url: 'file::memory:' });
+  db = drizzle(client, { schema: schemas });
+} else {
+  const dbUrl = config.dbUrl;
+
+  if (!dbUrl) {
+    throw new Error('Database URL is not defined');
+  }
+
+  const client = createClient({ url: dbUrl });
+  db = drizzle(client, { schema: schemas });
 }
 
-const client = createClient({ url: dbUrl });
-
-export const db = drizzle(client, {
-  schema: schemas,
-});
+export { db };

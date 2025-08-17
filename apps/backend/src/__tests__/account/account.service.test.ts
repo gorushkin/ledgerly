@@ -1,6 +1,7 @@
-import { AccountCreateDTO } from '@ledgerly/shared/types';
+import { AccountServiceCreate } from '@ledgerly/shared/types';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
+import { AuthErrors } from 'src/presentation/errors/auth.errors';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { AccountService } from 'src/services/account.service';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,7 +17,8 @@ describe('AccountService', () => {
 
   const accountId = 'account-id';
 
-  const accountDataInsert: AccountCreateDTO = {
+  const accountDataInsert: AccountServiceCreate = {
+    description: 'Test Description',
     initialBalance: 1000,
     name: 'Test Account',
     originalCurrency: 'USD',
@@ -268,19 +270,8 @@ describe('AccountService', () => {
       );
 
       await expect(errorPromise).rejects.toThrowError(
-        new NotFoundError(`Account not found`),
+        new AuthErrors.UnauthorizedError(`Account not found`),
       );
-
-      // TODO: Add meta information to the error
-
-      // try {
-      //   await errorPromise;
-      // } catch (error) {
-      //   if (error instanceof AppError) {
-      //     expect(error.meta?.attemptedUserId).toBe(userId);
-      //     expect(error.meta?.reason).toBe('forbidden');
-      //   }
-      // }
     });
   });
 

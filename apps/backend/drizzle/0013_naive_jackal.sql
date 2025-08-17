@@ -1,1 +1,0 @@
-ALTER TABLE `accounts` RENAME COLUMN "balance" TO "current_cleared_balance_local";

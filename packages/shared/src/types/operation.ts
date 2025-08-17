@@ -2,25 +2,33 @@ import { UUID } from "./auth";
 
 export type OperationBaseDTO = {
   accountId: UUID;
+  baseAmount: number;
   description: string;
   hash: string;
   id: UUID;
   isTombstone?: boolean;
-  localAmount: number;
-  originalAmount: number;
+  localAmount: number | null;
+  rateBasePerLocal: string | null;
   transactionId: UUID;
   userId: UUID;
 };
 
-export type OperationInsertDTO = OperationBaseDTO;
+export type OperationInsertDTO = OperationBaseDTO & {
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type OperationDBRowDTO = OperationBaseDTO & {
   createdAt: string;
   updatedAt: string;
 };
 
-export type OperationCreateDTO = OperationBaseDTO;
+export type OperationCreateDTO = OperationBaseDTO & {
+  createdAt: string;
+  updatedAt: string;
+};
 
-export type OperationRaw = Omit<OperationBaseDTO, "hash">;
+export type OperationDbPreHashDTO = Omit<OperationCreateDTO, "hash">;
 
 export type OperationResponseDTO = OperationCreateDTO & {
   createdAt: string;

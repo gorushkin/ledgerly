@@ -42,7 +42,8 @@ export const createContainer = (db: DataBase): AppContainer => {
   );
   const transactionService = new TransactionService(
     transactionRepository,
-    userService,
+    operationRepository,
+    db,
   );
 
   const services: AppContainer['services'] = {

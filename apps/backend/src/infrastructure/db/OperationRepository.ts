@@ -4,10 +4,10 @@ import {
   OperationResponseDTO,
   UUID,
 } from '@ledgerly/shared/types';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { operationsTable } from 'src/db/schemas';
 import { InvalidDataError } from 'src/presentation/errors';
-import { DataBase } from 'src/types';
+import { DataBase, TxType } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
 
@@ -34,7 +34,7 @@ export class OperationRepository extends BaseRepository {
 
   async bulkInsert(
     operations: OperationInsertDTO[],
-    tx?: DataBase,
+    tx?: TxType,
   ): Promise<OperationDBRowDTO[]> {
     return this.executeDatabaseOperation(
       async () => {
@@ -45,13 +45,37 @@ export class OperationRepository extends BaseRepository {
         }
 
         const dbClient = tx ?? this.db;
-
+        // TODO: check
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         return dbClient.insert(operationsTable).values(operations).returning();
       },
       'Failed to bulk insert operations',
       { field: 'operations', tableName: 'operations' },
     );
   }
+
+  async getByTransactionIds(
+    transactionIds: UUID[],
+  ): Promise<OperationResponseDTO[]> {
+    // TODO: add tests for this method
+    return this.executeDatabaseOperation(
+      async () => {
+        if (transactionIds.length === 0) return [];
+
+        const operations = await this.db
+          .select()
+          .from(operationsTable)
+          .where(inArray(operationsTable.transactionId, transactionIds))
+          .all();
+
+        return operations;
+      },
+      'Failed to fetch operations by transaction IDs',
+      { field: 'transactionIds', tableName: 'operations' },
+    );
+  }
+
   async deleteByTransactionId(
     transactionId: UUID,
     tx?: DataBase,
