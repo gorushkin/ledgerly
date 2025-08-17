@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
+    "test:ui": "vitest --ui",
     "test:watch": "vitest watch",
     "dev": "tsx watch src/index.ts",
     "clean": "rm -rf dist",
@@ -23,12 +24,13 @@
     "drop:tables": "tsx src/db/scripts/drop-tables.ts",
     "ts-check": "tsc -b --noEmit",
     "check": "pnpm ts-check && pnpm lint",
-    "delete:db": "rm -rf ./data/*",
+    "delete:db": "rm -rf ./data/* && mkdir -p ./data",
     "delete:migrations": "rm -rf ./drizzle",
     "delete:all": "pnpm delete:db && pnpm delete:migrations",
     "full-reset:db": "pnpm delete:all && pnpm generate && pnpm migrate",
     "testDB": "tsx src/db/test-db.ts",
-    "seed:currencies": "tsx src/db/scripts/currenciesSeed.ts"
+    "seed:currencies": "tsx src/db/scripts/currenciesSeed.ts",
+    "db:reset": "pnpm delete:db && pnpm migrate"
   },
   "keywords": [],
   "author": "",
@@ -50,13 +52,10 @@
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^22.15.3",
-    "@vitest/coverage-v8": "^1.3.1",
     "drizzle-kit": "^0.31.1",
     "eslint-plugin-drizzle": "^0.2.3",
     "tsx": "^4.19.4",
-    "vite": "^6.3.4",
-    "vite-plugin-dts": "^4.5.3",
-    "vitest": "^1.3.1"
+    "vite-plugin-dts": "^4.5.3"
   },
   "exports": {
     "./types": "./src/db/types/index.ts",

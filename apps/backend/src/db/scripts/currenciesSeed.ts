@@ -18,7 +18,10 @@ const defaultCurrencies: Currency[] = [
   { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
 ];
 
-export const seedCurrencies = async (dataBase: DataBase = db) => {
+// TODO: fix dataBase: DataBase = db as unknown as DataBase
+export const seedCurrencies = async (
+  dataBase: DataBase = db as unknown as DataBase,
+) => {
   // console.info('🌱 Starting currency seeding...');
 
   try {

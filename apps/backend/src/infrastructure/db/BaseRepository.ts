@@ -1,3 +1,4 @@
+import { isoDatetime } from 'node_modules/@ledgerly/shared/src/validation/baseValidations';
 import {
   DBErrorContext,
   DatabaseError,
@@ -26,12 +27,13 @@ export class BaseRepository {
   constructor(readonly db: DataBase) {}
 
   protected get createTimestamps() {
-    const now = new Date().toISOString();
+    const now = isoDatetime.parse(new Date().toISOString());
     return { createdAt: now, updatedAt: now };
   }
 
   protected get updateTimestamp() {
-    return { updatedAt: new Date().toISOString() };
+    const now = isoDatetime.parse(new Date().toISOString());
+    return { updatedAt: now };
   }
 
   protected get uuid(): { id: string } {

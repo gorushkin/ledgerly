@@ -14,6 +14,7 @@ import { createClient } from '@libsql/client';
 import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
+import { isoDatetime } from 'node_modules/@ledgerly/shared/src/validation/baseValidations';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import {
   computeOperationHash,
@@ -67,12 +68,13 @@ export class TestDB {
   }
 
   protected get createTimestamps() {
-    const now = new Date().toISOString();
+    const now = isoDatetime.parse(new Date().toISOString());
     return { createdAt: now, updatedAt: now };
   }
 
   protected get updateTimestamp() {
-    return { updatedAt: new Date().toISOString() };
+    const now = isoDatetime.parse(new Date().toISOString());
+    return { updatedAt: now };
   }
 
   protected get uuid() {

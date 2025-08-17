@@ -3,11 +3,6 @@ import { transactionsTable } from '../schemas';
 import { accountsTable } from '../schemas/accounts';
 import { usersTable } from '../schemas/users';
 
-const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
-const USER_EMAIL = 'test@example.com';
-const USER_NAME = 'Test User';
-const USER_PASSWORD = 'test_password';
-
 class SeedError extends Error {
   constructor(message: string) {
     super(message);
@@ -27,7 +22,7 @@ const deleteData = async () => {
     throw new Error('Ошибка при удалении данных');
   }
 };
-export const addData = async () => {
+export const addData = () => {
   try {
     console.info('Starting seeding...');
 
@@ -48,7 +43,7 @@ const seed = async () => {
 
     await deleteData();
 
-    await addData();
+    addData();
 
     console.info('Сиды успешно завершены!');
   } catch (error) {

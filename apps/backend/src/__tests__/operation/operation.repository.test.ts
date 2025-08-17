@@ -5,6 +5,9 @@ import {
   OperationDbInsert,
   UUID,
   AccountEntity,
+  OperationDbRow,
+  IsoDatetimeString,
+  Sha256String,
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
@@ -196,7 +199,7 @@ describe('OperationRepository', () => {
 
     it('should use a transaction if provided', async () => {
       const mock = vi.fn();
-      let capturedValues: unknown[];
+      let capturedValues = [] as unknown[];
       const returningFn = vi.fn(async () => Promise.resolve(capturedValues));
       const dbInsertSpy = vi.spyOn(operationRepository.db, 'insert');
 
@@ -222,16 +225,17 @@ describe('OperationRepository', () => {
       expect(mock).toHaveBeenCalledWith(capturedValues);
       expect(result).toBe(capturedValues);
 
-      const first = (capturedValues as any[])[0]!;
+      const first = capturedValues[0] as OperationDbRow;
+
       expect(first).toEqual(
         expect.objectContaining({
           accountId: operationsToInsert[0].accountId,
-          createdAt: expect.any(String),
+          createdAt: expect.any(String) as unknown as IsoDatetimeString,
           description: operationsToInsert[0].description,
-          hash: expect.any(String),
-          id: expect.any(String),
+          hash: expect.any(String) as unknown as Sha256String,
+          id: expect.any(String) as unknown as UUID,
           transactionId: operationsToInsert[0].transactionId,
-          updatedAt: expect.any(String),
+          updatedAt: expect.any(String) as unknown as IsoDatetimeString,
           userId: operationsToInsert[0].userId,
         }),
       );
