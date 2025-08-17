@@ -1,3 +1,7 @@
+import { z } from "zod";
+
+import { currencyCode, isoDatetime } from "../validation/baseValidations";
+
 export type ErrorResponse = {
   error: string;
   message: string;
@@ -14,10 +18,6 @@ export type ValidationError = {
   ];
 };
 
-export type IsoDatetimeString = string;
-// export type IsoDatetimeString = string & { readonly __brand: "ISO-8601" };
+export type CurrencyCode = z.infer<typeof currencyCode>;
 
-export type CurrencyCode = string;
-// export type CurrencyCode = string & { readonly __brand: "CurrencyCode" };
-
-// export type IsoDatetimeString = z.infer<typeof isoDatetime>;
+export type IsoDatetimeString = z.infer<typeof isoDatetime>;

@@ -1,8 +1,15 @@
+import { IsoDatetimeString } from '@ledgerly/shared/types';
 import { integer, text } from 'drizzle-orm/sqlite-core';
 import { generateId } from 'src/libs/idGenerator';
 
-export const createdAt = text('created_at').notNull();
-export const updatedAt = text('updated_at').notNull();
+// eslint-disable-next-line prettier/prettier
+export const createdAt = text('created_at')
+  .notNull()
+  .$type<IsoDatetimeString>();
+// eslint-disable-next-line prettier/prettier
+export const updatedAt = text('updated_at')
+  .notNull()
+  .$type<IsoDatetimeString>();
 
 export const description = text('description').notNull().default('');
 

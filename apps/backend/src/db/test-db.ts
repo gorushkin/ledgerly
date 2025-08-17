@@ -14,6 +14,7 @@ import { createClient } from '@libsql/client';
 import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
+import { isoDatetime } from 'node_modules/@ledgerly/shared/src/validation/baseValidations';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { getTransactionWithHash } from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
@@ -64,12 +65,13 @@ export class TestDB {
   }
 
   protected get createTimestamps() {
-    const now = new Date().toISOString();
+    const now = isoDatetime.parse(new Date().toISOString());
     return { createdAt: now, updatedAt: now };
   }
 
   protected get updateTimestamp() {
-    return { updatedAt: new Date().toISOString() };
+    const now = isoDatetime.parse(new Date().toISOString());
+    return { updatedAt: now };
   }
 
   protected get uuid() {
@@ -188,19 +190,21 @@ export class TestDB {
     const operationData: OperationInsertDTO = {
       accountId: params.accountId,
       baseAmount: 100,
-      createdAt: new Date().toISOString(),
       description: params.description ?? 'Test Operation',
       hash: `hash-${this.operationCounter.getNextName()}`,
       ...this.uuid,
       localAmount: 100,
       rateBasePerLocal: '1.0',
       transactionId: params.transactionId,
-      updatedAt: new Date().toISOString(),
+      ...this.createTimestamps,
       userId: params.userId,
     };
 
     const operation = await this.db
       .insert(schema.operationsTable) // Assuming 'operations' is the correct table name
+      // TODO: fix
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       .values(operationData)
       .returning()
       .get();

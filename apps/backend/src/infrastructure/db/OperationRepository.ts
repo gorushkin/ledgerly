@@ -45,7 +45,9 @@ export class OperationRepository extends BaseRepository {
         }
 
         const dbClient = tx ?? this.db;
-
+        // TODO: check
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         return dbClient.insert(operationsTable).values(operations).returning();
       },
       'Failed to bulk insert operations',

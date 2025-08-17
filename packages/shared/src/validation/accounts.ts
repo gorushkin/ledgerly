@@ -7,6 +7,7 @@ import {
   requiredText,
   currencyCode,
   uuid,
+  isoDatetime,
 } from "./baseValidations";
 
 const accountType = z.enum(ACCOUNT_TYPE_VALUES);
@@ -28,10 +29,6 @@ export const accountUpdateSchema = accountCreateSchema
     type: true,
   })
   .partial();
-
-export const isoDatetime = z.string();
-// export const isoDatetime = z.string().datetime().brand<"IsoDatetimeString">();
-export type IsoDatetimeString = z.infer<typeof isoDatetime>;
 
 export const accountResponseSchema = z.object({
   createdAt: isoDatetime,
