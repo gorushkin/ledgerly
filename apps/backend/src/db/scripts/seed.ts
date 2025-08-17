@@ -43,7 +43,7 @@ const seed = async () => {
 
     await deleteData();
 
-    await addData();
+    addData();
 
     console.info('Сиды успешно завершены!');
   } catch (error) {

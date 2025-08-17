@@ -149,7 +149,6 @@ describe('OperationRepository', () => {
       expect(transactionOneOperations).toHaveLength(insertedOperations.length);
 
       transactionOneOperations.forEach((operation, index) => {
-        console.log('operation: ', typeof operation.baseAmount);
         expect(operation).toMatchObject({
           description: insertedOperations[index].description,
           transactionId: transaction1.id,
