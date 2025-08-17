@@ -7,10 +7,10 @@ export type Money = {
 };
 
 export type FxRateScaled = {
-  base: CurrencyCode; // BASE currency (системная)
-  local: CurrencyCode; // валютa аккаунта
-  scale: 9; // фиксируем для унификации
-  value: bigint; // 1.234567890 → 1234567890n при SCALE=9
+  base: CurrencyCode; // BASE currency (system)
+  local: CurrencyCode; // account currency
+  scale: 9; // fixed for unification
+  value: bigint; // 1.234567890 → 1234567890n at SCALE=9
 };
 
 export type OperationBaseDTO = {
@@ -76,7 +76,7 @@ export type OperationDbUpdate = Partial<
   >
 >;
 
-// Domain / Service;
+// Domain / Service
 
 export type OperationEntity = {
   accountId: UUID;

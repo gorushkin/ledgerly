@@ -14,9 +14,6 @@ export class OperationRepository extends BaseRepository {
   constructor(db: DataBase) {
     super(db);
   }
-  private computeOperationHash = (operation: OperationDbInsert): string => {
-    return computeOperationHash(operation);
-  };
 
   async getByTransactionId(transactionId: string): Promise<OperationDbRow[]> {
     return this.executeDatabaseOperation(
@@ -38,7 +35,7 @@ export class OperationRepository extends BaseRepository {
   ): Promise<OperationDbRow[]> {
     return this.executeDatabaseOperation(
       async () => {
-        if (operations.length === 0) {
+        if (!operations || operations.length === 0) {
           return [];
         }
 
@@ -48,7 +45,7 @@ export class OperationRepository extends BaseRepository {
           ...op,
           ...this.createTimestamps,
           ...this.uuid,
-          hash: this.computeOperationHash(op),
+          hash: computeOperationHash(op),
         }));
 
         return dbClient
