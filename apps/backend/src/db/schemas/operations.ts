@@ -1,10 +1,4 @@
-import {
-  sqliteTable,
-  text,
-  integer,
-  index,
-  uniqueIndex,
-} from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 
 import { accountsTable } from './accounts';
 import {
@@ -13,7 +7,7 @@ import {
   updatedAt,
   hash,
   isTombstone,
-  stop_uuidPrimary,
+  uuid,
 } from './common';
 import { transactionsTable } from './transactions';
 import { usersTable } from './users';
@@ -28,7 +22,7 @@ export const operationsTable = sqliteTable(
     createdAt,
     description,
     hash,
-    id: stop_uuidPrimary,
+    id: uuid,
     isTombstone,
     localAmount: integer('local_amount'),
     rateBasePerLocal: text('rate_base_per_local'),
@@ -44,6 +38,6 @@ export const operationsTable = sqliteTable(
     index('idx_operations_tx').on(t.transactionId),
     index('idx_operations_account').on(t.accountId),
     index('idx_operations_user').on(t.userId),
-    uniqueIndex('u_operations_user_hash').on(t.userId, t.hash),
+    index('idx_operations_tx_hash').on(t.transactionId, t.hash),
   ],
 );

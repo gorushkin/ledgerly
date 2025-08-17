@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import {
   AccountType,
-  OperationInsertDTO,
+  OperationDbInsert,
   TransactionDbInsertDTO,
   TransactionDbRowDTO,
   UsersResponseDTO,
@@ -15,7 +15,10 @@ import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { getTransactionWithHash } from 'src/libs/hashGenerator';
+import {
+  computeOperationHash,
+  getTransactionWithHash,
+} from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
 
 import * as schema from './schemas';
@@ -75,6 +78,10 @@ export class TestDB {
   protected get uuid() {
     return { id: crypto.randomUUID() };
   }
+
+  private computeOperationHash = (operation: OperationDbInsert): string => {
+    return computeOperationHash(operation);
+  };
 
   test = async () => {
     try {
@@ -185,23 +192,26 @@ export class TestDB {
     transactionId: UUID;
     description?: string;
   }) => {
-    const operationData: OperationInsertDTO = {
+    const operationData: OperationDbInsert = {
       accountId: params.accountId,
       baseAmount: 100,
-      createdAt: new Date().toISOString(),
       description: params.description ?? 'Test Operation',
       hash: `hash-${this.operationCounter.getNextName()}`,
-      ...this.uuid,
+      isTombstone: false,
       localAmount: 100,
       rateBasePerLocal: '1.0',
       transactionId: params.transactionId,
-      updatedAt: new Date().toISOString(),
       userId: params.userId,
     };
 
     const operation = await this.db
-      .insert(schema.operationsTable) // Assuming 'operations' is the correct table name
-      .values(operationData)
+      .insert(schema.operationsTable)
+      .values({
+        ...operationData,
+        ...this.createTimestamps,
+        ...this.uuid,
+        hash: this.computeOperationHash(operationData),
+      })
       .returning()
       .get();
 
@@ -264,7 +274,7 @@ export class TestDB {
 
   getOperationsByTransactionId = async (
     transactionId: UUID,
-  ): Promise<OperationInsertDTO[]> => {
+  ): Promise<OperationDbInsert[]> => {
     const operations = await this.db
       .select()
       .from(schema.operationsTable)
@@ -274,7 +284,7 @@ export class TestDB {
     return operations;
   };
 
-  getAllOperations = async (): Promise<OperationInsertDTO[]> => {
+  getAllOperations = async (): Promise<OperationDbInsert[]> => {
     const operations = await this.db
       .select()
       .from(schema.operationsTable)

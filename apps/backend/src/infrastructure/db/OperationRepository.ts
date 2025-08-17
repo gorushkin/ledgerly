@@ -1,12 +1,11 @@
 import {
-  OperationDBRowDTO,
-  OperationInsertDTO,
-  OperationResponseDTO,
+  OperationDbInsert,
+  OperationDbRow,
   UUID,
 } from '@ledgerly/shared/types';
 import { eq, inArray } from 'drizzle-orm';
 import { operationsTable } from 'src/db/schemas';
-import { InvalidDataError } from 'src/presentation/errors';
+import { computeOperationHash } from 'src/libs/hashGenerator';
 import { DataBase, TxType } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -15,10 +14,11 @@ export class OperationRepository extends BaseRepository {
   constructor(db: DataBase) {
     super(db);
   }
+  private computeOperationHash = (operation: OperationDbInsert): string => {
+    return computeOperationHash(operation);
+  };
 
-  async getByTransactionId(
-    transactionId: string,
-  ): Promise<OperationResponseDTO[]> {
+  async getByTransactionId(transactionId: string): Promise<OperationDbRow[]> {
     return this.executeDatabaseOperation(
       async () => {
         return this.db
@@ -33,29 +33,35 @@ export class OperationRepository extends BaseRepository {
   }
 
   async bulkInsert(
-    operations: OperationInsertDTO[],
+    operations: OperationDbInsert[],
     tx?: TxType,
-  ): Promise<OperationDBRowDTO[]> {
+  ): Promise<OperationDbRow[]> {
     return this.executeDatabaseOperation(
       async () => {
         if (operations.length === 0) {
-          throw new InvalidDataError(
-            'Cannot create transaction without operations',
-          );
+          return [];
         }
 
         const dbClient = tx ?? this.db;
 
-        return dbClient.insert(operationsTable).values(operations).returning();
+        const filledOperations = operations.map((op) => ({
+          ...op,
+          ...this.createTimestamps,
+          ...this.uuid,
+          hash: this.computeOperationHash(op),
+        }));
+
+        return dbClient
+          .insert(operationsTable)
+          .values(filledOperations)
+          .returning();
       },
       'Failed to bulk insert operations',
       { field: 'operations', tableName: 'operations' },
     );
   }
 
-  async getByTransactionIds(
-    transactionIds: UUID[],
-  ): Promise<OperationResponseDTO[]> {
+  async getByTransactionIds(transactionIds: UUID[]): Promise<OperationDbRow[]> {
     // TODO: add tests for this method
     return this.executeDatabaseOperation(
       async () => {

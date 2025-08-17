@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import {
+  OperationDbInsert,
   OperationResponseDTO,
   TransactionDbInsertDTO,
 } from '@ledgerly/shared/types';
@@ -24,16 +25,13 @@ const objHashGenerator = <T extends Record<string, unknown>>(
 const TRANSACTION_HASH_FIELDS: (keyof Omit<TransactionDbInsertDTO, 'hash'>)[] =
   ['description', 'postingDate', 'transactionDate'];
 
-const OPERATION_HASH_FIELDS: (keyof Omit<OperationResponseDTO, 'hash'>)[] = [
+const OPERATION_HASH_FIELDS: (keyof Omit<OperationDbInsert, 'hash'>)[] = [
   'accountId',
   'description',
-  'id',
   'isTombstone',
   'localAmount',
   'baseAmount',
   'rateBasePerLocal',
-  'transactionId',
-  'updatedAt',
 ];
 
 export const getTransactionHash = (
@@ -42,8 +40,8 @@ export const getTransactionHash = (
   return objHashGenerator(transaction, TRANSACTION_HASH_FIELDS);
 };
 
-export const getOperationHash = (
-  operation: Omit<OperationResponseDTO, 'hash'>,
+export const computeOperationHash = (
+  operation: Omit<OperationDbInsert, 'hash'>,
 ): string => {
   return objHashGenerator(operation, OPERATION_HASH_FIELDS);
 };

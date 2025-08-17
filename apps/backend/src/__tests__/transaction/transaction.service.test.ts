@@ -1,10 +1,13 @@
 import {
-  OperationDbPreHashDTO,
+  OperationDbInsert,
   TransactionDbPreHashDTO,
 } from '@ledgerly/shared/types';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
-import { getOperationHash, getTransactionHash } from 'src/libs/hashGenerator';
+import {
+  computeOperationHash,
+  getTransactionHash,
+} from 'src/libs/hashGenerator';
 import { TransactionService } from 'src/services/transaction.service';
 import { DataBase } from 'src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -149,36 +152,34 @@ describe('TransactionService', () => {
         userId,
       };
 
-      const operations: OperationDbPreHashDTO[] = [
+      const operations: OperationDbInsert[] = [
         {
           accountId: 'account-1',
           baseAmount: 100,
-          createdAt: new Date().toISOString(),
           description: 'Operation 1',
           id: 'operation-5',
+          isTombstone: false,
           localAmount: 100,
           rateBasePerLocal: '1.0',
           transactionId: newTransaction.id,
-          updatedAt: new Date().toISOString(),
           userId,
         },
         {
           accountId: 'account-2',
           baseAmount: -100,
-          createdAt: new Date().toISOString(),
           description: 'Operation 2',
           id: 'operation-6',
+          isTombstone: false,
           localAmount: -100,
           rateBasePerLocal: '1.0',
           transactionId: newTransaction.id,
-          updatedAt: new Date().toISOString(),
           userId,
         },
       ];
 
       const operationsWithHash = operations.map((op) => ({
         ...op,
-        hash: getOperationHash(op),
+        hash: computeOperationHash(op),
       }));
 
       const transactionWithHash = {
