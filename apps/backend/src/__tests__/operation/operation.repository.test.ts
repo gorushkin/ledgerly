@@ -2,18 +2,18 @@ import {
   UserDbRowDTO,
   TransactionDbRowDTO,
   OperationDBRowDTO,
-  OperationInsertDTO,
+  OperationDbInsert,
   UUID,
   AccountEntity,
+  OperationDbRow,
+  IsoDatetimeString,
+  Sha256String,
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
-import { getOperationHash } from 'src/libs/hashGenerator';
+import { computeOperationHash } from 'src/libs/hashGenerator';
 import { generateId } from 'src/libs/idGenerator';
-import {
-  ForeignKeyConstraintError,
-  InvalidDataError,
-} from 'src/presentation/errors';
+import { ForeignKeyConstraintError } from 'src/presentation/errors';
 import { TxType } from 'src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,25 +23,22 @@ const createOperationData = (params: {
   transactionId?: UUID;
   description?: string;
   userId?: UUID;
-}): OperationInsertDTO => {
+}): OperationDbInsert => {
   const presHash = {
     accountId: params.accountId ?? generateId(),
     baseAmount: 100,
-    createdAt: new Date().toISOString(),
     description: 'Test Operation',
-    id: generateId(),
     isTombstone: false,
     localAmount: 100,
     rateBasePerLocal: '1.0',
     transactionId: params.transactionId ?? generateId(),
-    updatedAt: new Date().toISOString(),
     userId: params.userId ?? generateId(),
     ...params,
   };
 
   return {
     ...presHash,
-    hash: getOperationHash(presHash),
+    hash: computeOperationHash(presHash),
   };
 };
 
@@ -65,7 +62,7 @@ describe('OperationRepository', () => {
   let insertedOperations: OperationDBRowDTO[];
   let transaction2: TransactionDbRowDTO;
 
-  let operationsToInsert: OperationInsertDTO[];
+  let operationsToInsert: OperationDbInsert[];
 
   beforeEach(async () => {
     testDB = new TestDB();
@@ -184,7 +181,6 @@ describe('OperationRepository', () => {
           baseAmount: match.baseAmount,
           description: match.description,
           hash: match.hash,
-          id: match.id,
           isTombstone: match.isTombstone,
           localAmount: match.localAmount,
           transactionId: transaction1.id,
@@ -203,22 +199,46 @@ describe('OperationRepository', () => {
 
     it('should use a transaction if provided', async () => {
       const mock = vi.fn();
+      let capturedValues = [] as unknown[];
+      const returningFn = vi.fn(async () => Promise.resolve(capturedValues));
+      const dbInsertSpy = vi.spyOn(operationRepository.db, 'insert');
 
-      const tx = {
-        insert: () => ({
-          values: (operations: unknown) => {
-            mock(operations);
+      const valuesFn = vi.fn((vals: unknown[]) => {
+        capturedValues = vals;
+        mock(vals);
+        return { returning: returningFn } as const;
+      });
 
-            return {
-              returning: vi.fn,
-            };
-          },
+      const insertFn = vi.fn((_table: unknown) => ({ values: valuesFn }));
+
+      const tx = { insert: insertFn } as unknown as TxType;
+
+      const result = await operationRepository.bulkInsert(
+        operationsToInsert,
+        tx,
+      );
+
+      expect(dbInsertSpy).toHaveBeenCalledTimes(0);
+      expect(insertFn).toHaveBeenCalledTimes(1);
+      expect(valuesFn).toHaveBeenCalledTimes(1);
+      expect(returningFn).toHaveBeenCalledTimes(1);
+      expect(mock).toHaveBeenCalledWith(capturedValues);
+      expect(result).toBe(capturedValues);
+
+      const first = capturedValues[0] as OperationDbRow;
+
+      expect(first).toEqual(
+        expect.objectContaining({
+          accountId: operationsToInsert[0].accountId,
+          createdAt: expect.any(String) as unknown as IsoDatetimeString,
+          description: operationsToInsert[0].description,
+          hash: expect.any(String) as unknown as Sha256String,
+          id: expect.any(String) as unknown as UUID,
+          transactionId: operationsToInsert[0].transactionId,
+          updatedAt: expect.any(String) as unknown as IsoDatetimeString,
+          userId: operationsToInsert[0].userId,
         }),
-      } as unknown as TxType;
-
-      await operationRepository.bulkInsert(operationsToInsert, tx);
-
-      expect(mock).toHaveBeenCalledWith(operationsToInsert);
+      );
     });
 
     it('should throw an error if bulk insert fails', async () => {
@@ -232,12 +252,12 @@ describe('OperationRepository', () => {
     });
 
     it('should handle empty operations array', async () => {
-      const operations = operationRepository.bulkInsert(
+      const operations = await operationRepository.bulkInsert(
         [],
         testDB.db as unknown as TxType,
       );
 
-      await expect(operations).rejects.toThrow(InvalidDataError);
+      expect(operations).toHaveLength(0);
     });
 
     it('should handle invalid operation data', async () => {
