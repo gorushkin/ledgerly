@@ -5,25 +5,20 @@ import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import {
   AccountType,
   OperationDbInsert,
-  TransactionDbInsertDTO,
-  TransactionDbRowDTO,
   UsersResponseDTO,
   UUID,
 } from '@ledgerly/shared/types';
+import { isoDatetime } from '@ledgerly/shared/validation';
 import { createClient } from '@libsql/client';
 import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
-import { isoDatetime } from 'node_modules/@ledgerly/shared/src/validation/baseValidations';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import {
-  computeOperationHash,
-  getTransactionWithHash,
-} from 'src/libs/hashGenerator';
+import { computeOperationHash } from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
 
 import * as schema from './schemas';
-import { accountsTable, transactionsTable, usersTable } from './schemas';
+import { accountsTable, usersTable } from './schemas';
 import { seedCurrencies } from './scripts/currenciesSeed';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -67,21 +62,26 @@ export class TestDB {
     this.db = drizzle(client, { schema });
   }
 
-  protected get createTimestamps() {
+  // protected get createTimestamps() {
+  //   const now = isoDatetime.parse(new Date().toISOString());
+  //   return { createdAt: now, updatedAt: now };
+  // }
+
+  static get createTimestamps() {
     const now = isoDatetime.parse(new Date().toISOString());
     return { createdAt: now, updatedAt: now };
   }
 
-  protected get updateTimestamp() {
+  static get updateTimestamp() {
     const now = isoDatetime.parse(new Date().toISOString());
     return { updatedAt: now };
   }
 
-  protected get uuid() {
+  static get uuid() {
     return { id: crypto.randomUUID() };
   }
 
-  private computeOperationHash = (operation: OperationDbInsert): string => {
+  static computeOperationHash = (operation: OperationDbInsert): string => {
     return computeOperationHash(operation);
   };
 
@@ -141,10 +141,10 @@ export class TestDB {
       .insert(usersTable)
       .values({
         email: userData.email,
-        ...this.uuid,
+        ...TestDB.uuid,
         name: userData.name,
         password: hashedPassword,
-        ...this.createTimestamps,
+        ...TestDB.createTimestamps,
       })
       .returning()
       .get();
@@ -179,8 +179,8 @@ export class TestDB {
         originalCurrency: accountData.originalCurrency,
         type: accountData.type,
         userId: accountData.userId,
-        ...this.createTimestamps,
-        ...this.uuid,
+        ...TestDB.createTimestamps,
+        ...TestDB.uuid,
       })
       .returning()
       .get();
@@ -210,9 +210,9 @@ export class TestDB {
       .insert(schema.operationsTable)
       .values({
         ...operationData,
-        ...this.createTimestamps,
-        ...this.uuid,
-        hash: this.computeOperationHash(operationData),
+        ...TestDB.createTimestamps,
+        ...TestDB.uuid,
+        hash: TestDB.computeOperationHash(operationData),
       })
       .returning()
       .get();
@@ -220,59 +220,59 @@ export class TestDB {
     return operation;
   };
 
-  createTransaction = async (params: {
-    userId: UUID;
-    data?: {
-      description?: string;
-      postingDate: string;
-      transactionDate: string;
-    };
-  }): Promise<TransactionDbRowDTO> => {
-    const { data, userId } = params;
+  // createTransaction = async (params: {
+  //   userId: UUID;
+  //   data?: {
+  //     description?: string;
+  //     postingDate: string;
+  //     transactionDate: string;
+  //   };
+  // }): Promise<TransactionDbRowDTO> => {
+  //   const { data, userId } = params;
 
-    const transactionData = {
-      description: this.transactionCounter.getNextName(userId),
-      postingDate: new Date().toString(),
-      transactionDate: new Date().toString(),
-      ...data,
-      ...this.uuid,
-      userId,
-    };
+  //   const transactionData = {
+  //     description: this.transactionCounter.getNextName(userId),
+  //     postingDate: new Date().toString(),
+  //     transactionDate: new Date().toString(),
+  //     ...data,
+  //     ...this.uuid,
+  //     userId,
+  //   };
 
-    const withHash = getTransactionWithHash(transactionData);
+  //   const withHash = getTransactionWithHash(transactionData);
 
-    const transaction = await this.db
-      .insert(transactionsTable)
-      .values({
-        ...withHash,
-        ...this.createTimestamps,
-      })
-      .returning()
-      .get();
+  //   const transaction = await this.db
+  //     .insert(transactionsTable)
+  //     .values({
+  //       ...withHash,
+  //       ...this.createTimestamps,
+  //     })
+  //     .returning()
+  //     .get();
 
-    return transaction;
-  };
+  //   return transaction;
+  // };
 
-  getAllTransactions = async (): Promise<TransactionDbInsertDTO[]> => {
-    const transactionsList = await this.db
-      .select()
-      .from(transactionsTable)
-      .all();
+  // getAllTransactions = async (): Promise<TransactionDbInsertDTO[]> => {
+  //   const transactionsList = await this.db
+  //     .select()
+  //     .from(transactionsTable)
+  //     .all();
 
-    return transactionsList;
-  };
+  //   return transactionsList;
+  // };
 
-  getTransactionById = async (
-    transactionId: UUID,
-  ): Promise<TransactionDbRowDTO | undefined> => {
-    const transaction = await this.db
-      .select()
-      .from(transactionsTable)
-      .where(eq(transactionsTable.id, transactionId))
-      .get();
+  // getTransactionById = async (
+  //   transactionId: UUID,
+  // ): Promise<TransactionDbRowDTO | undefined> => {
+  //   const transaction = await this.db
+  //     .select()
+  //     .from(transactionsTable)
+  //     .where(eq(transactionsTable.id, transactionId))
+  //     .get();
 
-    return transaction;
-  };
+  //   return transaction;
+  // };
 
   getOperationsByTransactionId = async (
     transactionId: UUID,

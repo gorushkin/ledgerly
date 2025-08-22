@@ -1,17 +1,18 @@
 import {
   UserDbRowDTO,
   TransactionDbRowDTO,
-  OperationDBRowDTO,
-  OperationDbInsert,
   UUID,
-  AccountEntity,
-  OperationDbRow,
+  AccountDomain,
   IsoDatetimeString,
   Sha256String,
 } from '@ledgerly/shared/types';
+import {
+  OperationDbInsert,
+  OperationDbRow,
+  OperationRepoInsert,
+} from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
-import { computeOperationHash } from 'src/libs/hashGenerator';
 import { generateId } from 'src/libs/idGenerator';
 import { ForeignKeyConstraintError } from 'src/presentation/errors';
 import { TxType } from 'src/types';
@@ -23,23 +24,20 @@ const createOperationData = (params: {
   transactionId?: UUID;
   description?: string;
   userId?: UUID;
-}): OperationDbInsert => {
+}): OperationRepoInsert => {
   const presHash = {
     accountId: params.accountId ?? generateId(),
     baseAmount: 100,
     description: 'Test Operation',
     isTombstone: false,
     localAmount: 100,
-    rateBasePerLocal: '1.0',
+    rateBasePerLocal: 200,
     transactionId: params.transactionId ?? generateId(),
     userId: params.userId ?? generateId(),
     ...params,
   };
 
-  return {
-    ...presHash,
-    hash: computeOperationHash(presHash),
-  };
+  return presHash;
 };
 
 const transactionTwoOperationOneDescription = 'Transaction Two Operation 1';
@@ -56,10 +54,10 @@ const operationsDescriptions = [
 describe('OperationRepository', () => {
   let operationRepository: OperationRepository;
   let testDB: TestDB;
-  let testAccount: AccountEntity;
+  let testAccount: AccountDomain;
   let transaction1: TransactionDbRowDTO;
   let user: UserDbRowDTO;
-  let insertedOperations: OperationDBRowDTO[];
+  let insertedOperations: OperationDbRow[];
   let transaction2: TransactionDbRowDTO;
 
   let operationsToInsert: OperationDbInsert[];
@@ -74,6 +72,8 @@ describe('OperationRepository', () => {
     testAccount = await testDB.createAccount(user.id, {
       name: 'Test Account 1',
     });
+
+    // TODO: fix createAccount to return AccountDbRowDTO
 
     transaction1 = await testDB.createTransaction({
       data: {

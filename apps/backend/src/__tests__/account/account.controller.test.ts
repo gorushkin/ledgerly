@@ -69,6 +69,7 @@ describe('AccountController', () => {
         name: 'New Account',
         originalCurrency: 'USD',
         type: 'liability',
+        userId: 'first-user-id',
       };
 
       const mockAccountResponse = { id: userId, ...requestBody };

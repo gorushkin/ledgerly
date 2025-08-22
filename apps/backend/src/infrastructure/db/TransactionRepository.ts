@@ -1,9 +1,6 @@
-import {
-  TransactionDbInsertDTO,
-  TransactionDbRowDTO,
-  UUID,
-} from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import { eq, and, desc } from 'drizzle-orm';
+import { TransactionDbInsert, TransactionDbRow } from 'src/db/schema';
 import { transactionsTable } from 'src/db/schemas';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { DataBase, TxType } from 'src/types';
@@ -16,7 +13,7 @@ export class TransactionRepository extends BaseRepository {
   }
 
   // getAll is for admin only
-  async getAll(): Promise<TransactionDbRowDTO[]> {
+  async getAll(): Promise<TransactionDbRow[]> {
     return this.executeDatabaseOperation(async () => {
       return await this.db.select().from(transactionsTable).all();
     }, 'Failed to fetch transactions');
@@ -25,7 +22,7 @@ export class TransactionRepository extends BaseRepository {
   async getAllByUserId(
     userId: UUID,
     _opts: { limit?: number; cursor?: string; accountId?: UUID } = {},
-  ): Promise<TransactionDbRowDTO[]> {
+  ): Promise<TransactionDbRow[]> {
     return this.executeDatabaseOperation(async () => {
       return await this.db
         .select()
@@ -36,7 +33,7 @@ export class TransactionRepository extends BaseRepository {
     }, 'Failed to fetch transactions');
   }
 
-  async getById(userId: UUID, id: UUID): Promise<TransactionDbRowDTO> {
+  async getById(userId: UUID, id: UUID): Promise<TransactionDbRow> {
     return this.executeDatabaseOperation(async () => {
       const transaction = await this.db
         .select()
@@ -58,9 +55,9 @@ export class TransactionRepository extends BaseRepository {
   }
 
   async create(
-    dto: TransactionDbInsertDTO,
+    dto: TransactionDbInsert,
     tx?: TxType,
-  ): Promise<TransactionDbRowDTO> {
+  ): Promise<TransactionDbRow> {
     return this.executeDatabaseOperation(async () => {
       const dbClient = tx ?? this.db;
 
@@ -100,9 +97,9 @@ export class TransactionRepository extends BaseRepository {
   async update(
     userId: UUID,
     id: UUID,
-    data: TransactionDbInsertDTO,
+    data: TransactionDbInsert,
     tx?: TxType,
-  ): Promise<TransactionDbRowDTO> {
+  ): Promise<TransactionDbRow> {
     return this.executeDatabaseOperation(async () => {
       const dbClient = tx ?? this.db;
 

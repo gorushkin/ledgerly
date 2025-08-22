@@ -1,21 +1,29 @@
 import { z } from "zod";
 
-import { requiredText, notNullText, uuid } from "./baseValidations";
+import { uuid } from "./baseValidations";
 
+export const money = z.bigint();
+export const fxRateScaled = z.bigint();
 export const operationCreateSchema = z.object({
   accountId: uuid,
-  categoryId: uuid,
-  description: requiredText,
-  hash: notNullText,
-  id: uuid,
-  localAmount: z.number(),
-  originalAmount: z.number(),
+  baseAmount: money,
+  description: z.string().trim().max(500).default(""),
+  isTombstone: z.boolean().default(false),
+  localAmount: money,
+  rateBasePerLocal: fxRateScaled,
+  transactionId: uuid,
+  userId: uuid,
 });
 
-export const operationResponseSchema = z
+export const operationUpdateSchema = z
   .object({
-    createdAt: z.string(),
-    updatedAt: z.string(),
-    userId: uuid,
+    accountId: uuid.optional(),
+    baseAmount: money.optional(),
+    description: z.string().trim().max(500).optional(),
+    isTombstone: z.boolean().optional(),
+    localAmount: money.nullish().optional(),
+    rateBasePerLocal: fxRateScaled.nullish().optional(),
   })
-  .merge(operationCreateSchema);
+  .refine((v) => Object.keys(v).length > 0, {
+    message: "Provide at least one field",
+  });

@@ -1,11 +1,7 @@
-import {
-  OperationDbInsert,
-  OperationDbRow,
-  UUID,
-} from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import { eq, inArray } from 'drizzle-orm';
+import { OperationDbRow, OperationRepoInsert } from 'src/db/schema';
 import { operationsTable } from 'src/db/schemas';
-import { computeOperationHash } from 'src/libs/hashGenerator';
 import { DataBase, TxType } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
@@ -30,7 +26,7 @@ export class OperationRepository extends BaseRepository {
   }
 
   async bulkInsert(
-    operations: OperationDbInsert[],
+    operations: OperationRepoInsert[],
     tx?: TxType,
   ): Promise<OperationDbRow[]> {
     return this.executeDatabaseOperation(
@@ -45,7 +41,6 @@ export class OperationRepository extends BaseRepository {
           ...op,
           ...this.createTimestamps,
           ...this.uuid,
-          hash: computeOperationHash(op),
         }));
 
         return dbClient
@@ -59,7 +54,6 @@ export class OperationRepository extends BaseRepository {
   }
 
   async getByTransactionIds(transactionIds: UUID[]): Promise<OperationDbRow[]> {
-    // TODO: add tests for this method
     return this.executeDatabaseOperation(
       async () => {
         if (transactionIds.length === 0) return [];

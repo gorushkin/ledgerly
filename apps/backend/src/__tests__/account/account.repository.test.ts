@@ -1,10 +1,10 @@
 import {
-  AccountDbRow,
-  AccountDbInsert,
   UsersResponseDTO,
   CurrencyCode,
+  AccountType,
 } from '@ledgerly/shared/types';
 import dayjs from 'dayjs';
+import { AccountDbInsert, AccountDbRow } from 'src/db/schema';
 import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
 import {
   ForeignKeyConstraintError,
@@ -20,15 +20,33 @@ const secondUserAccounts = ['secondUserAccount1', 'secondUserAccount2'];
 
 const USD: CurrencyCode = 'USD' as CurrencyCode;
 
-const accountData: AccountDbInsert = {
-  currentClearedBalanceLocal: 0,
-  description: 'This is a test account',
-  initialBalance: 1000,
+const getAccountData = (params: {
+  userId: string;
+  name: string;
+  originalCurrency: CurrencyCode;
+  type: AccountType;
+}): AccountDbInsert => {
+  return {
+    currentClearedBalanceLocal: 0,
+    description: 'This is a test account',
+    initialBalance: 1000,
+    name: params.name,
+    originalCurrency: params.originalCurrency,
+    type: params.type,
+    userId: params.userId,
+    ...TestDB.uuid,
+    ...TestDB.createTimestamps,
+  };
+};
+
+const accountDataRaw = {
   name: 'Test Account',
   originalCurrency: USD,
-  type: 'asset',
+  type: 'asset' as const,
   userId: 'non-existent-user-id',
 };
+
+const accountData = getAccountData(accountDataRaw);
 
 describe('AccountRepository', () => {
   let testDB: TestDB;
@@ -45,15 +63,12 @@ describe('AccountRepository', () => {
 
   describe('create', () => {
     it('should create a new account successfully', async () => {
-      const newAccount: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a test account',
-        initialBalance: 100,
-        name: 'Test Account',
+      const newAccount = getAccountData({
+        name: 'New Account',
         originalCurrency: USD,
         type: 'asset',
         userId: user.id,
-      };
+      });
 
       const account = await accountRepository.create({
         ...newAccount,
@@ -67,15 +82,12 @@ describe('AccountRepository', () => {
     });
 
     it('should not allow duplicate account names for the same user', async () => {
-      const newAccount: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a unique account',
-        initialBalance: 100,
-        name: 'Unique Account',
+      const newAccount = getAccountData({
+        name: 'New Account',
         originalCurrency: USD,
         type: 'asset',
         userId: user.id,
-      };
+      });
 
       await testDB.createAccount(user.id, {
         ...newAccount,
@@ -100,25 +112,19 @@ describe('AccountRepository', () => {
         name: 'Second User',
       });
 
-      const firstUserAccount: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a test account',
-        initialBalance: 1000,
+      const firstUserAccount = getAccountData({
         name: accountName,
         originalCurrency: USD,
         type: 'asset',
         userId: user.id,
-      };
+      });
 
-      const secondUserAccount: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a test account for second user',
-        initialBalance: 1000,
+      const secondUserAccount = getAccountData({
         name: accountName,
-        originalCurrency: 'EUR',
-        type: 'expense',
+        originalCurrency: USD,
+        type: 'asset',
         userId: secondUser.id,
-      };
+      });
 
       const account1 = await testDB.createAccount(user.id, {
         ...firstUserAccount,
@@ -140,15 +146,12 @@ describe('AccountRepository', () => {
     });
 
     it('should throw an error if the original currency does not exist', async () => {
-      const newAccount: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a test account',
-        initialBalance: 100,
-        name: 'Test Account',
-        originalCurrency: 'XYZ',
+      const newAccount = getAccountData({
+        name: 'New Account',
+        originalCurrency: 'XYZ' as CurrencyCode,
         type: 'asset',
         userId: user.id,
-      };
+      });
 
       await expect(accountRepository.create(newAccount)).rejects.toThrowError(
         new ForeignKeyConstraintError({
@@ -162,15 +165,12 @@ describe('AccountRepository', () => {
     });
 
     it('should throw an error if the user does not exist', async () => {
-      const newAccount: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a test account',
-        initialBalance: 100,
-        name: 'Test Account',
+      const newAccount = getAccountData({
+        name: 'New Account',
         originalCurrency: USD,
         type: 'asset',
         userId: 'non-existent-user-id',
-      };
+      });
 
       await expect(accountRepository.create(newAccount)).rejects.toThrowError(
         new ForeignKeyConstraintError({
@@ -189,15 +189,12 @@ describe('AccountRepository', () => {
         .mockReturnValueOnce(uuid) // первая попытка → коллизия
         .mockReturnValueOnce(uuid); // ретрай → успех
 
-      const accountDto: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a test account',
-        initialBalance: 100,
+      const accountDto = getAccountData({
         name: 'Test Account',
         originalCurrency: USD,
         type: 'asset',
         userId: user.id,
-      };
+      });
 
       const account1 = await accountRepository.create({
         ...accountDto,
@@ -324,15 +321,12 @@ describe('AccountRepository', () => {
     it('should update account when it belongs to user', async () => {
       const user2 = await testDB.createUser();
 
-      const updatedAccountData: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'Updated description',
-        initialBalance: 2000,
+      const updatedAccountData = getAccountData({
         name: 'Updated Account',
-        originalCurrency: 'EUR',
+        originalCurrency: 'EUR' as CurrencyCode,
         type: 'expense',
         userId: user2.id,
-      };
+      });
 
       const updatedAccount = await accountRepository.update(
         user.id,
@@ -351,15 +345,12 @@ describe('AccountRepository', () => {
     });
 
     it('should return undefined when account belongs to different user', async () => {
-      const updatedAccountData: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a test account',
-        initialBalance: 2000,
+      const updatedAccountData = getAccountData({
         name: 'Updated Account',
-        originalCurrency: 'EUR',
+        originalCurrency: 'EUR' as CurrencyCode,
         type: 'expense',
         userId: user.id,
-      };
+      });
 
       const updatedAccount = accountRepository.update(
         'non-existent-account-id',
@@ -371,15 +362,12 @@ describe('AccountRepository', () => {
     });
 
     it('should not allow updating to duplicate name within same user', async () => {
-      const updatedAccountData: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a test account',
-        initialBalance: 2000,
+      const updatedAccountData = getAccountData({
         name: 'Updated Account',
-        originalCurrency: 'EUR',
-        type: 'expense',
+        originalCurrency: USD,
+        type: 'asset',
         userId: user.id,
-      };
+      });
 
       await testDB.createAccount(user.id, {
         initialBalance: 2000,
@@ -430,15 +418,12 @@ describe('AccountRepository', () => {
     });
 
     it('should validate currency when updating', async () => {
-      const updatedAccountData: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: ' This is a test account',
-        initialBalance: 2000,
+      const updatedAccountData = getAccountData({
         name: 'Updated Account',
-        originalCurrency: 'XYZ',
+        originalCurrency: 'XYZ' as CurrencyCode,
         type: 'expense',
         userId: user.id,
-      };
+      });
 
       await expect(
         accountRepository.update(user.id, account.id, updatedAccountData),
@@ -529,16 +514,12 @@ describe('AccountRepository', () => {
     it('should set createdAt and updatedAt on creation', async () => {
       const beforeCreate = dayjs();
 
-      const newAccount: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a test account',
-        initialBalance: 1000,
-        name: 'Timestamp Test Account',
-        originalCurrency: USD,
+      const newAccount = getAccountData({
+        name: 'This is a test account',
+        originalCurrency: 'USD' as CurrencyCode,
         type: 'asset',
         userId: user.id,
-      };
-
+      });
       const account = await accountRepository.create(newAccount);
       const accountDate = dayjs(account.createdAt);
 
@@ -559,15 +540,12 @@ describe('AccountRepository', () => {
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const updatedData: AccountDbInsert = {
-        currentClearedBalanceLocal: 0,
-        description: 'This is a test account',
-        initialBalance: 2000,
-        name: 'Updated Timestamp Account',
-        originalCurrency: 'EUR',
+      const updatedData = getAccountData({
+        name: 'Updated Account',
+        originalCurrency: 'EUR' as CurrencyCode,
         type: 'expense',
         userId: user.id,
-      };
+      });
 
       const updatedAccount = await accountRepository.update(
         user.id,

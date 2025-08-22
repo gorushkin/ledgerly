@@ -1,11 +1,11 @@
+import { UUID } from '@ledgerly/shared/types';
+import { and, eq } from 'drizzle-orm';
 import {
-  AccountDbInsert,
   AccountDbRow,
   AccountDbUpdate,
-  UUID,
-} from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
-import { accountsTable } from 'src/db/schemas/accounts';
+  AccountRepoInsert,
+  accountsTable,
+} from 'src/db/schemas/accounts';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { DataBase } from 'src/types';
 
@@ -28,7 +28,7 @@ export class AccountRepository extends BaseRepository {
     );
   }
 
-  create(data: AccountDbInsert): Promise<AccountDbRow> {
+  create(data: AccountRepoInsert): Promise<AccountDbRow> {
     return this.executeDatabaseOperation(
       async () =>
         this.db

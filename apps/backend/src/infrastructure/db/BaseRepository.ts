@@ -1,4 +1,4 @@
-import { isoDatetime } from 'node_modules/@ledgerly/shared/src/validation/baseValidations';
+import { isoDatetime } from '@ledgerly/shared/validation';
 import {
   DBErrorContext,
   DatabaseError,
