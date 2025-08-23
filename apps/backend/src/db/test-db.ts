@@ -17,6 +17,7 @@ import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { computeOperationHash } from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
 
+import { TransactionDbRow } from './schema';
 import * as schema from './schemas';
 import { accountsTable, usersTable } from './schemas';
 import { seedCurrencies } from './scripts/currenciesSeed';
@@ -188,91 +189,63 @@ export class TestDB {
     return account;
   };
 
-  createOperation = async (params: {
-    userId: UUID;
-    accountId: UUID;
-    transactionId: UUID;
-    description?: string;
-  }) => {
-    const operationData: OperationDbInsert = {
-      accountId: params.accountId,
-      baseAmount: 100,
-      description: params.description ?? 'Test Operation',
-      hash: `hash-${this.operationCounter.getNextName()}`,
-      isTombstone: false,
-      localAmount: 100,
-      rateBasePerLocal: '1.0',
-      transactionId: params.transactionId,
-      userId: params.userId,
-    };
-
-    const operation = await this.db
-      .insert(schema.operationsTable)
-      .values({
-        ...operationData,
-        ...TestDB.createTimestamps,
-        ...TestDB.uuid,
-        hash: TestDB.computeOperationHash(operationData),
-      })
-      .returning()
-      .get();
-
-    return operation;
-  };
-
-  // createTransaction = async (params: {
+  // createOperation = async (params: {
   //   userId: UUID;
-  //   data?: {
-  //     description?: string;
-  //     postingDate: string;
-  //     transactionDate: string;
+  //   accountId: UUID;
+  //   transactionId: UUID;
+  //   description?: string;
+  // }) => {
+  //   const operationData: OperationDbInsert = {
+  //     accountId: params.accountId,
+  //     baseAmount: 100,
+  //     description: params.description ?? 'Test Operation',
+  //     hash: `hash-${this.operationCounter.getNextName()}`,
+  //     isTombstone: false,
+  //     localAmount: 100,
+  //     rateBasePerLocal: '1.0',
+  //     transactionId: params.transactionId,
+  //     userId: params.userId,
   //   };
-  // }): Promise<TransactionDbRowDTO> => {
-  //   const { data, userId } = params;
 
-  //   const transactionData = {
-  //     description: this.transactionCounter.getNextName(userId),
-  //     postingDate: new Date().toString(),
-  //     transactionDate: new Date().toString(),
-  //     ...data,
-  //     ...this.uuid,
-  //     userId,
-  //   };
-
-  //   const withHash = getTransactionWithHash(transactionData);
-
-  //   const transaction = await this.db
-  //     .insert(transactionsTable)
+  //   const operation = await this.db
+  //     .insert(schema.operationsTable)
   //     .values({
-  //       ...withHash,
-  //       ...this.createTimestamps,
+  //       ...operationData,
+  //       ...TestDB.createTimestamps,
+  //       ...TestDB.uuid,
+  //       hash: TestDB.computeOperationHash(operationData),
   //     })
   //     .returning()
   //     .get();
 
-  //   return transaction;
+  //   return operation;
   // };
 
-  // getAllTransactions = async (): Promise<TransactionDbInsertDTO[]> => {
-  //   const transactionsList = await this.db
-  //     .select()
-  //     .from(transactionsTable)
-  //     .all();
+  createTransaction = async (params: {
+    userId: UUID;
+    description?: string;
+    postingDate: string;
+    transactionDate: string;
+  }): Promise<TransactionDbRow> => {
+    const result = this.db
+      .insert(schema.transactionsTable)
+      .values({
+        ...params,
+        ...TestDB.createTimestamps,
+        ...TestDB.uuid,
+        description:
+          params?.description ??
+          `Test Transaction ${this.transactionCounter.getNextName()}`,
+        hash: `hash-${this.transactionCounter.getNextName()}`,
+        postingDate: params?.postingDate ?? new Date().toISOString(),
+        transactionDate: params?.transactionDate ?? new Date().toISOString(),
+        userId: params.userId,
+      })
+      .returning()
+      .get();
 
-  //   return transactionsList;
-  // };
-
-  // getTransactionById = async (
-  //   transactionId: UUID,
-  // ): Promise<TransactionDbRowDTO | undefined> => {
-  //   const transaction = await this.db
-  //     .select()
-  //     .from(transactionsTable)
-  //     .where(eq(transactionsTable.id, transactionId))
-  //     .get();
-
-  //   return transaction;
-  // };
+    return result;
+  };
 
   getOperationsByTransactionId = async (
     transactionId: UUID,

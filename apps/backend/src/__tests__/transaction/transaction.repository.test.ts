@@ -1,52 +1,41 @@
-import {
-  AccountResponseDTO,
-  OperationCreateDTO,
-  UsersResponseDTO,
-  UUID,
-} from '@ledgerly/shared/types';
+import { UsersResponseDTO, UUID } from '@ledgerly/shared/types';
+import { TransactionDbInsert } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
-import { beforeEach, describe } from 'vitest';
-type TestDBTransactionParams = {
-  userId: UUID;
-  data?: {
-    description?: string;
-    postingDate: string;
-    transactionDate: string;
-    userId: UUID;
-    operations?: OperationCreateDTO[];
-  };
-};
+import { TxType } from 'src/types';
+import { beforeEach, describe, expect, it } from 'vitest';
+type TestDBTransactionParams = Omit<
+  TransactionDbInsert,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 
 const getUserTransactionDTO = (params: {
-  testAccount1: AccountResponseDTO;
-  testAccount2: AccountResponseDTO;
   userId: UUID;
   description?: string;
 }): TestDBTransactionParams => {
   const { description, userId } = params;
 
   return {
-    data: {
-      description: description,
-      operations: [],
-      postingDate: new Date().toString(),
-      transactionDate: new Date().toString(),
-      userId: userId,
-    },
-    userId: userId,
+    description: description,
+    // ...TestDB.createTimestamps,
+    // ...TestDB.uuid,
+    hash: `hash-${'sss'}`,
+    isTombstone: false,
+    postingDate: new Date().toString(),
+    transactionDate: new Date().toString(),
+    userId,
   };
 };
 
 describe('TransactionRepository', () => {
   let transactionRepository: TransactionRepository;
-  let user: UsersResponseDTO;
-  let testAccount1: AccountResponseDTO;
-  let testAccount2: AccountResponseDTO;
+  let user1: UsersResponseDTO;
+  let user2: UsersResponseDTO;
+  let user3: UsersResponseDTO;
   let testDB: TestDB;
 
-  let firstUserTransactionData: TestDBTransactionParams[];
-  let secondUserTransactionData: TestDBTransactionParams[];
+  let user1TransactionData: TestDBTransactionParams[];
+  let user2TransactionData: TestDBTransactionParams[];
   let transactionsToAdd: TestDBTransactionParams[];
 
   beforeEach(async () => {
@@ -55,61 +44,88 @@ describe('TransactionRepository', () => {
 
     transactionRepository = new TransactionRepository(testDB.db);
 
-    user = await testDB.createUser();
+    user1 = await testDB.createUser();
+    user2 = await testDB.createUser({});
+    user3 = await testDB.createUser({});
 
-    testAccount1 = await testDB.createAccount(user.id, {
-      name: 'Test Account 1',
-    });
-
-    testAccount2 = await testDB.createAccount(user.id, {
-      name: 'Test Account 2',
-    });
-
-    const secondUser = await testDB.createUser({});
-
-    const firstUserTransactionDTO_1 = getUserTransactionDTO({
+    const user1TransactionDTO_1 = getUserTransactionDTO({
       description: 'User 1 Transaction 1',
-      testAccount1,
-      testAccount2,
-      userId: user.id,
+      userId: user1.id,
     });
 
-    const firstUserTransactionDTO_2 = getUserTransactionDTO({
+    const user1TransactionDTO_2 = getUserTransactionDTO({
       description: 'User 1 Transaction 2',
-      testAccount1,
-      testAccount2,
-      userId: user.id,
+      userId: user1.id,
     });
 
-    firstUserTransactionData = [
-      firstUserTransactionDTO_1,
-      firstUserTransactionDTO_2,
-    ];
+    user1TransactionData = [user1TransactionDTO_1, user1TransactionDTO_2];
 
-    const secondUserTransactionDTO = getUserTransactionDTO({
+    const user2TransactionDTO = getUserTransactionDTO({
       description: 'User 2 Transaction 1',
-      testAccount1,
-      testAccount2,
-      userId: secondUser.id,
+      userId: user2.id,
     });
 
-    secondUserTransactionData = [secondUserTransactionDTO];
+    user2TransactionData = [user2TransactionDTO];
 
-    transactionsToAdd = [
-      ...firstUserTransactionData,
-      ...secondUserTransactionData,
-    ];
+    transactionsToAdd = [...user1TransactionData, ...user2TransactionData];
+
+    await Promise.all(transactionsToAdd.map(testDB.createTransaction));
   });
 
-  describe('create', () => {});
+  describe('getAllByUserId', () => {
+    it('should return all transactions for a specific user', async () => {
+      const transactions = await transactionRepository.getAllByUserId(user1.id);
+      expect(transactions).toHaveLength(user1TransactionData.length);
+    });
 
-  describe('delete', () => {});
+    it('should return empty transactions for a specific user', async () => {
+      const transactions = await transactionRepository.getAllByUserId(user3.id);
+      expect(transactions).toHaveLength(0);
+    });
 
-  describe('getAllByUserId', () => {});
+    it('should return transactions for user 2', async () => {
+      const transactions = await transactionRepository.getAllByUserId(user2.id);
+      expect(transactions).toHaveLength(user2TransactionData.length);
+    });
 
-  describe('getAll', () => {});
+    it('should not return not owned transactions', async () => {
+      const transactions = await transactionRepository.getAllByUserId(user1.id);
 
-  describe('getTransactionById', () => {});
+      const user2Transactions = await transactionRepository.getAllByUserId(
+        user2.id,
+      );
 
-  describe('update', () => {});
+      expect(transactions).not.toEqual(user2Transactions);
+    });
+  });
+
+  describe('create', () => {
+    it('should create a new transaction with timestamps and id', async () => {
+      const newTransaction = getUserTransactionDTO({
+        description: 'New Transaction',
+        userId: user1.id,
+      });
+
+      const createdTransaction = await transactionRepository.create(
+        { ...newTransaction, ...TestDB.createTimestamps, ...TestDB.uuid },
+        testDB.db as unknown as TxType,
+      );
+
+      expect(createdTransaction).toEqual(
+        expect.objectContaining(newTransaction),
+      );
+
+      expect(createdTransaction.createdAt).toBeDefined();
+      expect(createdTransaction.updatedAt).toBeDefined();
+      expect(createdTransaction.id).toBeDefined();
+    });
+  });
+
+  // describe('delete', () => {});
+
+  // describe('getAll', () => {});
+
+  // describe('getTransactionById', () => {});
+
+  // describe('update', () => {});
 });
