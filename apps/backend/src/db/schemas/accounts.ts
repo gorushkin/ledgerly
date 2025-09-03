@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, ACCOUNT_TYPE_VALUES } from '@ledgerly/shared/constants';
+import { ACCOUNT_TYPE_VALUES } from '@ledgerly/shared/constants';
 import { CurrencyCode } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { sqliteTable, text, uniqueIndex, real } from 'drizzle-orm/sqlite-core';
@@ -13,7 +13,7 @@ export const accountsTable = sqliteTable(
     createdAt,
     currentClearedBalanceLocal: real('current_cleared_balance_local').notNull(),
     description,
-    id: id,
+    id,
     initialBalance: real('initial_balance').notNull(),
     name: text('name').notNull(),
     originalCurrency: text('original_currency')
@@ -22,9 +22,7 @@ export const accountsTable = sqliteTable(
       .$type<CurrencyCode>(),
     type: text('type', {
       enum: ACCOUNT_TYPE_VALUES,
-    })
-      .notNull()
-      .default(ACCOUNT_TYPES[0]),
+    }).notNull(),
     updatedAt,
     userId: text('user_id')
       .notNull()

@@ -3,7 +3,7 @@
 // @ts-nocheck
 import {
   OperationDbInsert,
-  TransactionDbPreHashDTO,
+  TransactionDbPreHashDTO_DELETE,
 } from '@ledgerly/shared/types';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
@@ -147,7 +147,7 @@ describe('TransactionService', () => {
 
   describe('create', () => {
     it.skip('should create transaction with valid balanced operations', async () => {
-      const newTransaction: TransactionDbPreHashDTO = {
+      const newTransaction: TransactionDbPreHashDTO_DELETE = {
         description: 'Test Transaction',
         id: 'new-transaction-id',
         postingDate: new Date().toISOString(),

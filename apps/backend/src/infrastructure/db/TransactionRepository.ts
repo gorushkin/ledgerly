@@ -1,6 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
 import { eq, and, desc } from 'drizzle-orm';
-import { TransactionDbInsert, TransactionDbRow } from 'src/db/schema';
+import {
+  TransactionDbRow,
+  TransactionDbUpdate,
+  TransactionRepoInsert,
+} from 'src/db/schema';
 import { transactionsTable } from 'src/db/schemas';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { DataBase, TxType } from 'src/types';
@@ -12,7 +16,6 @@ export class TransactionRepository extends BaseRepository {
     super(db);
   }
 
-  // getAll is for admin only
   async getAll(): Promise<TransactionDbRow[]> {
     return this.executeDatabaseOperation(async () => {
       return await this.db.select().from(transactionsTable).all();
@@ -55,7 +58,7 @@ export class TransactionRepository extends BaseRepository {
   }
 
   async create(
-    dto: TransactionDbInsert,
+    dto: TransactionRepoInsert,
     tx?: TxType,
   ): Promise<TransactionDbRow> {
     return this.executeDatabaseOperation(async () => {
@@ -66,6 +69,7 @@ export class TransactionRepository extends BaseRepository {
         .values({
           ...dto,
           ...this.createTimestamps,
+          ...this.uuid,
           userId: dto.userId,
         })
         .returning()
@@ -73,31 +77,50 @@ export class TransactionRepository extends BaseRepository {
     }, 'Failed to create transaction');
   }
 
-  async delete(userId: UUID, id: string, tx?: TxType): Promise<void> {
-    // TODO: add checking if user owns the transaction
+  private async updateStatus(
+    userId: UUID,
+    id: string,
+    isTombstone: boolean,
+    tx?: TxType,
+  ): Promise<boolean> {
+    const mapper: Record<'true' | 'false', string> = {
+      false: 'Failed to delete transaction',
+      true: 'Failed to restore transaction',
+    };
+
+    const errorMessage = mapper[isTombstone.toString() as 'true' | 'false'];
+
     return this.executeDatabaseOperation(async () => {
       const dbClient = tx ?? this.db;
 
-      const { rowsAffected } = await dbClient
-        .delete(transactionsTable)
+      const res = await dbClient
+        .update(transactionsTable)
+        .set({ isTombstone, ...this.updateTimestamp })
         .where(
           and(
             eq(transactionsTable.id, id),
             eq(transactionsTable.userId, userId),
+            eq(transactionsTable.isTombstone, !isTombstone),
           ),
         )
         .run();
 
-      if (rowsAffected === 0) {
-        throw new NotFoundError(`Transaction with id ${id} not found`);
-      }
-    }, 'Failed to delete transaction');
+      return res.rowsAffected > 0;
+    }, errorMessage);
+  }
+
+  async delete(userId: UUID, id: string, tx?: TxType): Promise<boolean> {
+    return this.updateStatus(userId, id, true, tx);
+  }
+
+  async restore(userId: UUID, id: string, tx?: TxType): Promise<boolean> {
+    return this.updateStatus(userId, id, false, tx);
   }
 
   async update(
     userId: UUID,
     id: UUID,
-    data: TransactionDbInsert,
+    data: TransactionDbUpdate,
     tx?: TxType,
   ): Promise<TransactionDbRow> {
     return this.executeDatabaseOperation(async () => {

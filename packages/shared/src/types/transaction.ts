@@ -1,7 +1,8 @@
 import { UUID } from "./auth";
 import { OperationCreateDTO, OperationResponseDTO } from "./operation";
+import { IsoDateString, IsoDatetimeString } from "./types";
 
-type TransactionBaseDTO = {
+type TransactionBaseDTO_DELETE = {
   description: string;
   hash: string;
   id: UUID;
@@ -10,30 +11,63 @@ type TransactionBaseDTO = {
   userId: UUID;
 };
 
-export type TransactionDbInsertDTO = TransactionBaseDTO;
+export type TransactionDbInsertDTO_DELETE = TransactionBaseDTO_DELETE;
 
-export type TransactionDbRowDTO = TransactionBaseDTO & {
+export type TransactionDbRowDTO_DELETE = TransactionBaseDTO_DELETE & {
   createdAt: string;
   updatedAt: string;
 };
 
-export type TransactionDbPreHashDTO = Omit<TransactionDbInsertDTO, "hash">;
+export type TransactionDbPreHashDTO_DELETE = Omit<
+  TransactionDbInsertDTO_DELETE,
+  "hash"
+>;
 
-// transactions with operations
-
-export type TransactionCreateDTO = TransactionBaseDTO & {
+export type TransactionCreateDTO_DELETE = TransactionBaseDTO_DELETE & {
   operations: OperationCreateDTO[];
 };
 
-export type TransactionPreHashDTO = Omit<TransactionCreateDTO, "hash">;
+export type TransactionPreHashDTO_DELETE = Omit<
+  TransactionCreateDTO_DELETE,
+  "hash"
+>;
 
-export type TransactionUpdateDTO = Partial<
-  Omit<TransactionBaseDTO, "userId" | "balance">
+export type TransactionUpdateDTO_DELETE = Partial<
+  Omit<TransactionBaseDTO_DELETE, "userId" | "balance">
 > & {
   hash?: string;
   operations?: OperationCreateDTO[];
 };
 
-export type TransactionResponseDTO = TransactionDbRowDTO & {
+export type TransactionResponseDTO_DELETE = TransactionDbRowDTO_DELETE & {
   operations: OperationResponseDTO[];
 };
+
+// new types for db
+
+export type TransactionDomain = {
+  createdAt: IsoDatetimeString;
+  description: string | null;
+  id: UUID;
+  isDraft: boolean;
+  isTombstone: boolean;
+  postingDate: IsoDateString | null;
+  transactionDate: IsoDateString;
+  updatedAt: IsoDatetimeString;
+  userId: UUID;
+};
+
+export type TransactionCreateDTO = {
+  description: string;
+  postingDate?: IsoDateString | null;
+  transactionDate: IsoDateString;
+  userId: UUID;
+};
+
+export type TransactionUpdateDTO = Partial<
+  Pick<TransactionCreateDTO, "description" | "transactionDate" | "postingDate">
+> & {
+  id: UUID;
+};
+
+export type TransactionResponseDTO = TransactionDomain;

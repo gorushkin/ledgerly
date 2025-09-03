@@ -1,6 +1,6 @@
 import {
   UserDbRowDTO,
-  TransactionDbRowDTO,
+  TransactionDbRowDTO_DELETE,
   UUID,
   AccountDomain,
   IsoDatetimeString,
@@ -55,10 +55,10 @@ describe('OperationRepository', () => {
   let operationRepository: OperationRepository;
   let testDB: TestDB;
   let testAccount: AccountDomain;
-  let transaction1: TransactionDbRowDTO;
+  let transaction1: TransactionDbRowDTO_DELETE;
   let user: UserDbRowDTO;
   let insertedOperations: OperationDbRow[];
-  let transaction2: TransactionDbRowDTO;
+  let transaction2: TransactionDbRowDTO_DELETE;
 
   let operationsToInsert: OperationDbInsert[];
 

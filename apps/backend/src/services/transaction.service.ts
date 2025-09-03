@@ -3,9 +3,9 @@
 // @ts-nocheck
 import {
   OperationCreateDTO,
-  TransactionCreateDTO,
-  TransactionDbRowDTO,
-  TransactionResponseDTO,
+  TransactionCreateDTO_DELETE,
+  TransactionDbRowDTO_DELETE,
+  TransactionResponseDTO_DELETE,
   UUID,
 } from '@ledgerly/shared/types';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
@@ -28,9 +28,12 @@ export class TransactionService extends BaseService {
   }
 
   private getTransactionsOperations = async (
-    transactionsList: Omit<TransactionResponseDTO, 'operations'>[],
-  ): Promise<TransactionResponseDTO[]> => {
-    const transactionResponseMap = new Map<UUID, TransactionResponseDTO>();
+    transactionsList: Omit<TransactionResponseDTO_DELETE, 'operations'>[],
+  ): Promise<TransactionResponseDTO_DELETE[]> => {
+    const transactionResponseMap = new Map<
+      UUID,
+      TransactionResponseDTO_DELETE
+    >();
 
     const ids = transactionsList.map((transaction) => {
       transactionResponseMap.set(transaction.id, {
@@ -54,7 +57,7 @@ export class TransactionService extends BaseService {
     return Array.from(transactionResponseMap.values());
   };
 
-  async getAllByUserId(userId: UUID): Promise<TransactionResponseDTO[]> {
+  async getAllByUserId(userId: UUID): Promise<TransactionResponseDTO_DELETE[]> {
     const transactions =
       await this.transactionRepository.getAllByUserId(userId);
 
@@ -64,7 +67,7 @@ export class TransactionService extends BaseService {
   async ensureTransactionExistsAndOwned(
     userId: UUID,
     id: UUID,
-  ): Promise<TransactionDbRowDTO> {
+  ): Promise<TransactionDbRowDTO_DELETE> {
     const transaction = this.ensureEntityExists(
       await this.transactionRepository.getById(userId, id),
       'Transaction not found',
@@ -94,7 +97,7 @@ export class TransactionService extends BaseService {
   async getById(
     userId: UUID,
     id: UUID,
-  ): Promise<TransactionResponseDTO | undefined> {
+  ): Promise<TransactionResponseDTO_DELETE | undefined> {
     const transaction = await this.ensureTransactionExistsAndOwned(userId, id);
 
     const operations = await this.operationRepository.getByTransactionId(id);
@@ -102,7 +105,9 @@ export class TransactionService extends BaseService {
     return { ...transaction, operations };
   }
 
-  private validateTransactionHash = (transaction: TransactionCreateDTO) => {
+  private validateTransactionHash = (
+    transaction: TransactionCreateDTO_DELETE,
+  ) => {
     const isHashValid = validateTransactionHash(transaction);
 
     if (!isHashValid) {
@@ -138,7 +143,7 @@ export class TransactionService extends BaseService {
     // Additional validation logic for operations can be added here
   };
 
-  private validateTransaction = (data: TransactionCreateDTO) => {
+  private validateTransaction = (data: TransactionCreateDTO_DELETE) => {
     this.validateTransactionHash(data);
     this.validateOperationsHash(data.operations);
     this.validateOperations(data.operations);
@@ -146,8 +151,8 @@ export class TransactionService extends BaseService {
 
   async create(
     userId: UUID,
-    data: TransactionCreateDTO,
-  ): Promise<TransactionResponseDTO> {
+    data: TransactionCreateDTO_DELETE,
+  ): Promise<TransactionResponseDTO_DELETE> {
     this.validateTransaction(data);
 
     return this.db.transaction(async (tx) => {
@@ -169,7 +174,7 @@ export class TransactionService extends BaseService {
     });
   }
 
-  update(): Promise<TransactionResponseDTO> {
+  update(): Promise<TransactionResponseDTO_DELETE> {
     throw new Error('Method not implemented.');
   }
 

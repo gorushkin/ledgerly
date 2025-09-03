@@ -1,4 +1,4 @@
-import { TransactionResponseDTO } from '@ledgerly/shared/types';
+import { TransactionResponseDTO_DELETE } from '@ledgerly/shared/types';
 import { SettingsRepository } from 'src/infrastructure/db/SeetingsRepository';
 
 export class SettingsController {
@@ -8,7 +8,7 @@ export class SettingsController {
     throw new Error('Method getAll not implemented.');
   }
 
-  update(_id: string, _updatedAccount: TransactionResponseDTO) {
+  update(_id: string, _updatedAccount: TransactionResponseDTO_DELETE) {
     throw new Error('Method update not implemented.');
   }
 
