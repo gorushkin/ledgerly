@@ -226,6 +226,18 @@ describe('TransactionRepository', () => {
 
       expect(updatedTransactionFromTestDB).toEqual(updatedTransaction);
     });
+
+    it('Should not update isTombstone field on update', async () => {
+      const transactionToUpdate = createdTransactions[0];
+
+      const res = await transactionRepository.update(
+        user1.id,
+        transactionToUpdate.id,
+        { ...transactionToUpdate, isTombstone: true },
+      );
+
+      expect(res.isTombstone).equal(false);
+    });
   });
 
   describe('delete', () => {

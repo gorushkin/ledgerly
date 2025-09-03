@@ -2,7 +2,13 @@ import { z } from "zod";
 
 import { ACCOUNT_TYPE_VALUES } from "../constants";
 
-import { notNullText, requiredText, currencyCode } from "./baseValidations";
+import {
+  notNullText,
+  requiredText,
+  currencyCode,
+  isoDatetime,
+  uuid,
+} from "./baseValidations";
 
 const accountType = z.enum(ACCOUNT_TYPE_VALUES);
 
@@ -12,7 +18,6 @@ export const accountCreateSchema = z.object({
   name: notNullText,
   originalCurrency: currencyCode,
   type: accountType,
-  // userId: uuid,
 });
 
 export const accountUpdateSchema = accountCreateSchema
@@ -24,15 +29,15 @@ export const accountUpdateSchema = accountCreateSchema
   })
   .partial();
 
-// export const accountResponseSchema = z.object({
-//   createdAt: isoDatetime,
-//   currentClearedBalanceLocal: z.number(),
-//   description: requiredText,
-//   id: uuid,
-//   initialBalance: z.number(),
-//   name: requiredText,
-//   originalCurrency: currencyCode,
-//   type: accountType,
-//   updatedAt: isoDatetime,
-//   userId: uuid,
-// });
+export const accountResponseSchema = z.object({
+  createdAt: isoDatetime,
+  currentClearedBalanceLocal: z.number(),
+  description: requiredText,
+  id: uuid,
+  initialBalance: z.number(),
+  name: requiredText,
+  originalCurrency: currencyCode,
+  type: accountType,
+  updatedAt: isoDatetime,
+  userId: uuid,
+});

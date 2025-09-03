@@ -128,7 +128,13 @@ export class TransactionRepository extends BaseRepository {
 
       const updatedTransaction = await dbClient
         .update(transactionsTable)
-        .set({ ...data, ...this.updateTimestamp })
+        .set({
+          ...this.updateTimestamp,
+          description: data.description,
+          hash: data.hash,
+          postingDate: data.postingDate,
+          transactionDate: data.transactionDate,
+        })
         .where(
           and(
             eq(transactionsTable.id, id),

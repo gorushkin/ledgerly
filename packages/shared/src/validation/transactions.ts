@@ -1,29 +1,40 @@
 import { z } from "zod";
 
-import { dateText, uuid, requiredText, notNullText } from "./baseValidations";
-import { operationCreateSchema, operationResponseSchema } from "./operations";
+import {
+  uuid,
+  requiredText,
+  notNullText,
+  isoDate,
+  isoDatetime,
+} from "./baseValidations";
 
-const operationsSchema = z.array(operationCreateSchema).refine((data) => {
-  const transactionBalance = data.reduce((acc, op) => acc + op.localAmount, 0);
-  return transactionBalance === 0;
-});
-
-export const transactionBaseSchema = z.object({
+export const transactionCreateSchema = z.object({
   description: requiredText,
   hash: notNullText,
   id: uuid,
-  postingDate: dateText,
-  transactionDate: dateText,
+  postingDate: isoDate,
+  transactionDate: isoDate,
   userId: uuid,
 });
 
-export const transactionCreateSchema = transactionBaseSchema.extend({
-  operations: operationsSchema,
+export const transactionUpdateSchema = z.object({
+  description: requiredText,
+  id: uuid,
+  postingDate: isoDate,
+  transactionDate: isoDate,
 });
 
-// TODO: make it less stricter
-export const transactionUpdateSchema = transactionCreateSchema;
-
-export const transactionResponseSchema = transactionBaseSchema.extend({
-  operations: z.array(operationResponseSchema),
+export const transactionResponseSchema = z.object({
+  createdAt: isoDatetime,
+  description: requiredText,
+  id: uuid,
+  isTombstone: z.boolean(),
+  postingDate: isoDate,
+  transactionDate: isoDate,
+  updatedAt: isoDatetime,
+  userId: uuid,
 });
+
+export type TransactionCreateInput = z.infer<typeof transactionCreateSchema>;
+export type TransactionUpdateInput = z.infer<typeof transactionUpdateSchema>;
+export type TransactionResponse = z.infer<typeof transactionResponseSchema>;

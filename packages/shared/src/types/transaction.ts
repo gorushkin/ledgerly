@@ -49,7 +49,6 @@ export type TransactionDomain = {
   createdAt: IsoDatetimeString;
   description: string | null;
   id: UUID;
-  isDraft: boolean;
   isTombstone: boolean;
   postingDate: IsoDateString | null;
   transactionDate: IsoDateString;
@@ -69,5 +68,3 @@ export type TransactionUpdateDTO = Partial<
 > & {
   id: UUID;
 };
-
-export type TransactionResponseDTO = TransactionDomain;
