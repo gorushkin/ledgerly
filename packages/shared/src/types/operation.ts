@@ -7,6 +7,14 @@ export type Money = Brand<bigint, "Money">;
 
 export type FxRateScaled = Brand<bigint, "FxRateScaled">;
 
+export type PerIdStatus =
+  | "deleted"
+  | "already_deleted"
+  | "restored"
+  | "already_alive"
+  | "updated"
+  | "not_found";
+
 export type OperationDomain = {
   accountId: UUID;
   baseAmount: Money;

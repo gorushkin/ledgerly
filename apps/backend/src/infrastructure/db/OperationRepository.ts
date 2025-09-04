@@ -1,10 +1,19 @@
-import { UUID } from '@ledgerly/shared/types';
-import { eq, inArray } from 'drizzle-orm';
+import { UUID, PerIdStatus } from '@ledgerly/shared/types';
+import { and, eq, inArray } from 'drizzle-orm';
 import { OperationDbRow, OperationRepoInsert } from 'src/db/schema';
 import { operationsTable } from 'src/db/schemas';
 import { DataBase, TxType } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
+
+type BulkOutcome = Record<UUID, PerIdStatus>;
+
+type BulkUpdateResult = {
+  requestedIds: UUID[];
+  outcome: BulkOutcome;
+  changed: number;
+  notFoundIds: UUID[];
+};
 
 export class OperationRepository extends BaseRepository {
   constructor(db: DataBase) {
@@ -71,23 +80,98 @@ export class OperationRepository extends BaseRepository {
     );
   }
 
-  async deleteByTransactionId(
-    transactionId: UUID,
+  async bulkUpdateStatus(
+    requestedIds: UUID[],
+    isTombstone: boolean,
     tx?: DataBase,
-  ): Promise<number | void> {
+  ): Promise<BulkUpdateResult> {
+    if (requestedIds.length === 0) {
+      return {
+        changed: 0,
+        notFoundIds: [],
+        outcome: {},
+        requestedIds: [],
+      };
+    }
+
+    const messageMapper: Record<'true' | 'false', string> = {
+      false: 'Failed to delete operation by transaction ID',
+      true: 'Failed to restore operation by transaction ID',
+    };
+
+    const errorMessage =
+      messageMapper[isTombstone.toString() as 'true' | 'false'];
+
     return this.executeDatabaseOperation(
       async () => {
         const dbClient = tx ?? this.db;
 
-        const res = await dbClient
-          .delete(operationsTable)
-          .where(eq(operationsTable.transactionId, transactionId))
-          .execute();
+        const existingOperations = await dbClient
+          .select({
+            id: operationsTable.id,
+            isTombstone: operationsTable.isTombstone,
+          })
+          .from(operationsTable)
+          .where(and(inArray(operationsTable.id, requestedIds)));
 
-        return res.rowsAffected;
+        const knownIds = new Map<UUID, boolean>();
+        const toUpdate: UUID[] = [];
+
+        existingOperations.forEach((operationData) => {
+          knownIds.set(operationData.id, operationData.isTombstone);
+
+          if (operationData.isTombstone !== isTombstone) {
+            toUpdate.push(operationData.id);
+          }
+        });
+
+        const updatedOperations = await dbClient
+          .update(operationsTable)
+          .set({ isTombstone, ...this.updateTimestamp })
+          .where(
+            and(
+              inArray(operationsTable.id, toUpdate),
+              eq(operationsTable.isTombstone, !isTombstone),
+            ),
+          )
+          .returning({ id: operationsTable.id });
+
+        const updatedIds = new Set(updatedOperations.map((r) => r.id));
+
+        const outcome: BulkOutcome = {};
+        const notFoundIds: string[] = [];
+
+        requestedIds.forEach((id) => {
+          if (!knownIds.has(id)) {
+            outcome[id] = 'not_found';
+            notFoundIds.push(id);
+            return;
+          }
+
+          if (updatedIds.has(id)) {
+            return (outcome[id] = isTombstone ? 'deleted' : 'restored');
+          }
+
+          outcome[id] = isTombstone ? 'already_deleted' : 'already_alive';
+        });
+
+        return {
+          changed: updatedOperations.length,
+          notFoundIds,
+          outcome,
+          requestedIds,
+        };
       },
-      'Failed to delete operations by transaction ID',
+      errorMessage,
       { field: 'transactionId', tableName: 'operations' },
     );
+  }
+
+  async bulkSoftDeleteByIds(operationsIds: UUID[], tx?: DataBase) {
+    return this.bulkUpdateStatus(operationsIds, true, tx);
+  }
+
+  async bulkRestoreByIds(operationsIds: UUID[], tx?: DataBase) {
+    return this.bulkUpdateStatus(operationsIds, false, tx);
   }
 }

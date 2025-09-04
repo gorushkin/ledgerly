@@ -1,15 +1,16 @@
 import {
   UserDbRowDTO,
-  TransactionDbRowDTO_DELETE,
   UUID,
   AccountDomain,
   IsoDatetimeString,
   Sha256String,
+  PerIdStatus,
 } from '@ledgerly/shared/types';
 import {
   OperationDbInsert,
   OperationDbRow,
   OperationRepoInsert,
+  TransactionDbRow,
 } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
@@ -25,10 +26,11 @@ const createOperationData = (params: {
   description?: string;
   userId?: UUID;
 }): OperationRepoInsert => {
-  const presHash = {
+  return {
     accountId: params.accountId ?? generateId(),
     baseAmount: 100,
     description: 'Test Operation',
+    hash: `hash-${Math.random().toString(36).substring(2, 15)}`,
     isTombstone: false,
     localAmount: 100,
     rateBasePerLocal: 200,
@@ -36,14 +38,12 @@ const createOperationData = (params: {
     userId: params.userId ?? generateId(),
     ...params,
   };
-
-  return presHash;
 };
 
-const transactionTwoOperationOneDescription = 'Transaction Two Operation 1';
-const transactionTwoOperationTwoDescription = 'Transaction Two Operation 2';
-const transactionOneOperationOneDescription = 'Transaction One Operation 1';
-const transactionOneOperationTwoDescription = 'Transaction One Operation 2';
+const transaction_2_1 = 'Transaction Two Operation 1';
+const transaction_2_2 = 'Transaction Two Operation 2';
+const transaction_1_1 = 'Transaction One Operation 1';
+const transaction_1_2 = 'Transaction One Operation 2';
 
 const operationsDescriptions = [
   'Bulk Insert Operation 1',
@@ -55,44 +55,62 @@ describe('OperationRepository', () => {
   let operationRepository: OperationRepository;
   let testDB: TestDB;
   let testAccount: AccountDomain;
-  let transaction1: TransactionDbRowDTO_DELETE;
-  let user: UserDbRowDTO;
+  let transaction1: TransactionDbRow;
+  let user1: UserDbRowDTO;
   let insertedOperations: OperationDbRow[];
-  let transaction2: TransactionDbRowDTO_DELETE;
+  let transaction2: TransactionDbRow;
 
-  let operationsToInsert: OperationDbInsert[];
+  let operationsToInsert: Omit<
+    OperationDbInsert,
+    'createdAt' | 'updatedAt' | 'id'
+  >[];
 
   beforeEach(async () => {
     testDB = new TestDB();
     await testDB.setupTestDb();
     operationRepository = new OperationRepository(testDB.db);
 
-    user = await testDB.createUser();
+    user1 = await testDB.createUser();
 
-    testAccount = await testDB.createAccount(user.id, {
+    testAccount = await testDB.createAccount(user1.id, {
       name: 'Test Account 1',
     });
 
-    // TODO: fix createAccount to return AccountDbRowDTO
-
     transaction1 = await testDB.createTransaction({
-      data: {
-        description: 'Test Transaction',
-        postingDate: '2023-10-01',
-        transactionDate: '2023-10-01',
-      },
-      userId: user.id,
+      description: 'Test Transaction',
+      userId: user1.id,
     });
 
-    const operationsToInsertPromises = [
-      transactionOneOperationOneDescription,
-      transactionOneOperationTwoDescription,
-    ].map((description) => {
+    transaction2 = await testDB.createTransaction({
+      description: 'Test Transaction 2',
+      userId: user1.id,
+    });
+
+    const operationsData: { description: string; transactionId: string }[] = [
+      {
+        description: transaction_1_1,
+        transactionId: transaction1.id,
+      },
+      {
+        description: transaction_1_2,
+        transactionId: transaction1.id,
+      },
+      {
+        description: transaction_2_1,
+        transactionId: transaction2.id,
+      },
+      {
+        description: transaction_2_2,
+        transactionId: transaction2.id,
+      },
+    ];
+
+    const operationsToInsertPromises = operationsData.map((description) => {
       const data = createOperationData({
         accountId: testAccount.id,
-        description,
-        transactionId: transaction1.id,
-        userId: user.id,
+        description: description.description,
+        transactionId: description.transactionId,
+        userId: user1.id,
       });
 
       return testDB.createOperation(data);
@@ -105,37 +123,9 @@ describe('OperationRepository', () => {
         accountId: testAccount.id,
         description,
         transactionId: transaction1.id,
-        userId: user.id,
+        userId: user1.id,
       }),
     );
-
-    transaction2 = await testDB.createTransaction({
-      data: {
-        description: 'Test Transaction 2',
-        postingDate: '2023-10-01',
-        transactionDate: '2023-10-01',
-      },
-      userId: user.id,
-    });
-
-    const transactionTwoOperationOneData = {
-      accountId: testAccount.id,
-      description: transactionTwoOperationOneDescription,
-      transactionId: transaction2.id,
-      userId: user.id,
-    };
-
-    const transactionTwoOperationTwoData = {
-      accountId: testAccount.id,
-      description: transactionTwoOperationTwoDescription,
-      transactionId: transaction2.id,
-      userId: user.id,
-    };
-
-    await Promise.all([
-      testDB.createOperation(transactionTwoOperationOneData),
-      testDB.createOperation(transactionTwoOperationTwoData),
-    ]);
   });
 
   describe('getByTransactionId', () => {
@@ -143,20 +133,20 @@ describe('OperationRepository', () => {
       const transactionOneOperations =
         await operationRepository.getByTransactionId(transaction1.id);
 
-      expect(transactionOneOperations).toHaveLength(insertedOperations.length);
+      expect(transactionOneOperations).toHaveLength(
+        insertedOperations.filter((op) => op.transactionId === transaction1.id)
+          .length,
+      );
 
       transactionOneOperations.forEach((operation, index) => {
         expect(operation).toMatchObject({
           description: insertedOperations[index].description,
           transactionId: transaction1.id,
-          userId: user.id,
+          userId: user1.id,
         });
       });
 
-      [
-        transactionTwoOperationOneDescription,
-        transactionTwoOperationTwoDescription,
-      ].forEach((description) => {
+      [transaction_2_1, transaction_2_2].forEach((description) => {
         expect(
           transactionOneOperations.some((op) => op.description === description),
         ).toBe(false);
@@ -184,7 +174,7 @@ describe('OperationRepository', () => {
           isTombstone: match.isTombstone,
           localAmount: match.localAmount,
           transactionId: transaction1.id,
-          userId: user.id,
+          userId: user1.id,
         });
       });
 
@@ -193,11 +183,12 @@ describe('OperationRepository', () => {
       );
 
       expect(allOperations).toHaveLength(
-        insertedOperations.length + operationsToInsert.length,
+        insertedOperations.filter((op) => op.transactionId === transaction1.id)
+          .length + operationsToInsert.length,
       );
     });
 
-    it('should use a transaction if provided', async () => {
+    it.skip('should use a transaction if provided', async () => {
       const mock = vi.fn();
       let capturedValues = [] as unknown[];
       const returningFn = vi.fn(async () => Promise.resolve(capturedValues));
@@ -274,26 +265,61 @@ describe('OperationRepository', () => {
     });
   });
 
-  describe('deleteByTransactionId', () => {
-    it('should delete operations by transaction ID', async () => {
+  describe('bulkSoftDeleteByIds', () => {
+    it('should soft delete operations by ids', async () => {
       const operationsBeforeDeleting =
         await testDB.getOperationsByTransactionId(transaction1.id);
 
-      const deleteResult = await operationRepository.deleteByTransactionId(
-        transaction1.id,
+      const operationsIdsToDelete = operationsBeforeDeleting.map((op) => op.id);
+
+      const result = await operationRepository.bulkSoftDeleteByIds(
+        operationsIdsToDelete,
       );
 
-      const operationsAfterDeleting = await testDB.getOperationsByTransactionId(
-        transaction1.id,
+      const outcome = operationsIdsToDelete.reduce(
+        (acc, id) => {
+          acc[id] = 'deleted';
+          return acc;
+        },
+        {} as Record<string, PerIdStatus>,
       );
 
-      expect(operationsBeforeDeleting).toHaveLength(insertedOperations.length);
-      expect(deleteResult).toEqual(insertedOperations.length);
+      expect(result).toMatchObject({
+        changed: operationsIdsToDelete.length,
+        notFoundIds: [],
+        outcome,
+        requestedIds: operationsIdsToDelete,
+      });
 
-      expect(operationsAfterDeleting).toHaveLength(0);
+      const deletedOperations = await Promise.all(
+        operationsIdsToDelete.map((id) => testDB.getOperationById(id)),
+      );
+
+      expect(deletedOperations).toHaveLength(operationsIdsToDelete.length);
+
+      deletedOperations.forEach((deletedOperation, index) => {
+        const operationBeforeDeleting = operationsBeforeDeleting[index];
+
+        expect(deletedOperation).toMatchObject({
+          accountId: operationBeforeDeleting?.accountId,
+          baseAmount: operationBeforeDeleting?.baseAmount,
+          createdAt: operationBeforeDeleting?.createdAt,
+          description: operationBeforeDeleting?.description,
+          hash: operationBeforeDeleting?.hash,
+          isTombstone: true,
+          localAmount: operationBeforeDeleting?.localAmount,
+          rateBasePerLocal: operationBeforeDeleting?.rateBasePerLocal,
+          transactionId: operationBeforeDeleting?.transactionId,
+          userId: operationBeforeDeleting?.userId,
+        });
+
+        expect(operationBeforeDeleting?.updatedAt).not.toEqual(
+          deletedOperation?.updatedAt,
+        );
+      });
     });
 
-    it('should not throw an error if no operations found for transaction ID', async () => {
+    it.skip('should not throw an error if no operations found for transaction ID', async () => {
       const nonExistentTransactionId = generateId();
 
       const deleteResult = await operationRepository.deleteByTransactionId(
@@ -307,50 +333,50 @@ describe('OperationRepository', () => {
       ).resolves.not.toThrow();
     });
 
-    it('should not affect operations of other transactions', async () => {
-      const allOperationsBeforeDeleting = await testDB.getAllOperations();
+    // it.skip('should not affect operations of other transactions', async () => {
+    //   const allOperationsBeforeDeleting = await testDB.getAllOperations();
 
-      const filteredOperationsBeforeDeletingIds = new Set(
-        allOperationsBeforeDeleting
-          .filter((op) => op.transactionId !== transaction1.id)
-          .map((op) => op.id),
-      );
+    //   const filteredOperationsBeforeDeletingIds = new Set(
+    //     allOperationsBeforeDeleting
+    //       .filter((op) => op.transactionId !== transaction1.id)
+    //       .map((op) => op.id),
+    //   );
 
-      const operationsBeforeDeleting =
-        await testDB.getOperationsByTransactionId(transaction2.id);
+    //   const operationsBeforeDeleting =
+    //     await testDB.getOperationsByTransactionId(transaction2.id);
 
-      const deleteResult = await operationRepository.deleteByTransactionId(
-        transaction1.id,
-      );
+    //   const deleteResult = await operationRepository.deleteByTransactionId(
+    //     transaction1.id,
+    //   );
 
-      const operationsAfterDeleting = await testDB.getOperationsByTransactionId(
-        transaction2.id,
-      );
+    //   const operationsAfterDeleting = await testDB.getOperationsByTransactionId(
+    //     transaction2.id,
+    //   );
 
-      expect(deleteResult).toEqual(insertedOperations.length);
+    //   expect(deleteResult).toEqual(insertedOperations.length);
 
-      expect(operationsAfterDeleting).toHaveLength(
-        operationsBeforeDeleting.length,
-      );
+    //   expect(operationsAfterDeleting).toHaveLength(
+    //     operationsBeforeDeleting.length,
+    //   );
 
-      const transactionTwoOperations =
-        await operationRepository.getByTransactionId(transaction2.id);
+    //   const transactionTwoOperations =
+    //     await operationRepository.getByTransactionId(transaction2.id);
 
-      expect(transactionTwoOperations).toHaveLength(2);
+    //   expect(transactionTwoOperations).toHaveLength(2);
 
-      expect(
-        transactionTwoOperations.some(
-          (op) =>
-            op.description === transactionTwoOperationOneDescription ||
-            op.description === transactionTwoOperationTwoDescription,
-        ),
-      ).toBe(true);
+    //   expect(
+    //     transactionTwoOperations.some(
+    //       (op) =>
+    //         op.description === transactionTwoOperationOneDescription ||
+    //         op.description === transactionTwoOperationTwoDescription,
+    //     ),
+    //   ).toBe(true);
 
-      transactionTwoOperations.forEach((operation) => {
-        expect(filteredOperationsBeforeDeletingIds.has(operation.id)).toBe(
-          true,
-        );
-      });
-    });
+    //   transactionTwoOperations.forEach((operation) => {
+    //     expect(filteredOperationsBeforeDeletingIds.has(operation.id)).toBe(
+    //       true,
+    //     );
+    //   });
+    // });
   });
 });

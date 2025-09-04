@@ -15,9 +15,10 @@ import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
+import { computeOperationHash } from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
 
-import { TransactionDbRow } from './schema';
+import { OperationDbInsert, TransactionDbRow } from './schema';
 import * as schema from './schemas';
 import { accountsTable, usersTable } from './schemas';
 import { seedCurrencies } from './scripts/currenciesSeed';
@@ -243,5 +244,64 @@ export class TestDB {
       .get();
 
     return updatedTransaction;
+  };
+
+  createOperation = async (params: {
+    accountId: UUID;
+    amountLocal?: number;
+    transactionId: UUID;
+    description?: string;
+    category?: string;
+    userId?: UUID;
+    rateBasePerLocal?: number;
+  }) => {
+    const operationDataPreHash = {
+      baseAmount: 100,
+      category: 'Test Category',
+      description: `Test Operation ${this.operationCounter.getNextName()}`,
+      localAmount: params.amountLocal ?? 100,
+      rateBasePerLocal: 1,
+      ...params,
+      transactionId: params.transactionId ?? crypto.randomUUID(),
+      userId: params.userId ?? crypto.randomUUID(),
+      ...TestDB.createTimestamps,
+      ...TestDB.uuid,
+    };
+
+    const operationData: OperationDbInsert = {
+      ...operationDataPreHash,
+      hash: computeOperationHash(operationDataPreHash),
+    };
+
+    const operation = await this.db
+      .insert(schema.operationsTable)
+      .values(operationData)
+      .returning()
+      .get();
+
+    return operation;
+  };
+
+  getOperationsByTransactionId = async (
+    transactionId: UUID,
+  ): Promise<OperationDbInsert[]> => {
+    const operations = await this.db
+      .select()
+      .from(schema.operationsTable)
+      .where(eq(schema.operationsTable.transactionId, transactionId));
+
+    return operations;
+  };
+
+  getOperationById = async (
+    id: UUID,
+  ): Promise<OperationDbInsert | undefined> => {
+    const operation = await this.db
+      .select()
+      .from(schema.operationsTable)
+      .where(eq(schema.operationsTable.id, id))
+      .get();
+
+    return operation;
   };
 }

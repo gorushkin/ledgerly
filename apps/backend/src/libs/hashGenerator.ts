@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import {} from '@ledgerly/shared/types';
-import { TransactionDbInsert } from 'src/db/schema';
+import { OperationDbInsert, TransactionDbInsert } from 'src/db/schema';
 
 const sha256Sync = (input: string): string => {
   return createHash('sha256').update(input).digest('hex');

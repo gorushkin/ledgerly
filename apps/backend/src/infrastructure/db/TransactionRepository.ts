@@ -83,12 +83,13 @@ export class TransactionRepository extends BaseRepository {
     isTombstone: boolean,
     tx?: TxType,
   ): Promise<boolean> {
-    const mapper: Record<'true' | 'false', string> = {
+    const transactionErrorMessages: Record<'true' | 'false', string> = {
       false: 'Failed to delete transaction',
       true: 'Failed to restore transaction',
     };
 
-    const errorMessage = mapper[isTombstone.toString() as 'true' | 'false'];
+    const errorMessage =
+      transactionErrorMessages[isTombstone.toString() as 'true' | 'false'];
 
     return this.executeDatabaseOperation(async () => {
       const dbClient = tx ?? this.db;
