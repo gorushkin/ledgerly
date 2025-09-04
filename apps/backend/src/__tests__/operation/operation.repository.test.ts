@@ -3,10 +3,8 @@ import {
   UUID,
   AccountDomain,
   IsoDatetimeString,
-  PerIdStatus,
 } from '@ledgerly/shared/types';
 import {
-  OperationDbInsert,
   OperationDbRow,
   OperationDbUpdate,
   OperationRepoInsert,
@@ -15,9 +13,7 @@ import {
 import { TestDB } from 'src/db/test-db';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 import { generateId } from 'src/libs/idGenerator';
-import { ForeignKeyConstraintError } from 'src/presentation/errors';
-import { TxType } from 'src/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const createOperationData = (params: {
   accountId?: UUID;
@@ -45,12 +41,6 @@ const transaction_2_2 = 'Transaction Two Operation 2';
 const transaction_1_1 = 'Transaction One Operation 1';
 const transaction_1_2 = 'Transaction One Operation 2';
 
-const operationsDescriptions = [
-  'Bulk Insert Operation 1',
-  'Bulk Insert Operation 2',
-  'Bulk Insert Operation 3',
-];
-
 describe('OperationRepository', () => {
   let operationRepository: OperationRepository;
   let testDB: TestDB;
@@ -60,11 +50,6 @@ describe('OperationRepository', () => {
   let user1: UserDbRowDTO;
   let insertedOperations: OperationDbRow[];
   let transaction2: TransactionDbRow;
-
-  let operationsToInsert: Omit<
-    OperationDbInsert,
-    'createdAt' | 'updatedAt' | 'id'
-  >[];
 
   beforeEach(async () => {
     testDB = new TestDB();
@@ -122,19 +107,10 @@ describe('OperationRepository', () => {
     });
 
     insertedOperations = await Promise.all(operationsToInsertPromises);
-
-    operationsToInsert = operationsDescriptions.map((description) =>
-      createOperationData({
-        accountId: testAccount1.id,
-        description,
-        transactionId: transaction1.id,
-        userId: user1.id,
-      }),
-    );
   });
 
   describe('getByTransactionId', () => {
-    it.skip('should return operations for a given transaction ID', async () => {
+    it('should return operations for a given transaction ID', async () => {
       const transactionOneOperations =
         await operationRepository.getByTransactionId(transaction1.id);
 
@@ -155,255 +131,6 @@ describe('OperationRepository', () => {
         expect(
           transactionOneOperations.some((op) => op.description === description),
         ).toBe(false);
-      });
-    });
-  });
-
-  describe.skip('bulkInsert', () => {
-    it.skip('should add a bulk of operations', async () => {
-      const operations = await operationRepository.bulkInsert(
-        operationsToInsert,
-        testDB.db as unknown as TxType,
-      );
-
-      expect(operations).toHaveLength(operationsToInsert.length);
-
-      operations.forEach((operation, index) => {
-        const match = operationsToInsert[index];
-
-        expect(operation).toMatchObject({
-          accountId: match.accountId,
-          baseAmount: match.baseAmount,
-          description: match.description,
-          isTombstone: match.isTombstone,
-          localAmount: match.localAmount,
-          transactionId: transaction1.id,
-          userId: user1.id,
-        });
-      });
-
-      const allOperations = await operationRepository.getByTransactionId(
-        transaction1.id,
-      );
-
-      expect(allOperations).toHaveLength(
-        insertedOperations.filter((op) => op.transactionId === transaction1.id)
-          .length + operationsToInsert.length,
-      );
-    });
-
-    it.skip('should use a transaction if provided', async () => {
-      const mock = vi.fn();
-      let capturedValues = [] as unknown[];
-      const returningFn = vi.fn(async () => Promise.resolve(capturedValues));
-      const dbInsertSpy = vi.spyOn(operationRepository.db, 'insert');
-
-      const valuesFn = vi.fn((vals: unknown[]) => {
-        capturedValues = vals;
-        mock(vals);
-        return { returning: returningFn } as const;
-      });
-
-      const insertFn = vi.fn((_table: unknown) => ({ values: valuesFn }));
-
-      const tx = { insert: insertFn } as unknown as TxType;
-
-      const result = await operationRepository.bulkInsert(
-        operationsToInsert,
-        tx,
-      );
-
-      expect(dbInsertSpy).toHaveBeenCalledTimes(0);
-      expect(insertFn).toHaveBeenCalledTimes(1);
-      expect(valuesFn).toHaveBeenCalledTimes(1);
-      expect(returningFn).toHaveBeenCalledTimes(1);
-      expect(mock).toHaveBeenCalledWith(capturedValues);
-      expect(result).toBe(capturedValues);
-
-      const first = capturedValues[0] as OperationDbRow;
-
-      expect(first).toEqual(
-        expect.objectContaining({
-          accountId: operationsToInsert[0].accountId,
-          createdAt: expect.any(String) as unknown as IsoDatetimeString,
-          description: operationsToInsert[0].description,
-          id: expect.any(String) as unknown as UUID,
-          transactionId: operationsToInsert[0].transactionId,
-          updatedAt: expect.any(String) as unknown as IsoDatetimeString,
-          userId: operationsToInsert[0].userId,
-        }),
-      );
-    });
-
-    it.skip('should throw an error if bulk insert fails', async () => {
-      vi.spyOn(testDB.db, 'insert').mockImplementationOnce(() => {
-        throw new Error('Database error');
-      });
-
-      await expect(
-        operationRepository.bulkInsert(operationsToInsert),
-      ).rejects.toThrow('Failed to bulk insert operations');
-    });
-
-    it.skip('should handle empty operations array', async () => {
-      const operations = await operationRepository.bulkInsert(
-        [],
-        testDB.db as unknown as TxType,
-      );
-
-      expect(operations).toHaveLength(0);
-    });
-
-    it.skip('should handle invalid operation data', async () => {
-      const invalidOperationData = createOperationData({
-        description: 'Test',
-      });
-
-      const operations = operationRepository.bulkInsert(
-        [invalidOperationData],
-        testDB.db as unknown as TxType,
-      );
-
-      await expect(operations).rejects.toThrow(ForeignKeyConstraintError);
-    });
-  });
-
-  describe.skip('bulkSoftDeleteByIds', () => {
-    it('should soft delete operations by ids', async () => {
-      const operationsBeforeDeleting =
-        await testDB.getOperationsByTransactionId(transaction1.id);
-
-      const operationsIdsToDelete = operationsBeforeDeleting.map((op) => op.id);
-
-      const result = await operationRepository.bulkSoftDeleteByIds(
-        operationsIdsToDelete,
-      );
-
-      const outcome = operationsIdsToDelete.reduce(
-        (acc, id) => {
-          acc[id] = 'deleted';
-          return acc;
-        },
-        {} as Record<string, PerIdStatus>,
-      );
-
-      expect(result).toMatchObject({
-        changed: operationsIdsToDelete.length,
-        notFoundIds: [],
-        outcome,
-        requestedIds: operationsIdsToDelete,
-      });
-
-      const deletedOperations = await Promise.all(
-        operationsIdsToDelete.map((id) => testDB.getOperationById(id)),
-      );
-
-      expect(deletedOperations).toHaveLength(operationsIdsToDelete.length);
-
-      deletedOperations.forEach((deletedOperation, index) => {
-        const operationBeforeDeleting = operationsBeforeDeleting[index];
-
-        expect(deletedOperation).toMatchObject({
-          accountId: operationBeforeDeleting?.accountId,
-          baseAmount: operationBeforeDeleting?.baseAmount,
-          createdAt: operationBeforeDeleting?.createdAt,
-          description: operationBeforeDeleting?.description,
-          isTombstone: true,
-          localAmount: operationBeforeDeleting?.localAmount,
-          rateBasePerLocal: operationBeforeDeleting?.rateBasePerLocal,
-          transactionId: operationBeforeDeleting?.transactionId,
-          userId: operationBeforeDeleting?.userId,
-        });
-
-        expect(operationBeforeDeleting?.updatedAt).not.toEqual(
-          deletedOperation?.updatedAt,
-        );
-      });
-    });
-  });
-
-  describe.skip('bulkRestoreByIds', () => {
-    it('should restore operations by ids', async () => {
-      const transaction3 = await testDB.createTransaction({
-        description: 'Test Transaction 3',
-        userId: user1.id,
-      });
-
-      const operationsData: { description: string; transactionId: string }[] = [
-        {
-          description: transaction_2_1,
-          transactionId: transaction3.id,
-        },
-        {
-          description: transaction_2_2,
-          transactionId: transaction3.id,
-        },
-      ];
-
-      const operationsToInsertPromises = operationsData.map((description) => {
-        const data = createOperationData({
-          accountId: testAccount1.id,
-          description: description.description,
-          isTombstone: true,
-          transactionId: description.transactionId,
-          userId: user1.id,
-        });
-
-        return testDB.createOperation(data);
-      });
-
-      const createdOperations = await Promise.all(operationsToInsertPromises);
-
-      const operationsBeforeRestoring =
-        await testDB.getOperationsByTransactionId(transaction3.id);
-
-      const operationsIdsToRestore = operationsBeforeRestoring.map(
-        (op) => op.id,
-      );
-
-      const result = await operationRepository.bulkRestoreByIds(
-        operationsIdsToRestore,
-      );
-
-      const outcome = operationsIdsToRestore.reduce(
-        (acc, id) => {
-          acc[id] = 'restored';
-          return acc;
-        },
-        {} as Record<string, PerIdStatus>,
-      );
-
-      expect(result).toMatchObject({
-        changed: createdOperations.length,
-        notFoundIds: [],
-        outcome,
-        requestedIds: operationsIdsToRestore,
-      });
-
-      const restoredOperations = await Promise.all(
-        operationsIdsToRestore.map((id) => testDB.getOperationById(id)),
-      );
-
-      expect(restoredOperations).toHaveLength(operationsIdsToRestore.length);
-
-      restoredOperations.forEach((restoredOperation, index) => {
-        const operationBeforeDeleting = operationsBeforeRestoring[index];
-
-        expect(restoredOperation).toMatchObject({
-          accountId: operationBeforeDeleting?.accountId,
-          baseAmount: operationBeforeDeleting?.baseAmount,
-          createdAt: operationBeforeDeleting?.createdAt,
-          description: operationBeforeDeleting?.description,
-          isTombstone: false,
-          localAmount: operationBeforeDeleting?.localAmount,
-          rateBasePerLocal: operationBeforeDeleting?.rateBasePerLocal,
-          transactionId: operationBeforeDeleting?.transactionId,
-          userId: operationBeforeDeleting?.userId,
-        });
-
-        expect(operationBeforeDeleting?.updatedAt).not.toEqual(
-          restoredOperation?.updatedAt,
-        );
       });
     });
   });
