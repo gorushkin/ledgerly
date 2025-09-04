@@ -20,7 +20,6 @@ export type OperationDomain = {
   baseAmount: Money;
   createdAt: IsoDatetimeString;
   description: string;
-  hash: string;
   id: UUID;
   isTombstone: boolean;
   localAmount: Money;

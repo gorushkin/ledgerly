@@ -83,31 +83,31 @@ export class TransactionRepository extends BaseRepository {
     isTombstone: boolean,
     tx?: TxType,
   ): Promise<boolean> {
-    const transactionErrorMessages: Record<'true' | 'false', string> = {
+    const errorMessages: Record<'true' | 'false', string> = {
       false: 'Failed to delete transaction',
       true: 'Failed to restore transaction',
     };
 
-    const errorMessage =
-      transactionErrorMessages[isTombstone.toString() as 'true' | 'false'];
+    return this.executeDatabaseOperation(
+      async () => {
+        const dbClient = tx ?? this.db;
 
-    return this.executeDatabaseOperation(async () => {
-      const dbClient = tx ?? this.db;
+        const res = await dbClient
+          .update(transactionsTable)
+          .set({ isTombstone, ...this.updateTimestamp })
+          .where(
+            and(
+              eq(transactionsTable.id, id),
+              eq(transactionsTable.userId, userId),
+              eq(transactionsTable.isTombstone, !isTombstone),
+            ),
+          )
+          .run();
 
-      const res = await dbClient
-        .update(transactionsTable)
-        .set({ isTombstone, ...this.updateTimestamp })
-        .where(
-          and(
-            eq(transactionsTable.id, id),
-            eq(transactionsTable.userId, userId),
-            eq(transactionsTable.isTombstone, !isTombstone),
-          ),
-        )
-        .run();
-
-      return res.rowsAffected > 0;
-    }, errorMessage);
+        return res.rowsAffected > 0;
+      },
+      errorMessages[isTombstone.toString() as 'true' | 'false'],
+    );
   }
 
   async delete(userId: UUID, id: string, tx?: TxType): Promise<boolean> {

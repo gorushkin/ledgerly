@@ -15,7 +15,6 @@ import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { computeOperationHash } from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
 
 import { OperationDbInsert, TransactionDbRow } from './schema';
@@ -254,11 +253,13 @@ export class TestDB {
     category?: string;
     userId?: UUID;
     rateBasePerLocal?: number;
+    isTombstone?: boolean;
   }) => {
-    const operationDataPreHash = {
+    const operationData = {
       baseAmount: 100,
       category: 'Test Category',
       description: `Test Operation ${this.operationCounter.getNextName()}`,
+      isTombstone: !!params.isTombstone,
       localAmount: params.amountLocal ?? 100,
       rateBasePerLocal: 1,
       ...params,
@@ -266,11 +267,6 @@ export class TestDB {
       userId: params.userId ?? crypto.randomUUID(),
       ...TestDB.createTimestamps,
       ...TestDB.uuid,
-    };
-
-    const operationData: OperationDbInsert = {
-      ...operationDataPreHash,
-      hash: computeOperationHash(operationDataPreHash),
     };
 
     const operation = await this.db

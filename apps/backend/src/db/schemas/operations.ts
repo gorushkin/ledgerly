@@ -6,7 +6,6 @@ import {
   description,
   createdAt,
   updatedAt,
-  hash,
   isTombstone,
   id,
   getMoneyColumn,
@@ -23,7 +22,6 @@ export const operationsTable = sqliteTable(
     baseAmount: getMoneyColumn('base_amount'),
     createdAt,
     description,
-    hash,
     id,
     isTombstone,
     localAmount: getMoneyColumn('local_amount'),
@@ -40,7 +38,6 @@ export const operationsTable = sqliteTable(
     index('idx_operations_tx').on(t.transactionId),
     index('idx_operations_account').on(t.accountId),
     index('idx_operations_user').on(t.userId),
-    index('idx_operations_tx_hash').on(t.transactionId, t.hash),
   ],
 );
 
@@ -55,6 +52,11 @@ export type OperationRepoInsert = Omit<
 export type OperationDbUpdate = Partial<
   Omit<
     OperationDbRow,
-    'id' | 'userId' | 'transactionId' | 'createdAt' | 'updatedAt' | 'hash'
+    | 'id'
+    | 'userId'
+    | 'transactionId'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'isTombstone'
   >
 >;
