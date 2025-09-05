@@ -15,13 +15,21 @@ export class OperationRepository extends BaseRepository {
     super(db);
   }
 
-  async getByTransactionId(transactionId: string): Promise<OperationDbRow[]> {
+  async listByTransactionId(
+    userId: UUID,
+    transactionId: UUID,
+  ): Promise<OperationDbRow[]> {
     return this.executeDatabaseOperation(
       async () => {
         return this.db
           .select()
           .from(operationsTable)
-          .where(eq(operationsTable.transactionId, transactionId))
+          .where(
+            and(
+              eq(operationsTable.userId, userId),
+              eq(operationsTable.transactionId, transactionId),
+            ),
+          )
           .all();
       },
       'Failed to fetch operations by transaction ID',

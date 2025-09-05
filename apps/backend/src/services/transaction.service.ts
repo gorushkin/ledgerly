@@ -97,7 +97,7 @@ export class TransactionService extends BaseService {
   ): Promise<TransactionResponseDTO_DELETE | undefined> {
     const transaction = await this.ensureTransactionExistsAndOwned(userId, id);
 
-    const operations = await this.operationRepository.getByTransactionId(id);
+    const operations = await this.operationRepository.listByTransactionId(id);
 
     return { ...transaction, operations };
   }

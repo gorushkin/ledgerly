@@ -112,7 +112,10 @@ describe('OperationRepository', () => {
   describe('getByTransactionId', () => {
     it('should return operations for a given transaction ID', async () => {
       const transactionOneOperations =
-        await operationRepository.getByTransactionId(transaction1.id);
+        await operationRepository.listByTransactionId(
+          user1.id,
+          transaction1.id,
+        );
 
       expect(transactionOneOperations).toHaveLength(
         insertedOperations.filter((op) => op.transactionId === transaction1.id)
