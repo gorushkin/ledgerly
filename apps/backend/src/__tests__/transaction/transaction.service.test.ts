@@ -1,16 +1,5 @@
-// TODO: fix this
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-import {
-  OperationDbInsert,
-  TransactionDbPreHashDTO_DELETE,
-} from '@ledgerly/shared/types';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
-import {
-  computeOperationHash,
-  getTransactionHash,
-} from 'src/libs/hashGenerator';
 import { TransactionService } from 'src/services/transaction.service';
 import { DataBase } from 'src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -146,71 +135,6 @@ describe('TransactionService', () => {
   });
 
   describe('create', () => {
-    it.skip('should create transaction with valid balanced operations', async () => {
-      const newTransaction: TransactionDbPreHashDTO_DELETE = {
-        description: 'Test Transaction',
-        id: 'new-transaction-id',
-        postingDate: new Date().toISOString(),
-        transactionDate: new Date().toISOString(),
-        userId,
-      };
-
-      const operations: OperationDbInsert[] = [
-        {
-          accountId: 'account-1',
-          baseAmount: 100,
-          description: 'Operation 1',
-          id: 'operation-5',
-          isTombstone: false,
-          localAmount: 100,
-          rateBasePerLocal: '1.0',
-          transactionId: newTransaction.id,
-          userId,
-        },
-        {
-          accountId: 'account-2',
-          baseAmount: -100,
-          description: 'Operation 2',
-          id: 'operation-6',
-          isTombstone: false,
-          localAmount: -100,
-          rateBasePerLocal: '1.0',
-          transactionId: newTransaction.id,
-          userId,
-        },
-      ];
-
-      const operationsWithHash = operations.map((op) => ({
-        ...op,
-        hash: computeOperationHash(op),
-      }));
-
-      const transactionWithHash = {
-        ...newTransaction,
-        hash: getTransactionHash(newTransaction),
-      };
-
-      transactionRepository.create.mockResolvedValue(transactionWithHash);
-      operationRepository.bulkInsert.mockResolvedValue(operationsWithHash);
-
-      const fullTransaction = {
-        ...transactionWithHash,
-        operations: operationsWithHash,
-      };
-
-      const result = await transactionService.create(userId, fullTransaction);
-
-      expect(transactionRepository.create).toHaveBeenCalledWith(
-        fullTransaction,
-        mockTx,
-      );
-
-      expect(operationRepository.bulkInsert).toHaveBeenCalledWith(
-        operationsWithHash,
-        mockTx,
-      );
-
-      expect(result).toEqual(fullTransaction);
-    });
+    it.todo('should create transaction with valid balanced operations');
   });
 });

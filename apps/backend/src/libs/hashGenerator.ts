@@ -67,7 +67,3 @@ const validateHash = <T extends Record<string, unknown>>(
 export const validateTransactionHash = (tx: TransactionDbInsert): boolean => {
   return validateHash(tx, TRANSACTION_HASH_FIELDS, tx.hash);
 };
-
-export const validateOperationHash = (op: OperationServiceUpdate): boolean => {
-  return validateHash(op, OPERATION_HASH_FIELDS, op.hash);
-};

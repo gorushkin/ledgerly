@@ -1,4 +1,4 @@
-import { UUID, PerIdStatus } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
   OperationDbRow,
@@ -9,15 +9,6 @@ import { operationsTable } from 'src/db/schemas';
 import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
-
-type BulkOutcome = Record<UUID, PerIdStatus>;
-
-type BulkUpdateResult = {
-  requestedIds: UUID[];
-  outcome: BulkOutcome;
-  changed: number;
-  notFoundIds: UUID[];
-};
 
 export class OperationRepository extends BaseRepository {
   constructor(db: DataBase) {

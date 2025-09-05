@@ -10,10 +10,7 @@ import {
 } from '@ledgerly/shared/types';
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
-import {
-  validateOperationHash,
-  validateTransactionHash,
-} from 'src/libs/hashGenerator';
+import { validateTransactionHash } from 'src/libs/hashGenerator';
 import { DataBase } from 'src/types';
 
 import { BaseService } from './baseService';
@@ -121,20 +118,6 @@ export class TransactionService extends BaseService {
     }
   };
 
-  private validateOperationsHash = (operations: OperationCreateDTO[]) => {
-    operations.forEach((operation) => {
-      const isHashValid = validateOperationHash(operation);
-
-      if (!isHashValid) {
-        // This should be a custom error type in a real application
-        // throw new InvalidOperationHashError(operation.hash);
-        console.error('Invalid operation hash:', operation.hash);
-        // For now, we just throw a generic error
-        throw new Error('Invalid operation hash');
-      }
-    });
-  };
-
   private validateOperations = (operations: OperationCreateDTO[]) => {
     if (!operations || operations.length === 0) {
       throw new Error('Transaction must have at least one operation');
@@ -145,32 +128,17 @@ export class TransactionService extends BaseService {
 
   private validateTransaction = (data: TransactionCreateDTO_DELETE) => {
     this.validateTransactionHash(data);
-    this.validateOperationsHash(data.operations);
     this.validateOperations(data.operations);
   };
 
   async create(
-    userId: UUID,
+    _userId: UUID,
     data: TransactionCreateDTO_DELETE,
   ): Promise<TransactionResponseDTO_DELETE> {
     this.validateTransaction(data);
 
-    return this.db.transaction(async (tx) => {
-      const createdTransaction = await this.transactionRepository.create(
-        data,
-        tx,
-      );
-
-      const operations = await this.operationRepository.bulkInsert(
-        data.operations.map((op) => ({
-          ...op,
-          transactionId: createdTransaction.id,
-          userId,
-        })),
-        tx,
-      );
-
-      return { ...createdTransaction, operations };
+    return this.db.transaction((_tx) => {
+      throw new Error('Method not implemented.');
     });
   }
 
