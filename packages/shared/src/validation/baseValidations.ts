@@ -22,6 +22,12 @@ export const currencyCode = z
   .length(3, "Currency code must be exactly 3 characters");
 
 export const isoDatetime = z.string().datetime().brand<"IsoDatetimeString">();
+
 export const sha256String = z.string().regex(/^[a-f0-9]{64}$/, {
   message: "Must be a valid SHA-256 hash",
 });
+
+export const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .brand<"IsoDateString">();

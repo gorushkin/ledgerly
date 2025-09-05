@@ -1,10 +1,7 @@
 import { createHash } from 'node:crypto';
 
-import {
-  OperationDbInsert,
-  OperationResponseDTO,
-  TransactionDbInsertDTO,
-} from '@ledgerly/shared/types';
+import {} from '@ledgerly/shared/types';
+import { OperationDbInsert, TransactionDbInsert } from 'src/db/schema';
 
 const sha256Sync = (input: string): string => {
   return createHash('sha256').update(input).digest('hex');
@@ -22,8 +19,11 @@ const objHashGenerator = <T extends Record<string, unknown>>(
   return sha256Sync(stringifyObjectByFields(obj, fields));
 };
 
-const TRANSACTION_HASH_FIELDS: (keyof Omit<TransactionDbInsertDTO, 'hash'>)[] =
-  ['description', 'postingDate', 'transactionDate'];
+const TRANSACTION_HASH_FIELDS: (keyof Omit<TransactionDbInsert, 'hash'>)[] = [
+  'description',
+  'postingDate',
+  'transactionDate',
+];
 
 const OPERATION_HASH_FIELDS: (keyof Omit<OperationDbInsert, 'hash'>)[] = [
   'accountId',
@@ -35,7 +35,7 @@ const OPERATION_HASH_FIELDS: (keyof Omit<OperationDbInsert, 'hash'>)[] = [
 ];
 
 export const getTransactionHash = (
-  transaction: Omit<TransactionDbInsertDTO, 'hash'>,
+  transaction: Omit<TransactionDbInsert, 'hash'>,
 ): string => {
   return objHashGenerator(transaction, TRANSACTION_HASH_FIELDS);
 };
@@ -47,8 +47,8 @@ export const computeOperationHash = (
 };
 
 export const getTransactionWithHash = (
-  transaction: Omit<TransactionDbInsertDTO, 'hash'>,
-): TransactionDbInsertDTO => {
+  transaction: Omit<TransactionDbInsert, 'hash'>,
+): TransactionDbInsert => {
   return {
     ...transaction,
     hash: getTransactionHash(transaction),
@@ -64,12 +64,6 @@ const validateHash = <T extends Record<string, unknown>>(
   return expected === actualHash;
 };
 
-export const validateTransactionHash = (
-  tx: TransactionDbInsertDTO,
-): boolean => {
+export const validateTransactionHash = (tx: TransactionDbInsert): boolean => {
   return validateHash(tx, TRANSACTION_HASH_FIELDS, tx.hash);
-};
-
-export const validateOperationHash = (op: OperationResponseDTO): boolean => {
-  return validateHash(op, OPERATION_HASH_FIELDS, op.hash);
 };

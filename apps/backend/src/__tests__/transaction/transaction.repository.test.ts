@@ -1,57 +1,42 @@
-import {
-  AccountResponseDTO,
-  OperationCreateDTO,
-  UsersResponseDTO,
-  UUID,
-} from '@ledgerly/shared/types';
+import { UsersResponseDTO, UUID } from '@ledgerly/shared/types';
+import { TransactionDbInsert } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
-import { generateId } from 'src/libs';
-import { hashGenerator } from 'src/libs';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { TxType } from 'src/types';
 import { beforeEach, describe, expect, it } from 'vitest';
-type TestDBTransactionParams = {
-  userId: UUID;
-  data?: {
-    description?: string;
-    postingDate: string;
-    transactionDate: string;
-    userId: UUID;
-    operations?: OperationCreateDTO[];
-  };
-};
+type TestDBTransactionParams = Omit<
+  TransactionDbInsert,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 
 const getUserTransactionDTO = (params: {
-  testAccount1: AccountResponseDTO;
-  testAccount2: AccountResponseDTO;
   userId: UUID;
   description?: string;
 }): TestDBTransactionParams => {
   const { description, userId } = params;
 
   return {
-    data: {
-      description: description,
-      operations: [],
-      postingDate: new Date().toString(),
-      transactionDate: new Date().toString(),
-      userId: userId,
-    },
+    description: description,
+    hash: `hash-${Math.random().toString(36).substring(2, 15)}`,
+    postingDate: TestDB.isoDateString,
+    transactionDate: TestDB.isoDateString,
     userId: userId,
   };
 };
 
 describe('TransactionRepository', () => {
   let transactionRepository: TransactionRepository;
-  let user: UsersResponseDTO;
-  let testAccount1: AccountResponseDTO;
-  let testAccount2: AccountResponseDTO;
+  let user1: UsersResponseDTO;
+  let user2: UsersResponseDTO;
+  let user3: UsersResponseDTO;
   let testDB: TestDB;
 
-  let firstUserTransactionData: TestDBTransactionParams[];
-  let secondUserTransactionData: TestDBTransactionParams[];
+  let user1TransactionData: TestDBTransactionParams[];
+  let user2TransactionData: TestDBTransactionParams[];
   let transactionsToAdd: TestDBTransactionParams[];
+
+  let createdTransactions: TransactionDbInsert[];
 
   beforeEach(async () => {
     testDB = new TestDB();
@@ -59,237 +44,65 @@ describe('TransactionRepository', () => {
 
     transactionRepository = new TransactionRepository(testDB.db);
 
-    user = await testDB.createUser();
+    user1 = await testDB.createUser();
+    user2 = await testDB.createUser({});
+    user3 = await testDB.createUser({});
 
-    testAccount1 = await testDB.createAccount(user.id, {
-      name: 'Test Account 1',
-    });
-
-    testAccount2 = await testDB.createAccount(user.id, {
-      name: 'Test Account 2',
-    });
-
-    const secondUser = await testDB.createUser({});
-
-    const firstUserTransactionDTO_1 = getUserTransactionDTO({
+    const user1TransactionDTO_1 = getUserTransactionDTO({
       description: 'User 1 Transaction 1',
-      testAccount1,
-      testAccount2,
-      userId: user.id,
+      userId: user1.id,
     });
 
-    const firstUserTransactionDTO_2 = getUserTransactionDTO({
+    const user1TransactionDTO_2 = getUserTransactionDTO({
       description: 'User 1 Transaction 2',
-      testAccount1,
-      testAccount2,
-      userId: user.id,
+      userId: user1.id,
     });
 
-    firstUserTransactionData = [
-      firstUserTransactionDTO_1,
-      firstUserTransactionDTO_2,
-    ];
+    user1TransactionData = [user1TransactionDTO_1, user1TransactionDTO_2];
 
-    const secondUserTransactionDTO = getUserTransactionDTO({
+    const user2TransactionDTO = getUserTransactionDTO({
       description: 'User 2 Transaction 1',
-      testAccount1,
-      testAccount2,
-      userId: secondUser.id,
+      userId: user2.id,
     });
 
-    secondUserTransactionData = [secondUserTransactionDTO];
+    user2TransactionData = [user2TransactionDTO];
 
-    transactionsToAdd = [
-      ...firstUserTransactionData,
-      ...secondUserTransactionData,
-    ];
-  });
+    transactionsToAdd = [...user1TransactionData, ...user2TransactionData];
 
-  describe('create', () => {
-    it.skip('should create a transaction with valid data with operations', async () => {
-      const transactionData = {
-        description: 'Test transaction',
-        id: generateId(),
-        postingDate: new Date().toString(),
-        transactionDate: new Date().toString(),
-        userId: user.id,
-      };
-
-      const createdTransaction = await transactionRepository.create(
-        hashGenerator.getTransactionWithHash(transactionData),
-        testDB.db as unknown as TxType,
-      );
-
-      expect(createdTransaction).toHaveProperty('id');
-      expect(createdTransaction.userId).toBe(user.id);
-      expect(createdTransaction.description).toBe('Test transaction');
-      expect(createdTransaction.hash).toBeDefined();
-    });
-
-    it.skip('sets createdAt and updatedAt timestamps', async () => {
-      const transactionData = {
-        description: 'Test transaction with timestamps',
-        id: generateId(),
-        postingDate: new Date().toString(),
-        transactionDate: new Date().toString(),
-        userId: user.id,
-      };
-
-      const createdTransaction = await transactionRepository.create(
-        hashGenerator.getTransactionWithHash(transactionData),
-        testDB.db as unknown as TxType,
-      );
-
-      expect(createdTransaction).toHaveProperty('id');
-      expect(createdTransaction.userId).toBe(user.id);
-      expect(createdTransaction.description).toBe(
-        'Test transaction with timestamps',
-      );
-      expect(createdTransaction.hash).toBeDefined();
-      expect(createdTransaction.createdAt).toBeDefined();
-      expect(createdTransaction.updatedAt).toBeDefined();
-    });
-  });
-
-  describe('delete', () => {
-    it.skip('should delete a transaction by id with operations', async () => {
-      const promises = transactionsToAdd.map((params) =>
-        testDB.createTransaction(params),
-      );
-
-      const allTransactions = await Promise.all(promises);
-
-      const idTransactionToDelete = allTransactions[0].id;
-
-      const transactionToBeDeleted = await testDB.getTransactionById(
-        idTransactionToDelete,
-      );
-
-      expect(transactionToBeDeleted).toBeDefined();
-      expect(allTransactions).toHaveLength(transactionsToAdd.length);
-
-      await transactionRepository.delete(user.id, idTransactionToDelete);
-
-      const retrievedDeletedTransaction = await testDB.getTransactionById(
-        idTransactionToDelete,
-      );
-
-      expect(retrievedDeletedTransaction).toBeUndefined();
-    });
-
-    it.skip('does nothing if transaction does not exist (no error)', async () => {
-      const result = transactionRepository.delete(user.id, 'non-existing-id');
-
-      await expect(result).rejects.toThrowError(NotFoundError);
-    });
-
-    it.skip('should throw NotFoundError if transaction does not belong to user', async () => {
-      await Promise.all(
-        firstUserTransactionData.map((params) =>
-          testDB.createTransaction(params),
-        ),
-      );
-
-      const secondUserTransactions = await Promise.all(
-        secondUserTransactionData.map((params) =>
-          testDB.createTransaction(params),
-        ),
-      );
-
-      const nonOwnerUserId = user.id;
-      const transactionId = secondUserTransactions[0].id;
-
-      const deleteNonOwnerTransaction = transactionRepository.delete(
-        nonOwnerUserId,
-        transactionId,
-      );
-
-      await expect(deleteNonOwnerTransaction).rejects.toThrowError(
-        NotFoundError,
-      );
-    });
+    createdTransactions = await Promise.all(
+      transactionsToAdd.map(testDB.createTransaction),
+    );
   });
 
   describe('getAllByUserId', () => {
-    it.skip('should return all transactions for a specific user', async () => {
-      const promises = transactionsToAdd.map((params) =>
-        testDB.createTransaction(params),
-      );
-
-      await Promise.all(promises);
-
-      const userId = user.id;
-
-      const transactions = await transactionRepository.getAllByUserId(userId);
-
-      expect(transactions).toHaveLength(firstUserTransactionData.length);
-
-      const initedUserTransactionDescriptionsSet = new Set<string>(
-        firstUserTransactionData.map((tx) => tx.data?.description ?? ''),
-      );
-
-      expect(initedUserTransactionDescriptionsSet.size).toBe(
-        firstUserTransactionData.length,
-      );
-
-      transactions.forEach((transaction) => {
-        expect(transaction.userId).toBe(userId);
-        expect(
-          initedUserTransactionDescriptionsSet.has(transaction.description),
-        ).toBe(true);
-      });
+    it('should return all transactions for a specific user', async () => {
+      const transactions = await transactionRepository.getAllByUserId(user1.id);
+      expect(transactions).toHaveLength(user1TransactionData.length);
     });
 
-    it.skip('returns empty array for user with no transactions', async () => {
-      const userId = user.id;
-
-      const transactions = await transactionRepository.getAllByUserId(userId);
-
-      expect(transactions).toEqual([]);
-    });
-
-    it.todo('return transactions sorted by createdAt with pagination');
-    it.todo('return transactions filtered by accountId');
-  });
-
-  describe('getAll', () => {
-    it.skip('should return all transactions for all users', async () => {
-      const promises = transactionsToAdd.map((params) =>
-        testDB.createTransaction(params),
-      );
-
-      await Promise.all(promises);
-
-      const transactions = await transactionRepository.getAll();
-
-      expect(transactions).toHaveLength(transactionsToAdd.length);
-
-      const initedUserTransactions = transactionsToAdd;
-
-      const initedUserTransactionDescriptionsSet = new Set<string>(
-        initedUserTransactions.map((tx) => tx.data?.description ?? ''),
-      );
-
-      expect(initedUserTransactionDescriptionsSet.size).toBe(
-        initedUserTransactions.length,
-      );
-
-      transactions.forEach((transaction) => {
-        expect(
-          initedUserTransactionDescriptionsSet.has(transaction.description),
-        ).toBe(true);
-      });
-    });
-
-    it.skip('returns empty array if no transactions exist', async () => {
-      const transactions = await transactionRepository.getAll();
-      expect(transactions).toEqual([]);
+    it('should return empty transactions for a specific user', async () => {
+      const transactions = await transactionRepository.getAllByUserId(user3.id);
       expect(transactions).toHaveLength(0);
+    });
+
+    it('should return transactions for user 2', async () => {
+      const transactions = await transactionRepository.getAllByUserId(user2.id);
+      expect(transactions).toHaveLength(user2TransactionData.length);
+    });
+
+    it('should not return not owned transactions', async () => {
+      const transactions = await transactionRepository.getAllByUserId(user1.id);
+
+      const user2Transactions = await transactionRepository.getAllByUserId(
+        user2.id,
+      );
+
+      expect(transactions).not.toEqual(user2Transactions);
     });
   });
 
   describe('getTransactionById', () => {
-    it.skip('should return transaction by id and userId', async () => {
+    it('should return transaction by id and userId', async () => {
       const promises = transactionsToAdd.map((params) =>
         testDB.createTransaction(params),
       );
@@ -312,7 +125,7 @@ describe('TransactionRepository', () => {
       expect(transaction?.hash).toBeDefined();
     });
 
-    it.skip('should return undefined for a non-existing transaction', async () => {
+    it('should throw NotFoundError if for a non-existing transaction', async () => {
       const promises = transactionsToAdd.map((params) =>
         testDB.createTransaction(params),
       );
@@ -320,7 +133,7 @@ describe('TransactionRepository', () => {
       await Promise.all(promises);
 
       const nonExistingTransactionId = 'non-existing-id' as UUID;
-      const userId = user.id;
+      const userId = user1.id;
 
       const transaction = transactionRepository.getById(
         userId,
@@ -329,21 +142,39 @@ describe('TransactionRepository', () => {
 
       await expect(transaction).rejects.toThrowError(NotFoundError);
     });
+  });
 
-    it.skip('returns undefined if user does not own the transaction', async () => {
+  describe('create', () => {
+    it('should create a new transaction with timestamps and id', async () => {
+      const newTransaction = getUserTransactionDTO({
+        description: 'New Transaction',
+        userId: user1.id,
+      });
+
+      const createdTransaction = await transactionRepository.create(
+        { ...newTransaction, ...TestDB.createTimestamps, ...TestDB.uuid },
+        testDB.db as unknown as TxType,
+      );
+
+      expect(createdTransaction).toEqual(
+        expect.objectContaining(newTransaction),
+      );
+
+      expect(createdTransaction.createdAt).toBeDefined();
+      expect(createdTransaction.updatedAt).toBeDefined();
+      expect(createdTransaction.id).toBeDefined();
+    });
+
+    it('should throw NotFoundError if user does not own the transaction', async () => {
       await Promise.all(
-        firstUserTransactionData.map((params) =>
-          testDB.createTransaction(params),
-        ),
+        user1TransactionData.map((params) => testDB.createTransaction(params)),
       );
 
       const secondUserTransactions = await Promise.all(
-        secondUserTransactionData.map((params) =>
-          testDB.createTransaction(params),
-        ),
+        user2TransactionData.map((params) => testDB.createTransaction(params)),
       );
 
-      const nonOwnerUserId = user.id;
+      const nonOwnerUserId = user1.id;
       const transactionId = secondUserTransactions[0].id;
 
       const transaction = transactionRepository.getById(
@@ -356,31 +187,23 @@ describe('TransactionRepository', () => {
   });
 
   describe('update', () => {
-    it.skip('should update a transaction with valid data', async () => {
-      const promises = transactionsToAdd.map((params) =>
-        testDB.createTransaction(params),
-      );
+    it('should update a transaction with valid data', async () => {
+      const transactionToUpdate = createdTransactions[0];
 
-      const allTransactions = await Promise.all(promises);
-
-      const transactionToUpdate = allTransactions[0];
+      const postingData = TestDB.isoDateString;
 
       const updatedData = {
         description: 'Updated transaction description',
         id: transactionToUpdate.id,
-        postingDate: new Date().toString(),
-        transactionDate: new Date().toString(),
+        postingDate: postingData,
+        transactionDate: postingData,
         userId: transactionToUpdate.userId,
       };
 
-      const transactionsExcludingUpdateBeforeUpdating = allTransactions.filter(
-        (tx) => tx.id !== transactionToUpdate.id,
-      );
-
       const updatedTransaction = await transactionRepository.update(
-        user.id,
+        user1.id,
         transactionToUpdate.id,
-        hashGenerator.getTransactionWithHash(updatedData),
+        { ...transactionToUpdate, ...updatedData },
       );
 
       expect(updatedTransaction).toBeDefined();
@@ -388,103 +211,121 @@ describe('TransactionRepository', () => {
       expect(updatedTransaction?.description).toBe(updatedData.description);
       expect(updatedTransaction?.userId).toBe(transactionToUpdate.userId);
 
-      const updatedTransactionFromDB = await testDB.getTransactionById(
+      expect(updatedTransaction).toMatchObject({
+        createdAt: transactionToUpdate.createdAt,
+        description: updatedData.description,
+        id: transactionToUpdate.id,
+        postingDate: updatedData.postingDate,
+        transactionDate: updatedData.transactionDate,
+        userId: transactionToUpdate.userId,
+      });
+
+      const updatedTransactionFromTestDB = await testDB.getTransactionById(
         transactionToUpdate.id,
       );
 
-      expect(updatedTransactionFromDB).toBeDefined();
-      expect(updatedTransactionFromDB?.id).toBe(updatedTransaction?.id);
-      expect(updatedTransactionFromDB?.description).toBe(
-        updatedTransaction?.description,
+      expect(updatedTransactionFromTestDB).toEqual(updatedTransaction);
+    });
+
+    it('Should not update isTombstone field on update', async () => {
+      const transactionToUpdate = createdTransactions[0];
+
+      const res = await transactionRepository.update(
+        user1.id,
+        transactionToUpdate.id,
+        { ...transactionToUpdate, isTombstone: true },
       );
-      expect(updatedTransactionFromDB?.userId).toBe(updatedTransaction?.userId);
 
-      const allTransactionsAfterUpdate = await testDB.getAllTransactions();
+      expect(res.isTombstone).equal(false);
+    });
+  });
 
-      expect(allTransactionsAfterUpdate).toHaveLength(allTransactions.length);
+  describe('delete', () => {
+    it('should soft delete transaction', async () => {
+      const transactionToDelete = createdTransactions[0];
 
-      const transactionsExcludingUpdateAfterUpdating =
-        allTransactionsAfterUpdate.filter(
-          (tx) => tx.id !== transactionToUpdate.id,
-        );
+      const result = await transactionRepository.delete(
+        user1.id,
+        transactionToDelete.id,
+      );
 
-      transactionsExcludingUpdateAfterUpdating.forEach((tx) => {
-        expect(tx).toBeDefined();
-        expect(JSON.stringify(tx)).toBe(
-          JSON.stringify(
-            transactionsExcludingUpdateBeforeUpdating.find(
-              (originalTx) => originalTx.id === tx.id,
-            ),
-          ),
-        );
+      expect(result).toBe(true);
+
+      const deletedTransaction = await testDB.getTransactionById(
+        transactionToDelete.id,
+      );
+
+      expect(deletedTransaction).toMatchObject({
+        createdAt: transactionToDelete.createdAt,
+        description: transactionToDelete.description,
+        id: transactionToDelete.id,
+        isTombstone: true,
+        postingDate: transactionToDelete.postingDate,
+        transactionDate: transactionToDelete.transactionDate,
+        userId: transactionToDelete.userId,
       });
     });
 
-    it.skip('returns undefined if transaction does not exist or belongs to another user', async () => {
-      await Promise.all(
-        firstUserTransactionData.map((params) =>
-          testDB.createTransaction(params),
-        ),
+    it('should return false when deleting already deleted transaction', async () => {
+      const transactionToDelete = createdTransactions[0];
+
+      const firstDeleteResult = await transactionRepository.delete(
+        user1.id,
+        transactionToDelete.id,
       );
 
-      const secondUserTransactions = await Promise.all(
-        secondUserTransactionData.map((params) =>
-          testDB.createTransaction(params),
-        ),
+      expect(firstDeleteResult).toBe(true);
+
+      const secondDeleteResult = await transactionRepository.delete(
+        user1.id,
+        transactionToDelete.id,
       );
 
+      expect(secondDeleteResult).toBe(false);
+    });
+
+    it('should return false when deleting non-existing transaction', async () => {
       const nonExistingTransactionId = 'non-existing-id' as UUID;
-      const userId = user.id;
 
-      const transactionWithNonExistingId = transactionRepository.getById(
-        userId,
+      const deleteResult = await transactionRepository.delete(
+        user1.id,
         nonExistingTransactionId,
       );
 
-      await expect(transactionWithNonExistingId).rejects.toThrowError(
-        NotFoundError,
-      );
-
-      const nonOwnerUserId = user.id;
-      const transactionId = secondUserTransactions[0].id;
-
-      const nonOwnerUserTransaction = transactionRepository.getById(
-        nonOwnerUserId,
-        transactionId,
-      );
-
-      await expect(nonOwnerUserTransaction).rejects.toThrowError(NotFoundError);
-    });
-
-    it.skip('updates updatedAt timestamp', async () => {
-      const transactions = await Promise.all(
-        firstUserTransactionData.map((params) =>
-          testDB.createTransaction(params),
-        ),
-      );
-
-      const transactionToUpdate = transactions[0];
-      const updatedAtBeforeUpdate = transactionToUpdate.updatedAt;
-
-      const transactionData = {
-        description: 'Test transaction with timestamps',
-        id: generateId(),
-        postingDate: new Date().toString(),
-        transactionDate: new Date().toString(),
-        userId: user.id,
-      };
-
-      const updatedTransaction = await transactionRepository.update(
-        user.id,
-        transactionToUpdate.id,
-        hashGenerator.getTransactionWithHash(transactionData),
-      );
-
-      const updatedAtAfterUpdate = updatedTransaction?.updatedAt;
-
-      expect(updatedTransaction).toBeDefined();
-      expect(updatedAtAfterUpdate).toBeDefined();
-      expect(updatedAtAfterUpdate).not.toBe(updatedAtBeforeUpdate);
+      expect(deleteResult).toBe(false);
     });
   });
+
+  describe('restore', () => {
+    it('should restore transaction', async () => {
+      const transactionToDelete = createdTransactions[0];
+
+      await testDB.updateTransaction(transactionToDelete.id, {
+        isTombstone: true,
+      });
+
+      const result = await transactionRepository.restore(
+        user1.id,
+        transactionToDelete.id,
+      );
+
+      expect(result).toBe(true);
+
+      const restoredTransaction = await testDB.getTransactionById(
+        transactionToDelete.id,
+      );
+
+      expect(restoredTransaction).toMatchObject({
+        createdAt: transactionToDelete.createdAt,
+        description: transactionToDelete.description,
+        id: transactionToDelete.id,
+        isTombstone: false,
+        postingDate: transactionToDelete.postingDate,
+        transactionDate: transactionToDelete.transactionDate,
+        userId: transactionToDelete.userId,
+      });
+    });
+  });
+
+  // TODO: add all missing tests for transactions
 });

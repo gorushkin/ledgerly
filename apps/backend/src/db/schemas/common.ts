@@ -1,4 +1,4 @@
-import { IsoDatetimeString } from '@ledgerly/shared/types';
+import { IsoDateString, IsoDatetimeString, UUID } from '@ledgerly/shared/types';
 import { integer, text } from 'drizzle-orm/sqlite-core';
 import { generateId } from 'src/libs/idGenerator';
 
@@ -18,8 +18,15 @@ export const hash = text('hash').notNull();
 export const clientGeneratedId = text('id').primaryKey();
 
 export const stop_uuidPrimary = stop_uuid.primaryKey();
-export const uuid = text('id').notNull().primaryKey();
+export const id = text('id').notNull().primaryKey().$type<UUID>();
 
 export const isTombstone = integer('is_tombstone', { mode: 'boolean' })
   .default(false)
   .notNull();
+
+export const getMoneyColumn = (fieldName: string) => {
+  return integer(fieldName).notNull();
+};
+
+export const getIsoDateString = (column: string) =>
+  text(column).notNull().$type<IsoDateString>();

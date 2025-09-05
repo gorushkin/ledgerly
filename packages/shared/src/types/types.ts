@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   currencyCode,
+  isoDate,
   isoDatetime,
   sha256String,
 } from "../validation/baseValidations";
@@ -25,4 +26,5 @@ export type ValidationError = {
 export type CurrencyCode = z.infer<typeof currencyCode>;
 
 export type IsoDatetimeString = z.infer<typeof isoDatetime>;
+export type IsoDateString = z.infer<typeof isoDate>;
 export type Sha256String = z.infer<typeof sha256String>;

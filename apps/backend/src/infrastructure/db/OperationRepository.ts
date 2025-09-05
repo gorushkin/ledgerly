@@ -1,12 +1,12 @@
+import { UUID } from '@ledgerly/shared/types';
+import { and, eq, inArray } from 'drizzle-orm';
 import {
-  OperationDbInsert,
   OperationDbRow,
-  UUID,
-} from '@ledgerly/shared/types';
-import { eq, inArray } from 'drizzle-orm';
+  OperationDbUpdate,
+  OperationRepoInsert,
+} from 'src/db/schema';
 import { operationsTable } from 'src/db/schemas';
-import { computeOperationHash } from 'src/libs/hashGenerator';
-import { DataBase, TxType } from 'src/types';
+import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
 
@@ -29,37 +29,7 @@ export class OperationRepository extends BaseRepository {
     );
   }
 
-  async bulkInsert(
-    operations: OperationDbInsert[],
-    tx?: TxType,
-  ): Promise<OperationDbRow[]> {
-    return this.executeDatabaseOperation(
-      async () => {
-        if (!operations || operations.length === 0) {
-          return [];
-        }
-
-        const dbClient = tx ?? this.db;
-
-        const filledOperations = operations.map((op) => ({
-          ...op,
-          ...this.createTimestamps,
-          ...this.uuid,
-          hash: computeOperationHash(op),
-        }));
-
-        return dbClient
-          .insert(operationsTable)
-          .values(filledOperations)
-          .returning();
-      },
-      'Failed to bulk insert operations',
-      { field: 'operations', tableName: 'operations' },
-    );
-  }
-
   async getByTransactionIds(transactionIds: UUID[]): Promise<OperationDbRow[]> {
-    // TODO: add tests for this method
     return this.executeDatabaseOperation(
       async () => {
         if (transactionIds.length === 0) return [];
@@ -77,23 +47,114 @@ export class OperationRepository extends BaseRepository {
     );
   }
 
-  async deleteByTransactionId(
-    transactionId: UUID,
-    tx?: DataBase,
-  ): Promise<number | void> {
+  async create(userId: UUID, operation: OperationRepoInsert, tx?: DataBase) {
     return this.executeDatabaseOperation(
       async () => {
         const dbClient = tx ?? this.db;
 
-        const res = await dbClient
-          .delete(operationsTable)
-          .where(eq(operationsTable.transactionId, transactionId))
-          .execute();
+        const operationData = {
+          ...operation,
+          ...this.createTimestamps,
+          ...this.uuid,
+          userId,
+        };
 
-        return res.rowsAffected;
+        const createdOperation = await dbClient
+          .insert(operationsTable)
+          .values(operationData)
+          .returning()
+          .get();
+
+        return createdOperation;
       },
-      'Failed to delete operations by transaction ID',
-      { field: 'transactionId', tableName: 'operations' },
+      'Failed to create operation',
+      { field: 'operation', tableName: 'operations' },
     );
+  }
+
+  async update(
+    userId: UUID,
+    operationId: UUID,
+    patch: OperationDbUpdate,
+    tx?: DataBase,
+  ) {
+    return this.executeDatabaseOperation(
+      async () => {
+        const dbClient = tx ?? this.db;
+
+        const updatedOperation = await dbClient
+          .update(operationsTable)
+          .set({
+            accountId: patch.accountId,
+            baseAmount: patch.baseAmount,
+            description: patch.description,
+            localAmount: patch.localAmount,
+            rateBasePerLocal: patch.rateBasePerLocal,
+            ...this.updateTimestamp,
+          })
+          .where(
+            and(
+              eq(operationsTable.id, operationId),
+              eq(operationsTable.userId, userId),
+            ),
+          )
+          .returning()
+          .get();
+
+        return updatedOperation;
+      },
+      'Failed to bulk update operations',
+      { field: 'operationIds', tableName: 'operations' },
+    );
+  }
+
+  async updateStatus(
+    userId: UUID,
+    id: UUID,
+    isTombstone: boolean,
+    tx?: DataBase,
+  ): Promise<boolean> {
+    const errorMessages: Record<'true' | 'false', string> = {
+      false: 'Failed to delete operation',
+      true: 'Failed to restore operation',
+    };
+
+    return this.executeDatabaseOperation(
+      async (): Promise<boolean> => {
+        const dbClient = tx ?? this.db;
+
+        const res = await dbClient
+          .update(operationsTable)
+          .set({ isTombstone, ...this.updateTimestamp })
+          .where(
+            and(
+              eq(operationsTable.id, id),
+              eq(operationsTable.userId, userId),
+              eq(operationsTable.isTombstone, !isTombstone),
+            ),
+          )
+          .run();
+
+        return res.rowsAffected > 0;
+      },
+      errorMessages[isTombstone.toString() as 'true' | 'false'],
+      { field: 'operationId', tableName: 'operations' },
+    );
+  }
+
+  async delete(
+    userId: UUID,
+    operationId: UUID,
+    tx?: DataBase,
+  ): Promise<boolean> {
+    return this.updateStatus(userId, operationId, true, tx);
+  }
+
+  async restore(
+    userId: UUID,
+    operationId: UUID,
+    tx?: DataBase,
+  ): Promise<boolean> {
+    return this.updateStatus(userId, operationId, false, tx);
   }
 }

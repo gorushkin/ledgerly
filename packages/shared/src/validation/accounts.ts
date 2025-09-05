@@ -6,8 +6,8 @@ import {
   notNullText,
   requiredText,
   currencyCode,
-  uuid,
   isoDatetime,
+  uuid,
 } from "./baseValidations";
 
 const accountType = z.enum(ACCOUNT_TYPE_VALUES);
@@ -24,7 +24,6 @@ export const accountUpdateSchema = accountCreateSchema
   .pick({
     description: true,
     name: true,
-    // check if originalCurrency should be changed
     originalCurrency: true,
     type: true,
   })
@@ -40,4 +39,5 @@ export const accountResponseSchema = z.object({
   originalCurrency: currencyCode,
   type: accountType,
   updatedAt: isoDatetime,
+  userId: uuid,
 });

@@ -1,11 +1,11 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import {
   AccountCreateDTO,
-  AccountDbInsert,
   AccountResponseDTO,
   AccountType,
   UUID,
 } from '@ledgerly/shared/types';
+import { AccountRepoInsert } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
 import { describe, beforeEach, it, expect } from 'vitest';
@@ -107,7 +107,7 @@ describe('Accounts Integration Tests', () => {
         url: `${url}/${accounts[0].id}`,
       });
 
-      const account = JSON.parse(response.body) as AccountDbInsert;
+      const account = JSON.parse(response.body) as AccountRepoInsert;
 
       expect(response.statusCode).toBe(200);
       expect(account.name).toBe(accounts[0].name);
@@ -133,7 +133,7 @@ describe('Accounts Integration Tests', () => {
         url,
       });
 
-      const createdAccount = JSON.parse(response.body) as AccountDbInsert;
+      const createdAccount = JSON.parse(response.body) as AccountRepoInsert;
 
       expect(response.statusCode).toBe(201);
       expect(createdAccount.name).toBe(newAccount.name);
@@ -151,7 +151,7 @@ describe('Accounts Integration Tests', () => {
 
       const accountsAfterCreation = JSON.parse(
         finalResponse.body,
-      ) as AccountDbInsert[];
+      ) as AccountRepoInsert[];
 
       expect(accountsAfterCreation.length).toBe(firstUserAccounts.length + 1);
       expect(accountsAfterCreation).toContainEqual(createdAccount);
@@ -182,7 +182,7 @@ describe('Accounts Integration Tests', () => {
 
       const accountsAfterDeletion = JSON.parse(
         finalResponse.body,
-      ) as AccountDbInsert[];
+      ) as AccountRepoInsert[];
 
       expect(accountsAfterDeletion.length).toBe(firstUserAccounts.length - 1);
       expect(accountsAfterDeletion).not.toContainEqual(accountToDelete);
@@ -207,7 +207,7 @@ describe('Accounts Integration Tests', () => {
         url: `${url}/${accountToUpdate.id}`,
       });
 
-      const updatedAccount = JSON.parse(response.body) as AccountDbInsert;
+      const updatedAccount = JSON.parse(response.body) as AccountRepoInsert;
 
       expect(response.statusCode).toBe(200);
       expect(updatedAccount.name).toBe(updatedData.name);
@@ -225,7 +225,7 @@ describe('Accounts Integration Tests', () => {
 
       const accountsAfterUpdate = JSON.parse(
         finalResponse.body,
-      ) as AccountDbInsert[];
+      ) as AccountRepoInsert[];
 
       expect(accountsAfterUpdate).toContainEqual(updatedAccount);
     });
