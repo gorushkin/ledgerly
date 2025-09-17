@@ -2,7 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import {
-  OperationCreateDTO,
+  EntryCreateDTO,
   TransactionCreateDTO_DELETE,
   TransactionDbRowDTO_DELETE,
   TransactionResponseDTO_DELETE,
@@ -118,7 +118,7 @@ export class TransactionService extends BaseService {
     }
   };
 
-  private validateOperations = (operations: OperationCreateDTO[]) => {
+  private validateOperations = (operations: EntryCreateDTO[]) => {
     if (!operations || operations.length === 0) {
       throw new Error('Transaction must have at least one operation');
     }
@@ -148,5 +148,20 @@ export class TransactionService extends BaseService {
 
   delete(): Promise<void> {
     throw new Error('Method not implemented.');
+  }
+}
+
+export class CreateTransactionUseCase {
+  constructor(
+    private transactionRepository: TransactionRepository,
+    private operationRepository: OperationRepository,
+    private db: DataBase,
+  ) {}
+
+  async execute(
+    userId: UUID,
+    data: TransactionCreateDTO,
+  ): Promise<TransactionResponseDTO> {
+    // Валидация и бизнес-логика создания транзакции
   }
 }

@@ -6,6 +6,7 @@ import { dateInIsoFormat } from '@ledgerly/shared/libs';
 import {
   AccountType,
   IsoDateString,
+  Money,
   UsersResponseDTO,
   UUID,
 } from '@ledgerly/shared/types';
@@ -256,12 +257,10 @@ export class TestDB {
     isTombstone?: boolean;
   }) => {
     const operationData = {
-      baseAmount: 100,
+      amount: 100 as Money,
       category: 'Test Category',
       description: `Test Operation ${this.operationCounter.getNextName()}`,
       isTombstone: !!params.isTombstone,
-      localAmount: params.amountLocal ?? 100,
-      rateBasePerLocal: 1,
       ...params,
       transactionId: params.transactionId ?? crypto.randomUUID(),
       userId: params.userId ?? crypto.randomUUID(),

@@ -94,10 +94,8 @@ export class OperationRepository extends BaseRepository {
           .update(operationsTable)
           .set({
             accountId: patch.accountId,
-            baseAmount: patch.baseAmount,
+            amount: patch.amount,
             description: patch.description,
-            localAmount: patch.localAmount,
-            rateBasePerLocal: patch.rateBasePerLocal,
             ...this.updateTimestamp,
           })
           .where(

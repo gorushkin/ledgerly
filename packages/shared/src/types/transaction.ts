@@ -1,5 +1,5 @@
 import { UUID } from "./auth";
-import { OperationCreateDTO, OperationResponseDTO } from "./operation";
+import { EntryCreateDTO, EntryResponseDTO } from "./operation";
 import { IsoDateString, IsoDatetimeString } from "./types";
 
 type TransactionBaseDTO_DELETE = {
@@ -24,7 +24,7 @@ export type TransactionDbPreHashDTO_DELETE = Omit<
 >;
 
 export type TransactionCreateDTO_DELETE = TransactionBaseDTO_DELETE & {
-  operations: OperationCreateDTO[];
+  operations: EntryCreateDTO[];
 };
 
 export type TransactionPreHashDTO_DELETE = Omit<
@@ -36,11 +36,11 @@ export type TransactionUpdateDTO_DELETE = Partial<
   Omit<TransactionBaseDTO_DELETE, "userId" | "balance">
 > & {
   hash?: string;
-  operations?: OperationCreateDTO[];
+  operations?: EntryCreateDTO[];
 };
 
 export type TransactionResponseDTO_DELETE = TransactionDbRowDTO_DELETE & {
-  operations: OperationResponseDTO[];
+  operations: EntryResponseDTO[];
 };
 
 // new types for db

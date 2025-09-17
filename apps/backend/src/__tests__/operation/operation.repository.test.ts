@@ -3,6 +3,7 @@ import {
   UUID,
   AccountDomain,
   IsoDatetimeString,
+  Money,
 } from '@ledgerly/shared/types';
 import {
   OperationDbRow,
@@ -25,11 +26,9 @@ const createOperationData = (params: {
 }): OperationRepoInsert => {
   return {
     accountId: params.accountId ?? generateId(),
-    baseAmount: 100,
+    amount: 100 as Money,
     description: 'Test Operation',
     isTombstone: !!params.isTombstone,
-    localAmount: 100,
-    rateBasePerLocal: 200,
     transactionId: params.transactionId ?? generateId(),
     userId: params.userId ?? generateId(),
     ...params,
@@ -164,10 +163,8 @@ describe('OperationRepository', () => {
 
       const patch: OperationDbUpdate = {
         accountId: testAccount2.id,
-        baseAmount: 600,
+        amount: 600 as Money,
         description: 'Updated Description',
-        localAmount: 500,
-        rateBasePerLocal: 1.2,
       };
 
       const updatedOperation = await operationRepository.update(
@@ -179,12 +176,10 @@ describe('OperationRepository', () => {
       expect(updatedOperation).toBeDefined();
       expect(updatedOperation).toMatchObject({
         accountId: patch.accountId,
-        baseAmount: patch.baseAmount,
+        amount: patch.amount,
         createdAt: operationToUpdate.createdAt,
         description: patch.description,
         id: operationToUpdate.id,
-        localAmount: patch.localAmount,
-        rateBasePerLocal: patch.rateBasePerLocal,
         transactionId: operationToUpdate.transactionId,
         updatedAt: expect.any(String) as unknown as IsoDatetimeString,
         userId: operationToUpdate.userId,
@@ -196,13 +191,11 @@ describe('OperationRepository', () => {
 
       const patch: OperationDbUpdate = {
         accountId: testAccount2.id,
-        baseAmount: 600,
+        amount: 600 as Money,
         createdAt: '2023-01-01T00:00:00.000Z' as IsoDatetimeString,
         description: 'Updated Description',
         id: generateId(),
         isTombstone: true,
-        localAmount: 500,
-        rateBasePerLocal: 1.2,
         transactionId: generateId(),
         updatedAt: '2023-01-01T00:00:00.000Z' as IsoDatetimeString,
         userId: generateId(),
@@ -217,13 +210,11 @@ describe('OperationRepository', () => {
       expect(updatedOperation).toBeDefined();
       expect(updatedOperation).toMatchObject({
         accountId: patch.accountId,
-        baseAmount: patch.baseAmount,
+        amount: patch.amount,
         createdAt: operationToUpdate.createdAt,
         description: patch.description,
         id: operationToUpdate.id,
         isTombstone: operationToUpdate.isTombstone,
-        localAmount: patch.localAmount,
-        rateBasePerLocal: patch.rateBasePerLocal,
         transactionId: operationToUpdate.transactionId,
         updatedAt: expect.any(String) as unknown as IsoDatetimeString,
         userId: operationToUpdate.userId,
@@ -250,13 +241,11 @@ describe('OperationRepository', () => {
 
       expect(deletedOperation).toMatchObject({
         accountId: operationToDelete.accountId,
-        baseAmount: operationToDelete.baseAmount,
+        amount: operationToDelete.amount,
         createdAt: operationToDelete.createdAt,
         description: operationToDelete.description,
         id: operationToDelete.id,
         isTombstone: true,
-        localAmount: operationToDelete.localAmount,
-        rateBasePerLocal: operationToDelete.rateBasePerLocal,
         transactionId: operationToDelete.transactionId,
         updatedAt: expect.any(String) as unknown as IsoDatetimeString,
         userId: operationToDelete.userId,
@@ -270,7 +259,6 @@ describe('OperationRepository', () => {
         accountId: testAccount1.id,
         description: 'To be restored',
         isTombstone: true,
-        rateBasePerLocal: 200,
         transactionId: transaction1.id,
         userId: user1.id,
       });
@@ -290,13 +278,11 @@ describe('OperationRepository', () => {
 
       expect(restoredOperation).toMatchObject({
         accountId: operationToRestore.accountId,
-        baseAmount: operationToRestore.baseAmount,
+        amount: operationToRestore.amount,
         createdAt: operationToRestore.createdAt,
         description: operationToRestore.description,
         id: operationToRestore.id,
         isTombstone: false,
-        localAmount: operationToRestore.localAmount,
-        rateBasePerLocal: operationToRestore.rateBasePerLocal,
         transactionId: operationToRestore.transactionId,
         updatedAt: expect.any(String) as unknown as IsoDatetimeString,
         userId: operationToRestore.userId,
