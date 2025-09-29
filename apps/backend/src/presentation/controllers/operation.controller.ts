@@ -1,6 +1,7 @@
 import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 
-import { AccountController } from './account.controller';
+import { AccountController } from '../../interfaces/accounts/account.controller';
+
 import { CurrencyController } from './currency.controller';
 
 export class OperationController {

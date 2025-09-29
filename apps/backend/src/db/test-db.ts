@@ -7,7 +7,6 @@ import {
   AccountType,
   IsoDateString,
   Money,
-  UsersResponseDTO,
   UUID,
 } from '@ledgerly/shared/types';
 import { isoDate, isoDatetime } from '@ledgerly/shared/validation';
@@ -18,7 +17,7 @@ import { migrate } from 'drizzle-orm/libsql/migrator';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { DataBase } from 'src/types';
 
-import { OperationDbInsert, TransactionDbRow } from './schema';
+import { OperationDbInsert, TransactionDbRow, UserDbRow } from './schema';
 import * as schema from './schemas';
 import { accountsTable, usersTable } from './schemas';
 import { seedCurrencies } from './scripts/currenciesSeed';
@@ -79,7 +78,7 @@ export class TestDB {
   }
 
   static get uuid() {
-    return { id: crypto.randomUUID() };
+    return { id: crypto.randomUUID() as UUID };
   }
 
   test = async () => {
@@ -123,7 +122,7 @@ export class TestDB {
     email?: string;
     name?: string;
     password?: string;
-  }): Promise<UsersResponseDTO> => {
+  }): Promise<UserDbRow> => {
     const userData = {
       email: params?.email ?? `test-${Date.now()}@example.com`,
       name: params?.name ?? `Test User ${this.userCounter.getNextName()}`,
@@ -153,15 +152,15 @@ export class TestDB {
     userId: UUID,
     params?: {
       name?: string;
-      originalCurrency?: string;
+      currency?: string;
       type?: AccountType;
       initialBalance?: number;
     },
   ) => {
     const accountData = {
+      currency: 'USD',
       initialBalance: 0,
       name: 'Test Account',
-      originalCurrency: 'USD',
       type: ACCOUNT_TYPES[0],
       ...params,
       userId,
@@ -170,10 +169,11 @@ export class TestDB {
     const account = await this.db
       .insert(accountsTable)
       .values({
+        currency: accountData.currency,
         currentClearedBalanceLocal: accountData.initialBalance ?? 0,
         initialBalance: accountData.initialBalance ?? 0,
+        isTombstone: false,
         name: accountData.name,
-        originalCurrency: accountData.originalCurrency,
         type: accountData.type,
         userId: accountData.userId,
         ...TestDB.createTimestamps,

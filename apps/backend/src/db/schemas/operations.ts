@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { sqliteTable, text, index } from 'drizzle-orm/sqlite-core';
 
@@ -9,6 +10,7 @@ import {
   isTombstone,
   id,
   getMoneyColumn,
+  getBooleanColumn,
 } from './common';
 import { entriesTable } from './entries';
 import { usersTable } from './users';
@@ -18,19 +20,26 @@ export const operationsTable = sqliteTable(
   {
     accountId: text('account_id')
       .notNull()
-      .references(() => accountsTable.id, { onDelete: 'restrict' }),
+      .references(() => accountsTable.id, { onDelete: 'restrict' })
+      .$type<UUID>(),
     amount: getMoneyColumn('base_amount'),
     createdAt,
     description,
     entryId: text('entry_id')
       .notNull()
-      .references(() => entriesTable.id, { onDelete: 'cascade' }),
+      .references(() => entriesTable.id, { onDelete: 'cascade' })
+      .$type<UUID>(),
     id,
+    isSystem: getBooleanColumn('is_system'),
     isTombstone,
+    // type: text('type', {
+    //   enum: OPERATION_TYPE_VALUES,
+    // }).notNull(),
     updatedAt,
     userId: text('user_id')
       .notNull()
-      .references(() => usersTable.id, { onDelete: 'cascade' }),
+      .references(() => usersTable.id, { onDelete: 'cascade' })
+      .$type<UUID>(),
   },
   (t) => [
     index('idx_operations_entry').on(t.entryId),

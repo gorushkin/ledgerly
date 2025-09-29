@@ -1,5 +1,4 @@
-import { UUID } from "./auth";
-import { IsoDatetimeString } from "./types";
+import { IsoDatetimeString, UUID } from "./types";
 
 export type Brand<T, B extends string> = T & { readonly __brand: B };
 

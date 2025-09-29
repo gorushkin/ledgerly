@@ -1,1 +1,0 @@
-DROP INDEX `u_operations_user_hash`;

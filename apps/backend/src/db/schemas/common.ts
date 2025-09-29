@@ -5,7 +5,6 @@ import {
   UUID,
 } from '@ledgerly/shared/types';
 import { integer, text } from 'drizzle-orm/sqlite-core';
-import { generateId } from 'src/libs/idGenerator';
 
 export const createdAt = text('created_at')
   .notNull()
@@ -17,17 +16,15 @@ export const updatedAt = text('updated_at')
 
 export const description = text('description').notNull().default('');
 
-export const stop_uuid = text('id').$defaultFn(generateId);
-
 export const hash = text('hash').notNull();
 export const clientGeneratedId = text('id').primaryKey();
 
-export const stop_uuidPrimary = stop_uuid.primaryKey();
 export const id = text('id').notNull().primaryKey().$type<UUID>();
 
-export const isTombstone = integer('is_tombstone', { mode: 'boolean' })
-  .default(false)
-  .notNull();
+export const getBooleanColumn = (fieldName: string) =>
+  integer(fieldName, { mode: 'boolean' }).notNull().default(false);
+
+export const isTombstone = getBooleanColumn('is_tombstone');
 
 export const getNumericColumn = <T>(fieldName: string) => {
   return integer(fieldName).notNull().$type<T>();

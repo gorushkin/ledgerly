@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
 import {
   DBErrorContext,
@@ -36,8 +37,8 @@ export class BaseRepository {
     return { updatedAt: now };
   }
 
-  protected get uuid(): { id: string } {
-    return { id: crypto.randomUUID() };
+  protected get uuid(): { id: UUID } {
+    return { id: crypto.randomUUID() as UUID };
   }
 
   protected async executeDatabaseOperation<T>(

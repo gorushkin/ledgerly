@@ -1,4 +1,4 @@
-import { UUID } from "./auth";
+import { UUID } from "./types";
 
 export type UserBaseDTO = {
   email: string;

@@ -1,1 +1,0 @@
-CREATE INDEX `idx_operations_tx_hash` ON `operations` (`transaction_id`,`hash`);
