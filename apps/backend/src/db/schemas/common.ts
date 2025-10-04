@@ -1,7 +1,7 @@
 import {
   IsoDateString,
   IsoDatetimeString,
-  Money,
+  MoneyString,
   UUID,
 } from '@ledgerly/shared/types';
 import { integer, text } from 'drizzle-orm/sqlite-core';
@@ -14,7 +14,7 @@ export const updatedAt = text('updated_at')
   .notNull()
   .$type<IsoDatetimeString>();
 
-export const description = text('description').notNull().default('');
+export const description = text('description').notNull();
 
 export const hash = text('hash').notNull();
 export const clientGeneratedId = text('id').primaryKey();
@@ -22,15 +22,15 @@ export const clientGeneratedId = text('id').primaryKey();
 export const id = text('id').notNull().primaryKey().$type<UUID>();
 
 export const getBooleanColumn = (fieldName: string) =>
-  integer(fieldName, { mode: 'boolean' }).notNull().default(false);
+  integer(fieldName, { mode: 'boolean' }).notNull();
 
 export const isTombstone = getBooleanColumn('is_tombstone');
 
 export const getNumericColumn = <T>(fieldName: string) => {
-  return integer(fieldName).notNull().$type<T>();
+  return text(fieldName).notNull().$type<T>();
 };
 
-export const getMoneyColumn = getNumericColumn<Money>;
+export const getMoneyColumn = getNumericColumn<MoneyString>;
 
 export const getIsoDateString = (column: string) =>
   text(column).notNull().$type<IsoDateString>();

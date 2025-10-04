@@ -11,7 +11,6 @@ import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { AccountController } from 'src/interfaces/accounts/account.controller';
 import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { CurrencyController } from 'src/presentation/controllers/currency.controller';
-import { OperationController } from 'src/presentation/controllers/operation.controller';
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { AuthService } from 'src/services/auth.service';
@@ -90,11 +89,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     useCases.account.archiveAccount,
   );
   const currencyController = new CurrencyController(repositories.currency);
-  const operationController = new OperationController(
-    null as any, // TODO: Add OperationRepository when ready
-    currencyController,
-    accountController,
-  );
 
   const transactionController = new TransactionController(transactionService);
   const userController = new UserController(userService);
@@ -104,7 +98,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     account: accountController,
     auth: authController,
     currency: currencyController,
-    operation: operationController,
     transaction: transactionController,
     user: userController,
   };

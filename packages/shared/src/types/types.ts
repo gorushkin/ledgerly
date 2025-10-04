@@ -6,6 +6,7 @@ import {
   isoDatetime,
   sha256String,
   uuid,
+  moneyAmountString,
 } from "../validation/baseValidations";
 
 export type ErrorResponse = {
@@ -31,3 +32,5 @@ export type IsoDateString = z.infer<typeof isoDate>;
 export type Sha256String = z.infer<typeof sha256String>;
 
 export type UUID = z.infer<typeof uuid>;
+
+export type MoneyString = z.infer<typeof moneyAmountString>;

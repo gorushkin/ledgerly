@@ -2,6 +2,7 @@ import { UUID } from '@ledgerly/shared/types';
 import { AccountDbRow } from 'src/db/schema';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
+import { DataBase } from 'src/types';
 
 export class AccountBase {
   constructor(
@@ -26,8 +27,8 @@ export class AccountBase {
     return account;
   }
 
-  async ensureUserExists(userId: UUID) {
-    const user = await this.userRepository.getUserById(userId);
+  async ensureUserExists(userId: UUID, tx?: DataBase) {
+    const user = await this.userRepository.getUserById(userId, tx);
 
     if (!user) {
       throw new Error('User not found');

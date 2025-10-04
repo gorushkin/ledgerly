@@ -10,10 +10,10 @@ export type AccountType =
 export type AccountDomain = {
   createdAt: IsoDatetimeString;
   currency: CurrencyCode;
-  currentClearedBalanceLocal: number;
+  currentClearedBalanceLocal: string;
   description: string;
   id: UUID;
-  initialBalance: number;
+  initialBalance: string;
   name: string;
   type: AccountType;
   updatedAt: IsoDatetimeString;
@@ -23,7 +23,7 @@ export type AccountDomain = {
 export type AccountCreateDTO = {
   currency: CurrencyCode;
   description: string;
-  initialBalance: number;
+  initialBalance: string;
   name: string;
   type: AccountType;
   userId: UUID;

@@ -2,11 +2,11 @@ import {
   AccountCreateDTO,
   AccountResponseDTO,
   CurrencyCode,
-  Money,
   UUID,
 } from '@ledgerly/shared/types';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Account } from 'src/domain/accounts/account.entity';
+import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
@@ -22,7 +22,7 @@ export class CreateAccountUseCase extends AccountBase {
   }
 
   private isValidCurrencyCode(code: string): code is CurrencyCode {
-    const validCodes = ['USD', 'EUR', 'GBP', 'RUB']; // или из констант
+    const validCodes = ['USD', 'EUR', 'GBP', 'RUB'];
     return validCodes.includes(code);
   }
 
@@ -43,7 +43,7 @@ export class CreateAccountUseCase extends AccountBase {
       userIdVO,
       name,
       description,
-      initialBalance as Money,
+      Amount.create(initialBalance),
       currency,
       AccountType.create(type),
     );

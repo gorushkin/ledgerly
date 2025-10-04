@@ -6,20 +6,15 @@ import { IsoDatetimeString } from '../value-objects/IsoDateString';
  * Содержит общие поля и методы
  */
 export abstract class BaseEntity {
-  public readonly updatedAt: IsoDatetimeString;
-  public readonly createdAt: IsoDatetimeString;
   isTombstone = false;
-
   protected constructor(
     public readonly userId: Id,
     public readonly id: Id | null,
-    updatedAt?: IsoDatetimeString,
-    createdAt?: IsoDatetimeString,
+    public readonly updatedAt: IsoDatetimeString,
+    public readonly createdAt: IsoDatetimeString,
   ) {
-    const now = IsoDatetimeString.create();
-
-    this.updatedAt = updatedAt ?? now;
-    this.createdAt = createdAt ?? now;
+    this.updatedAt = updatedAt;
+    this.createdAt = createdAt;
   }
 
   /**
@@ -29,6 +24,10 @@ export abstract class BaseEntity {
     return this.id === null;
   }
 
+  get now(): IsoDatetimeString {
+    return IsoDatetimeString.create();
+  }
+
   /**
    * Проверяет, принадлежит ли сущность указанному пользователю
    */
@@ -36,11 +35,11 @@ export abstract class BaseEntity {
     return this.userId.equals(userId);
   }
 
-  markAsArchived(): void {
+  markAsDeleted(): void {
     this.isTombstone = true;
   }
 
-  isArchived(): boolean {
+  isDeleted(): boolean {
     return this.isTombstone;
   }
 

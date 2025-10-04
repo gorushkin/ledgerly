@@ -86,7 +86,6 @@ export class AccountRepository extends BaseRepository {
           'initialBalance',
           'name',
           'currency',
-          'isArchived',
           'type',
         ]);
 

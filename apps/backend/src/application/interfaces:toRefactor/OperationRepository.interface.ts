@@ -1,32 +1,32 @@
 import { UUID } from '@ledgerly/shared/types';
-
-import { Operation } from '../../domain/operations:toRefactor/operation.entity';
-
-export type DatabaseTransaction = {
-  query(sql: string, params?: unknown[]): Promise<unknown>;
-};
+import {
+  OperationDbInsert,
+  OperationDbRow,
+  OperationDbUpdate,
+} from 'src/db/schema';
+import { DataBase } from 'src/types';
 
 export type OperationRepository = {
   create(
     userId: UUID,
-    operation: Operation,
-    tx?: DatabaseTransaction,
-  ): Promise<Operation>;
+    operation: OperationDbInsert,
+    tx?: DataBase,
+  ): Promise<OperationDbRow>;
   update(
     userId: UUID,
-    operation: Operation,
-    tx?: DatabaseTransaction,
-  ): Promise<Operation>;
+    operation: OperationDbUpdate,
+    tx?: DataBase,
+  ): Promise<OperationDbRow>;
   getById(
     userId: UUID,
     id: UUID,
-    tx?: DatabaseTransaction,
-  ): Promise<Operation | null>;
+    tx?: DataBase,
+  ): Promise<OperationDbRow | null>;
   getAllByEntryId(
     userId: UUID,
     entryId: UUID,
-    tx?: DatabaseTransaction,
-  ): Promise<Operation[]>;
-  delete(userId: UUID, id: UUID, tx?: DatabaseTransaction): Promise<boolean>;
-  exists(userId: UUID, id: UUID, tx?: DatabaseTransaction): Promise<boolean>;
+    tx?: DataBase,
+  ): Promise<OperationDbRow[]>;
+  delete(userId: UUID, id: UUID, tx?: DataBase): Promise<boolean>;
+  exists(userId: UUID, id: UUID, tx?: DataBase): Promise<boolean>;
 };

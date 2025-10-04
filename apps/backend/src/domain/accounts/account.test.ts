@@ -1,8 +1,9 @@
-import { Money } from '@ledgerly/shared/types';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { IsoDatetimeString } from 'src/domain/domain-core/value-objects/IsoDateString';
 import { describe, expect, it } from 'vitest';
+
+import { Amount } from '../domain-core';
 
 import { Account } from './account.entity';
 
@@ -22,7 +23,7 @@ describe('Account Domain Entity', () => {
         userId,
         'account-name',
         'account-description',
-        0 as Money,
+        Amount.create('0'),
         'USD',
         accountType,
       );
@@ -32,7 +33,7 @@ describe('Account Domain Entity', () => {
       expect(account.userId).toBe(userId);
       expect(account).toHaveProperty('name', 'account-name');
       expect(account).toHaveProperty('description', 'account-description');
-      expect(account).toHaveProperty('initialBalance', 0);
+      expect(account).toHaveProperty('initialBalance', Amount.create('0'));
       expect(account).toHaveProperty('currency', 'USD');
       expect(account).toHaveProperty('type', { _value: 'asset' });
       expect(account.userId.equals(userId)).toBe(true);
@@ -46,7 +47,7 @@ describe('Account Domain Entity', () => {
           userId,
           '',
           'account-description',
-          0 as Money,
+          Amount.create('0'),
           'USD',
           accountType,
         ),
@@ -59,7 +60,7 @@ describe('Account Domain Entity', () => {
           userId,
           'account-name',
           'account-description',
-          0 as Money,
+          Amount.create('0'),
           'USD',
           AccountType.create('invalid-type'),
         ),
@@ -80,11 +81,10 @@ describe('Account Domain Entity', () => {
       const account = Account.fromPersistence({
         createdAt: createdAt.valueOf(),
         currency: 'EUR',
-        currentClearedBalanceLocal: 500 as Money,
+        currentClearedBalanceLocal: Amount.create('500').valueOf(),
         description: 'restored-description',
         id: accountId.valueOf(),
-        initialBalance: 500 as Money,
-        isArchived: false,
+        initialBalance: Amount.create('500').valueOf(),
         isTombstone: false,
         name: 'restored-account',
         type: userTypeValue,
@@ -97,7 +97,7 @@ describe('Account Domain Entity', () => {
       expect(account.userId.toString()).toBe(userIdValue);
       expect(account).toHaveProperty('name', 'restored-account');
       expect(account).toHaveProperty('description', 'restored-description');
-      expect(account).toHaveProperty('initialBalance', 500);
+      expect(account).toHaveProperty('initialBalance', Amount.create('500'));
       expect(account).toHaveProperty('currency', 'EUR');
     });
   });
@@ -108,7 +108,7 @@ describe('Account Domain Entity', () => {
         userId,
         'initial-name',
         'description',
-        0 as Money,
+        Amount.create('0'),
         'USD',
         accountType,
       );
@@ -125,16 +125,16 @@ describe('Account Domain Entity', () => {
           userId,
           'account-name',
           'account-description',
-          0 as Money,
+          Amount.create('0'),
           'USD',
           accountType,
         );
 
-        expect(account.isArchived()).toBe(false);
+        expect(account.isDeleted()).toBe(false);
 
-        account.markAsArchived();
+        account.markAsDeleted();
 
-        expect(account.isArchived()).toBe(true);
+        expect(account.isDeleted()).toBe(true);
       });
 
       it('should not allow updates after soft deletion', () => {
@@ -142,12 +142,12 @@ describe('Account Domain Entity', () => {
           userId,
           'account-name',
           'account-description',
-          0 as Money,
+          Amount.create('0'),
           'USD',
           accountType,
         );
 
-        account.markAsArchived();
+        account.markAsDeleted();
 
         expect(() => account.updateAccount({ name: 'new-name' })).toThrowError(
           'Cannot update a deleted entity',
@@ -159,18 +159,18 @@ describe('Account Domain Entity', () => {
           userId,
           'account-name',
           'account-description',
-          0 as Money,
+          Amount.create('0'),
           'USD',
           accountType,
         );
 
-        expect(account.isArchived()).toBe(false);
+        expect(account.isDeleted()).toBe(false);
 
         const accountBeforeDeleting = account.toPersistence();
 
-        account.markAsArchived();
+        account.markAsDeleted();
 
-        expect(account.isArchived()).toBe(true);
+        expect(account.isDeleted()).toBe(true);
 
         const accountAfterDeleting = account.toPersistence();
 

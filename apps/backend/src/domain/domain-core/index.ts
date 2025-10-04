@@ -1,2 +1,2 @@
-export { BaseEntity } from './base/';
-export { Id, IsoDatetimeString } from './value-objects/';
+export * from './value-objects/';
+export * from './base';

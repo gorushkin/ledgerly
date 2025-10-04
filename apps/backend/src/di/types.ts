@@ -11,7 +11,6 @@ import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { AccountController } from 'src/interfaces/accounts/account.controller';
 import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { CurrencyController } from 'src/presentation/controllers/currency.controller';
-import { OperationController } from 'src/presentation/controllers/operation.controller';
 import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { AuthService } from 'src/services/auth.service';
@@ -45,7 +44,6 @@ type Controllers = {
   currency: CurrencyController;
   transaction: TransactionController;
   account: AccountController;
-  operation: OperationController;
   user: UserController;
   auth: AuthController;
 };

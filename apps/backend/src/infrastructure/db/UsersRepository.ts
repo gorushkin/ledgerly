@@ -51,9 +51,10 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async getUserById(id: string): Promise<UsersResponseDTO> {
+  async getUserById(id: string, tx?: DataBase): Promise<UsersResponseDTO> {
     return this.executeDatabaseOperation(async () => {
-      const user = await this.db
+      const dbToUse = tx ?? this.db;
+      const user = await dbToUse
         .select(userSelect)
         .from(usersTable)
         .where(eq(usersTable.id, id))

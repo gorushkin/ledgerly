@@ -1,12 +1,7 @@
-import {
-  AccountUpdateDTO,
-  CurrencyCode,
-  Money,
-  UUID,
-} from '@ledgerly/shared/types';
+import { AccountUpdateDTO, CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
 
-import { BaseEntity, Id, IsoDatetimeString } from '../domain-core';
+import { Amount, BaseEntity, Id, IsoDatetimeString } from '../domain-core';
 
 import { AccountType } from './account-type.enum.ts';
 
@@ -16,12 +11,12 @@ export class Account extends BaseEntity {
     public readonly id: Id,
     private name: string,
     private description: string,
-    private initialBalance: Money,
-    private currentClearedBalanceLocal: Money,
+    private initialBalance: Amount,
+    private currentClearedBalanceLocal: Amount,
     private currency: CurrencyCode,
     private type: AccountType,
-    updatedAt?: IsoDatetimeString,
-    createdAt?: IsoDatetimeString,
+    public readonly createdAt: IsoDatetimeString,
+    public readonly updatedAt: IsoDatetimeString,
   ) {
     super(userId, id, updatedAt, createdAt);
   }
@@ -36,11 +31,12 @@ export class Account extends BaseEntity {
     userId: Id,
     name: string,
     description: string,
-    initialBalance: Money,
+    initialBalance: Amount,
     currency: CurrencyCode,
     type: AccountType,
   ): Account {
     this.prototype.validateName(name);
+    const now = this.prototype.now;
 
     const createdAccount = new Account(
       userId,
@@ -48,9 +44,11 @@ export class Account extends BaseEntity {
       name,
       description,
       initialBalance,
-      0 as Money,
+      Amount.create('0'),
       currency,
       type,
+      now,
+      now,
     );
 
     return createdAccount;
@@ -75,8 +73,8 @@ export class Account extends BaseEntity {
       Id.restore(id),
       name,
       description,
-      initialBalance as Money,
-      currentClearedBalanceLocal as Money,
+      Amount.create(initialBalance),
+      Amount.create(currentClearedBalanceLocal),
       currency,
       AccountType.create(type),
       IsoDatetimeString.restore(createdAt),
@@ -88,10 +86,10 @@ export class Account extends BaseEntity {
     return {
       createdAt: this.createdAt.valueOf(),
       currency: this.currency,
-      currentClearedBalanceLocal: this.currentClearedBalanceLocal,
+      currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
       description: this.description,
       id: this.id.valueOf(),
-      initialBalance: this.initialBalance,
+      initialBalance: this.initialBalance.valueOf(),
       isTombstone: this.isTombstone,
       name: this.name,
       type: this.type.valueOf(),
@@ -106,6 +104,10 @@ export class Account extends BaseEntity {
 
   getName(): string {
     return this.name;
+  }
+
+  getCurrency(): CurrencyCode {
+    return this.currency;
   }
 
   updateAccount(data: AccountUpdateDTO): void {

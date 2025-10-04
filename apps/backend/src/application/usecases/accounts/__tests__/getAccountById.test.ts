@@ -1,7 +1,7 @@
 import { CurrencyCode, Money } from '@ledgerly/shared/types';
+import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
-import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAccountByIdUseCase } from '../getAccountById';
@@ -67,7 +67,10 @@ describe('GetAccountByIdUseCase', () => {
 
       await getAccountByIdUseCase.execute(userId, accountId);
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(userId);
+      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
+        userId,
+        undefined,
+      );
       expect(mockAccountRepository.getById).toHaveBeenCalledWith(
         userId,
         accountId,

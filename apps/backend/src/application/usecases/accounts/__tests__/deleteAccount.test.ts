@@ -1,7 +1,8 @@
-import { CurrencyCode, Money } from '@ledgerly/shared/types';
+import { CurrencyCode } from '@ledgerly/shared/types';
+import { Amount } from 'src/domain/domain-core';
+import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
-import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DeleteAccountUseCase } from '../deleteAccount';
@@ -10,7 +11,7 @@ describe('DeleteAccountUseCase', () => {
   let deleteAccountUseCase: DeleteAccountUseCase;
 
   let mockAccountRepository: {
-    archive: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
   };
 
@@ -23,7 +24,7 @@ describe('DeleteAccountUseCase', () => {
 
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = 1000 as Money;
+  const initialBalance = Amount.create('1000').valueOf();
   const currencyCode = 'USD' as CurrencyCode;
   const accountType = 'asset';
 
@@ -55,7 +56,7 @@ describe('DeleteAccountUseCase', () => {
 
   beforeEach(() => {
     mockAccountRepository = {
-      archive: vi.fn(),
+      delete: vi.fn(),
       getById: vi.fn(),
     };
 
@@ -73,11 +74,11 @@ describe('DeleteAccountUseCase', () => {
     it('should mark account as archived', async () => {
       mockUserRepository.getUserById.mockResolvedValue(mockUser);
       mockAccountRepository.getById.mockResolvedValue(mockAccountData);
-      mockAccountRepository.archive.mockResolvedValue(mockSavedAccountData);
+      mockAccountRepository.delete.mockResolvedValue(mockSavedAccountData);
 
       const result = await deleteAccountUseCase.execute(userId, accountId);
 
-      expect(mockAccountRepository.archive).toHaveBeenCalledWith(
+      expect(mockAccountRepository.delete).toHaveBeenCalledWith(
         userId,
         accountId,
       );

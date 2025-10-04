@@ -32,12 +32,13 @@ export const isoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .brand<"IsoDateString">();
 
-export const moneyAmount = z
-  .number()
-  .refine((val) => Number.isFinite(val), {
-    message: "Amount must be a valid number",
-  })
-  .refine((val) => val >= 0, {
-    message: "Amount must be non-negative",
-  })
-  .brand<"Money">();
+export const moneyAmountString = z
+  .string()
+  .regex(/^-?\d+$/)
+  .brand<"MoneyString">();
+
+export const moneyAmountBigint = z
+  .string()
+  .regex(/^-?\d+$/)
+  .transform((val) => BigInt(val))
+  .brand<"MoneyBig">();

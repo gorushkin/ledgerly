@@ -14,7 +14,6 @@ export type CreateEntryRequestDTO = {
 export type CreateOperationRequestDTO = {
   accountId: UUID;
   amount: number;
-  type: 'debit' | 'credit';
   description?: string;
 };
 
@@ -24,6 +23,13 @@ export type UpdateTransactionRequestDTO = {
 };
 
 export type UpdateEntryRequestDTO = {
+  description?: string;
+};
+
+export type UpdateOperationRequestDTO = {
+  accountId?: UUID;
+  id: UUID;
+  amount?: string;
   description?: string;
 };
 

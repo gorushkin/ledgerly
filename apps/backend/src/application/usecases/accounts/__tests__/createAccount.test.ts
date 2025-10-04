@@ -1,6 +1,7 @@
-import { CurrencyCode, Money } from '@ledgerly/shared/types';
+import { CurrencyCode } from '@ledgerly/shared/types';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Account } from 'src/domain/accounts/account.entity';
+import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
@@ -19,7 +20,7 @@ describe('CreateAccountUseCase', () => {
   const userId = Id.restore(userIdValue).valueOf();
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = 1000 as Money;
+  const initialBalance = Amount.create('1000').valueOf();
   const currency = 'USD' as CurrencyCode;
   const accountType = 'asset';
 
@@ -64,7 +65,6 @@ describe('CreateAccountUseCase', () => {
       mockUserRepository.getUserById.mockResolvedValue(mockUser);
       mockAccountRepository.create.mockResolvedValue(mockSavedAccountData);
 
-      // Mock Account.create static method
       const mockAccount = {
         toPersistence: vi.fn().mockReturnValue({
           currency,
@@ -104,7 +104,6 @@ describe('CreateAccountUseCase', () => {
 
       const spyAccountTypeCreate = vi.spyOn(AccountType, 'create');
 
-      // Act
       const result = await createAccountUseCase.execute(userId, {
         currency: currency,
         description,
@@ -114,13 +113,15 @@ describe('CreateAccountUseCase', () => {
         userId,
       });
 
-      // Assert
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(userId);
+      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
+        userId,
+        undefined,
+      );
       expect(spyAccountCreate).toHaveBeenCalledWith(
         Id.restore(userId),
         accountName,
         description,
-        initialBalance,
+        Amount.create('1000'),
         currency,
         AccountType.create(accountType),
       );
@@ -145,10 +146,8 @@ describe('CreateAccountUseCase', () => {
     });
 
     it('should throw error when user does not exist', async () => {
-      // Arrange
       mockUserRepository.getUserById.mockResolvedValue(null);
 
-      // Act & Assert
       await expect(
         createAccountUseCase.execute(userId, {
           currency,
@@ -160,12 +159,14 @@ describe('CreateAccountUseCase', () => {
         }),
       ).rejects.toThrow('User not found');
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(userId);
+      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
+        userId,
+        undefined,
+      );
       expect(mockAccountRepository.create).not.toHaveBeenCalled();
     });
 
     it('should handle Account.create validation errors', async () => {
-      // Arrange
       mockUserRepository.getUserById.mockResolvedValue(mockUser);
 
       const validationError = new Error('Account name cannot be empty');
@@ -173,7 +174,6 @@ describe('CreateAccountUseCase', () => {
         throw validationError;
       });
 
-      // Act & Assert
       await expect(
         createAccountUseCase.execute(userId, {
           currency,
@@ -185,7 +185,10 @@ describe('CreateAccountUseCase', () => {
         }),
       ).rejects.toThrow('Account name cannot be empty');
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(userId);
+      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
+        userId,
+        undefined,
+      );
       expect(mockAccountRepository.create).not.toHaveBeenCalled();
     });
 

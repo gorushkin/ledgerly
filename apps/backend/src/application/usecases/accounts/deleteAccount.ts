@@ -23,7 +23,7 @@ export class DeleteAccountUseCase extends AccountBase {
 
     const account = Account.fromPersistence(accountData);
 
-    account.markAsArchived();
+    account.markAsDeleted();
 
     return this.accountRepository.delete(userId, accountId);
   }

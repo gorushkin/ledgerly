@@ -1,7 +1,7 @@
 import { ACCOUNT_TYPE_VALUES } from '@ledgerly/shared/constants';
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
-import { sqliteTable, text, uniqueIndex, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import {
   createdAt,
@@ -9,7 +9,7 @@ import {
   updatedAt,
   id,
   isTombstone,
-  getBooleanColumn,
+  getMoneyColumn,
 } from './common';
 import { currenciesTable } from './currencies';
 import { usersTable } from './users';
@@ -22,11 +22,10 @@ export const accountsTable = sqliteTable(
       .notNull()
       .references(() => currenciesTable.code)
       .$type<CurrencyCode>(),
-    currentClearedBalanceLocal: real('current_cleared_balance_local').notNull(),
+    currentClearedBalanceLocal: getMoneyColumn('current_cleared_balance_local'),
     description,
     id,
-    initialBalance: real('initial_balance').notNull(),
-    isArchived: getBooleanColumn('is_archived'),
+    initialBalance: getMoneyColumn('initial_balance'),
     isTombstone,
     name: text('name').notNull(),
     type: text('type', {
