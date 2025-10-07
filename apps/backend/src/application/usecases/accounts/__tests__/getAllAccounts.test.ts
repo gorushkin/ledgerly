@@ -4,7 +4,7 @@ import { AccountRepository } from 'src/infrastructure/db/accounts/account.reposi
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { GetAllAccountsUseCase } from '../usecase/getAllAccounts';
+import { GetAllAccountsUseCase } from '../getAllAccounts';
 
 describe('GetAllAccounts', () => {
   let getAllAccounts: GetAllAccountsUseCase;
@@ -65,7 +65,11 @@ describe('GetAllAccounts', () => {
 
       const result = await getAllAccounts.execute(userId);
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(userId);
+      // TODO: do something with tx
+      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
+        userId,
+        undefined,
+      );
       expect(mockAccountRepository.getAll).toHaveBeenCalledWith(userId);
 
       expect(result).toEqual([mockSavedAccountData]);

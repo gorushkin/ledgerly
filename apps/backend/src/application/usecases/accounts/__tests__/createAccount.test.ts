@@ -235,8 +235,7 @@ describe('CreateAccountUseCase', () => {
         userId,
       });
 
-      console.log('result: ', result);
-      // expect(mockAccount.regenerateId).toHaveBeenCalled();
+      expect(mockAccount.regenerateId).toHaveBeenCalled();
 
       expect(result).toEqual({
         ...mockSavedAccountData,

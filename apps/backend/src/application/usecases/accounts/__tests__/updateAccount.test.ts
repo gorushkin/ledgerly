@@ -1,7 +1,9 @@
-import { CurrencyCode, Money } from '@ledgerly/shared/types';
+import { CurrencyCode } from '@ledgerly/shared/types';
+import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
+import { DataBase } from 'src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UpdateAccountUseCase } from '../updateAccount';
@@ -21,7 +23,7 @@ describe('UpdateAccount', () => {
   ).valueOf();
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = 1000 as Money;
+  const initialBalance = Amount.create('1000').valueOf();
   const currency = 'USD' as CurrencyCode;
   const accountType = 'asset';
 
@@ -51,6 +53,8 @@ describe('UpdateAccount', () => {
     name: 'Updated Account',
   };
 
+  const tx = {} as DataBase;
+
   beforeEach(() => {
     mockAccountRepository = {
       create: vi.fn(),
@@ -78,7 +82,10 @@ describe('UpdateAccount', () => {
         name: 'Updated Account',
       });
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(userId);
+      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
+        userId,
+        undefined,
+      );
 
       expect(mockAccountRepository.update).toHaveBeenCalledWith(
         userId,

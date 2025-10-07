@@ -1,4 +1,3 @@
-import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
 import { TransactionService } from 'src/services/transaction.service';
 import { DataBase } from 'src/types';

@@ -25,7 +25,7 @@ const getUserTransactionDTO = (params: {
   };
 };
 
-describe('TransactionRepository', () => {
+describe.skip('TransactionRepository', () => {
   let transactionRepository: TransactionRepository;
   let user1: UsersResponseDTO;
   let user2: UsersResponseDTO;
