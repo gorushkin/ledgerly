@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a306780f-3965-425b-bb23-e92ec14b3b5b",
+  "id": "28508f70-d618-405a-99b4-390500869810",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -23,7 +23,7 @@
         },
         "current_cleared_balance_local": {
           "name": "current_cleared_balance_local",
-          "type": "real",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -33,8 +33,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "''"
+          "autoincrement": false
         },
         "id": {
           "name": "id",
@@ -45,7 +44,7 @@
         },
         "initial_balance": {
           "name": "initial_balance",
-          "type": "real",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -55,8 +54,7 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": false
+          "autoincrement": false
         },
         "name": {
           "name": "name",
@@ -144,8 +142,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "''"
+          "autoincrement": false
         },
         "hash": {
           "name": "hash",
@@ -166,8 +163,7 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": false
+          "autoincrement": false
         },
         "posting_date": {
           "name": "posting_date",
@@ -261,7 +257,7 @@
         },
         "base_amount": {
           "name": "base_amount",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -275,14 +271,6 @@
         },
         "description": {
           "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "''"
-        },
-        "entry_id": {
-          "name": "entry_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -300,16 +288,14 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": false
+          "autoincrement": false
         },
         "is_tombstone": {
           "name": "is_tombstone",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": false
+          "autoincrement": false
         },
         "updated_at": {
           "name": "updated_at",
@@ -327,13 +313,6 @@
         }
       },
       "indexes": {
-        "idx_operations_entry": {
-          "name": "idx_operations_entry",
-          "columns": [
-            "entry_id"
-          ],
-          "isUnique": false
-        },
         "idx_operations_account": {
           "name": "idx_operations_account",
           "columns": [
@@ -361,19 +340,6 @@
             "id"
           ],
           "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "operations_entry_id_entries_id_fk": {
-          "name": "operations_entry_id_entries_id_fk",
-          "tableFrom": "operations",
-          "tableTo": "entries",
-          "columnsFrom": [
-            "entry_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "operations_user_id_users_id_fk": {

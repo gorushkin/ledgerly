@@ -1,1 +1,0 @@
-ALTER TABLE `accounts` ADD `is_archived` integer DEFAULT false NOT NULL;

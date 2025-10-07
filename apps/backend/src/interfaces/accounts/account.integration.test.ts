@@ -7,6 +7,7 @@ import {
 } from '@ledgerly/shared/types';
 import { AccountRepoInsert } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
+import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { createServer } from 'src/presentation/server';
 import { describe, beforeEach, it, expect } from 'vitest';
@@ -17,7 +18,7 @@ const firstUserAccounts = [
   {
     currency: 'USD',
     description: 'This is a test account',
-    initialBalance: 1000,
+    initialBalance: Amount.create('1000').valueOf(),
     name: 'Test Account',
     type: 'asset' as AccountType,
   },
@@ -25,7 +26,7 @@ const firstUserAccounts = [
     currency: 'USD',
     currentClearedBalanceLocal: 0,
     description: 'Savings account for future expenses',
-    initialBalance: 1000,
+    initialBalance: Amount.create('1000').valueOf(),
     name: 'Savings Account',
     type: 'cash' as AccountType,
   },
@@ -122,7 +123,7 @@ describe('Accounts Integration Tests', () => {
       const newAccount = {
         currency: 'USD',
         description: 'This is a new account',
-        initialBalance: 500,
+        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'asset' as AccountType,
       };

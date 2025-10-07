@@ -1,4 +1,4 @@
-import { CurrencyCode, IsoDatetimeString, UUID } from "./types";
+import { CurrencyCode, IsoDatetimeString, MoneyString, UUID } from "./types";
 
 export type AccountType =
   | "asset"
@@ -23,7 +23,7 @@ export type AccountDomain = {
 export type AccountCreateDTO = {
   currency: CurrencyCode;
   description: string;
-  initialBalance: string;
+  initialBalance: MoneyString;
   name: string;
   type: AccountType;
   userId: UUID;
