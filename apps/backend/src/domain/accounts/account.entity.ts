@@ -1,4 +1,4 @@
-import { AccountUpdateDTO, CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { AccountUpdateDTO, CurrencyCode } from '@ledgerly/shared/types';
 import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
 
 import { Amount, BaseEntity, Id, IsoDatetimeString } from '../domain-core';
@@ -37,10 +37,11 @@ export class Account extends BaseEntity {
   ): Account {
     this.prototype.validateName(name);
     const now = this.prototype.now;
+    const id = this.prototype.getNewId();
 
     const createdAccount = new Account(
       userId,
-      Id.create(),
+      id,
       name,
       description,
       initialBalance,
@@ -82,7 +83,7 @@ export class Account extends BaseEntity {
     );
   }
 
-  toPersistence(): AccountRepoInsert & { id: UUID } {
+  toPersistence(): AccountRepoInsert {
     return {
       createdAt: this.createdAt.valueOf(),
       currency: this.currency,
@@ -118,5 +119,22 @@ export class Account extends BaseEntity {
     this.type = data.type ? AccountType.create(data.type) : this.type;
     this.currency = data.currency ?? this.currency;
     this.name = data.name ?? this.name;
+  }
+
+  regenerateId(): Account {
+    const now = this.now;
+
+    return new Account(
+      this.userId,
+      Id.create(),
+      this.getName(),
+      this.description,
+      this.initialBalance,
+      this.currentClearedBalanceLocal,
+      this.getCurrency(),
+      this.getType(),
+      this.createdAt,
+      now,
+    );
   }
 }

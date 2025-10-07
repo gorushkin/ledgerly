@@ -5,8 +5,10 @@ import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import { dateInIsoFormat } from '@ledgerly/shared/libs';
 import {
   AccountType,
+  CurrencyCode,
   IsoDateString,
   Money,
+  MoneyString,
   UUID,
 } from '@ledgerly/shared/types';
 import { isoDate, isoDatetime } from '@ledgerly/shared/validation';
@@ -152,13 +154,15 @@ export class TestDB {
     userId: UUID,
     params?: {
       name?: string;
-      currency?: string;
+      currency?: CurrencyCode;
       type?: AccountType;
-      initialBalance?: number;
+      initialBalance?: MoneyString;
+      description?: string;
     },
   ) => {
     const accountData = {
-      currency: 'USD',
+      currency: 'USD' as unknown as CurrencyCode,
+      description: '',
       initialBalance: 0,
       name: 'Test Account',
       type: ACCOUNT_TYPES[0],
@@ -171,6 +175,7 @@ export class TestDB {
       .values({
         currency: accountData.currency,
         currentClearedBalanceLocal: accountData.initialBalance ?? 0,
+        description: accountData.description || '',
         initialBalance: accountData.initialBalance ?? 0,
         isTombstone: false,
         name: accountData.name,

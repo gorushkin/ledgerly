@@ -1,7 +1,7 @@
 import { UUID } from '@ledgerly/shared/types';
 
 import type { EntryResponseDTO } from '../../dto/transaction.dto';
-import type { AccountService } from '../../interfaces:toRefactor/AccountService.interface';
+import type { AccountService } from '../../interfaces:toRefactor/AccountRepository.interface';
 import type { EntryRepository } from '../../interfaces:toRefactor/EntryRepository.interface';
 
 export class CreateMultiCurrencyEntryUseCase {

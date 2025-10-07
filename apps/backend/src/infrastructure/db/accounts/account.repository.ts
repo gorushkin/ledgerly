@@ -1,5 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
+import { AccountRepositoryInterface } from 'src/application/interfaces:toRefactor/AccountRepository.interface';
 import {
   AccountDbRow,
   AccountDbUpdate,
@@ -11,7 +12,10 @@ import { DataBase } from 'src/types';
 
 import { BaseRepository } from '../BaseRepository';
 
-export class AccountRepository extends BaseRepository {
+export class AccountRepository
+  extends BaseRepository
+  implements AccountRepositoryInterface
+{
   constructor(db: DataBase) {
     super(db);
   }

@@ -4,7 +4,7 @@ import type {
   CreateTransactionRequestDTO,
   TransactionResponseDTO,
 } from '../../dto/transaction.dto';
-import type { AccountService } from '../../interfaces:toRefactor/AccountService.interface';
+import type { AccountService } from '../../interfaces:toRefactor/AccountRepository.interface';
 import type { TransactionRepository } from '../../interfaces:toRefactor/TransactionRepository.interface';
 
 export class CreateTransactionUseCase {

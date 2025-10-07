@@ -24,9 +24,11 @@ export class Operation extends BaseEntity {
   ): Operation {
     const now = this.prototype.now;
 
+    const id = this.prototype.getNewId();
+
     return new Operation(
       userId,
-      Id.create(),
+      id,
       accountId,
       amount,
       description,

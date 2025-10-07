@@ -1,8 +1,9 @@
 import { UUID } from '@ledgerly/shared/types';
 import { AccountDbRow } from 'src/db/schema';
-import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { DataBase } from 'src/types';
+
+import { AccountRepository } from '../../interfaces:toRefactor';
 
 export class AccountBase {
   constructor(

@@ -34,6 +34,7 @@ export default defineConfig({
       'src/domain/**/*.ts',
       'src/application/**/*.ts',
       'src/__tests__/**/*.ts',
+      'src/**/*.test.ts',
     ],
 
     // include: ['**/*.integration.test.ts'],
