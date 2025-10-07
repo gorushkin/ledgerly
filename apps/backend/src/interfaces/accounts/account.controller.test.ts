@@ -87,7 +87,7 @@ describe('AccountController', () => {
       const requestBody: AccountCreateDTO = {
         currency: 'USD',
         description: 'Test Account',
-        initialBalance: 1000,
+        initialBalance: '1000',
         name: 'New Account',
         type: 'liability',
         userId,
