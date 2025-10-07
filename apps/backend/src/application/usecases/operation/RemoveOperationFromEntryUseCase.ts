@@ -4,7 +4,7 @@ import { OperationDbRow } from 'src/db/schema';
 import { Operation } from 'src/domain/operations/operation.entity';
 import { DataBase } from 'src/types';
 
-export class DeleteOperationUseCase {
+export class RemoveOperationFromEntryUseCase {
   constructor(private readonly operationRepository: OperationRepository) {}
   async execute(
     userId: UUID,

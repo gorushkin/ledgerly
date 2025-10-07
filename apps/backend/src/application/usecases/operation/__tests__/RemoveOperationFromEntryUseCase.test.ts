@@ -6,7 +6,7 @@ import { Operation } from 'src/domain/operations/operation.entity';
 import { DataBase } from 'src/types';
 import { describe, it, beforeEach, vi, expect } from 'vitest';
 
-import { DeleteOperationUseCase } from '../DeleteOperationUseCase';
+import { RemoveOperationFromEntryUseCase } from '../RemoveOperationFromEntryUseCase';
 
 describe('DeleteOperationUseCase', () => {
   const userId = Id.create();
@@ -15,7 +15,7 @@ describe('DeleteOperationUseCase', () => {
 
   const amount = '100';
   const description = 'Test operation';
-  let deleteOperationUseCase: DeleteOperationUseCase;
+  let deleteOperationUseCase: RemoveOperationFromEntryUseCase;
 
   let mockOperationRepository: {
     getById: ReturnType<typeof vi.fn>;
@@ -57,7 +57,7 @@ describe('DeleteOperationUseCase', () => {
       update: vi.fn(),
     };
 
-    deleteOperationUseCase = new DeleteOperationUseCase(
+    deleteOperationUseCase = new RemoveOperationFromEntryUseCase(
       mockOperationRepository as unknown as OperationRepository,
     );
   });
