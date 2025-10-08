@@ -79,7 +79,7 @@ export class TransactionRepository extends BaseRepository {
 
   private async updateStatus(
     userId: UUID,
-    id: string,
+    id: UUID,
     isTombstone: boolean,
     tx?: TxType,
   ): Promise<boolean> {
@@ -110,11 +110,11 @@ export class TransactionRepository extends BaseRepository {
     );
   }
 
-  async delete(userId: UUID, id: string, tx?: TxType): Promise<boolean> {
+  async delete(userId: UUID, id: UUID, tx?: TxType): Promise<boolean> {
     return this.updateStatus(userId, id, true, tx);
   }
 
-  async restore(userId: UUID, id: string, tx?: TxType): Promise<boolean> {
+  async restore(userId: UUID, id: UUID, tx?: TxType): Promise<boolean> {
     return this.updateStatus(userId, id, false, tx);
   }
 

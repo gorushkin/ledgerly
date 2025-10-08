@@ -3,6 +3,7 @@ import {
   UsersCreateDTO,
   UsersResponseDTO,
   UsersUpdateDTO,
+  UUID,
 } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { usersTable } from 'src/db/schemas';
@@ -51,7 +52,7 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async getUserById(id: string, tx?: DataBase): Promise<UsersResponseDTO> {
+  async getUserById(id: UUID, tx?: DataBase): Promise<UsersResponseDTO> {
     return this.executeDatabaseOperation(async () => {
       const dbToUse = tx ?? this.db;
       const user = await dbToUse
@@ -68,7 +69,7 @@ export class UsersRepository extends BaseRepository {
     }, `Failed to fetch user with ID ${id}`);
   }
 
-  async getUserByIdWithPassword(id: string) {
+  async getUserByIdWithPassword(id: UUID) {
     return this.executeDatabaseOperation(
       async () =>
         this.db
@@ -81,7 +82,7 @@ export class UsersRepository extends BaseRepository {
   }
 
   async updateUserProfile(
-    id: string,
+    id: UUID,
     data: UsersUpdateDTO,
   ): Promise<UsersResponseDTO> {
     return this.executeDatabaseOperation(async () => {
@@ -111,7 +112,7 @@ export class UsersRepository extends BaseRepository {
     }, `Failed to update user profile with ID ${id}`);
   }
 
-  async updateUserPassword(id: string, hashedPassword: string): Promise<void> {
+  async updateUserPassword(id: UUID, hashedPassword: string): Promise<void> {
     await this.executeDatabaseOperation(async () => {
       const { rowsAffected } = await this.db
         .update(usersTable)
@@ -137,7 +138,7 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async deleteUser(id: string): Promise<void> {
+  async deleteUser(id: UUID): Promise<void> {
     return this.executeDatabaseOperation(async () => {
       const { rowsAffected } = await this.db
         .delete(usersTable)

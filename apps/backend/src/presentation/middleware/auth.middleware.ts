@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 import { AuthErrors } from '../errors/auth.errors';
@@ -14,7 +15,7 @@ export async function authMiddleware(
     }
 
     const decoded = await request.jwtVerify<{
-      userId: string;
+      userId: UUID;
       email: string;
     }>();
     request.user = decoded;

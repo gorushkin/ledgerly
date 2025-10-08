@@ -6,6 +6,7 @@ import {
   GetAllAccountsUseCase,
   UpdateAccountUseCase,
 } from 'src/application/usecases/accounts';
+import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountController } from 'src/interfaces/accounts/account.controller';
 import { describe, vi, beforeEach, it, expect } from 'vitest';
@@ -87,7 +88,7 @@ describe('AccountController', () => {
       const requestBody: AccountCreateDTO = {
         currency: 'USD',
         description: 'Test Account',
-        initialBalance: '1000',
+        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'liability',
         userId,

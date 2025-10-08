@@ -1,10 +1,13 @@
 import { UserChangePasswordDTO, UsersUpdateDTO } from '@ledgerly/shared/types';
+import { Id } from 'src/domain/domain-core';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { UserService } from 'src/services/user.service';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ZodError } from 'zod';
 
 describe('UserController', () => {
+  const userId = Id.create().valueOf();
+
   const mockUserService = {
     changePassword: vi.fn(),
     delete: vi.fn(),
@@ -30,9 +33,9 @@ describe('UserController', () => {
 
       mockUserService.getById.mockResolvedValue(mockUser);
 
-      const result = await controller.getById('1');
+      const result = await controller.getById(userId);
 
-      expect(mockUserService.getById).toHaveBeenCalledWith('1');
+      expect(mockUserService.getById).toHaveBeenCalledWith(userId);
       expect(result).toEqual(mockUser);
     });
   });
@@ -59,9 +62,9 @@ describe('UserController', () => {
       mockUserService.getById.mockResolvedValue(existingUser);
       mockUserService.update.mockResolvedValue(updatedUser);
 
-      const result = await controller.update('1', userData);
+      const result = await controller.update(userId, userData);
 
-      expect(mockUserService.update).toHaveBeenCalledWith('1', userData);
+      expect(mockUserService.update).toHaveBeenCalledWith(userId, userData);
       expect(result).toEqual(updatedUser);
     });
 
@@ -79,10 +82,10 @@ describe('UserController', () => {
 
       mockUserService.update.mockResolvedValue(updatedUser);
 
-      const result = await controller.update('1', existingUser);
+      const result = await controller.update(userId, existingUser);
 
       expect(result).toEqual(updatedUser);
-      expect(mockUserService.update).toHaveBeenCalledWith('1', updatedUser);
+      expect(mockUserService.update).toHaveBeenCalledWith(userId, updatedUser);
     });
   });
 
@@ -97,9 +100,9 @@ describe('UserController', () => {
       mockUserService.getById.mockResolvedValue(existingUser);
       mockUserService.delete.mockResolvedValue(existingUser);
 
-      const result = await controller.delete('1');
+      const result = await controller.delete(userId);
 
-      expect(mockUserService.delete).toHaveBeenCalledWith('1');
+      expect(mockUserService.delete).toHaveBeenCalledWith(userId);
       expect(result).toEqual(existingUser);
     });
   });
@@ -116,9 +119,9 @@ describe('UserController', () => {
         name: 'Valid Name',
       };
 
-      await expect(controller.update('1', invalidData)).rejects.toThrow(
-        ZodError,
-      );
+      await expect(
+        controller.update(Id.create().valueOf(), invalidData),
+      ).rejects.toThrow(ZodError);
     });
 
     it('should throw ZodError for invalid name type', async () => {
@@ -127,13 +130,13 @@ describe('UserController', () => {
         name: 123,
       } as unknown as UsersUpdateDTO;
 
-      await expect(controller.update('1', invalidData)).rejects.toThrow(
+      await expect(controller.update(userId, invalidData)).rejects.toThrow(
         ZodError,
       );
     });
 
     it('should throw ZodError for empty object', async () => {
-      await expect(controller.update('1', {})).rejects.toThrow(ZodError);
+      await expect(controller.update(userId, {})).rejects.toThrow(ZodError);
     });
 
     it('should throw ZodError for unexpected fields', async () => {
@@ -143,9 +146,9 @@ describe('UserController', () => {
         unexpectedField: 'should not be here',
       };
 
-      await expect(controller.update('1', invalidData)).rejects.toThrow(
-        ZodError,
-      );
+      await expect(
+        controller.update(Id.create().valueOf(), invalidData),
+      ).rejects.toThrow(ZodError);
     });
 
     it.todo('should validate email format strictly');
@@ -161,9 +164,9 @@ describe('UserController', () => {
         newPassword: 'newPassword123',
       } as unknown as UserChangePasswordDTO;
 
-      await expect(controller.changePassword('1', invalidData)).rejects.toThrow(
-        ZodError,
-      );
+      await expect(
+        controller.changePassword(userId, invalidData),
+      ).rejects.toThrow(ZodError);
     });
 
     it('should throw ZodError for missing newPassword', async () => {
@@ -171,9 +174,9 @@ describe('UserController', () => {
         currentPassword: 'oldPassword123',
       } as UserChangePasswordDTO;
 
-      await expect(controller.changePassword('1', invalidData)).rejects.toThrow(
-        ZodError,
-      );
+      await expect(
+        controller.changePassword(userId, invalidData),
+      ).rejects.toThrow(ZodError);
     });
 
     it('should throw ZodError for short passwords', async () => {
@@ -182,9 +185,9 @@ describe('UserController', () => {
         newPassword: '456',
       };
 
-      await expect(controller.changePassword('1', invalidData)).rejects.toThrow(
-        ZodError,
-      );
+      await expect(
+        controller.changePassword(userId, invalidData),
+      ).rejects.toThrow(ZodError);
     });
 
     it.todo('should validate currentPassword is not empty');

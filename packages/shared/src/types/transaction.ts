@@ -1,6 +1,5 @@
-import { UUID } from "./auth";
 import { EntryCreateDTO, EntryResponseDTO } from "./operation";
-import { IsoDateString, IsoDatetimeString } from "./types";
+import { IsoDateString, IsoDatetimeString, UUID } from "./types";
 
 type TransactionBaseDTO_DELETE = {
   description: string;

@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import {} from '@ledgerly/shared/types';
-import { OperationDbInsert, TransactionDbInsert } from 'src/db/schema';
+import { TransactionDbInsert } from 'src/db/schema';
 
 const sha256Sync = (input: string): string => {
   return createHash('sha256').update(input).digest('hex');
@@ -25,14 +24,14 @@ const TRANSACTION_HASH_FIELDS: (keyof Omit<TransactionDbInsert, 'hash'>)[] = [
   'transactionDate',
 ];
 
-const OPERATION_HASH_FIELDS: (keyof Omit<OperationDbInsert, 'hash'>)[] = [
-  'accountId',
-  'description',
-  'isTombstone',
-  'localAmount',
-  'baseAmount',
-  'rateBasePerLocal',
-];
+// const OPERATION_HASH_FIELDS: (keyof Omit<OperationDbInsert, 'hash'>)[] = [
+//   'accountId',
+//   'description',
+//   'isTombstone',
+//   'localAmount',
+//   'baseAmount',
+//   'rateBasePerLocal',
+// ];
 
 export const getTransactionHash = (
   transaction: Omit<TransactionDbInsert, 'hash'>,
@@ -40,11 +39,11 @@ export const getTransactionHash = (
   return objHashGenerator(transaction, TRANSACTION_HASH_FIELDS);
 };
 
-export const computeOperationHash = (
-  operation: Omit<OperationDbInsert, 'hash'>,
-): string => {
-  return objHashGenerator(operation, OPERATION_HASH_FIELDS);
-};
+// export const computeOperationHash = (
+//   operation: Omit<OperationDbInsert, 'hash'>,
+// ): string => {
+//   return objHashGenerator(operation, OPERATION_HASH_FIELDS);
+// };
 
 export const getTransactionWithHash = (
   transaction: Omit<TransactionDbInsert, 'hash'>,
