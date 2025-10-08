@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import { ResultSet } from '@libsql/client';
 import { ExtractTablesWithRelations } from 'drizzle-orm';
 import { LibSQLDatabase } from 'drizzle-orm/libsql';
@@ -27,7 +28,7 @@ export abstract class BaseRepositoryNew {
 }
 
 export type JWTPayload = {
-  userId: string;
+  userId: UUID;
   email: string;
 };
 

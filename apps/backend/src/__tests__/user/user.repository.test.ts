@@ -1,3 +1,4 @@
+import { Id } from 'src/domain/domain-core';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { describe, beforeEach, it, expect } from 'vitest';
@@ -35,7 +36,7 @@ describe('UsersRepository', () => {
     });
 
     it('should return undefined for non-existent user', async () => {
-      const foundUser = userRepository.getUserById('non-existent-id');
+      const foundUser = userRepository.getUserById(Id.create().valueOf());
 
       await expect(foundUser).rejects.toThrowError(NotFoundError);
     });
@@ -61,8 +62,9 @@ describe('UsersRepository', () => {
     });
 
     it('should return undefined for non-existent user', async () => {
-      const foundUser =
-        await userRepository.getUserByIdWithPassword('non-existent-id');
+      const foundUser = await userRepository.getUserByIdWithPassword(
+        Id.create().valueOf(),
+      );
 
       expect(foundUser).toBeUndefined();
     });
@@ -137,7 +139,7 @@ describe('UsersRepository', () => {
     });
 
     it('should return undefined when trying to delete non-existent user', async () => {
-      const result = userRepository.deleteUser('non-existent-id');
+      const result = userRepository.deleteUser(Id.create().valueOf());
 
       await expect(result).rejects.toThrowError(NotFoundError);
     });

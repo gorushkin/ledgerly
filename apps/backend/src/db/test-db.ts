@@ -5,8 +5,9 @@ import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import { dateInIsoFormat } from '@ledgerly/shared/libs';
 import {
   AccountType,
+  CurrencyCode,
   IsoDateString,
-  UsersResponseDTO,
+  MoneyString,
   UUID,
 } from '@ledgerly/shared/types';
 import { isoDate, isoDatetime } from '@ledgerly/shared/validation';
@@ -14,10 +15,11 @@ import { createClient } from '@libsql/client';
 import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
+import { Amount } from 'src/domain/domain-core';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { DataBase } from 'src/types';
 
-import { OperationDbInsert, TransactionDbRow } from './schema';
+import { OperationDbInsert, TransactionDbRow, UserDbRow } from './schema';
 import * as schema from './schemas';
 import { accountsTable, usersTable } from './schemas';
 import { seedCurrencies } from './scripts/currenciesSeed';
@@ -78,7 +80,7 @@ export class TestDB {
   }
 
   static get uuid() {
-    return { id: crypto.randomUUID() };
+    return { id: crypto.randomUUID() as UUID };
   }
 
   test = async () => {
@@ -122,7 +124,7 @@ export class TestDB {
     email?: string;
     name?: string;
     password?: string;
-  }): Promise<UsersResponseDTO> => {
+  }): Promise<UserDbRow> => {
     const userData = {
       email: params?.email ?? `test-${Date.now()}@example.com`,
       name: params?.name ?? `Test User ${this.userCounter.getNextName()}`,
@@ -152,15 +154,17 @@ export class TestDB {
     userId: UUID,
     params?: {
       name?: string;
-      originalCurrency?: string;
+      currency?: CurrencyCode;
       type?: AccountType;
-      initialBalance?: number;
+      initialBalance?: MoneyString;
+      description?: string;
     },
   ) => {
     const accountData = {
-      initialBalance: 0,
+      currency: 'USD' as unknown as CurrencyCode,
+      description: '',
+      initialBalance: Amount.create('0').valueOf(),
       name: 'Test Account',
-      originalCurrency: 'USD',
       type: ACCOUNT_TYPES[0],
       ...params,
       userId,
@@ -169,10 +173,12 @@ export class TestDB {
     const account = await this.db
       .insert(accountsTable)
       .values({
+        currency: accountData.currency,
         currentClearedBalanceLocal: accountData.initialBalance ?? 0,
+        description: accountData.description || '',
         initialBalance: accountData.initialBalance ?? 0,
+        isTombstone: false,
         name: accountData.name,
-        originalCurrency: accountData.originalCurrency,
         type: accountData.type,
         userId: accountData.userId,
         ...TestDB.createTimestamps,
@@ -184,31 +190,31 @@ export class TestDB {
     return account;
   };
 
-  createTransaction = async (params: {
-    userId: UUID;
-    description?: string;
-    postingDate?: IsoDateString;
-    transactionDate?: IsoDateString;
-  }): Promise<TransactionDbRow> => {
-    const transactionData = {
-      description: `Test Transaction ${this.transactionCounter.getNextName()}`,
-      postingDate: TestDB.isoDateString,
-      transactionDate: TestDB.isoDateString,
-      ...params,
-      ...TestDB.createTimestamps,
-      ...TestDB.uuid,
-      hash: `hash-${this.transactionCounter.getNextName()}`,
-      userId: params.userId,
-    };
+  // createTransaction = async (params: {
+  //   userId: UUID;
+  //   description?: string;
+  //   postingDate?: IsoDateString;
+  //   transactionDate?: IsoDateString;
+  // }): Promise<TransactionDbRow> => {
+  //   const transactionData = {
+  //     description: `Test Transaction ${this.transactionCounter.getNextName()}`,
+  //     postingDate: TestDB.isoDateString,
+  //     transactionDate: TestDB.isoDateString,
+  //     ...params,
+  //     ...TestDB.createTimestamps,
+  //     ...TestDB.uuid,
+  //     hash: `hash-${this.transactionCounter.getNextName()}`,
+  //     userId: params.userId,
+  //   };
 
-    const result = this.db
-      .insert(schema.transactionsTable)
-      .values(transactionData)
-      .returning()
-      .get();
+  //   const result = this.db
+  //     .insert(schema.transactionsTable)
+  //     .values(transactionData)
+  //     .returning()
+  //     .get();
 
-    return result;
-  };
+  //   return result;
+  // };
 
   getTransactionById = async (
     id: UUID,
@@ -245,49 +251,47 @@ export class TestDB {
     return updatedTransaction;
   };
 
-  createOperation = async (params: {
-    accountId: UUID;
-    amountLocal?: number;
-    transactionId: UUID;
-    description?: string;
-    category?: string;
-    userId?: UUID;
-    rateBasePerLocal?: number;
-    isTombstone?: boolean;
-  }) => {
-    const operationData = {
-      baseAmount: 100,
-      category: 'Test Category',
-      description: `Test Operation ${this.operationCounter.getNextName()}`,
-      isTombstone: !!params.isTombstone,
-      localAmount: params.amountLocal ?? 100,
-      rateBasePerLocal: 1,
-      ...params,
-      transactionId: params.transactionId ?? crypto.randomUUID(),
-      userId: params.userId ?? crypto.randomUUID(),
-      ...TestDB.createTimestamps,
-      ...TestDB.uuid,
-    };
+  // createOperation = async (params: {
+  //   accountId: UUID;
+  //   amountLocal?: number;
+  //   transactionId: UUID;
+  //   description?: string;
+  //   category?: string;
+  //   userId?: UUID;
+  //   rateBasePerLocal?: number;
+  //   isTombstone?: boolean;
+  // }) => {
+  //   const operationData = {
+  //     amount: 100 as Money,
+  //     category: 'Test Category',
+  //     description: `Test Operation ${this.operationCounter.getNextName()}`,
+  //     isTombstone: !!params.isTombstone,
+  //     ...params,
+  //     transactionId: params.transactionId ?? crypto.randomUUID(),
+  //     userId: params.userId ?? crypto.randomUUID(),
+  //     ...TestDB.createTimestamps,
+  //     ...TestDB.uuid,
+  //   };
 
-    const operation = await this.db
-      .insert(schema.operationsTable)
-      .values(operationData)
-      .returning()
-      .get();
+  //   const operation = await this.db
+  //     .insert(schema.operationsTable)
+  //     .values(operationData)
+  //     .returning()
+  //     .get();
 
-    return operation;
-  };
+  //   return operation;
+  // };
 
-  getOperationsByTransactionId = async (
-    transactionId: UUID,
-  ): Promise<OperationDbInsert[]> => {
-    const operations = await this.db
-      .select()
-      .from(schema.operationsTable)
-      .where(eq(schema.operationsTable.transactionId, transactionId));
+  // getOperationsByTransactionId = async (
+  //   transactionId: UUID,
+  // ): Promise<OperationDbInsert[]> => {
+  //   const operations = await this.db
+  //     .select()
+  //     .from(schema.operationsTable)
+  //     .where(eq(schema.operationsTable.transactionId, transactionId));
 
-    return operations;
-  };
+  //   return operations;
+  // };
 
   getOperationById = async (
     id: UUID,

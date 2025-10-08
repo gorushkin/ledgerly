@@ -1,3 +1,4 @@
+import { Id } from 'src/domain/domain-core';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { AuthErrors } from 'src/presentation/errors/auth.errors';
@@ -26,7 +27,7 @@ describe('UserService', () => {
     mockPasswordManager as unknown as PasswordManager,
   );
 
-  const id = '1';
+  const id = Id.create().valueOf();
   const email = 'test@example.com';
   const name = 'Test User';
   const currentPassword = 'password123';
@@ -90,7 +91,7 @@ describe('UserService', () => {
 
     it('should throw error UserNotFoundError if user not found', async () => {
       const nextEmail = 'test2@example.com';
-      const nextId = '2';
+      const nextId = Id.create().valueOf();
       const userData = { email: nextEmail, name };
 
       mockUsersRepository.getUserById.mockResolvedValue(null);
@@ -103,7 +104,7 @@ describe('UserService', () => {
     });
 
     it('should throw error EmailAlreadyExistsError if email is already taken', async () => {
-      const nextId = '2';
+      const nextId = Id.create().valueOf();
 
       const userData = { email, name };
       const mockUpdatedUser = { ...userData, id };

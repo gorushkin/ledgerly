@@ -6,11 +6,12 @@ import {
   ValidationError,
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
+import { Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/server';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 const url = `/api${ROUTES.user}`;
-const fakeUserId = '999999';
+const fakeUserId = Id.create().valueOf();
 
 const passwordUrl = `${url}/password`;
 
@@ -372,7 +373,7 @@ describe('User Integration Tests', () => {
       const fakeToken = server.jwt.sign(
         {
           email: 'fake@example.com',
-          userId: '999999',
+          userId: fakeUserId,
         },
         { expiresIn: '1h' },
       );

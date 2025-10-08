@@ -1,25 +1,25 @@
+import { saveWithIdRetry } from 'src/application/shared/saveWithIdRetry';
+import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
+import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
+import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
+import { GetAllAccountsUseCase } from 'src/application/usecases/accounts/getAllAccounts';
+import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAccount';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { AccountRepository } from 'src/infrastructure/db/AccountRepository';
+import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
-import { OperationRepository } from 'src/infrastructure/db/OperationRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
-import { AccountController } from 'src/presentation/controllers/account.controller';
+import { AccountController } from 'src/interfaces/accounts/account.controller';
 import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { CurrencyController } from 'src/presentation/controllers/currency.controller';
-import { OperationController } from 'src/presentation/controllers/operation.controller';
-import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
-import { AccountService } from 'src/services/account.service';
 import { AuthService } from 'src/services/auth.service';
-import { TransactionService } from 'src/services/transaction.service';
 import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
 import { AppContainer } from './types';
 
 export const createContainer = (db: DataBase): AppContainer => {
-  const operationRepository = new OperationRepository(db);
   const accountRepository = new AccountRepository(db);
   const currencyRepository = new CurrencyRepository(db);
   const transactionRepository = new TransactionRepository(db);
@@ -28,7 +28,6 @@ export const createContainer = (db: DataBase): AppContainer => {
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
     currency: currencyRepository,
-    operation: operationRepository,
     transaction: transactionRepository,
     user: userRepository,
   };
@@ -36,33 +35,55 @@ export const createContainer = (db: DataBase): AppContainer => {
   const passwordManager = new PasswordManager();
   const authService = new AuthService(userRepository, passwordManager);
   const userService = new UserService(userRepository, passwordManager);
-  const accountService = new AccountService(
-    accountRepository,
-    currencyRepository,
-  );
-  const transactionService = new TransactionService(
-    transactionRepository,
-    operationRepository,
-    db,
-  );
 
   const services: AppContainer['services'] = {
-    account: accountService,
     auth: authService,
     passwordManager,
-    transaction: transactionService,
     user: userService,
   };
 
-  const accountController = new AccountController(services.account);
-  const currencyController = new CurrencyController(repositories.currency);
-  const operationController = new OperationController(
-    operationRepository,
-    currencyController,
-    accountController,
+  // Create Account Use Cases
+  const createAccountUseCase = new CreateAccountUseCase(
+    accountRepository,
+    userRepository,
+    saveWithIdRetry,
+  );
+  const getAllAccountsUseCase = new GetAllAccountsUseCase(
+    accountRepository,
+    userRepository,
+  );
+  const getAccountByIdUseCase = new GetAccountByIdUseCase(
+    accountRepository,
+    userRepository,
+  );
+  const updateAccountUseCase = new UpdateAccountUseCase(
+    accountRepository,
+    userRepository,
+  );
+  const deleteAccountUseCase = new DeleteAccountUseCase(
+    accountRepository,
+    userRepository,
   );
 
-  const transactionController = new TransactionController(transactionService);
+  const useCases: AppContainer['useCases'] = {
+    account: {
+      archiveAccount: deleteAccountUseCase,
+      createAccount: createAccountUseCase,
+      getAccountById: getAccountByIdUseCase,
+      getAllAccounts: getAllAccountsUseCase,
+      updateAccount: updateAccountUseCase,
+    },
+  };
+
+  const accountController = new AccountController(
+    useCases.account.getAccountById,
+    useCases.account.getAllAccounts,
+    useCases.account.createAccount,
+    useCases.account.updateAccount,
+    useCases.account.archiveAccount,
+  );
+  const currencyController = new CurrencyController(repositories.currency);
+
   const userController = new UserController(userService);
   const authController = new AuthController(authService);
 
@@ -70,8 +91,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     account: accountController,
     auth: authController,
     currency: currencyController,
-    operation: operationController,
-    transaction: transactionController,
     user: userController,
   };
 
@@ -80,5 +99,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     db,
     repositories,
     services,
+    useCases,
   };
 };

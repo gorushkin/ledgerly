@@ -4,3 +4,4 @@ export { operationsTable } from './operations';
 export { transactionsTable } from './transactions';
 export { settingsTable } from './settings';
 export { usersTable } from './users';
+export { entriesTable } from './entries';

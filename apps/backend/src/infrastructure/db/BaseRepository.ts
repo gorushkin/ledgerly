@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
 import {
   DBErrorContext,
@@ -36,8 +37,8 @@ export class BaseRepository {
     return { updatedAt: now };
   }
 
-  protected get uuid(): { id: string } {
-    return { id: crypto.randomUUID() };
+  protected get uuid(): { id: UUID } {
+    return { id: crypto.randomUUID() as UUID };
   }
 
   protected async executeDatabaseOperation<T>(
@@ -45,11 +46,6 @@ export class BaseRepository {
     errorMessage: string,
     context?: RetryAwareContext,
   ): Promise<T> {
-    const retryEnabled = context?.retryOnPkCollision ?? true;
-    const maxRetries = context?.maxPkCollisionRetries ?? DEFAULT_MAX_RETRIES;
-
-    let attempt = 0;
-
     while (true) {
       try {
         return await operation();
@@ -78,21 +74,6 @@ export class BaseRepository {
           }
 
           if (normalized.type === 'primary_key') {
-            if (retryEnabled && attempt < maxRetries) {
-              attempt++;
-              if (process.env.NODE_ENV !== 'test') {
-                console.error(
-                  `PK/UNIQUE collision detected (attempt ${attempt}/${maxRetries}). Retrying…`,
-                  {
-                    field: normalized.field,
-                    table: normalized.table,
-                    value: normalized.value,
-                  },
-                );
-              }
-              continue;
-            }
-
             throw new RecordAlreadyExistsError({
               context: {
                 field: normalized.field,
@@ -128,5 +109,27 @@ export class BaseRepository {
       if (key in data) result[key] = data[key];
     }
     return result;
+  }
+
+  async writeNewEntryToDatabase<T, E extends { toPersistence: () => T }, K>(
+    entity: E,
+    promise: (data: T) => Promise<K>,
+    onError: () => E,
+    retries: number = DEFAULT_MAX_RETRIES,
+  ): Promise<K> {
+    try {
+      return await promise(entity.toPersistence());
+    } catch (error) {
+      if (error instanceof RecordAlreadyExistsError && retries > 0) {
+        const regeneratedEntity = onError();
+        return await this.writeNewEntryToDatabase(
+          regeneratedEntity,
+          promise,
+          onError,
+          retries - 1,
+        );
+      }
+      throw new Error('Failed to create account');
+    }
   }
 }

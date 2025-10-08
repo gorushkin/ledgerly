@@ -8,7 +8,8 @@
     "./constants": "./src/constants/index.ts",
     "./types": "./src/types/index.ts",
     "./validation": "./src/validation/index.ts",
-    "./libs": "./src/libs/index.ts"
+    "./libs": "./src/libs/index.ts",
+    "./mappers": "./src/mappers/index.ts"
   },
   "scripts": {
     "build": "tsc",

@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { sqliteTable, text, index } from 'drizzle-orm/sqlite-core';
 
@@ -8,9 +9,10 @@ import {
   updatedAt,
   isTombstone,
   id,
+  getBooleanColumn,
   getMoneyColumn,
 } from './common';
-import { transactionsTable } from './transactions';
+// import { entriesTable } from './entries';
 import { usersTable } from './users';
 
 export const operationsTable = sqliteTable(
@@ -18,24 +20,29 @@ export const operationsTable = sqliteTable(
   {
     accountId: text('account_id')
       .notNull()
-      .references(() => accountsTable.id, { onDelete: 'restrict' }),
-    baseAmount: getMoneyColumn('base_amount'),
+      .references(() => accountsTable.id, { onDelete: 'restrict' })
+      .$type<UUID>(),
+    amount: getMoneyColumn('base_amount'),
     createdAt,
     description,
+    // entryId: text('entry_id')
+    //   .notNull()
+    //   .references(() => entriesTable.id, { onDelete: 'cascade' })
+    //   .$type<UUID>(),
     id,
+    isSystem: getBooleanColumn('is_system'),
     isTombstone,
-    localAmount: getMoneyColumn('local_amount'),
-    rateBasePerLocal: getMoneyColumn('rate_base_per_local'),
-    transactionId: text('transaction_id')
-      .notNull()
-      .references(() => transactionsTable.id, { onDelete: 'cascade' }),
+    // type: text('type', {
+    //   enum: OPERATION_TYPE_VALUES,
+    // }).notNull(),
     updatedAt,
     userId: text('user_id')
       .notNull()
-      .references(() => usersTable.id, { onDelete: 'cascade' }),
+      .references(() => usersTable.id, { onDelete: 'cascade' })
+      .$type<UUID>(),
   },
   (t) => [
-    index('idx_operations_tx').on(t.transactionId),
+    // index('idx_operations_entry').on(t.entryId),
     index('idx_operations_account').on(t.accountId),
     index('idx_operations_user').on(t.userId),
   ],
@@ -46,7 +53,7 @@ export type OperationDbInsert = InferInsertModel<typeof operationsTable>;
 
 export type OperationRepoInsert = Omit<
   OperationDbInsert,
-  'id' | 'createdAt' | 'updatedAt'
+  'id' | 'createdAt' | 'updatedAt' | 'userId' | 'isTombstone'
 >;
 
 export type OperationDbUpdate = Partial<
