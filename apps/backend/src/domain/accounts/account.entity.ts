@@ -8,15 +8,16 @@ import { AccountType } from './account-type.enum.ts';
 export class Account extends BaseEntity {
   private constructor(
     public readonly userId: Id,
-    public readonly id: Id,
+    public id: Id,
     private name: string,
     private description: string,
     private initialBalance: Amount,
     private currentClearedBalanceLocal: Amount,
     private currency: CurrencyCode,
     private type: AccountType,
-    public readonly createdAt: IsoDatetimeString,
-    public readonly updatedAt: IsoDatetimeString,
+    readonly createdAt: IsoDatetimeString,
+
+    updatedAt: IsoDatetimeString,
   ) {
     super(userId, id, updatedAt, createdAt);
   }
@@ -103,38 +104,15 @@ export class Account extends BaseEntity {
     return this.type;
   }
 
-  getName(): string {
-    return this.name;
-  }
-
-  getCurrency(): CurrencyCode {
-    return this.currency;
-  }
-
   updateAccount(data: AccountUpdateDTO): void {
     this.validateUpdateIsAllowed();
-
     this.validateName(data.name);
+
     this.description = data.description ?? this.description;
     this.type = data.type ? AccountType.create(data.type) : this.type;
     this.currency = data.currency ?? this.currency;
     this.name = data.name ?? this.name;
-  }
 
-  regenerateId(): Account {
-    const now = this.now;
-
-    return new Account(
-      this.userId,
-      Id.create(),
-      this.getName(),
-      this.description,
-      this.initialBalance,
-      this.currentClearedBalanceLocal,
-      this.getCurrency(),
-      this.getType(),
-      this.createdAt,
-      now,
-    );
+    this.touch(this.now);
   }
 }

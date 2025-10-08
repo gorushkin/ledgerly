@@ -1,11 +1,9 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Account } from 'src/domain/accounts/account.entity';
 import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
-import { RecordAlreadyExistsError } from 'src/presentation/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateAccountUseCase } from '../createAccount';
@@ -13,6 +11,7 @@ import { CreateAccountUseCase } from '../createAccount';
 describe('CreateAccountUseCase', () => {
   let createAccountUseCase: CreateAccountUseCase;
   let mockAccountRepository: { create: ReturnType<typeof vi.fn> };
+  let mockedSaveWithIdRetry: ReturnType<typeof vi.fn>;
   let mockUserRepository: { getUserById: ReturnType<typeof vi.fn> };
 
   const userIdValue = '550e8400-e29b-41d4-a716-446655440000';
@@ -55,56 +54,28 @@ describe('CreateAccountUseCase', () => {
       getUserById: vi.fn(),
     };
 
+    mockedSaveWithIdRetry = vi
+      .fn()
+      .mockResolvedValue({ name: 'mocked account' }); // Mock implementation
+
     createAccountUseCase = new CreateAccountUseCase(
       mockAccountRepository as unknown as AccountRepository,
       mockUserRepository as unknown as UsersRepository,
+      mockedSaveWithIdRetry,
     );
   });
 
   describe('execute', () => {
-    it.skip('should create a new account successfully', async () => {
+    it('should create a new account successfully', async () => {
+      // Arrange
       mockUserRepository.getUserById.mockResolvedValue(mockUser);
-      mockAccountRepository.create.mockResolvedValue(mockSavedAccountData);
-
-      const mockAccount = {
-        toPersistence: vi.fn().mockReturnValue({
-          currency,
-          currentClearedBalanceLocal: initialBalance,
-          description,
-          id: accountIdValue,
-          initialBalance,
-          name: accountName,
-          type: accountType,
-          userId,
-        }),
+      const expectedResult = {
+        ...mockSavedAccountData,
+        isTombstone: false,
       };
+      mockedSaveWithIdRetry.mockResolvedValue(expectedResult);
 
-      const spyAccountCreate = vi
-        .spyOn(Account, 'create')
-        .mockReturnValue(mockAccount as unknown as Account);
-
-      const mockUserIdVO = { toString: () => userId, valueOf: () => userId };
-      const mockAccountIdVO = {
-        toString: () => accountIdValue,
-        valueOf: () => accountIdValue,
-      };
-
-      const spyIdRestore = vi
-        .spyOn(Id, 'restore')
-        .mockImplementation((value: string) => {
-          if (value === userId) {
-            return mockUserIdVO as unknown as Id;
-          }
-          if (value === accountIdValue) {
-            return mockAccountIdVO as unknown as Id;
-          }
-          return mockUserIdVO as unknown as Id; // fallback
-        });
-
-      vi.spyOn(Id, 'create').mockReturnValue(mockAccountIdVO as unknown as Id);
-
-      const spyAccountTypeCreate = vi.spyOn(AccountType, 'create');
-
+      // Act
       const result = await createAccountUseCase.execute(userId, {
         currency: currency,
         description,
@@ -114,39 +85,19 @@ describe('CreateAccountUseCase', () => {
         userId,
       });
 
+      // Assert
       expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
         userId,
         undefined,
       );
-      expect(spyAccountCreate).toHaveBeenCalledWith(
-        Id.restore(userId),
-        accountName,
-        description,
-        Amount.create('1000'),
-        currency,
-        AccountType.create(accountType),
+      expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
+        expect.any(Object), // Account instance
+        expect.any(Function), // bound create method
       );
-      expect(spyIdRestore).toHaveBeenCalledWith(userId);
-      expect(spyAccountTypeCreate).toHaveBeenCalledWith(accountType);
-      expect(mockAccount.toPersistence).toHaveBeenCalled();
-      expect(mockAccountRepository.create).toHaveBeenCalledWith({
-        currency,
-        currentClearedBalanceLocal: initialBalance,
-        description,
-        id: accountIdValue,
-        initialBalance,
-        name: accountName,
-        type: accountType,
-        userId,
-      });
-
-      expect(result).toEqual({
-        ...mockSavedAccountData,
-        isTombstone: false,
-      });
+      expect(result).toEqual(expectedResult);
     });
 
-    it.skip('should throw error when user does not exist', async () => {
+    it('should throw error when user does not exist', async () => {
       mockUserRepository.getUserById.mockResolvedValue(null);
 
       await expect(
@@ -196,35 +147,16 @@ describe('CreateAccountUseCase', () => {
     it('should handle UUID collision gracefully', async () => {
       mockUserRepository.getUserById.mockResolvedValue(mockUser);
 
-      mockAccountRepository.create
-        .mockRejectedValueOnce(
-          new RecordAlreadyExistsError({
-            context: {
-              field: 'id',
-              tableName: 'accounts',
-              value: accountIdValue,
-            },
-          }),
-        )
-        .mockResolvedValueOnce(mockSavedAccountData);
-
-      const mockAccount = {
-        regenerateId: vi.fn().mockReturnThis(),
-        toPersistence: vi.fn().mockReturnValue({
-          currency,
-          currentClearedBalanceLocal: initialBalance,
-          description,
-          id: accountIdValue,
-          initialBalance,
-          name: accountName,
-          type: accountType,
-          userId,
-        }),
+      const expectedResult = {
+        ...mockSavedAccountData,
+        isTombstone: false,
       };
 
-      vi.spyOn(Account, 'create').mockReturnValue(
-        mockAccount as unknown as Account,
-      );
+      mockedSaveWithIdRetry.mockResolvedValue(expectedResult);
+
+      const mockedAccount = {} as unknown as Account;
+
+      vi.spyOn(Account, 'create').mockReturnValue(mockedAccount);
 
       const result = await createAccountUseCase.execute(userId, {
         currency: currency,
@@ -235,12 +167,21 @@ describe('CreateAccountUseCase', () => {
         userId,
       });
 
-      expect(mockAccount.regenerateId).toHaveBeenCalled();
+      expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
+        mockedAccount,
+        expect.any(Function),
+      );
 
-      expect(result).toEqual({
-        ...mockSavedAccountData,
-        isTombstone: false,
-      });
+      const [, repositoryMethod] = mockedSaveWithIdRetry.mock.calls[0] as [
+        unknown,
+        (account: Account) => Promise<unknown>,
+      ];
+      expect(typeof repositoryMethod).toBe('function');
+
+      await repositoryMethod(mockedAccount);
+      expect(mockAccountRepository.create).toHaveBeenCalledWith(mockedAccount);
+
+      expect(result).toEqual(expectedResult);
     });
 
     // TODO: Add missing tests based on account.service.test.ts:

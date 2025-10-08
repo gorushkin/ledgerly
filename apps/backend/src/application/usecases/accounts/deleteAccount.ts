@@ -4,9 +4,9 @@ import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 
 import { AccountRepository } from '../../interfaces:toRefactor';
 
-import { AccountBase } from './accountBase';
+import { AccountUseCaseBase } from './accountUseCaseBase';
 
-export class DeleteAccountUseCase extends AccountBase {
+export class DeleteAccountUseCase extends AccountUseCaseBase {
   constructor(
     accountRepository: AccountRepository,
     userRepository: UsersRepository,

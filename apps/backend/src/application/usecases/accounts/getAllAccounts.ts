@@ -2,9 +2,9 @@ import { AccountResponseDTO, UUID } from '@ledgerly/shared/types';
 import { AccountRepository } from 'src/application/interfaces:toRefactor';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 
-import { AccountBase } from './accountBase';
+import { AccountUseCaseBase } from './accountUseCaseBase';
 
-export class GetAllAccountsUseCase extends AccountBase {
+export class GetAllAccountsUseCase extends AccountUseCaseBase {
   constructor(
     accountRepository: AccountRepository,
     userRepository: UsersRepository,

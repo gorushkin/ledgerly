@@ -3,9 +3,9 @@ import { AccountRepository } from 'src/application/interfaces:toRefactor';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { DataBase } from 'src/types';
 
-import { AccountBase } from './accountBase';
+import { AccountUseCaseBase } from './accountUseCaseBase';
 
-export class GetAccountByIdUseCase extends AccountBase {
+export class GetAccountByIdUseCase extends AccountUseCaseBase {
   constructor(
     accountRepository: AccountRepository,
     userRepository: UsersRepository,

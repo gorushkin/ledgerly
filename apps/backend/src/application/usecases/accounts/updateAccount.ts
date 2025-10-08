@@ -7,9 +7,9 @@ import { Account } from 'src/domain/accounts/account.entity';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 
-import { AccountBase } from './accountBase';
+import { AccountUseCaseBase } from './accountUseCaseBase';
 
-export class UpdateAccountUseCase extends AccountBase {
+export class UpdateAccountUseCase extends AccountUseCaseBase {
   constructor(
     accountRepository: AccountRepository,
     userRepository: UsersRepository,

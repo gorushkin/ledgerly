@@ -5,13 +5,13 @@ import { DataBase } from 'src/types';
 
 import { AccountRepository } from '../../interfaces:toRefactor';
 
-export class AccountBase {
+export class AccountUseCaseBase {
   constructor(
-    readonly accountRepository: AccountRepository,
-    readonly userRepository: UsersRepository,
+    protected readonly accountRepository: AccountRepository,
+    protected readonly userRepository: UsersRepository,
   ) {}
 
-  async ensureAccountExistsAndOwned(
+  protected async ensureAccountExistsAndOwned(
     userId: UUID,
     accountId: UUID,
   ): Promise<AccountDbRow> {
@@ -28,9 +28,8 @@ export class AccountBase {
     return account;
   }
 
-  async ensureUserExists(userId: UUID, tx?: DataBase) {
+  protected async ensureUserExists(userId: UUID, tx?: DataBase): Promise<void> {
     const user = await this.userRepository.getUserById(userId, tx);
-
     if (!user) {
       throw new Error('User not found');
     }

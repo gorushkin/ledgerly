@@ -116,7 +116,6 @@ describe('Account Domain Entity', () => {
       account.updateAccount({ name: 'updated-name' });
 
       expect(account).toHaveProperty('name', 'updated-name');
-      expect(account.getName()).toBe('updated-name');
     });
 
     describe('softDelete method', () => {

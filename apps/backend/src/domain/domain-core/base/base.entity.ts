@@ -4,10 +4,10 @@ import { IsoDatetimeString } from '../value-objects/IsoDateString';
 export abstract class BaseEntity {
   isTombstone = false;
   protected constructor(
-    public readonly userId: Id,
-    public readonly id: Id,
-    public readonly updatedAt: IsoDatetimeString,
-    public readonly createdAt: IsoDatetimeString,
+    protected readonly userId: Id,
+    protected id: Id,
+    protected updatedAt: IsoDatetimeString,
+    protected readonly createdAt: IsoDatetimeString,
   ) {
     this.updatedAt = updatedAt;
     this.createdAt = createdAt;
@@ -40,5 +40,13 @@ export abstract class BaseEntity {
     if (this.isTombstone) {
       throw new Error('Cannot update a deleted entity');
     }
+  }
+
+  protected touch(now?: IsoDatetimeString) {
+    this.updatedAt = now ?? this.now;
+  }
+
+  setId() {
+    this.id = this.getNewId();
   }
 }
