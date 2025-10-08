@@ -11,10 +11,8 @@ import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { AccountController } from 'src/interfaces/accounts/account.controller';
 import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { CurrencyController } from 'src/presentation/controllers/currency.controller';
-import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { AuthService } from 'src/services/auth.service';
-import { TransactionService } from 'src/services/transaction.service';
 import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
@@ -29,7 +27,6 @@ type Services = {
   auth: AuthService;
   user: UserService;
   passwordManager: PasswordManager;
-  transaction: TransactionService;
 };
 
 type AccountUseCases = {
@@ -42,7 +39,6 @@ type AccountUseCases = {
 
 type Controllers = {
   currency: CurrencyController;
-  transaction: TransactionController;
   account: AccountController;
   user: UserController;
   auth: AuthController;

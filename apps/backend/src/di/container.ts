@@ -12,10 +12,8 @@ import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { AccountController } from 'src/interfaces/accounts/account.controller';
 import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { CurrencyController } from 'src/presentation/controllers/currency.controller';
-import { TransactionController } from 'src/presentation/controllers/transaction.controller';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { AuthService } from 'src/services/auth.service';
-import { TransactionService } from 'src/services/transaction.service';
 import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
@@ -37,16 +35,10 @@ export const createContainer = (db: DataBase): AppContainer => {
   const passwordManager = new PasswordManager();
   const authService = new AuthService(userRepository, passwordManager);
   const userService = new UserService(userRepository, passwordManager);
-  const transactionService = new TransactionService(
-    transactionRepository,
-    null as any, // TODO: Add OperationRepository when ready
-    db,
-  );
 
   const services: AppContainer['services'] = {
     auth: authService,
     passwordManager,
-    transaction: transactionService,
     user: userService,
   };
 
@@ -92,7 +84,6 @@ export const createContainer = (db: DataBase): AppContainer => {
   );
   const currencyController = new CurrencyController(repositories.currency);
 
-  const transactionController = new TransactionController(transactionService);
   const userController = new UserController(userService);
   const authController = new AuthController(authService);
 
@@ -100,7 +91,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     account: accountController,
     auth: authController,
     currency: currencyController,
-    transaction: transactionController,
     user: userController,
   };
 

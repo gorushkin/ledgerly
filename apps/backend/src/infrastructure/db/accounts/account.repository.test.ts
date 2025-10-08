@@ -214,7 +214,8 @@ describe('AccountRepository', () => {
     //   expect(account2.userId).toBe(user.id);
     // });
 
-    it('should handle UUID collision gracefully', async () => {});
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    it.todo('should handle UUID collision gracefully', async () => {});
   });
 
   describe('getAll', () => {
