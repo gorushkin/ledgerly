@@ -42,7 +42,7 @@ export class CreateAccountUseCase extends AccountUseCaseBase {
       throw new Error(`Invalid currency code: ${String(currency)}`);
     }
 
-    const userIdVO = Id.restore(userId);
+    const userIdVO = Id.fromPersistence(userId);
 
     const account = Account.create(
       userIdVO,

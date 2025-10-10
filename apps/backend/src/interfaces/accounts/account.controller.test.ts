@@ -7,15 +7,18 @@ import {
   UpdateAccountUseCase,
 } from 'src/application/usecases/accounts';
 import { Amount } from 'src/domain/domain-core';
+import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountController } from 'src/interfaces/accounts/account.controller';
 import { describe, vi, beforeEach, it, expect } from 'vitest';
 import { ZodError } from 'zod';
 
 describe('AccountController', () => {
-  const userId = Id.restore('a2035d76-f6b1-4546-8637-6f034f4ade50').valueOf();
+  const userId = Id.fromPersistence(
+    'a2035d76-f6b1-4546-8637-6f034f4ade50',
+  ).valueOf();
 
-  const accountId = Id.restore(
+  const accountId = Id.fromPersistence(
     'b2035d76-f6b1-4546-8637-6f034f4ade50',
   ).valueOf();
 
@@ -86,7 +89,7 @@ describe('AccountController', () => {
   describe('create', () => {
     it('should call accountService.create with correct data', async () => {
       const requestBody: AccountCreateDTO = {
-        currency: 'USD',
+        currency: Currency.create('USD').valueOf(),
         description: 'Test Account',
         initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
@@ -124,7 +127,7 @@ describe('AccountController', () => {
 
   describe('update', () => {
     const requestBody: AccountUpdateDTO = {
-      currency: 'USD',
+      currency: Currency.create('USD').valueOf(),
       description: 'Test Account',
       name: 'New Account',
       type: 'liability',

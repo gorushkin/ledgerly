@@ -17,7 +17,7 @@ describe('CreateAccountUseCase', () => {
   const userIdValue = '550e8400-e29b-41d4-a716-446655440000';
   const accountIdValue = '660e8400-e29b-41d4-a716-446655440001';
 
-  const userId = Id.restore(userIdValue).valueOf();
+  const userId = Id.fromPersistence(userIdValue).valueOf();
   const accountName = 'Test Account';
   const description = 'Test account description';
   const initialBalance = Amount.create('1000').valueOf();

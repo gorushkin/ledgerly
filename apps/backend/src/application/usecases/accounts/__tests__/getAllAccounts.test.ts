@@ -15,7 +15,9 @@ describe('GetAllAccounts', () => {
 
   let mockUserRepository: { getUserById: ReturnType<typeof vi.fn> };
 
-  const userId = Id.restore('550e8400-e29b-41d4-a716-446655440000').valueOf();
+  const userId = Id.fromPersistence(
+    '550e8400-e29b-41d4-a716-446655440000',
+  ).valueOf();
 
   const accountName = 'Test Account';
   const description = 'Test account description';

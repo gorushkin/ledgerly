@@ -34,3 +34,7 @@ export type Sha256String = z.infer<typeof sha256String>;
 export type UUID = z.infer<typeof uuid>;
 
 export type MoneyString = z.infer<typeof moneyAmountString>;
+
+export type Brand<T, B extends string> = T & { readonly __brand: B };
+
+export type Money = Brand<number, "Money">;

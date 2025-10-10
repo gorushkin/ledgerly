@@ -11,6 +11,7 @@ import { AddOperationToEntryUseCase } from '../AddOperationToEntryUseCase';
 
 describe('AddOperationToEntryUseCase', () => {
   const userId = Id.create();
+  const entryId = Id.create();
   const accountId = Id.create();
 
   const amount = '100';
@@ -27,6 +28,7 @@ describe('AddOperationToEntryUseCase', () => {
     amount: Amount.create(amount).toPersistence(),
     createdAt: IsoDatetimeString.create().valueOf(),
     description: 'Test operation',
+    entryId: entryId.valueOf(),
     id: Id.create().valueOf(),
     isSystem: false,
     isTombstone: false,
@@ -70,14 +72,16 @@ describe('AddOperationToEntryUseCase', () => {
     const result = await addOperationToEntryUseCase.execute(
       userId.valueOf(),
       accountId.valueOf(),
+      entryId.valueOf(),
       amount,
       description,
       tx,
     );
 
     expect(spyOperationCreate).toHaveBeenCalledWith(
-      Id.restore(userId.valueOf()),
-      Id.restore(mockSavedOperationData.id),
+      Id.fromPersistence(userId.valueOf()),
+      Id.fromPersistence(mockSavedOperationData.id),
+      Id.fromPersistence(mockSavedOperationData.entryId),
       Amount.create(amount),
       description,
     );

@@ -5,19 +5,21 @@ import { Amount } from '../domain-core';
 
 import { Operation } from './operation.entity';
 
-const userIdValue = Id.restore(
+const userIdValue = Id.fromPersistence(
   '123e4567-e89b-12d3-a456-426614174000',
 ).valueOf();
 
-const accountId = Id.restore('223e4567-e89b-12d3-a456-426614174000');
+const accountId = Id.fromPersistence('223e4567-e89b-12d3-a456-426614174000');
+const entryId = Id.fromPersistence('323e4567-e89b-12d3-a456-426614174000');
 
-const userId = Id.restore(userIdValue);
+const userId = Id.fromPersistence(userIdValue);
 
 describe('Operation Domain Entity', () => {
   it('should create a valid operation', () => {
     const operation = Operation.create(
       userId,
       accountId,
+      entryId,
       Amount.create('100'),
       'Test operation',
     );
@@ -36,6 +38,7 @@ describe('Operation Domain Entity', () => {
     const operation = Operation.create(
       userId,
       accountId,
+      entryId,
       Amount.create('100'),
       'Test operation',
     );
@@ -86,6 +89,7 @@ describe('Operation Domain Entity', () => {
     const operation = Operation.create(
       userId,
       accountId,
+      entryId,
       Amount.create('0'),
       'Zero amount operation',
     );
@@ -97,6 +101,7 @@ describe('Operation Domain Entity', () => {
     const operation = Operation.create(
       userId,
       accountId,
+      entryId,
       Amount.create('-50'),
       'Negative amount operation',
     );
@@ -109,6 +114,7 @@ describe('Operation Domain Entity', () => {
       const operation1 = Operation.create(
         userId,
         accountId,
+        entryId,
         Amount.create('100'),
         'Test operation 1',
       );
@@ -116,6 +122,7 @@ describe('Operation Domain Entity', () => {
       const operation2 = Operation.create(
         userId,
         accountId,
+        entryId,
         Amount.create('50'),
         'Test operation 2',
       );
@@ -128,6 +135,7 @@ describe('Operation Domain Entity', () => {
       const operation1 = Operation.create(
         userId,
         accountId,
+        entryId,
         Amount.create('100'),
         'Test operation 1',
       );
@@ -135,6 +143,7 @@ describe('Operation Domain Entity', () => {
       const operation2 = Operation.create(
         userId,
         accountId,
+        entryId,
         Amount.create('50'),
         'Test operation 2',
       );

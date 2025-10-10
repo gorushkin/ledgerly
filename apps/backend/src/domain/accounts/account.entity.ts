@@ -2,6 +2,7 @@ import { AccountUpdateDTO, CurrencyCode } from '@ledgerly/shared/types';
 import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
 
 import { Amount, BaseEntity, Id, IsoDatetimeString } from '../domain-core';
+import { Currency } from '../domain-core/value-objects/Currency';
 
 import { AccountType } from './account-type.enum.ts';
 
@@ -13,7 +14,7 @@ export class Account extends BaseEntity {
     private description: string,
     private initialBalance: Amount,
     private currentClearedBalanceLocal: Amount,
-    private currency: CurrencyCode,
+    private currency: Currency,
     private type: AccountType,
     readonly createdAt: IsoDatetimeString,
 
@@ -47,7 +48,7 @@ export class Account extends BaseEntity {
       description,
       initialBalance,
       Amount.create('0'),
-      currency,
+      Currency.create(currency),
       type,
       now,
       now,
@@ -71,13 +72,13 @@ export class Account extends BaseEntity {
     } = data;
 
     return new Account(
-      Id.restore(userId),
-      Id.restore(id),
+      Id.fromPersistence(userId),
+      Id.fromPersistence(id),
       name,
       description,
       Amount.create(initialBalance),
       Amount.create(currentClearedBalanceLocal),
-      currency,
+      Currency.create(currency),
       AccountType.create(type),
       IsoDatetimeString.restore(createdAt),
       IsoDatetimeString.restore(updatedAt),
@@ -87,7 +88,7 @@ export class Account extends BaseEntity {
   toPersistence(): AccountRepoInsert {
     return {
       createdAt: this.createdAt.valueOf(),
-      currency: this.currency,
+      currency: this.currency.valueOf(),
       currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
       description: this.description,
       id: this.id.valueOf(),
@@ -108,9 +109,13 @@ export class Account extends BaseEntity {
     this.validateUpdateIsAllowed();
     this.validateName(data.name);
 
+    const currency = data.currency
+      ? Currency.create(data.currency)
+      : this.currency;
+
     this.description = data.description ?? this.description;
     this.type = data.type ? AccountType.create(data.type) : this.type;
-    this.currency = data.currency ?? this.currency;
+    this.currency = currency;
     this.name = data.name ?? this.name;
 
     this.touch(this.now);

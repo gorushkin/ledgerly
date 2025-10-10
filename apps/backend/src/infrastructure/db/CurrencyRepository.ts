@@ -1,5 +1,4 @@
-import { Currency } from '@ledgerly/shared/types';
-import { eq } from 'drizzle-orm';
+import { CurrencyDomain } from 'src/application';
 import { currenciesTable } from 'src/db/schema';
 import { DataBase } from 'src/types';
 
@@ -10,22 +9,10 @@ export class CurrencyRepository extends BaseRepository {
     super(db);
   }
 
-  getAll(): Promise<Currency[]> {
+  getAll(): Promise<CurrencyDomain[]> {
     return this.executeDatabaseOperation(
       () => this.db.select().from(currenciesTable).all(),
       'Failed to fetch currencies',
-    );
-  }
-
-  getById(id: string): Promise<Currency | undefined> {
-    return this.executeDatabaseOperation(
-      () =>
-        this.db
-          .select()
-          .from(currenciesTable)
-          .where(eq(currenciesTable.code, id))
-          .get(),
-      `Failed to fetch currency with ID ${id}`,
     );
   }
 }

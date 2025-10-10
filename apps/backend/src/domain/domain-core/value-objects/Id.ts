@@ -2,15 +2,16 @@ import { UUID } from '@ledgerly/shared/types';
 import { uuid } from '@ledgerly/shared/validation';
 
 export class Id {
-  private readonly _value: UUID;
+  private readonly value: UUID;
   private constructor(value: string) {
-    const parsed = uuid.parse(value);
+    const parsed = uuid.safeParse(value);
 
-    if (!parsed) {
+    if (!parsed.success) {
       throw new Error('Invalid UUID format');
     }
 
-    this._value = parsed;
+    this.value = parsed.data;
+    Object.freeze(this);
   }
 
   static create(): Id {
@@ -18,19 +19,23 @@ export class Id {
     return new Id(id);
   }
 
-  static restore = (value: string): Id => {
+  static fromPersistence = (value: string): Id => {
     return new Id(value);
   };
 
   toString(): string {
-    return this._value;
+    return this.value;
   }
 
-  equals(other: Id): boolean {
-    return this._value === other._value;
+  isEqualTo(other: Id | string): boolean {
+    return this.value === (other instanceof Id ? other.value : other);
   }
 
   valueOf(): UUID {
-    return this._value;
+    return this.value;
+  }
+
+  toJSON(): string {
+    return this.value;
   }
 }

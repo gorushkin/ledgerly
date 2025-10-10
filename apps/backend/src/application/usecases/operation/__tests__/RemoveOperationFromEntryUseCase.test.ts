@@ -11,6 +11,7 @@ import { RemoveOperationFromEntryUseCase } from '../RemoveOperationFromEntryUseC
 describe('DeleteOperationUseCase', () => {
   const userId = Id.create();
   const accountId = Id.create();
+  const entryId = Id.create();
   const operationId = Id.create();
 
   const amount = '100';
@@ -39,6 +40,7 @@ describe('DeleteOperationUseCase', () => {
     amount: Amount.create(amount).toPersistence(),
     createdAt: IsoDatetimeString.create().valueOf(),
     description,
+    entryId: entryId.valueOf(),
     id: Id.create().valueOf(),
     isSystem: false,
     isTombstone: false,

@@ -20,6 +20,8 @@ export class UpdateOperationUseCase {
   ): Promise<void> {
     const { amount, description, id } = request;
 
+    // TODO: add entryId validation
+
     const operationRow = await this.operationRepository.getById(userId, id, tx);
 
     if (!operationRow) {

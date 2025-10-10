@@ -4,15 +4,22 @@ import { IsoDatetimeString } from 'src/domain/domain-core/value-objects/IsoDateS
 import { describe, expect, it } from 'vitest';
 
 import { Amount } from '../domain-core';
+import { Currency } from '../domain-core/value-objects/Currency';
 
 import { Account } from './account.entity';
 
-const userIdValue = Id.restore(
+const userIdValue = Id.fromPersistence(
   '123e4567-e89b-12d3-a456-426614174000',
 ).valueOf();
 const userTypeValue = 'asset';
 
-const userId = Id.restore(userIdValue);
+const userId = Id.fromPersistence(userIdValue);
+
+const currencyUSD = Currency.create('USD');
+const currencyEUR = Currency.create('EUR');
+
+const currencyCodeUSD = currencyUSD.valueOf();
+const currencyCodeEUR = currencyEUR.valueOf();
 
 describe('Account Domain Entity', () => {
   const accountType = AccountType.create(userTypeValue);
@@ -24,7 +31,7 @@ describe('Account Domain Entity', () => {
         'account-name',
         'account-description',
         Amount.create('0'),
-        'USD',
+        currencyCodeUSD,
         accountType,
       );
 
@@ -34,9 +41,9 @@ describe('Account Domain Entity', () => {
       expect(account).toHaveProperty('name', 'account-name');
       expect(account).toHaveProperty('description', 'account-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('0'));
-      expect(account).toHaveProperty('currency', 'USD');
+      expect(account).toHaveProperty('currency', currencyUSD);
       expect(account).toHaveProperty('type', { _value: 'asset' });
-      expect(account.userId.equals(userId)).toBe(true);
+      expect(account.userId.isEqualTo(userId)).toBe(true);
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account.getType().equals(accountType)).toBe(true);
     });
@@ -48,7 +55,7 @@ describe('Account Domain Entity', () => {
           '',
           'account-description',
           Amount.create('0'),
-          'USD',
+          currencyCodeUSD,
           accountType,
         ),
       ).toThrowError('Account name cannot be empty');
@@ -61,7 +68,7 @@ describe('Account Domain Entity', () => {
           'account-name',
           'account-description',
           Amount.create('0'),
-          'USD',
+          currencyCodeUSD,
           AccountType.create('invalid-type'),
         ),
       ).toThrowError('Invalid account type');
@@ -74,13 +81,13 @@ describe('Account Domain Entity', () => {
       const createdAtValue = '2023-10-01T12:00:00.000Z';
       const updatedAtValue = '2023-10-02T12:00:00.000Z';
 
-      const accountId = Id.restore(accountIdValue);
+      const accountId = Id.fromPersistence(accountIdValue);
       const createdAt = IsoDatetimeString.restore(createdAtValue);
       const updatedAt = IsoDatetimeString.restore(updatedAtValue);
 
       const account = Account.fromPersistence({
         createdAt: createdAt.valueOf(),
-        currency: 'EUR',
+        currency: currencyCodeEUR,
         currentClearedBalanceLocal: Amount.create('500').valueOf(),
         description: 'restored-description',
         id: accountId.valueOf(),
@@ -98,7 +105,7 @@ describe('Account Domain Entity', () => {
       expect(account).toHaveProperty('name', 'restored-account');
       expect(account).toHaveProperty('description', 'restored-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('500'));
-      expect(account).toHaveProperty('currency', 'EUR');
+      expect(account).toHaveProperty('currency', currencyEUR);
     });
   });
 
@@ -109,7 +116,7 @@ describe('Account Domain Entity', () => {
         'initial-name',
         'description',
         Amount.create('0'),
-        'USD',
+        currencyCodeUSD,
         accountType,
       );
 
@@ -125,7 +132,7 @@ describe('Account Domain Entity', () => {
           'account-name',
           'account-description',
           Amount.create('0'),
-          'USD',
+          currencyCodeUSD,
           accountType,
         );
 
@@ -142,7 +149,7 @@ describe('Account Domain Entity', () => {
           'account-name',
           'account-description',
           Amount.create('0'),
-          'USD',
+          currencyCodeUSD,
           accountType,
         );
 
@@ -159,7 +166,7 @@ describe('Account Domain Entity', () => {
           'account-name',
           'account-description',
           Amount.create('0'),
-          'USD',
+          currencyCodeUSD,
           accountType,
         );
 

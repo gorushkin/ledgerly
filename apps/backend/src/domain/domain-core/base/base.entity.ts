@@ -21,7 +21,7 @@ export abstract class BaseEntity {
    * Проверяет, принадлежит ли сущность указанному пользователю
    */
   belongsToUser(userId: Id): boolean {
-    return this.userId.equals(userId);
+    return this.userId.isEqualTo(userId);
   }
 
   getNewId() {

@@ -7,6 +7,7 @@ export class Operation extends BaseEntity {
     public readonly userId: Id,
     public readonly id: Id,
     public readonly accountId: Id,
+    public readonly entryId: Id,
     public amount: Amount,
     public description: string,
     public readonly isSystem: boolean,
@@ -19,6 +20,7 @@ export class Operation extends BaseEntity {
   static create(
     userId: Id,
     accountId: Id,
+    entryId: Id,
     amount: Amount,
     description: string,
   ): Operation {
@@ -30,6 +32,7 @@ export class Operation extends BaseEntity {
       userId,
       id,
       accountId,
+      entryId,
       amount,
       description,
       false,
@@ -44,6 +47,7 @@ export class Operation extends BaseEntity {
       amount,
       createdAt,
       description,
+      entryId,
       id,
       isSystem,
       updatedAt,
@@ -51,9 +55,10 @@ export class Operation extends BaseEntity {
     } = data;
 
     return new Operation(
-      Id.restore(userId),
-      Id.restore(id),
-      Id.restore(accountId),
+      Id.fromPersistence(userId),
+      Id.fromPersistence(id),
+      Id.fromPersistence(accountId),
+      Id.fromPersistence(entryId),
       Amount.fromPersistence(amount),
       description,
       isSystem,
@@ -74,22 +79,6 @@ export class Operation extends BaseEntity {
     this.isTombstone = true;
     this.updatedAt = this.now;
   }
-
-  // withId(id: Id): Operation {
-  //   if (!this.isNew()) {
-  //     throw new Error('Cannot set ID for existing operation');
-  //   }
-
-  //   return new Operation(
-  //     this.userId,
-  //     id,
-  //     this.entryId,
-  //     this.accountId,
-  //     this.amount,
-  //     this.isSystem,
-  //     this.description,
-  //   );
-  // }
 
   canBeUpdated(): boolean {
     return !this.isSystem && !this.isDeleted();
@@ -123,6 +112,7 @@ export class Operation extends BaseEntity {
       amount: this.amount.valueOf(),
       createdAt: this.createdAt.valueOf(),
       description: this.description,
+      entryId: this.entryId.valueOf(),
       id: this.id.valueOf(),
       isSystem: this.isSystem,
       isTombstone: false,
