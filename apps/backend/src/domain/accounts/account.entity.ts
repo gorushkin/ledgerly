@@ -1,8 +1,14 @@
-import { AccountUpdateDTO, CurrencyCode } from '@ledgerly/shared/types';
+import { AccountUpdateDTO } from '@ledgerly/shared/types';
 import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
 
-import { Amount, BaseEntity, Id, IsoDatetimeString } from '../domain-core';
-import { Currency } from '../domain-core/value-objects/Currency';
+import {
+  Amount,
+  BaseEntity,
+  Currency,
+  Id,
+  IsoDatetimeString,
+  Name,
+} from '../domain-core';
 
 import { AccountType } from './account-type.enum.ts';
 
@@ -10,7 +16,7 @@ export class Account extends BaseEntity {
   private constructor(
     public readonly userId: Id,
     public id: Id,
-    private name: string,
+    private name: Name,
     private description: string,
     private initialBalance: Amount,
     private currentClearedBalanceLocal: Amount,
@@ -23,38 +29,29 @@ export class Account extends BaseEntity {
     super(userId, id, updatedAt, createdAt);
   }
 
-  private validateName(name?: string): void {
-    if (!name || name.trim().length === 0) {
-      throw new Error('Account name cannot be empty');
-    }
-  }
-
   static create(
     userId: Id,
-    name: string,
+    name: Name,
     description: string,
     initialBalance: Amount,
-    currency: CurrencyCode,
+    currency: Currency,
     type: AccountType,
   ): Account {
-    this.prototype.validateName(name);
     const now = this.prototype.now;
     const id = this.prototype.getNewId();
 
-    const createdAccount = new Account(
+    return new Account(
       userId,
       id,
       name,
       description,
       initialBalance,
       Amount.create('0'),
-      Currency.create(currency),
+      currency,
       type,
       now,
       now,
     );
-
-    return createdAccount;
   }
 
   static fromPersistence(data: AccountDbRow): Account {
@@ -74,7 +71,7 @@ export class Account extends BaseEntity {
     return new Account(
       Id.fromPersistence(userId),
       Id.fromPersistence(id),
-      name,
+      Name.fromPersistence(name),
       description,
       Amount.create(initialBalance),
       Amount.create(currentClearedBalanceLocal),
@@ -94,7 +91,7 @@ export class Account extends BaseEntity {
       id: this.id.valueOf(),
       initialBalance: this.initialBalance.valueOf(),
       isTombstone: this.isTombstone,
-      name: this.name,
+      name: this.name.valueOf(),
       type: this.type.valueOf(),
       updatedAt: this.updatedAt.valueOf(),
       userId: this.userId.valueOf(),
@@ -107,16 +104,17 @@ export class Account extends BaseEntity {
 
   updateAccount(data: AccountUpdateDTO): void {
     this.validateUpdateIsAllowed();
-    this.validateName(data.name);
 
     const currency = data.currency
       ? Currency.create(data.currency)
       : this.currency;
 
+    const name = data.name ? Name.create(data.name) : this.name;
+
     this.description = data.description ?? this.description;
     this.type = data.type ? AccountType.create(data.type) : this.type;
     this.currency = currency;
-    this.name = data.name ?? this.name;
+    this.name = name;
 
     this.touch(this.now);
   }

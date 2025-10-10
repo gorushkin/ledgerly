@@ -3,7 +3,7 @@ import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { IsoDatetimeString } from 'src/domain/domain-core/value-objects/IsoDateString';
 import { describe, expect, it } from 'vitest';
 
-import { Amount } from '../domain-core';
+import { Amount, Name } from '../domain-core';
 import { Currency } from '../domain-core/value-objects/Currency';
 
 import { Account } from './account.entity';
@@ -18,8 +18,9 @@ const userId = Id.fromPersistence(userIdValue);
 const currencyUSD = Currency.create('USD');
 const currencyEUR = Currency.create('EUR');
 
-const currencyCodeUSD = currencyUSD.valueOf();
 const currencyCodeEUR = currencyEUR.valueOf();
+
+const name = Name.create('account-name');
 
 describe('Account Domain Entity', () => {
   const accountType = AccountType.create(userTypeValue);
@@ -28,17 +29,17 @@ describe('Account Domain Entity', () => {
     it('should create account with valid data', () => {
       const account = Account.create(
         userId,
-        'account-name',
+        name,
         'account-description',
         Amount.create('0'),
-        currencyCodeUSD,
+        currencyUSD,
         accountType,
       );
 
       expect(account).toBeInstanceOf(Account);
       expect(account.id).toBeDefined();
       expect(account.userId).toBe(userId);
-      expect(account).toHaveProperty('name', 'account-name');
+      expect(account).toHaveProperty('name', name);
       expect(account).toHaveProperty('description', 'account-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('0'));
       expect(account).toHaveProperty('currency', currencyUSD);
@@ -48,27 +49,14 @@ describe('Account Domain Entity', () => {
       expect(account.getType().equals(accountType)).toBe(true);
     });
 
-    it('should throw error for empty name', () => {
-      expect(() =>
-        Account.create(
-          userId,
-          '',
-          'account-description',
-          Amount.create('0'),
-          currencyCodeUSD,
-          accountType,
-        ),
-      ).toThrowError('Account name cannot be empty');
-    });
-
     it('should throw error for wrong account type', () => {
       expect(() =>
         Account.create(
           userId,
-          'account-name',
+          name,
           'account-description',
           Amount.create('0'),
-          currencyCodeUSD,
+          currencyUSD,
           AccountType.create('invalid-type'),
         ),
       ).toThrowError('Invalid account type');
@@ -102,7 +90,7 @@ describe('Account Domain Entity', () => {
       expect(account).toBeInstanceOf(Account);
       expect(account.id?.toString()).toBe(accountIdValue);
       expect(account.userId.toString()).toBe(userIdValue);
-      expect(account).toHaveProperty('name', 'restored-account');
+      expect(account).toHaveProperty('name', Name.create('restored-account'));
       expect(account).toHaveProperty('description', 'restored-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('500'));
       expect(account).toHaveProperty('currency', currencyEUR);
@@ -113,26 +101,26 @@ describe('Account Domain Entity', () => {
     it('should update account with valid value', () => {
       const account = Account.create(
         userId,
-        'initial-name',
+        Name.create('initial-name'),
         'description',
         Amount.create('0'),
-        currencyCodeUSD,
+        currencyUSD,
         accountType,
       );
 
       account.updateAccount({ name: 'updated-name' });
 
-      expect(account).toHaveProperty('name', 'updated-name');
+      expect(account).toHaveProperty('name', Name.create('updated-name'));
     });
 
     describe('softDelete method', () => {
       it('should mark account as tombstone', () => {
         const account = Account.create(
           userId,
-          'account-name',
+          name,
           'account-description',
           Amount.create('0'),
-          currencyCodeUSD,
+          currencyUSD,
           accountType,
         );
 
@@ -146,10 +134,10 @@ describe('Account Domain Entity', () => {
       it('should not allow updates after soft deletion', () => {
         const account = Account.create(
           userId,
-          'account-name',
+          name,
           'account-description',
           Amount.create('0'),
-          currencyCodeUSD,
+          currencyUSD,
           accountType,
         );
 
@@ -163,10 +151,10 @@ describe('Account Domain Entity', () => {
       it('should not update account during soft deletion', () => {
         const account = Account.create(
           userId,
-          'account-name',
+          name,
           'account-description',
           Amount.create('0'),
-          currencyCodeUSD,
+          currencyUSD,
           accountType,
         );
 

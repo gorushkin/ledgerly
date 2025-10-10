@@ -8,7 +8,7 @@ import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { AccountRepoInsert } from 'src/db/schema';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Account } from 'src/domain/accounts/account.entity';
-import { Amount } from 'src/domain/domain-core';
+import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 
@@ -46,10 +46,10 @@ export class CreateAccountUseCase extends AccountUseCaseBase {
 
     const account = Account.create(
       userIdVO,
-      name,
+      Name.create(name),
       description,
       Amount.create(initialBalance),
-      currency,
+      Currency.create(currency),
       AccountType.create(type),
     );
 
