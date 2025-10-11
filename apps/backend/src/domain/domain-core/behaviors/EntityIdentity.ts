@@ -1,27 +1,29 @@
 import { Id } from '../value-objects/Id';
 
 /**
- * Поведение для управления идентичностью сущности
+ * Behavior for managing entity identity
  */
 export class EntityIdentity {
-  constructor(private id: Id) {}
+  constructor(private readonly id: Id) {
+    Object.freeze(this);
+  }
 
   /**
-   * Возвращает ID сущности
+   * Returns the entity ID
    */
   getId(): Id {
     return this.id;
   }
 
   /**
-   * Устанавливает ID сущности
+   * Creates a new EntityIdentity with a different ID
    */
-  setId(id?: Id): void {
-    this.id = id ?? Id.create();
+  withId(id: Id): EntityIdentity {
+    return new EntityIdentity(id);
   }
 
   /**
-   * Создает новый экземпляр EntityIdentity
+   * Creates a new instance of EntityIdentity
    */
   static create(id?: Id): EntityIdentity {
     return new EntityIdentity(id ?? Id.create());

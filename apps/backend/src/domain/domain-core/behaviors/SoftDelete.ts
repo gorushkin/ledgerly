@@ -2,13 +2,15 @@
  * Поведение для управления мягким удалением сущности
  */
 export class SoftDelete {
-  constructor(private isTombstone = false) {}
+  constructor(private readonly isTombstone = false) {
+    Object.freeze(this);
+  }
 
   /**
    * Помечает сущность как удаленную
    */
-  markAsDeleted(): void {
-    this.isTombstone = true;
+  markAsDeleted(): SoftDelete {
+    return new SoftDelete(true);
   }
 
   /**

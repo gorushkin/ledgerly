@@ -17,8 +17,8 @@ import { AccountType } from './account-type.enum.ts';
 
 export class Account {
   private readonly identity: EntityIdentity;
-  private readonly timestamps: EntityTimestamps;
-  private readonly softDelete: SoftDelete;
+  private timestamps: EntityTimestamps;
+  private softDelete: SoftDelete;
   private readonly ownership: UserOwnership;
 
   private constructor(
@@ -103,16 +103,12 @@ export class Account {
     );
   }
 
-  // Методы делегирования для identity
+  // Delegation methods for identity
   getId(): Id {
     return this.identity.getId();
   }
 
-  setId(id?: Id): void {
-    this.identity.setId(id);
-  }
-
-  // Методы делегирования для timestamps
+  // Delegation methods for timestamps
   getUpdatedAt(): Timestamp {
     return this.timestamps.getUpdatedAt();
   }
@@ -122,12 +118,12 @@ export class Account {
   }
 
   private touch(now?: Timestamp): void {
-    this.timestamps.touch(now);
+    this.timestamps = this.timestamps.touch(now);
   }
 
-  // Методы делегирования для soft delete
+  // Delegation methods for soft delete
   markAsDeleted(): void {
-    this.softDelete.markAsDeleted();
+    this.softDelete = this.softDelete.markAsDeleted();
   }
 
   isDeleted(): boolean {
@@ -138,7 +134,7 @@ export class Account {
     this.softDelete.validateUpdateIsAllowed();
   }
 
-  // Методы делегирования для ownership
+  // Delegation methods for ownership
   belongsToUser(userId: Id): boolean {
     return this.ownership.belongsToUser(userId);
   }

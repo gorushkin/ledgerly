@@ -12,8 +12,8 @@ import {
 
 export class Operation {
   private readonly identity: EntityIdentity;
-  private readonly timestamps: EntityTimestamps;
-  private readonly softDelete: SoftDelete;
+  private timestamps: EntityTimestamps;
+  private softDelete: SoftDelete;
   private readonly ownership: UserOwnership;
 
   private constructor(
@@ -93,16 +93,12 @@ export class Operation {
     );
   }
 
-  // Методы делегирования для identity
+  // Delegation methods for identity
   getId(): Id {
     return this.identity.getId();
   }
 
-  setId(id?: Id): void {
-    this.identity.setId(id);
-  }
-
-  // Методы делегирования для timestamps
+  // Delegation methods for timestamps
   getUpdatedAt(): Timestamp {
     return this.timestamps.getUpdatedAt();
   }
@@ -112,12 +108,12 @@ export class Operation {
   }
 
   private touch(): void {
-    this.timestamps.touch();
+    this.timestamps = this.timestamps.touch();
   }
 
-  // Методы делегирования для soft delete
+  // Delegation methods for soft delete
   markAsDeleted(): void {
-    this.softDelete.markAsDeleted();
+    this.softDelete = this.softDelete.markAsDeleted();
   }
 
   isDeleted(): boolean {
@@ -128,7 +124,7 @@ export class Operation {
     this.softDelete.validateUpdateIsAllowed();
   }
 
-  // Методы делегирования для ownership
+  // Delegation methods for ownership
   belongsToUser(userId: Id): boolean {
     return this.ownership.belongsToUser(userId);
   }

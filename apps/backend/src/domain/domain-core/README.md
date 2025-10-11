@@ -20,7 +20,6 @@ Value Objects - immutable objects that are described by their attributes, not by
 - **`Currency`** - currency
 - **`Name`** - name/title
 - **`Email`** - email address with validation
-- **`Money`** - money (amount + currency)
 - **`UserOwnership`** - entity ownership by user
 
 ## Usage Principles

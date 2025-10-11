@@ -5,9 +5,11 @@ import { Timestamp } from '../value-objects/Timestamp';
  */
 export class EntityTimestamps {
   constructor(
-    private updatedAt: Timestamp,
+    private readonly updatedAt: Timestamp,
     private readonly createdAt: Timestamp,
-  ) {}
+  ) {
+    Object.freeze(this);
+  }
 
   /**
    * Возвращает время последнего обновления
@@ -26,8 +28,9 @@ export class EntityTimestamps {
   /**
    * Обновляет время последнего изменения
    */
-  touch(now?: Timestamp): void {
-    this.updatedAt = now ?? Timestamp.create();
+  touch(now?: Timestamp): EntityTimestamps {
+    const newTimestamp = now ?? Timestamp.create();
+    return new EntityTimestamps(newTimestamp, this.createdAt);
   }
 
   /**

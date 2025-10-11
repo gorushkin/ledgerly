@@ -93,6 +93,7 @@ describe('CreateAccountUseCase', () => {
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
         expect.any(Object), // Account instance
         expect.any(Function), // bound create method
+        expect.any(Function), // entityFactory function
       );
       expect(result).toEqual(expectedResult);
     });
@@ -170,11 +171,13 @@ describe('CreateAccountUseCase', () => {
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
         mockedAccount,
         expect.any(Function),
+        expect.any(Function),
       );
 
       const [, repositoryMethod] = mockedSaveWithIdRetry.mock.calls[0] as [
         unknown,
         (account: Account) => Promise<unknown>,
+        () => Account,
       ];
       expect(typeof repositoryMethod).toBe('function');
 
