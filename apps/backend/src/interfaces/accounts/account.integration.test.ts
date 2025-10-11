@@ -8,6 +8,7 @@ import {
 import { AccountRepoInsert } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import { Amount } from 'src/domain/domain-core';
+import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { createServer } from 'src/presentation/server';
 import { describe, beforeEach, it, expect } from 'vitest';
@@ -16,14 +17,14 @@ const url = `/api${ROUTES.accounts}`;
 
 const firstUserAccounts = [
   {
-    currency: 'USD',
+    currency: Currency.create('USD').valueOf(),
     description: 'This is a test account',
     initialBalance: Amount.create('1000').valueOf(),
     name: 'Test Account',
     type: 'asset' as AccountType,
   },
   {
-    currency: 'USD',
+    currency: Currency.create('USD').valueOf(),
     currentClearedBalanceLocal: 0,
     description: 'Savings account for future expenses',
     initialBalance: Amount.create('1000').valueOf(),
@@ -70,10 +71,10 @@ describe('Accounts Integration Tests', () => {
     authToken = token;
 
     const decoded = server.jwt.decode(token) as unknown as { userId: UUID };
-    userId = Id.restore(decoded.userId).valueOf();
+    userId = Id.fromPersistence(decoded.userId).valueOf();
 
     const testAccounts = getUserTestAccounts(
-      Id.restore(decoded.userId).valueOf(),
+      Id.fromPersistence(decoded.userId).valueOf(),
     );
 
     const promises = testAccounts.map((account) =>

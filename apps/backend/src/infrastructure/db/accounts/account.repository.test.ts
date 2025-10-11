@@ -2,6 +2,7 @@ import { CurrencyCode, AccountType, UUID } from '@ledgerly/shared/types';
 import dayjs from 'dayjs';
 import { AccountDbInsert, AccountDbRow, UserDbRow } from 'src/db/schema';
 import { Amount } from 'src/domain/domain-core';
+import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import {
@@ -440,7 +441,7 @@ describe('AccountRepository', () => {
     it('should only update allowed fields', async () => {
       const maliciousData = {
         createdAt: new Date().toISOString(),
-        currency: 'EUR',
+        currency: Currency.create('EUR').valueOf(),
         id: 'malicious-id',
         initialBalance: Amount.create('2000').valueOf(),
         name: 'Updated Account',

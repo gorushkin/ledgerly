@@ -1,10 +1,12 @@
-// import { UUID } from '@ledgerly/shared/types';
 import { describe, it } from 'vitest';
 
-// import { Entry } from './entry.entity.js';
-
-describe.skip('Entry', () => {
+describe('Entry Domain Entity', () => {
   it.todo('should have tests'); // Placeholder test to avoid empty describe block
+
+  it.todo('should create a valid entry successfully', () => {
+    // const expectedResult =
+    // const entry = Entry.create({ transactionId: 'transaction-123' as UUID });
+  });
 
   //   const transactionId = 'transaction-123' as UUID;
   //   describe('create', () => {

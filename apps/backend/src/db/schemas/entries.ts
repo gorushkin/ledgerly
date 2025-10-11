@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import { transactionsTable, usersTable } from '../schema';
 
@@ -10,7 +10,7 @@ export const entriesTable = sqliteTable(
     createdAt,
     description,
     id,
-    index: integer('index').notNull(),
+    // index: integer('index').notNull(),
     transactionId: text('transaction_id')
       .notNull()
       .references(() => transactionsTable.id, { onDelete: 'cascade' }),
@@ -21,6 +21,6 @@ export const entriesTable = sqliteTable(
   },
   (t) => [
     index('idx_entries_tx').on(t.transactionId),
-    index('idx_entries_tx_index').on(t.transactionId, t.index),
+    // index('idx_entries_tx_index').on(t.transactionId, t.index),
   ],
 );

@@ -1,21 +1,22 @@
+import { CurrencyCode } from '@ledgerly/shared/types';
 import { DataBase } from 'src/types';
 
 import { db } from '../index';
 import { currenciesTable } from '../schemas';
 
 type Currency = {
-  code: string;
+  code: CurrencyCode;
   name: string;
   symbol: string;
 };
 
 const defaultCurrencies: Currency[] = [
-  { code: 'USD', name: 'US Dollar', symbol: '$' },
-  { code: 'EUR', name: 'Euro', symbol: '€' },
-  { code: 'GBP', name: 'British Pound', symbol: '£' },
-  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
-  { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF' },
-  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
+  { code: 'USD' as CurrencyCode, name: 'US Dollar', symbol: '$' },
+  { code: 'EUR' as CurrencyCode, name: 'Euro', symbol: '€' },
+  { code: 'GBP' as CurrencyCode, name: 'British Pound', symbol: '£' },
+  { code: 'JPY' as CurrencyCode, name: 'Japanese Yen', symbol: '¥' },
+  { code: 'CHF' as CurrencyCode, name: 'Swiss Franc', symbol: 'CHF' },
+  { code: 'CAD' as CurrencyCode, name: 'Canadian Dollar', symbol: 'C$' },
 ];
 
 // TODO: fix dataBase: DataBase = db as unknown as DataBase

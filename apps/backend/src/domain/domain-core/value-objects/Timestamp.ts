@@ -1,8 +1,8 @@
-import { IsoDatetimeString as IsoDatetimeStringType } from '@ledgerly/shared/types';
+import { IsoDatetimeString } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
 
-export class IsoDatetimeString {
-  private readonly _value: IsoDatetimeStringType;
+export class Timestamp {
+  private readonly _value: IsoDatetimeString;
   private constructor(value: string) {
     const parsed = isoDatetime.parse(value);
 
@@ -13,24 +13,24 @@ export class IsoDatetimeString {
     this._value = parsed;
   }
 
-  static create(): IsoDatetimeString {
+  static create(): Timestamp {
     const now = isoDatetime.parse(new Date().toISOString());
-    return new IsoDatetimeString(now);
+    return new Timestamp(now);
   }
 
-  static restore(value: string): IsoDatetimeString {
-    return new IsoDatetimeString(value);
+  static restore(value: string): Timestamp {
+    return new Timestamp(value);
   }
 
   toString(): string {
     return this._value;
   }
 
-  equals(other: IsoDatetimeString): boolean {
+  equals(other: Timestamp): boolean {
     return this._value === other._value;
   }
 
-  valueOf(): IsoDatetimeStringType {
+  valueOf(): IsoDatetimeString {
     return this._value;
   }
 }

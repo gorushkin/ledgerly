@@ -16,6 +16,7 @@ export class AddOperationToEntryUseCase {
   async execute(
     userId: UUID,
     accountId: UUID,
+    entryId: UUID,
     amount: string,
     description: string,
     tx: DataBase,
@@ -23,8 +24,9 @@ export class AddOperationToEntryUseCase {
     const account = await this.getAccountByIdUseCase.execute(userId, accountId);
 
     const operation = Operation.create(
-      Id.restore(userId),
-      Id.restore(account.id),
+      Id.fromPersistence(userId),
+      Id.fromPersistence(account.id),
+      Id.fromPersistence(entryId),
       Amount.create(amount),
       description,
     );

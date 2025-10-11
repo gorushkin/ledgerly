@@ -1,17 +1,18 @@
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
-import { BaseEntity, Id, IsoDatetimeString, Amount } from '../domain-core';
+import { BaseEntity, Id, Timestamp, Amount } from '../domain-core';
 
 export class Operation extends BaseEntity {
   private constructor(
     public readonly userId: Id,
     public readonly id: Id,
     public readonly accountId: Id,
+    public readonly entryId: Id,
     public amount: Amount,
     public description: string,
     public readonly isSystem: boolean,
-    public readonly createdAt: IsoDatetimeString,
-    public updatedAt: IsoDatetimeString,
+    public readonly createdAt: Timestamp,
+    public updatedAt: Timestamp,
   ) {
     super(userId, id, updatedAt, createdAt);
   }
@@ -19,17 +20,17 @@ export class Operation extends BaseEntity {
   static create(
     userId: Id,
     accountId: Id,
+    entryId: Id,
     amount: Amount,
     description: string,
   ): Operation {
-    const now = this.prototype.now;
-
-    const id = this.prototype.getNewId();
+    const now = Timestamp.create();
 
     return new Operation(
       userId,
-      id,
+      Id.create(),
       accountId,
+      entryId,
       amount,
       description,
       false,
@@ -44,6 +45,7 @@ export class Operation extends BaseEntity {
       amount,
       createdAt,
       description,
+      entryId,
       id,
       isSystem,
       updatedAt,
@@ -51,14 +53,15 @@ export class Operation extends BaseEntity {
     } = data;
 
     return new Operation(
-      Id.restore(userId),
-      Id.restore(id),
-      Id.restore(accountId),
+      Id.fromPersistence(userId),
+      Id.fromPersistence(id),
+      Id.fromPersistence(accountId),
+      Id.fromPersistence(entryId),
       Amount.fromPersistence(amount),
       description,
       isSystem,
-      IsoDatetimeString.restore(createdAt),
-      IsoDatetimeString.restore(updatedAt),
+      Timestamp.restore(createdAt),
+      Timestamp.restore(updatedAt),
     );
   }
 
@@ -72,24 +75,8 @@ export class Operation extends BaseEntity {
     }
 
     this.isTombstone = true;
-    this.updatedAt = this.now;
+    this.updatedAt = Timestamp.create();
   }
-
-  // withId(id: Id): Operation {
-  //   if (!this.isNew()) {
-  //     throw new Error('Cannot set ID for existing operation');
-  //   }
-
-  //   return new Operation(
-  //     this.userId,
-  //     id,
-  //     this.entryId,
-  //     this.accountId,
-  //     this.amount,
-  //     this.isSystem,
-  //     this.description,
-  //   );
-  // }
 
   canBeUpdated(): boolean {
     return !this.isSystem && !this.isDeleted();
@@ -101,7 +88,7 @@ export class Operation extends BaseEntity {
     }
 
     this.amount = amount;
-    this.updatedAt = this.now;
+    this.updatedAt = Timestamp.create();
   }
 
   updateDescription(description: string): void {
@@ -110,11 +97,11 @@ export class Operation extends BaseEntity {
     }
 
     this.description = description;
-    this.updatedAt = this.now;
+    this.updatedAt = Timestamp.create();
   }
 
   updateUpdatedAt(): void {
-    this.updatedAt = this.now;
+    this.updatedAt = Timestamp.create();
   }
 
   toPersistence(): OperationDbInsert {
@@ -123,6 +110,7 @@ export class Operation extends BaseEntity {
       amount: this.amount.valueOf(),
       createdAt: this.createdAt.valueOf(),
       description: this.description,
+      entryId: this.entryId.valueOf(),
       id: this.id.valueOf(),
       isSystem: this.isSystem,
       isTombstone: false,

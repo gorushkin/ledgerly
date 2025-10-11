@@ -1,31 +1,23 @@
 import { Id } from '../value-objects/Id';
-import { IsoDatetimeString } from '../value-objects/IsoDateString';
+import { Timestamp } from '../value-objects/Timestamp';
 
 export abstract class BaseEntity {
   isTombstone = false;
   protected constructor(
     protected readonly userId: Id,
     protected id: Id,
-    protected updatedAt: IsoDatetimeString,
-    protected readonly createdAt: IsoDatetimeString,
+    protected updatedAt: Timestamp,
+    protected readonly createdAt: Timestamp,
   ) {
     this.updatedAt = updatedAt;
     this.createdAt = createdAt;
-  }
-
-  get now(): IsoDatetimeString {
-    return IsoDatetimeString.create();
   }
 
   /**
    * Проверяет, принадлежит ли сущность указанному пользователю
    */
   belongsToUser(userId: Id): boolean {
-    return this.userId.equals(userId);
-  }
-
-  getNewId() {
-    return Id.create();
+    return this.userId.isEqualTo(userId);
   }
 
   markAsDeleted(): void {
@@ -42,11 +34,11 @@ export abstract class BaseEntity {
     }
   }
 
-  protected touch(now?: IsoDatetimeString) {
-    this.updatedAt = now ?? this.now;
+  protected touch(now?: Timestamp) {
+    this.updatedAt = now ?? Timestamp.create();
   }
 
   setId() {
-    this.id = this.getNewId();
+    this.id = Id.create();
   }
 }

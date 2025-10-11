@@ -1,18 +1,26 @@
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { IsoDatetimeString } from 'src/domain/domain-core/value-objects/IsoDateString';
+import { Timestamp } from 'src/domain/domain-core/value-objects/Timestamp';
 import { describe, expect, it } from 'vitest';
 
-import { Amount } from '../domain-core';
+import { Amount, Name } from '../domain-core';
+import { Currency } from '../domain-core/value-objects/Currency';
 
 import { Account } from './account.entity';
 
-const userIdValue = Id.restore(
+const userIdValue = Id.fromPersistence(
   '123e4567-e89b-12d3-a456-426614174000',
 ).valueOf();
 const userTypeValue = 'asset';
 
-const userId = Id.restore(userIdValue);
+const userId = Id.fromPersistence(userIdValue);
+
+const currencyUSD = Currency.create('USD');
+const currencyEUR = Currency.create('EUR');
+
+const currencyCodeEUR = currencyEUR.valueOf();
+
+const name = Name.create('account-name');
 
 describe('Account Domain Entity', () => {
   const accountType = AccountType.create(userTypeValue);
@@ -21,47 +29,34 @@ describe('Account Domain Entity', () => {
     it('should create account with valid data', () => {
       const account = Account.create(
         userId,
-        'account-name',
+        name,
         'account-description',
         Amount.create('0'),
-        'USD',
+        currencyUSD,
         accountType,
       );
 
       expect(account).toBeInstanceOf(Account);
       expect(account.id).toBeDefined();
       expect(account.userId).toBe(userId);
-      expect(account).toHaveProperty('name', 'account-name');
+      expect(account).toHaveProperty('name', name);
       expect(account).toHaveProperty('description', 'account-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('0'));
-      expect(account).toHaveProperty('currency', 'USD');
+      expect(account).toHaveProperty('currency', currencyUSD);
       expect(account).toHaveProperty('type', { _value: 'asset' });
-      expect(account.userId.equals(userId)).toBe(true);
+      expect(account.userId.isEqualTo(userId)).toBe(true);
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account.getType().equals(accountType)).toBe(true);
-    });
-
-    it('should throw error for empty name', () => {
-      expect(() =>
-        Account.create(
-          userId,
-          '',
-          'account-description',
-          Amount.create('0'),
-          'USD',
-          accountType,
-        ),
-      ).toThrowError('Account name cannot be empty');
     });
 
     it('should throw error for wrong account type', () => {
       expect(() =>
         Account.create(
           userId,
-          'account-name',
+          name,
           'account-description',
           Amount.create('0'),
-          'USD',
+          currencyUSD,
           AccountType.create('invalid-type'),
         ),
       ).toThrowError('Invalid account type');
@@ -74,13 +69,13 @@ describe('Account Domain Entity', () => {
       const createdAtValue = '2023-10-01T12:00:00.000Z';
       const updatedAtValue = '2023-10-02T12:00:00.000Z';
 
-      const accountId = Id.restore(accountIdValue);
-      const createdAt = IsoDatetimeString.restore(createdAtValue);
-      const updatedAt = IsoDatetimeString.restore(updatedAtValue);
+      const accountId = Id.fromPersistence(accountIdValue);
+      const createdAt = Timestamp.restore(createdAtValue);
+      const updatedAt = Timestamp.restore(updatedAtValue);
 
       const account = Account.fromPersistence({
         createdAt: createdAt.valueOf(),
-        currency: 'EUR',
+        currency: currencyCodeEUR,
         currentClearedBalanceLocal: Amount.create('500').valueOf(),
         description: 'restored-description',
         id: accountId.valueOf(),
@@ -95,10 +90,10 @@ describe('Account Domain Entity', () => {
       expect(account).toBeInstanceOf(Account);
       expect(account.id?.toString()).toBe(accountIdValue);
       expect(account.userId.toString()).toBe(userIdValue);
-      expect(account).toHaveProperty('name', 'restored-account');
+      expect(account).toHaveProperty('name', Name.create('restored-account'));
       expect(account).toHaveProperty('description', 'restored-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('500'));
-      expect(account).toHaveProperty('currency', 'EUR');
+      expect(account).toHaveProperty('currency', currencyEUR);
     });
   });
 
@@ -106,26 +101,26 @@ describe('Account Domain Entity', () => {
     it('should update account with valid value', () => {
       const account = Account.create(
         userId,
-        'initial-name',
+        Name.create('initial-name'),
         'description',
         Amount.create('0'),
-        'USD',
+        currencyUSD,
         accountType,
       );
 
       account.updateAccount({ name: 'updated-name' });
 
-      expect(account).toHaveProperty('name', 'updated-name');
+      expect(account).toHaveProperty('name', Name.create('updated-name'));
     });
 
     describe('softDelete method', () => {
       it('should mark account as tombstone', () => {
         const account = Account.create(
           userId,
-          'account-name',
+          name,
           'account-description',
           Amount.create('0'),
-          'USD',
+          currencyUSD,
           accountType,
         );
 
@@ -139,10 +134,10 @@ describe('Account Domain Entity', () => {
       it('should not allow updates after soft deletion', () => {
         const account = Account.create(
           userId,
-          'account-name',
+          name,
           'account-description',
           Amount.create('0'),
-          'USD',
+          currencyUSD,
           accountType,
         );
 
@@ -156,10 +151,10 @@ describe('Account Domain Entity', () => {
       it('should not update account during soft deletion', () => {
         const account = Account.create(
           userId,
-          'account-name',
+          name,
           'account-description',
           Amount.create('0'),
-          'USD',
+          currencyUSD,
           accountType,
         );
 

@@ -1,39 +1,29 @@
-import { UUID } from '@ledgerly/shared/types';
+import { IsoDateString, IsoDatetimeString, UUID } from '@ledgerly/shared/types';
 
-// Request DTOs для создания транзакций
+import { CreateEntryRequestDTO, EntryResponseDTO } from './entry.dto';
+
+export type TransactionDomain = {
+  createdAt: IsoDatetimeString;
+  description: string | null;
+  id: UUID;
+  isTombstone: boolean;
+  postingDate: IsoDateString | null;
+  transactionDate: IsoDateString;
+  updatedAt: IsoDatetimeString;
+  userId: UUID;
+};
+
+// Request DTOs для создания
 export type CreateTransactionRequestDTO = {
   description: string;
   entries: CreateEntryRequestDTO[];
 };
 
-export type CreateEntryRequestDTO = {
-  description?: string;
-  operations: CreateOperationRequestDTO[];
-};
-
-export type CreateOperationRequestDTO = {
-  accountId: UUID;
-  amount: number;
-  description?: string;
-};
-
-// Request DTOs для обновления транзакций
+// Request DTOs для обновления
 export type UpdateTransactionRequestDTO = {
   description?: string;
 };
 
-export type UpdateEntryRequestDTO = {
-  description?: string;
-};
-
-export type UpdateOperationRequestDTO = {
-  accountId?: UUID;
-  id: UUID;
-  amount?: string;
-  description?: string;
-};
-
-// Response DTOs
 export type TransactionResponseDTO = {
   id: UUID;
   userId: UUID;
@@ -45,30 +35,6 @@ export type TransactionResponseDTO = {
   totalAmount: number;
 };
 
-export type EntryResponseDTO = {
-  id: UUID;
-  transactionId: UUID;
-  description?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  operations: OperationResponseDTO[];
-  isBalanced: boolean;
-  totalDebit: number;
-  totalCredit: number;
-};
-
-export type OperationResponseDTO = {
-  id: UUID;
-  entryId: UUID;
-  accountId: UUID;
-  amount: number;
-  type: 'debit' | 'credit';
-  isSystem: boolean;
-  description?: string;
-  displayAmount: string;
-};
-
-// Query DTOs
 export type GetTransactionsQueryDTO = {
   userId: UUID;
   limit?: number;

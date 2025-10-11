@@ -12,7 +12,7 @@ import {
   getBooleanColumn,
   getMoneyColumn,
 } from './common';
-// import { entriesTable } from './entries';
+import { entriesTable } from './entries';
 import { usersTable } from './users';
 
 export const operationsTable = sqliteTable(
@@ -25,16 +25,13 @@ export const operationsTable = sqliteTable(
     amount: getMoneyColumn('base_amount'),
     createdAt,
     description,
-    // entryId: text('entry_id')
-    //   .notNull()
-    //   .references(() => entriesTable.id, { onDelete: 'cascade' })
-    //   .$type<UUID>(),
+    entryId: text('entry_id')
+      .notNull()
+      .references(() => entriesTable.id, { onDelete: 'cascade' })
+      .$type<UUID>(),
     id,
     isSystem: getBooleanColumn('is_system'),
     isTombstone,
-    // type: text('type', {
-    //   enum: OPERATION_TYPE_VALUES,
-    // }).notNull(),
     updatedAt,
     userId: text('user_id')
       .notNull()
@@ -42,7 +39,7 @@ export const operationsTable = sqliteTable(
       .$type<UUID>(),
   },
   (t) => [
-    // index('idx_operations_entry').on(t.entryId),
+    index('idx_operations_entry').on(t.entryId),
     index('idx_operations_account').on(t.accountId),
     index('idx_operations_user').on(t.userId),
   ],

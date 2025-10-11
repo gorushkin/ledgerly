@@ -19,7 +19,8 @@ export const uniqueIdSchema = z.object({
 
 export const currencyCode = z
   .string()
-  .length(3, "Currency code must be exactly 3 characters");
+  .length(3, "Currency code must be exactly 3 characters")
+  .brand<"CurrencyCode">();
 
 export const isoDatetime = z.string().datetime().brand<"IsoDatetimeString">();
 
