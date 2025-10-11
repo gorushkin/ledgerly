@@ -37,14 +37,14 @@ describe('Account Domain Entity', () => {
       );
 
       expect(account).toBeInstanceOf(Account);
-      expect(account.id).toBeDefined();
-      expect(account.userId).toBe(userId);
+      expect(account.getId()).toBeDefined();
+      expect(account.getUserId()).toBe(userId);
       expect(account).toHaveProperty('name', name);
       expect(account).toHaveProperty('description', 'account-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('0'));
       expect(account).toHaveProperty('currency', currencyUSD);
       expect(account).toHaveProperty('type', { _value: 'asset' });
-      expect(account.userId.isEqualTo(userId)).toBe(true);
+      expect(account.getUserId().isEqualTo(userId)).toBe(true);
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account.getType().equals(accountType)).toBe(true);
     });
@@ -88,8 +88,8 @@ describe('Account Domain Entity', () => {
       });
 
       expect(account).toBeInstanceOf(Account);
-      expect(account.id?.toString()).toBe(accountIdValue);
-      expect(account.userId.toString()).toBe(userIdValue);
+      expect(account.getId().toString()).toBe(accountIdValue);
+      expect(account.getUserId().toString()).toBe(userIdValue);
       expect(account).toHaveProperty('name', Name.create('restored-account'));
       expect(account).toHaveProperty('description', 'restored-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('500'));

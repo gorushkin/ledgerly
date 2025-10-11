@@ -1,2 +1,3 @@
 export * from './value-objects/';
-export * from './base';
+export * from './behaviors/';
+// export * from './base'; // Deprecated: use composition behaviors instead

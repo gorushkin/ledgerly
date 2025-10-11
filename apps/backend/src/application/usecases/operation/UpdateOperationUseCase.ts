@@ -54,7 +54,7 @@ export class UpdateOperationUseCase {
     }
 
     await this.operationRepository.update(
-      operation.id.valueOf(),
+      operation.getId().valueOf(),
       operation.toPersistence(),
       tx,
     );

@@ -1,14 +1,24 @@
-import { BaseEntity, Id, Timestamp } from '../domain-core';
-import { Operation } from '../operations/operation.entity';
+import {
+  EntityIdentity,
+  EntityTimestamps,
+  SoftDelete,
+  UserOwnership,
+} from '../domain-core';
 
-export class Entry extends BaseEntity {
+export class Entry {
+  private readonly identity: EntityIdentity;
+  private readonly timestamps: EntityTimestamps;
+  private readonly softDelete: SoftDelete;
+  private readonly ownership: UserOwnership;
   private constructor(
-    public readonly userId: Id,
-    public readonly id: Id,
-    public readonly operations: Operation[],
-    public readonly createdAt: Timestamp,
-    public updatedAt: Timestamp,
+    identity: EntityIdentity,
+    timestamps: EntityTimestamps,
+    softDelete: SoftDelete,
+    ownership: UserOwnership,
   ) {
-    super(userId, id, updatedAt, createdAt);
+    this.identity = identity;
+    this.timestamps = timestamps;
+    this.softDelete = softDelete;
+    this.ownership = ownership;
   }
 }
