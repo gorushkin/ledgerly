@@ -44,18 +44,22 @@ export class CreateAccountUseCase extends AccountUseCaseBase {
 
     const userIdVO = Id.fromPersistence(userId);
 
-    const account = Account.create(
-      userIdVO,
-      Name.create(name),
-      description,
-      Amount.create(initialBalance),
-      Currency.create(currency),
-      AccountType.create(type),
-    );
+    const createAccount = () =>
+      Account.create(
+        userIdVO,
+        Name.create(name),
+        description,
+        Amount.create(initialBalance),
+        Currency.create(currency),
+        AccountType.create(type),
+      );
+
+    const account = createAccount();
 
     return this.saveWithIdRetry<AccountRepoInsert, Account, AccountResponseDTO>(
       account,
       this.accountRepository.create.bind(this.accountRepository),
+      createAccount,
     );
   }
 }

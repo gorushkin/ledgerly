@@ -1,20 +1,36 @@
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
-import { BaseEntity, Id, Timestamp, Amount } from '../domain-core';
+import {
+  Id,
+  Timestamp,
+  Amount,
+  UserOwnership,
+  EntityIdentity,
+  EntityTimestamps,
+  SoftDelete,
+} from '../domain-core';
 
-export class Operation extends BaseEntity {
+export class Operation {
+  private readonly identity: EntityIdentity;
+  private timestamps: EntityTimestamps;
+  private softDelete: SoftDelete;
+  private readonly ownership: UserOwnership;
+
   private constructor(
-    public readonly userId: Id,
-    public readonly id: Id,
+    identity: EntityIdentity,
+    timestamps: EntityTimestamps,
+    softDelete: SoftDelete,
+    ownership: UserOwnership,
     public readonly accountId: Id,
     public readonly entryId: Id,
     public amount: Amount,
     public description: string,
     public readonly isSystem: boolean,
-    public readonly createdAt: Timestamp,
-    public updatedAt: Timestamp,
   ) {
-    super(userId, id, updatedAt, createdAt);
+    this.identity = identity;
+    this.timestamps = timestamps;
+    this.softDelete = softDelete;
+    this.ownership = ownership;
   }
 
   static create(
@@ -24,18 +40,21 @@ export class Operation extends BaseEntity {
     amount: Amount,
     description: string,
   ): Operation {
-    const now = Timestamp.create();
+    const identity = EntityIdentity.create();
+    const timestamps = EntityTimestamps.create();
+    const softDelete = SoftDelete.create();
+    const ownership = UserOwnership.create(userId);
 
     return new Operation(
-      userId,
-      Id.create(),
+      identity,
+      timestamps,
+      softDelete,
+      ownership,
       accountId,
       entryId,
       amount,
       description,
       false,
-      now,
-      now,
     );
   }
 
@@ -48,34 +67,79 @@ export class Operation extends BaseEntity {
       entryId,
       id,
       isSystem,
+      isTombstone,
       updatedAt,
       userId,
     } = data;
 
+    const identity = new EntityIdentity(Id.fromPersistence(id));
+    const timestamps = EntityTimestamps.fromPersistence(
+      Timestamp.restore(updatedAt),
+      Timestamp.restore(createdAt),
+    );
+    const softDelete = SoftDelete.fromPersistence(isTombstone);
+    const ownership = UserOwnership.create(Id.fromPersistence(userId));
+
     return new Operation(
-      Id.fromPersistence(userId),
-      Id.fromPersistence(id),
+      identity,
+      timestamps,
+      softDelete,
+      ownership,
       Id.fromPersistence(accountId),
       Id.fromPersistence(entryId),
       Amount.fromPersistence(amount),
       description,
       isSystem,
-      Timestamp.restore(createdAt),
-      Timestamp.restore(updatedAt),
     );
   }
 
-  isDeleted = (): boolean => {
-    return this.isTombstone;
-  };
+  // Delegation methods for identity
+  getId(): Id {
+    return this.identity.getId();
+  }
+
+  // Delegation methods for timestamps
+  getUpdatedAt(): Timestamp {
+    return this.timestamps.getUpdatedAt();
+  }
+
+  getCreatedAt(): Timestamp {
+    return this.timestamps.getCreatedAt();
+  }
+
+  private touch(): void {
+    this.timestamps = this.timestamps.touch();
+  }
+
+  // Delegation methods for soft delete
+  markAsDeleted(): void {
+    this.softDelete = this.softDelete.markAsDeleted();
+  }
+
+  isDeleted(): boolean {
+    return this.softDelete.isDeleted();
+  }
+
+  private validateUpdateIsAllowed(): void {
+    this.softDelete.validateUpdateIsAllowed();
+  }
+
+  // Delegation methods for ownership
+  belongsToUser(userId: Id): boolean {
+    return this.ownership.belongsToUser(userId);
+  }
+
+  getUserId(): Id {
+    return this.ownership.getOwnerId();
+  }
 
   delete(): void {
     if (this.isDeleted()) {
       throw new Error('Operation is already deleted');
     }
 
-    this.isTombstone = true;
-    this.updatedAt = Timestamp.create();
+    this.markAsDeleted();
+    this.touch();
   }
 
   canBeUpdated(): boolean {
@@ -88,7 +152,7 @@ export class Operation extends BaseEntity {
     }
 
     this.amount = amount;
-    this.updatedAt = Timestamp.create();
+    this.touch();
   }
 
   updateDescription(description: string): void {
@@ -97,25 +161,25 @@ export class Operation extends BaseEntity {
     }
 
     this.description = description;
-    this.updatedAt = Timestamp.create();
+    this.touch();
   }
 
   updateUpdatedAt(): void {
-    this.updatedAt = Timestamp.create();
+    this.touch();
   }
 
   toPersistence(): OperationDbInsert {
     return {
       accountId: this.accountId.valueOf(),
       amount: this.amount.valueOf(),
-      createdAt: this.createdAt.valueOf(),
+      createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
       entryId: this.entryId.valueOf(),
-      id: this.id.valueOf(),
+      id: this.getId().valueOf(),
       isSystem: this.isSystem,
-      isTombstone: false,
-      updatedAt: this.updatedAt.valueOf(),
-      userId: this.userId.valueOf(),
+      isTombstone: this.softDelete.getIsTombstone(),
+      updatedAt: this.getUpdatedAt().valueOf(),
+      userId: this.ownership.getOwnerId().valueOf(),
     };
   }
 }

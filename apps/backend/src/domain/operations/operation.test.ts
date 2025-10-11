@@ -25,13 +25,13 @@ describe('Operation Domain Entity', () => {
     );
 
     expect(operation).toBeInstanceOf(Operation);
-    expect(operation.userId).toEqual(userId);
+    expect(operation.getUserId()).toEqual(userId);
     expect(operation.accountId).toEqual(accountId);
     expect(operation.amount).toEqual(Amount.create('100'));
     expect(operation.isSystem).toBe(false);
-    expect(operation.id).toBeDefined();
-    expect(operation.createdAt).toBeDefined();
-    expect(operation.updatedAt).toBeDefined();
+    expect(operation.getId()).toBeDefined();
+    expect(operation.getCreatedAt()).toBeDefined();
+    expect(operation.getUpdatedAt()).toBeDefined();
   });
 
   it('should serialize and deserialize correctly', () => {
