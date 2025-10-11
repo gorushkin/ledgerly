@@ -1,4 +1,4 @@
-import { BaseEntity, Id, IsoDatetimeString } from '../domain-core';
+import { BaseEntity, Id, Timestamp } from '../domain-core';
 import { Operation } from '../operations/operation.entity';
 
 export class Entry extends BaseEntity {
@@ -6,8 +6,8 @@ export class Entry extends BaseEntity {
     public readonly userId: Id,
     public readonly id: Id,
     public readonly operations: Operation[],
-    public readonly createdAt: IsoDatetimeString,
-    public updatedAt: IsoDatetimeString,
+    public readonly createdAt: Timestamp,
+    public updatedAt: Timestamp,
   ) {
     super(userId, id, updatedAt, createdAt);
   }

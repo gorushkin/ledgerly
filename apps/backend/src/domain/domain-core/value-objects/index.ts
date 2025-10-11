@@ -1,5 +1,5 @@
 export { Id } from './Id';
-export { IsoDatetimeString } from './IsoDateString';
+export { Timestamp } from './Timestamp';
 export { Money } from './Money';
 export { Amount } from './Amount';
 export { Currency } from './Currency';

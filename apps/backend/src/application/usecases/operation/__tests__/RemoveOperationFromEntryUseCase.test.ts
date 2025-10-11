@@ -1,6 +1,6 @@
 import { OperationRepository } from 'src/application/interfaces:toRefactor/OperationRepository.interface';
 import { OperationDbRow } from 'src/db/schema';
-import { Amount, IsoDatetimeString } from 'src/domain/domain-core';
+import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { Operation } from 'src/domain/operations/operation.entity';
 import { DataBase } from 'src/types';
@@ -38,13 +38,13 @@ describe('DeleteOperationUseCase', () => {
   const mockInitialOperationData: OperationDbRow = {
     accountId: accountId.valueOf(),
     amount: Amount.create(amount).toPersistence(),
-    createdAt: IsoDatetimeString.create().valueOf(),
+    createdAt: Timestamp.create().valueOf(),
     description,
     entryId: entryId.valueOf(),
     id: Id.create().valueOf(),
     isSystem: false,
     isTombstone: false,
-    updatedAt: IsoDatetimeString.create().valueOf(),
+    updatedAt: Timestamp.create().valueOf(),
     userId: userId.valueOf(),
   };
 

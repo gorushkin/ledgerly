@@ -6,7 +6,7 @@ import {
   BaseEntity,
   Currency,
   Id,
-  IsoDatetimeString,
+  Timestamp,
   Name,
 } from '../domain-core';
 
@@ -22,9 +22,9 @@ export class Account extends BaseEntity {
     private currentClearedBalanceLocal: Amount,
     private currency: Currency,
     private type: AccountType,
-    readonly createdAt: IsoDatetimeString,
+    readonly createdAt: Timestamp,
 
-    updatedAt: IsoDatetimeString,
+    updatedAt: Timestamp,
   ) {
     super(userId, id, updatedAt, createdAt);
   }
@@ -37,12 +37,11 @@ export class Account extends BaseEntity {
     currency: Currency,
     type: AccountType,
   ): Account {
-    const now = this.prototype.now;
-    const id = this.prototype.getNewId();
+    const now = Timestamp.create();
 
     return new Account(
       userId,
-      id,
+      Id.create(),
       name,
       description,
       initialBalance,
@@ -77,8 +76,8 @@ export class Account extends BaseEntity {
       Amount.create(currentClearedBalanceLocal),
       Currency.create(currency),
       AccountType.create(type),
-      IsoDatetimeString.restore(createdAt),
-      IsoDatetimeString.restore(updatedAt),
+      Timestamp.restore(createdAt),
+      Timestamp.restore(updatedAt),
     );
   }
 
@@ -116,6 +115,6 @@ export class Account extends BaseEntity {
     this.currency = currency;
     this.name = name;
 
-    this.touch(this.now);
+    this.touch(Timestamp.create());
   }
 }

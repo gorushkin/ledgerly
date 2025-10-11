@@ -1,6 +1,6 @@
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
-import { BaseEntity, Id, IsoDatetimeString, Amount } from '../domain-core';
+import { BaseEntity, Id, Timestamp, Amount } from '../domain-core';
 
 export class Operation extends BaseEntity {
   private constructor(
@@ -11,8 +11,8 @@ export class Operation extends BaseEntity {
     public amount: Amount,
     public description: string,
     public readonly isSystem: boolean,
-    public readonly createdAt: IsoDatetimeString,
-    public updatedAt: IsoDatetimeString,
+    public readonly createdAt: Timestamp,
+    public updatedAt: Timestamp,
   ) {
     super(userId, id, updatedAt, createdAt);
   }
@@ -24,13 +24,11 @@ export class Operation extends BaseEntity {
     amount: Amount,
     description: string,
   ): Operation {
-    const now = this.prototype.now;
-
-    const id = this.prototype.getNewId();
+    const now = Timestamp.create();
 
     return new Operation(
       userId,
-      id,
+      Id.create(),
       accountId,
       entryId,
       amount,
@@ -62,8 +60,8 @@ export class Operation extends BaseEntity {
       Amount.fromPersistence(amount),
       description,
       isSystem,
-      IsoDatetimeString.restore(createdAt),
-      IsoDatetimeString.restore(updatedAt),
+      Timestamp.restore(createdAt),
+      Timestamp.restore(updatedAt),
     );
   }
 
@@ -77,7 +75,7 @@ export class Operation extends BaseEntity {
     }
 
     this.isTombstone = true;
-    this.updatedAt = this.now;
+    this.updatedAt = Timestamp.create();
   }
 
   canBeUpdated(): boolean {
@@ -90,7 +88,7 @@ export class Operation extends BaseEntity {
     }
 
     this.amount = amount;
-    this.updatedAt = this.now;
+    this.updatedAt = Timestamp.create();
   }
 
   updateDescription(description: string): void {
@@ -99,11 +97,11 @@ export class Operation extends BaseEntity {
     }
 
     this.description = description;
-    this.updatedAt = this.now;
+    this.updatedAt = Timestamp.create();
   }
 
   updateUpdatedAt(): void {
-    this.updatedAt = this.now;
+    this.updatedAt = Timestamp.create();
   }
 
   toPersistence(): OperationDbInsert {

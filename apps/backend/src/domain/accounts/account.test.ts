@@ -1,6 +1,6 @@
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { IsoDatetimeString } from 'src/domain/domain-core/value-objects/IsoDateString';
+import { Timestamp } from 'src/domain/domain-core/value-objects/Timestamp';
 import { describe, expect, it } from 'vitest';
 
 import { Amount, Name } from '../domain-core';
@@ -70,8 +70,8 @@ describe('Account Domain Entity', () => {
       const updatedAtValue = '2023-10-02T12:00:00.000Z';
 
       const accountId = Id.fromPersistence(accountIdValue);
-      const createdAt = IsoDatetimeString.restore(createdAtValue);
-      const updatedAt = IsoDatetimeString.restore(updatedAtValue);
+      const createdAt = Timestamp.restore(createdAtValue);
+      const updatedAt = Timestamp.restore(updatedAtValue);
 
       const account = Account.fromPersistence({
         createdAt: createdAt.valueOf(),
