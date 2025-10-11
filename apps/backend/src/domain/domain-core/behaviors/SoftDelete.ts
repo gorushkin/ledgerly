@@ -1,5 +1,5 @@
 /**
- * Поведение для управления мягким удалением сущности
+ * Behavior for managing soft deletion of an entity
  */
 export class SoftDelete {
   constructor(private readonly isTombstone = false) {
@@ -7,21 +7,21 @@ export class SoftDelete {
   }
 
   /**
-   * Помечает сущность как удаленную
+   * Marks the entity as deleted
    */
   markAsDeleted(): SoftDelete {
     return new SoftDelete(true);
   }
 
   /**
-   * Проверяет, удалена ли сущность
+   * Checks if the entity is deleted
    */
   isDeleted(): boolean {
     return this.isTombstone;
   }
 
   /**
-   * Проверяет, можно ли обновлять сущность
+   * Checks if the entity can be updated
    */
   validateUpdateIsAllowed(): void {
     if (this.isTombstone) {
@@ -30,21 +30,21 @@ export class SoftDelete {
   }
 
   /**
-   * Возвращает статус удаления для сериализации
+   * Returns the deletion status for serialization
    */
   getIsTombstone(): boolean {
     return this.isTombstone;
   }
 
   /**
-   * Создает новый экземпляр SoftDelete
+   * Creates a new instance of SoftDelete
    */
   static create(): SoftDelete {
     return new SoftDelete(false);
   }
 
   /**
-   * Восстанавливает экземпляр из базы данных
+   * Restores an instance from the database
    */
   static fromPersistence(isTombstone: boolean): SoftDelete {
     return new SoftDelete(isTombstone);

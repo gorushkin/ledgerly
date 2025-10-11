@@ -1,27 +1,27 @@
 import { Id } from './Id';
 
 /**
- * Value Object для представления принадлежности сущности пользователю
+ * Value Object representing the ownership of an entity by a user
  */
 export class UserOwnership {
   constructor(private readonly userId: Id) {}
 
   /**
-   * Проверяет, принадлежит ли сущность указанному пользователю
+   * Checks if the entity belongs to the specified user
    */
   belongsToUser(userId: Id): boolean {
     return this.userId.isEqualTo(userId);
   }
 
   /**
-   * Возвращает ID владельца
+   * Returns the owner's ID
    */
   getOwnerId(): Id {
     return this.userId;
   }
 
   /**
-   * Создает новый экземпляр UserOwnership
+   * Creates a new instance of UserOwnership
    */
   static create(userId: Id): UserOwnership {
     return new UserOwnership(userId);

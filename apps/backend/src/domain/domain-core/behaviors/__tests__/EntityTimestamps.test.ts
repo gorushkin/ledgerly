@@ -4,7 +4,7 @@ import { Timestamp } from '../../value-objects/Timestamp';
 import { EntityTimestamps } from '../EntityTimestamps';
 
 describe('EntityTimestamps', () => {
-  it('должен создать новый экземпляр EntityTimestamps', () => {
+  it('should create a new instance of EntityTimestamps', () => {
     const timestamps = EntityTimestamps.create();
 
     expect(timestamps).toBeInstanceOf(EntityTimestamps);
@@ -15,7 +15,7 @@ describe('EntityTimestamps', () => {
     );
   });
 
-  it('должен быть иммутабельным при обновлении времени', () => {
+  it('should be immutable when updating the timestamp', () => {
     const original = EntityTimestamps.create();
     const newTimestamp = Timestamp.restore('2024-01-01T00:00:00.000Z');
 
@@ -38,13 +38,13 @@ describe('EntityTimestamps', () => {
     expect(original).not.toBe(updated);
   });
 
-  it('должен быть заморожен (Object.freeze)', () => {
+  it('should be frozen (Object.freeze)', () => {
     const timestamps = EntityTimestamps.create();
 
     expect(Object.isFrozen(timestamps)).toBe(true);
   });
 
-  it('должен корректно создаваться с заданным временем создания', () => {
+  it('should correctly create with a given creation time', () => {
     const createdAt = Timestamp.restore('2024-01-01T00:00:00.000Z');
     const timestamps = EntityTimestamps.create(createdAt);
 
@@ -52,7 +52,7 @@ describe('EntityTimestamps', () => {
     expect(timestamps.getUpdatedAt()).toBe(createdAt);
   });
 
-  it('должен корректно восстанавливаться из persistence', () => {
+  it('should correctly restore from persistence', () => {
     const createdAt = Timestamp.restore('2024-01-01T00:00:00.000Z');
     const updatedAt = Timestamp.restore('2024-01-02T00:00:00.000Z');
 
@@ -62,7 +62,7 @@ describe('EntityTimestamps', () => {
     expect(timestamps.getUpdatedAt()).toBe(updatedAt);
   });
 
-  it('touch() должен использовать текущее время если не передано', () => {
+  it('touch() should use the current time if not provided', () => {
     // Мокаем Timestamp.create() чтобы контролировать время
     const mockTimestamp = Timestamp.restore('2024-01-01T12:00:00.000Z');
     const createSpy = vi
@@ -80,7 +80,7 @@ describe('EntityTimestamps', () => {
     createSpy.mockRestore();
   });
 
-  it('touch() с новым временем должен возвращать новый экземпляр даже с тем же временем', () => {
+  it('touch() with a new time should return a new instance even with the same time', () => {
     const sameTime = Timestamp.restore('2024-01-01T00:00:00.000Z');
     const timestamps1 = EntityTimestamps.create(sameTime);
     const timestamps2 = timestamps1.touch(sameTime);

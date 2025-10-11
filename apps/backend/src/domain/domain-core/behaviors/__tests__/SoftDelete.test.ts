@@ -3,34 +3,34 @@ import { describe, it, expect } from 'vitest';
 import { SoftDelete } from '../SoftDelete';
 
 describe('SoftDelete', () => {
-  it('должен создать новый экземпляр SoftDelete', () => {
+  it('should create a new SoftDelete instance', () => {
     const softDelete = SoftDelete.create();
 
     expect(softDelete).toBeInstanceOf(SoftDelete);
     expect(softDelete.isDeleted()).toBe(false);
   });
 
-  it('должен быть иммутабельным при пометке как удаленного', () => {
+  it('should be immutable when marked as deleted', () => {
     const original = SoftDelete.create();
     const deleted = original.markAsDeleted();
 
-    // Оригинальный экземпляр должен остаться неизменным
+    // The original instance should remain unchanged
     expect(original.isDeleted()).toBe(false);
 
-    // Новый экземпляр должен быть помечен как удаленный
+    // The new instance should be marked as deleted
     expect(deleted.isDeleted()).toBe(true);
 
-    // Это должны быть разные объекты
+    // These should be different objects
     expect(original).not.toBe(deleted);
   });
 
-  it('должен быть заморожен (Object.freeze)', () => {
+  it('should be frozen (Object.freeze)', () => {
     const softDelete = SoftDelete.create();
 
     expect(Object.isFrozen(softDelete)).toBe(true);
   });
 
-  it('должен корректно работать с getIsTombstone', () => {
+  it('should work correctly with getIsTombstone', () => {
     const active = SoftDelete.create();
     const deleted = active.markAsDeleted();
 
@@ -38,20 +38,20 @@ describe('SoftDelete', () => {
     expect(deleted.getIsTombstone()).toBe(true);
   });
 
-  it('должен валидировать возможность обновления', () => {
+  it('should validate update allowance', () => {
     const active = SoftDelete.create();
     const deleted = active.markAsDeleted();
 
-    // Активная сущность должна разрешать обновления
+    // Active entity should allow updates
     expect(() => active.validateUpdateIsAllowed()).not.toThrow();
 
-    // Удаленная сущность должна запрещать обновления
+    // Deleted entity should forbid updates
     expect(() => deleted.validateUpdateIsAllowed()).toThrow(
       'Cannot update a deleted entity',
     );
   });
 
-  it('markAsDeleted должен возвращать новый экземпляр даже для уже удаленной сущности', () => {
+  it('markAsDeleted should return a new instance even for already deleted entity', () => {
     const deleted1 = SoftDelete.create().markAsDeleted();
     const deleted2 = deleted1.markAsDeleted();
 

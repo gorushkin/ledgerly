@@ -1,7 +1,7 @@
 import { Timestamp } from '../value-objects/Timestamp';
 
 /**
- * Поведение для управления временными метками сущности
+ * Behavior for managing entity timestamps
  */
 export class EntityTimestamps {
   constructor(
@@ -12,21 +12,21 @@ export class EntityTimestamps {
   }
 
   /**
-   * Возвращает время последнего обновления
+   * Returns the last update time
    */
   getUpdatedAt(): Timestamp {
     return this.updatedAt;
   }
 
   /**
-   * Возвращает время создания
+   * Returns the creation time
    */
   getCreatedAt(): Timestamp {
     return this.createdAt;
   }
 
   /**
-   * Обновляет время последнего изменения
+   * Updates the last modification time
    */
   touch(now?: Timestamp): EntityTimestamps {
     const newTimestamp = now ?? Timestamp.create();
@@ -34,7 +34,7 @@ export class EntityTimestamps {
   }
 
   /**
-   * Создает новый экземпляр EntityTimestamps
+   * Creates a new instance of EntityTimestamps
    */
   static create(createdAt?: Timestamp): EntityTimestamps {
     const now = createdAt ?? Timestamp.create();
@@ -42,7 +42,7 @@ export class EntityTimestamps {
   }
 
   /**
-   * Восстанавливает экземпляр из базы данных
+   * Restores an instance from the database
    */
   static fromPersistence(
     updatedAt: Timestamp,
