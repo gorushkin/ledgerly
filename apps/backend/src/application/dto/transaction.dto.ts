@@ -1,25 +1,14 @@
-import { IsoDateString, IsoDatetimeString, UUID } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 
 import { CreateEntryRequestDTO, EntryResponseDTO } from './entry.dto';
 
-export type TransactionDomain = {
-  createdAt: IsoDatetimeString;
-  description: string | null;
-  id: UUID;
-  isTombstone: boolean;
-  postingDate: IsoDateString | null;
-  transactionDate: IsoDateString;
-  updatedAt: IsoDatetimeString;
-  userId: UUID;
-};
-
-// Request DTOs для создания
+// Request DTOs for creation
 export type CreateTransactionRequestDTO = {
   description: string;
   entries: CreateEntryRequestDTO[];
 };
 
-// Request DTOs для обновления
+// Request DTOs for updating
 export type UpdateTransactionRequestDTO = {
   description?: string;
 };
