@@ -1,4 +1,4 @@
-import { OperationRepository } from 'src/application/interfaces:toRefactor/OperationRepository.interface';
+import { OperationRepository } from 'src/application/interfaces/OperationRepository.interface';
 import { OperationDbRow } from 'src/db/schema';
 import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
@@ -6,7 +6,7 @@ import { Operation } from 'src/domain/operations/operation.entity';
 import { DataBase } from 'src/types';
 import { describe, it, beforeEach, vi, expect } from 'vitest';
 
-import { RemoveOperationFromEntryUseCase } from '../RemoveOperationFromEntryUseCase';
+import { DeleteOperationUseCase } from '../deleteOperation';
 
 describe('DeleteOperationUseCase', () => {
   const userId = Id.create();
@@ -16,7 +16,7 @@ describe('DeleteOperationUseCase', () => {
 
   const amount = '100';
   const description = 'Test operation';
-  let deleteOperationUseCase: RemoveOperationFromEntryUseCase;
+  let deleteOperationUseCase: DeleteOperationUseCase;
 
   let mockOperationRepository: {
     getById: ReturnType<typeof vi.fn>;
@@ -59,7 +59,7 @@ describe('DeleteOperationUseCase', () => {
       update: vi.fn(),
     };
 
-    deleteOperationUseCase = new RemoveOperationFromEntryUseCase(
+    deleteOperationUseCase = new DeleteOperationUseCase(
       mockOperationRepository as unknown as OperationRepository,
     );
   });

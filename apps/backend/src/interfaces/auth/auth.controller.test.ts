@@ -1,25 +1,76 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { AuthController } from 'src/presentation/controllers/auth.controller';
-import { AuthService } from 'src/services/auth.service';
+import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
+import { AuthController } from 'src/interfaces/';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ZodError } from 'zod';
 
 describe('AuthController', () => {
-  const mockAuthService = {
-    registerUser: vi.fn(),
-    validateUser: vi.fn(),
+  const mockToken = 'mock-jwt-token';
+  const email = 'test@example.com';
+  const name = 'Test User';
+  const password = 'password123';
+  const id = 'user-id-123';
+
+  const mockRegisterUserUseCase = {
+    execute: vi.fn(),
+  };
+
+  const mockLoginUserUseCase = {
+    execute: vi.fn(),
   };
 
   const mockReply = {
-    jwtSign: vi.fn().mockResolvedValue('mock-jwt-token'),
+    jwtSign: vi.fn().mockResolvedValue(mockToken),
   };
 
   const controller = new AuthController(
-    mockAuthService as unknown as AuthService,
+    mockRegisterUserUseCase as unknown as RegisterUserUseCase,
+    mockLoginUserUseCase as unknown as LoginUserUseCase,
   );
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('register', () => {
+    it('should register a user successfully and return a JWT token', async () => {
+      const mockRequest = {
+        body: {
+          email,
+          name,
+          password,
+        },
+      };
+
+      mockRegisterUserUseCase.execute.mockResolvedValue({
+        email,
+        id,
+        name,
+      });
+
+      const result = await controller.register(
+        mockRequest as unknown as FastifyRequest,
+        mockReply as unknown as FastifyReply,
+      );
+
+      expect(mockRegisterUserUseCase.execute).toHaveBeenCalledWith({
+        email,
+        name,
+        password,
+      });
+
+      expect(mockReply.jwtSign).toHaveBeenCalledWith(
+        {
+          email,
+          userId: id,
+        },
+        {
+          expiresIn: '1h',
+        },
+      );
+
+      expect(result).toEqual({ token: mockToken });
+    });
   });
 
   describe('register validation', () => {

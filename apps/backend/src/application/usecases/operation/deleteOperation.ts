@@ -1,10 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationRepository } from 'src/application/interfaces:toRefactor/OperationRepository.interface';
+import { OperationRepository } from 'src/application/interfaces/OperationRepository.interface';
 import { OperationDbRow } from 'src/db/schema';
 import { Operation } from 'src/domain/operations/operation.entity';
 import { DataBase } from 'src/types';
 
-export class RemoveOperationFromEntryUseCase {
+export class DeleteOperationUseCase {
   constructor(private readonly operationRepository: OperationRepository) {}
   async execute(
     userId: UUID,

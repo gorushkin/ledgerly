@@ -1,14 +1,15 @@
 import { UUID } from '@ledgerly/shared/types';
 import { AccountDbRow } from 'src/db/schema';
-import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
-import { DataBase } from 'src/types';
 
-import { AccountRepository } from '../../interfaces:toRefactor';
+import {
+  AccountRepositoryInterface,
+  UserRepositoryInterface,
+} from '../../interfaces';
 
 export class AccountUseCaseBase {
   constructor(
-    protected readonly accountRepository: AccountRepository,
-    protected readonly userRepository: UsersRepository,
+    protected readonly accountRepository: AccountRepositoryInterface,
+    protected readonly userRepository: UserRepositoryInterface,
   ) {}
 
   protected async ensureAccountExistsAndOwned(
@@ -28,8 +29,8 @@ export class AccountUseCaseBase {
     return account;
   }
 
-  protected async ensureUserExists(userId: UUID, tx?: DataBase): Promise<void> {
-    const user = await this.userRepository.getUserById(userId, tx);
+  protected async ensureUserExists(userId: UUID): Promise<void> {
+    const user = await this.userRepository.getById(userId);
     if (!user) {
       throw new Error('User not found');
     }

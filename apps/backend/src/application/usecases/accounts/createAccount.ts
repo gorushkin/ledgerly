@@ -10,16 +10,18 @@ import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Account } from 'src/domain/accounts/account.entity';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 
-import { AccountRepository } from '../../interfaces:toRefactor';
+import {
+  AccountRepositoryInterface,
+  UserRepositoryInterface,
+} from '../../interfaces';
 
-import { AccountUseCaseBase } from './accountUseCaseBase';
+import { AccountUseCaseBase } from './accountBase';
 
 export class CreateAccountUseCase extends AccountUseCaseBase {
   constructor(
-    accountRepository: AccountRepository,
-    userRepository: UsersRepository,
+    accountRepository: AccountRepositoryInterface,
+    userRepository: UserRepositoryInterface,
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
   ) {
     super(accountRepository, userRepository);

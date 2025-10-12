@@ -1,4 +1,4 @@
-import { CurrencyDomain } from 'src/application';
+import { CurrencyResponseDTO } from 'src/application';
 import { currenciesTable } from 'src/db/schema';
 import { DataBase } from 'src/types';
 
@@ -9,7 +9,7 @@ export class CurrencyRepository extends BaseRepository {
     super(db);
   }
 
-  getAll(): Promise<CurrencyDomain[]> {
+  getAll(): Promise<CurrencyResponseDTO[]> {
     return this.executeDatabaseOperation(
       () => this.db.select().from(currenciesTable).all(),
       'Failed to fetch currencies',

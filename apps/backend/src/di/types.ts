@@ -1,3 +1,4 @@
+import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
 import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
 import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
@@ -7,24 +8,19 @@ import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
-import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
-import { AccountController } from 'src/interfaces/accounts/account.controller';
-import { AuthController } from 'src/presentation/controllers/auth.controller';
+import { UserRepository } from 'src/infrastructure/db/UsersRepository';
+import { AuthController, AccountController } from 'src/interfaces/';
 import { UserController } from 'src/presentation/controllers/user.controller';
-import { AuthService } from 'src/services/auth.service';
-import { UserService } from 'src/services/user.service';
 import { DataBase } from 'src/types';
 
 type Repositories = {
   currency: CurrencyRepository;
   transaction: TransactionRepository;
   account: AccountRepository;
-  user: UsersRepository;
+  user: UserRepository;
 };
 
 type Services = {
-  auth: AuthService;
-  user: UserService;
   passwordManager: PasswordManager;
 };
 
@@ -34,6 +30,11 @@ type AccountUseCases = {
   getAccountById: GetAccountByIdUseCase;
   updateAccount: UpdateAccountUseCase;
   archiveAccount: DeleteAccountUseCase;
+};
+
+type AuthUseCases = {
+  registerUser: RegisterUserUseCase;
+  loginUser: LoginUserUseCase;
 };
 
 type Controllers = {
@@ -48,6 +49,7 @@ export type AppContainer = {
   services: Services;
   useCases: {
     account: AccountUseCases;
+    auth: AuthUseCases;
   };
   controllers: Controllers;
 };

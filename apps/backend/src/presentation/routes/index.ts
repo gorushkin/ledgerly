@@ -1,10 +1,10 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import type { FastifyInstance } from 'fastify';
 
-import { registerAccountsRoutes } from '../../interfaces/accounts/accounts.routes';
+import { authRoutes } from '../../interfaces/';
+import { accountsRoutes } from '../../interfaces/';
 import { authMiddleware } from '../middleware';
 
-import { authRoutes } from './auth.routes';
 import { registerCurrenciesRoutes } from './currencies.routes';
 import { registerTransactionsRoutes } from './transactions.routes';
 import { registerUserRoutes } from './user.routes';
@@ -29,7 +29,7 @@ export const registerRoutes = (fastify: FastifyInstance) => {
       prefix: ROUTES.transactions,
     });
 
-    protectedApp.register(registerAccountsRoutes, {
+    protectedApp.register(accountsRoutes, {
       prefix: ROUTES.accounts,
     });
 

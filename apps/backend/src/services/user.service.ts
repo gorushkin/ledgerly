@@ -4,12 +4,12 @@ import {
   UUID,
 } from '@ledgerly/shared/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
+import { UserRepository } from 'src/infrastructure/db/UsersRepository';
 import { AuthErrors } from 'src/presentation/errors/auth.errors';
 
 export class UserService {
   constructor(
-    private readonly usersRepository: UsersRepository,
+    private readonly usersRepository: UserRepository,
     private readonly passwordManager: PasswordManager,
   ) {}
 
@@ -17,21 +17,22 @@ export class UserService {
     return this.validateUser(id);
   }
 
-  async validateUser(id: UUID): Promise<UsersUpdateDTO> {
-    const existingUser = await this.usersRepository.getUserById(id);
+  validateUser(_id: UUID): Promise<UsersUpdateDTO> {
+    // const existingUser = await this.usersRepository.getUserById(id);
 
-    if (!existingUser) {
-      throw new AuthErrors.UserNotFoundError();
-    }
+    // if (!existingUser) {
+    //   throw new AuthErrors.UserNotFoundError();
+    // }
 
-    return existingUser;
+    // return existingUser;
+    throw new Error('Not implemented');
   }
 
   async update(id: UUID, profileData: UsersUpdateDTO) {
     await this.validateUser(id);
 
     if (profileData?.email) {
-      const existingUser = await this.usersRepository.findByEmail(
+      const existingUser = await this.usersRepository.getByEmail(
         profileData.email,
       );
 
@@ -43,34 +44,36 @@ export class UserService {
     return this.usersRepository.updateUserProfile(id, profileData);
   }
 
-  async changePassword(id: UUID, passwordData: UserChangePasswordDTO) {
-    const userWithPassword =
-      await this.usersRepository.getUserByIdWithPassword(id);
+  changePassword(_id: UUID, _passwordData: UserChangePasswordDTO) {
+    // const userWithPassword =
+    //   await this.usersRepository.getUserByIdWithPassword(id);
 
-    if (!userWithPassword) {
-      throw new AuthErrors.UserNotFoundError();
-    }
+    // if (!userWithPassword) {
+    //   throw new AuthErrors.UserNotFoundError();
+    // }
 
-    const isCurrentPasswordValid = await this.passwordManager.compare(
-      passwordData.currentPassword,
-      userWithPassword.hashedPassword,
-    );
+    // const isCurrentPasswordValid = await this.passwordManager.compare(
+    //   passwordData.currentPassword,
+    //   userWithPassword.hashedPassword,
+    // );
 
-    if (!isCurrentPasswordValid) {
-      throw new AuthErrors.InvalidPasswordError();
-    }
+    // if (!isCurrentPasswordValid) {
+    //   throw new AuthErrors.InvalidPasswordError();
+    // }
 
-    const hashedNewPassword = await this.passwordManager.hash(
-      passwordData.newPassword,
-    );
+    // const hashedNewPassword = await this.passwordManager.hash(
+    //   passwordData.newPassword,
+    // );
 
-    await this.usersRepository.updateUserPassword(id, hashedNewPassword);
+    // await this.usersRepository.updateUserPassword(id, hashedNewPassword);
+
+    throw new Error('Not implemented');
   }
 
   async delete(id: UUID) {
     await this.validateUser(id);
 
-    return this.usersRepository.deleteUser(id);
+    return this.usersRepository.delete(id);
   }
 
   canDeleteUser(_userId: UUID): null {

@@ -1,6 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 
-// Request DTOs
+// Request DTOs for creation
 
 export type CreateOperationRequestDTO = {
   accountId: UUID;
@@ -8,7 +8,7 @@ export type CreateOperationRequestDTO = {
   description?: string;
 };
 
-// Request DTOs
+// Request DTOs for updating
 
 export type UpdateOperationRequestDTO = {
   accountId?: UUID;

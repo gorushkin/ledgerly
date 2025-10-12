@@ -1,7 +1,7 @@
 import { CurrencyCode, Money } from '@ledgerly/shared/types';
+import { UserRepositoryInterface } from 'src/application/interfaces';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
-import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAccountByIdUseCase } from '../getAccountById';
@@ -12,7 +12,7 @@ describe('GetAccountByIdUseCase', () => {
     create: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
   };
-  let mockUserRepository: { getUserById: ReturnType<typeof vi.fn> };
+  let mockUserRepository: { getById: ReturnType<typeof vi.fn> };
 
   const userId = Id.fromPersistence(
     '550e8400-e29b-41d4-a716-446655440000',
@@ -53,26 +53,23 @@ describe('GetAccountByIdUseCase', () => {
     };
 
     mockUserRepository = {
-      getUserById: vi.fn(),
+      getById: vi.fn(),
     };
 
     getAccountByIdUseCase = new GetAccountByIdUseCase(
       mockAccountRepository as unknown as AccountRepository,
-      mockUserRepository as unknown as UsersRepository,
+      mockUserRepository as unknown as UserRepositoryInterface,
     );
   });
 
   describe('execute', () => {
     it('should return the account when it exists and is owned by the user', async () => {
-      mockUserRepository.getUserById.mockResolvedValue(mockUser);
+      mockUserRepository.getById.mockResolvedValue(mockUser);
       mockAccountRepository.getById.mockResolvedValue(mockSavedAccountData);
 
       await getAccountByIdUseCase.execute(userId, accountId);
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
-        userId,
-        undefined,
-      );
+      expect(mockUserRepository.getById).toHaveBeenCalledWith(userId);
       expect(mockAccountRepository.getById).toHaveBeenCalledWith(
         userId,
         accountId,

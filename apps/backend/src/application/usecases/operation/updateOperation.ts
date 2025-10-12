@@ -1,6 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { UpdateOperationRequestDTO } from 'src/application/dto';
-import { OperationRepository } from 'src/application/interfaces:toRefactor/OperationRepository.interface';
+import { OperationRepository } from 'src/application/interfaces/OperationRepository.interface';
 import { Amount } from 'src/domain/domain-core';
 import { Operation } from 'src/domain/operations/operation.entity';
 import { DataBase } from 'src/types';
