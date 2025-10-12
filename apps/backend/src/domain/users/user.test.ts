@@ -7,11 +7,13 @@ import { User } from './user.entity';
 describe('User Domain Entity', () => {
   const validName = Name.create('user-name');
   const validEmail = Email.create('user@example.com');
-  const password = Password.create('password123');
+  let password: Password;
 
   let user: User;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    password = await Password.create('password123');
+
     user = User.create(validName, validEmail, password);
   });
 

@@ -12,7 +12,7 @@ export const loginSchema = z.object({
       invalid_type_error: "Password must be a string",
       required_error: "Password is required",
     })
-    .min(6, "Password must be at least 6 characters long"),
+    .min(8, "Password must be at least 8 characters long"),
 });
 
 export const registerSchema = loginSchema.extend({
@@ -29,4 +29,4 @@ export const passwordValidation = z
     invalid_type_error: "Password must be a string",
     required_error: "Password is required",
   })
-  .min(6, "Password must be at least 6 characters long");
+  .min(8, "Password must be at least 8 characters long");

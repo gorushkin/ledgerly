@@ -10,7 +10,9 @@ describe('LoginUserUseCase', () => {
   const email = 'test@example.com';
   const name = 'Test User';
   const id = 'some-uuid';
-  const password = Password.create('password123').valueOf();
+  let password: Password;
+
+  // const password = Password.create('password123').valueOf();
 
   let loginUserUseCase: LoginUserUseCase;
 
@@ -19,7 +21,9 @@ describe('LoginUserUseCase', () => {
     getUserByEmailWithPassword: ReturnType<typeof vi.fn>;
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    password = await Password.create('password123');
+
     mockUserRepository = {
       getByEmailWithPassword: vi.fn(),
       getUserByEmailWithPassword: vi.fn(),
@@ -44,7 +48,7 @@ describe('LoginUserUseCase', () => {
         validatePassword: vi.fn().mockResolvedValue(true),
       } as unknown as User);
 
-      const result = await loginUserUseCase.execute(email, password);
+      const result = await loginUserUseCase.execute(email, password.valueOf());
 
       expect(result).toEqual({ email, id, name });
     });
@@ -58,9 +62,9 @@ describe('LoginUserUseCase', () => {
         validatePassword: vi.fn().mockResolvedValue(true),
       } as unknown as User);
 
-      await expect(loginUserUseCase.execute(email, password)).rejects.toThrow(
-        AuthErrors.UserNotFoundError,
-      );
+      await expect(
+        loginUserUseCase.execute(email, password.valueOf()),
+      ).rejects.toThrow(AuthErrors.UserNotFoundError);
     });
 
     it('should throw InvalidPasswordError if password is invalid', async () => {
@@ -77,7 +81,7 @@ describe('LoginUserUseCase', () => {
       } as unknown as User);
 
       await expect(
-        loginUserUseCase.execute(email, password),
+        loginUserUseCase.execute(email, password.valueOf()),
       ).rejects.toThrowError(AuthErrors.InvalidPasswordError);
     });
   });

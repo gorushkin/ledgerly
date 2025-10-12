@@ -1,6 +1,6 @@
 import { CreateUserRequestDTO, UserResponseDTO } from 'src/application/dto';
 import { UserRepositoryInterface } from 'src/application/interfaces';
-import { Id, Password } from 'src/domain/domain-core';
+import { Id } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 import { AuthErrors } from 'src/presentation/errors/auth.errors';
 import { describe, it, beforeEach, vi, expect } from 'vitest';
@@ -10,12 +10,12 @@ import { RegisterUserUseCase } from '../registerUser';
 describe('RegisterUserUseCase', () => {
   const email = 'test@example.com';
   const name = 'Test User';
-  const password = Password.create('password123').valueOf();
+  const password = 'Password123!';
   const id = Id.create().valueOf();
 
   const mockUser = { name: 'mocked user' };
 
-  let createUserUseCase: RegisterUserUseCase;
+  let registerUserUseCase: RegisterUserUseCase;
 
   let mockedSaveWithIdRetry: ReturnType<typeof vi.fn>;
 
@@ -32,7 +32,7 @@ describe('RegisterUserUseCase', () => {
 
     mockedSaveWithIdRetry = vi.fn().mockResolvedValue(mockUser);
 
-    createUserUseCase = new RegisterUserUseCase(
+    registerUserUseCase = new RegisterUserUseCase(
       mockUserRepository as unknown as UserRepositoryInterface,
       mockedSaveWithIdRetry,
     );
@@ -59,7 +59,7 @@ describe('RegisterUserUseCase', () => {
       mockedSaveWithIdRetry.mockResolvedValue(expectedResult);
 
       // Act
-      const result = await createUserUseCase.execute(validRequest);
+      const result = await registerUserUseCase.execute(validRequest);
 
       // Assert
       expect(result).toEqual(expectedResult);
@@ -86,41 +86,11 @@ describe('RegisterUserUseCase', () => {
       });
 
       // Act & Assert
-      await expect(createUserUseCase.execute(validRequest)).rejects.toThrow(
+      await expect(registerUserUseCase.execute(validRequest)).rejects.toThrow(
         AuthErrors.UserExistsError,
       );
 
       expect(mockUserRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error if name is missing', async () => {
-      // Arrange
-      const invalidRequest = { ...validRequest, name: '' };
-
-      // Act & Assert
-      await expect(createUserUseCase.execute(invalidRequest)).rejects.toThrow(
-        'Name, email and password are required',
-      );
-    });
-
-    it('should throw error if email is missing', async () => {
-      // Arrange
-      const invalidRequest = { ...validRequest, email: '' };
-
-      // Act & Assert
-      await expect(createUserUseCase.execute(invalidRequest)).rejects.toThrow(
-        'Name, email and password are required',
-      );
-    });
-
-    it('should throw error if password is missing', async () => {
-      // Arrange
-      const invalidRequest = { ...validRequest, password: '' };
-
-      // Act & Assert
-      await expect(createUserUseCase.execute(invalidRequest)).rejects.toThrow(
-        'Name, email and password are required',
-      );
     });
 
     it.todo('should call findByEmail with correct email');

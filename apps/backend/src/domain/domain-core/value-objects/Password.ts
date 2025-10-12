@@ -10,14 +10,14 @@ export class Password {
     this._value = value;
   }
 
-  static create(value: string): Password {
+  static async create(value: string): Promise<Password> {
     const parsed = passwordValidation.safeParse(value);
 
     if (!parsed.success) {
       throw new Error(parsed.error.message);
     }
 
-    const hashed = bcrypt.hashSync(value, hashingSaltRounds);
+    const hashed = await bcrypt.hash(value, hashingSaltRounds);
 
     return new Password(hashed);
   }
@@ -30,8 +30,10 @@ export class Password {
     return new Password(encryptedPassword);
   }
 
+  private static readonly BCRYPT_HASH_PREFIX = '$2';
+
   verify(): boolean {
-    return this._value.startsWith('$2');
+    return this._value.startsWith(Password.BCRYPT_HASH_PREFIX);
   }
 
   valueOf(): string {

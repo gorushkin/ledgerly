@@ -15,11 +15,6 @@ export class RegisterUserUseCase {
   async execute(request: CreateUserRequestDTO): Promise<UserResponseDTO> {
     const { email, name, password } = request;
 
-    // Validate input
-    if (!name || !email || !password) {
-      throw new Error('Name, email and password are required');
-    }
-
     // Check if user with this email already exists
     const existingUser = await this.userRepository.getByEmail(email);
 
@@ -30,7 +25,7 @@ export class RegisterUserUseCase {
     // Create value objects
     const nameVO = Name.create(name);
     const emailVO = Email.create(email);
-    const passwordVO = Password.create(password);
+    const passwordVO = await Password.create(password);
 
     // Create domain entity
     const createUser = () => User.create(nameVO, emailVO, passwordVO);
