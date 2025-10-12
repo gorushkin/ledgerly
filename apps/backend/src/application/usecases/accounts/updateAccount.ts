@@ -3,16 +3,16 @@ import {
   AccountUpdateDTO,
   UUID,
 } from '@ledgerly/shared/types';
+import { UserRepositoryInterface } from 'src/application/interfaces';
 import { Account } from 'src/domain/accounts/account.entity';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
-import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 
-import { AccountUseCaseBase } from './accountUseCaseBase';
+import { AccountUseCaseBase } from './accountBase';
 
 export class UpdateAccountUseCase extends AccountUseCaseBase {
   constructor(
     accountRepository: AccountRepository,
-    userRepository: UsersRepository,
+    userRepository: UserRepositoryInterface,
   ) {
     super(accountRepository, userRepository);
   }

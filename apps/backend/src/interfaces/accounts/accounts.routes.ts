@@ -1,7 +1,7 @@
 import { uniqueIdSchema } from '@ledgerly/shared/validation';
 import type { FastifyInstance } from 'fastify';
 
-export const registerAccountsRoutes = (app: FastifyInstance) => {
+export const accountsRoutes = (app: FastifyInstance) => {
   const accountController = app.container.controllers.account;
 
   app.get('/', async (request) => {

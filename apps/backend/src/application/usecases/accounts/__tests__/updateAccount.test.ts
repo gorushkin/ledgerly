@@ -1,9 +1,9 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
+import { UserRepositoryInterface } from 'src/application/interfaces';
 import { Account } from 'src/domain/accounts/account.entity';
 import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
-import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 
 import { UpdateAccountUseCase } from '../updateAccount';
@@ -25,7 +25,7 @@ describe('UpdateAccount', () => {
     update: ReturnType<typeof vi.fn>;
   };
 
-  let mockUserRepository: { getUserById: ReturnType<typeof vi.fn> };
+  let mockUserRepository: { getById: ReturnType<typeof vi.fn> };
 
   const userId = Id.fromPersistence(
     '550e8400-e29b-41d4-a716-446655440000',
@@ -73,12 +73,12 @@ describe('UpdateAccount', () => {
     };
 
     mockUserRepository = {
-      getUserById: vi.fn(),
+      getById: vi.fn(),
     };
 
     updateAccountUseCase = new UpdateAccountUseCase(
       mockAccountRepository as unknown as AccountRepository,
-      mockUserRepository as unknown as UsersRepository,
+      mockUserRepository as unknown as UserRepositoryInterface,
     );
 
     const mockAccountInstance = {
@@ -91,7 +91,7 @@ describe('UpdateAccount', () => {
 
   describe('execute', () => {
     it('should update account', async () => {
-      mockUserRepository.getUserById.mockResolvedValue(mockUser);
+      mockUserRepository.getById.mockResolvedValue(mockUser);
       mockAccountRepository.getById.mockResolvedValue(mockAccountData);
       mockAccountRepository.update.mockResolvedValue(mockAccountUpdatedData);
 
@@ -99,10 +99,7 @@ describe('UpdateAccount', () => {
         name: 'Updated Account',
       });
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
-        userId,
-        undefined,
-      );
+      expect(mockUserRepository.getById).toHaveBeenCalledWith(userId);
 
       expect(mockAccountRepository.getById).toHaveBeenCalledWith(
         userId,
@@ -119,7 +116,7 @@ describe('UpdateAccount', () => {
     });
 
     it('should throw error when user does not exist', async () => {
-      mockUserRepository.getUserById.mockResolvedValue(null);
+      mockUserRepository.getById.mockResolvedValue(null);
 
       await expect(
         updateAccountUseCase.execute(userId, accountId, {
@@ -127,16 +124,13 @@ describe('UpdateAccount', () => {
         }),
       ).rejects.toThrow();
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
-        userId,
-        undefined,
-      );
+      expect(mockUserRepository.getById).toHaveBeenCalledWith(userId);
       expect(mockAccountRepository.getById).not.toHaveBeenCalled();
       expect(mockAccountRepository.update).not.toHaveBeenCalled();
     });
 
     it('should throw error when account does not exist', async () => {
-      mockUserRepository.getUserById.mockResolvedValue(mockUser);
+      mockUserRepository.getById.mockResolvedValue(mockUser);
       mockAccountRepository.getById.mockResolvedValue(null);
 
       await expect(
@@ -145,10 +139,7 @@ describe('UpdateAccount', () => {
         }),
       ).rejects.toThrow();
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
-        userId,
-        undefined,
-      );
+      expect(mockUserRepository.getById).toHaveBeenCalledWith(userId);
       expect(mockAccountRepository.getById).toHaveBeenCalledWith(
         userId,
         accountId,

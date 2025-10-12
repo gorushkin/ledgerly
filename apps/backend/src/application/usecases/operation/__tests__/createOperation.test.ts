@@ -1,4 +1,4 @@
-import { OperationRepository } from 'src/application/interfaces:toRefactor/OperationRepository.interface';
+import { OperationRepository } from 'src/application/interfaces/OperationRepository.interface';
 import { OperationDbRow } from 'src/db/schema';
 import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
@@ -7,16 +7,16 @@ import { DataBase } from 'src/types';
 import { describe, it, beforeEach, vi, expect } from 'vitest';
 
 import { GetAccountByIdUseCase } from '../../accounts';
-import { AddOperationToEntryUseCase } from '../AddOperationToEntryUseCase';
+import { CreateOperationUseCase } from '../createOperation';
 
-describe('AddOperationToEntryUseCase', () => {
+describe('CreateOperationUseCase', () => {
   const userId = Id.create();
   const entryId = Id.create();
   const accountId = Id.create();
 
   const amount = '100';
   const description = 'Test operation';
-  let addOperationToEntryUseCase: AddOperationToEntryUseCase;
+  let createOperationUseCase: CreateOperationUseCase;
 
   let mockOperationRepository: { create: ReturnType<typeof vi.fn> };
   let mockGetAccountByIdUseCase: { execute: ReturnType<typeof vi.fn> };
@@ -45,7 +45,7 @@ describe('AddOperationToEntryUseCase', () => {
       execute: vi.fn(),
     };
 
-    addOperationToEntryUseCase = new AddOperationToEntryUseCase(
+    createOperationUseCase = new CreateOperationUseCase(
       mockOperationRepository as unknown as OperationRepository,
       mockGetAccountByIdUseCase as unknown as GetAccountByIdUseCase,
     );
@@ -69,7 +69,7 @@ describe('AddOperationToEntryUseCase', () => {
       .spyOn(mockOperationRepository, 'create')
       .mockReturnValue(mockSavedOperationData as unknown as Operation);
 
-    const result = await addOperationToEntryUseCase.execute(
+    const result = await createOperationUseCase.execute(
       userId.valueOf(),
       accountId.valueOf(),
       entryId.valueOf(),

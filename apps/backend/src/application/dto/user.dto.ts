@@ -18,8 +18,6 @@ export type UserResponseDTO = {
   id: UUID;
   name: string;
   email: string;
-  createdAt: Date;
-  updatedAt: Date;
 };
 
 // Query DTOs

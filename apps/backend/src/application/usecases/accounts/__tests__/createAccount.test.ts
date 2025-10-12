@@ -1,9 +1,9 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
+import { UserRepositoryInterface } from 'src/application/interfaces';
 import { Account } from 'src/domain/accounts/account.entity';
 import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
-import { UsersRepository } from 'src/infrastructure/db/UsersRepository';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateAccountUseCase } from '../createAccount';
@@ -12,7 +12,7 @@ describe('CreateAccountUseCase', () => {
   let createAccountUseCase: CreateAccountUseCase;
   let mockAccountRepository: { create: ReturnType<typeof vi.fn> };
   let mockedSaveWithIdRetry: ReturnType<typeof vi.fn>;
-  let mockUserRepository: { getUserById: ReturnType<typeof vi.fn> };
+  let mockUserRepository: { getById: ReturnType<typeof vi.fn> };
 
   const userIdValue = '550e8400-e29b-41d4-a716-446655440000';
   const accountIdValue = '660e8400-e29b-41d4-a716-446655440001';
@@ -51,7 +51,7 @@ describe('CreateAccountUseCase', () => {
     };
 
     mockUserRepository = {
-      getUserById: vi.fn(),
+      getById: vi.fn(),
     };
 
     mockedSaveWithIdRetry = vi
@@ -60,7 +60,7 @@ describe('CreateAccountUseCase', () => {
 
     createAccountUseCase = new CreateAccountUseCase(
       mockAccountRepository as unknown as AccountRepository,
-      mockUserRepository as unknown as UsersRepository,
+      mockUserRepository as unknown as UserRepositoryInterface,
       mockedSaveWithIdRetry,
     );
   });
@@ -68,7 +68,7 @@ describe('CreateAccountUseCase', () => {
   describe('execute', () => {
     it('should create a new account successfully', async () => {
       // Arrange
-      mockUserRepository.getUserById.mockResolvedValue(mockUser);
+      mockUserRepository.getById.mockResolvedValue(mockUser);
       const expectedResult = {
         ...mockSavedAccountData,
         isTombstone: false,
@@ -86,10 +86,7 @@ describe('CreateAccountUseCase', () => {
       });
 
       // Assert
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
-        userId,
-        undefined,
-      );
+      expect(mockUserRepository.getById).toHaveBeenCalledWith(userId);
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
         expect.any(Object), // Account instance
         expect.any(Function), // bound create method
@@ -99,7 +96,7 @@ describe('CreateAccountUseCase', () => {
     });
 
     it('should throw error when user does not exist', async () => {
-      mockUserRepository.getUserById.mockResolvedValue(null);
+      mockUserRepository.getById.mockResolvedValue(null);
 
       await expect(
         createAccountUseCase.execute(userId, {
@@ -112,15 +109,12 @@ describe('CreateAccountUseCase', () => {
         }),
       ).rejects.toThrow('User not found');
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
-        userId,
-        undefined,
-      );
+      expect(mockUserRepository.getById).toHaveBeenCalledWith(userId);
       expect(mockAccountRepository.create).not.toHaveBeenCalled();
     });
 
     it.skip('should handle Account.create validation errors', async () => {
-      mockUserRepository.getUserById.mockResolvedValue(mockUser);
+      mockUserRepository.getById.mockResolvedValue(mockUser);
 
       const validationError = new Error('Account name cannot be empty');
       vi.spyOn(Account, 'create').mockImplementation(() => {
@@ -138,15 +132,12 @@ describe('CreateAccountUseCase', () => {
         }),
       ).rejects.toThrow('Account name cannot be empty');
 
-      expect(mockUserRepository.getUserById).toHaveBeenCalledWith(
-        userId,
-        undefined,
-      );
+      expect(mockUserRepository.getById).toHaveBeenCalledWith(userId);
       expect(mockAccountRepository.create).not.toHaveBeenCalled();
     });
 
     it('should handle UUID collision gracefully', async () => {
-      mockUserRepository.getUserById.mockResolvedValue(mockUser);
+      mockUserRepository.getById.mockResolvedValue(mockUser);
 
       const expectedResult = {
         ...mockSavedAccountData,

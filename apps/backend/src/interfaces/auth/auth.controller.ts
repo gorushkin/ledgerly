@@ -1,14 +1,20 @@
 import { loginSchema, registerSchema } from '@ledgerly/shared/validation';
 import { env } from 'env.config';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { AuthService } from 'src/services/auth.service';
+import {
+  RegisterUserUseCase,
+  LoginUserUseCase,
+} from 'src/application/usecases';
 
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly registerUserUseCase: RegisterUserUseCase,
+    private readonly loginUserUseCase: LoginUserUseCase,
+  ) {}
 
   async login(request: FastifyRequest, reply: FastifyReply) {
     const data = loginSchema.parse(request.body);
-    const user = await this.authService.validateUser(data.email, data.password);
+    const user = await this.loginUserUseCase.execute(data.email, data.password);
 
     const token = await reply.jwtSign(
       {
@@ -25,7 +31,7 @@ export class AuthController {
 
   async register(request: FastifyRequest, reply: FastifyReply) {
     const data = registerSchema.parse(request.body);
-    const user = await this.authService.registerUser(data);
+    const user = await this.registerUserUseCase.execute(data);
 
     const token = await reply.jwtSign(
       {

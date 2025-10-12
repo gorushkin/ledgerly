@@ -9,7 +9,7 @@ import {
 import { Amount } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { AccountController } from 'src/interfaces/accounts/account.controller';
+import { AccountController } from 'src/interfaces/';
 import { describe, vi, beforeEach, it, expect } from 'vitest';
 import { ZodError } from 'zod';
 

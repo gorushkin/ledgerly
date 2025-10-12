@@ -1,38 +1,42 @@
 import type { FastifyInstance } from 'fastify';
 
 export const registerUserRoutes = (app: FastifyInstance) => {
-  const userController = app.container.controllers.user;
+  // const userController = app.container.controllers.user;
 
-  app.get('/', async (request) => {
-    const userId = request.user.userId;
+  app.get('/', (_request) => {
+    // const userId = request.user.userId;
 
-    return await userController.getById(userId);
+    // return await userController.getById(userId);
+    throw new Error('Not implemented');
   });
 
-  app.put('/', async (request, reply) => {
-    const userId = request.user.userId;
+  app.put('/', async (_request, _reply) => {
+    // const userId = request.user.userId;
 
-    const updatedUser = await userController.update(userId, request.body);
-    reply.status(200).send(updatedUser);
+    // const updatedUser = await userController.update(userId, request.body);
+    // reply.status(200).send(updatedUser);
+    throw new Error('Not implemented');
   });
 
-  app.put('/password', async (request, reply) => {
-    const userId = request.user.userId;
+  app.put('/password', async (_request, _reply) => {
+    // const userId = request.user.userId;
 
-    await userController.changePassword(userId, request.body);
+    // await userController.changePassword(userId, request.body);
 
-    reply.status(200).send({
-      message: 'Password successfully changed',
-    });
+    // reply.status(200).send({
+    //   message: 'Password successfully changed',
+    // });
+    throw new Error('Not implemented');
   });
 
-  app.delete('/', async (request, reply) => {
-    const userId = request.user.userId;
-    await userController.delete(userId);
+  app.delete('/', async (_request, _reply) => {
+    // const userId = request.user.userId;
+    // await userController.delete(userId);
 
-    reply.status(200).send({
-      id: userId,
-      message: 'Profile successfully deleted',
-    });
+    // reply.status(200).send({
+    //   id: userId,
+    //   message: 'Profile successfully deleted',
+    // });
+    throw new Error('Not implemented');
   });
 };

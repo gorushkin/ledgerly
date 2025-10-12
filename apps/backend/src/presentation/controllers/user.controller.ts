@@ -1,30 +1,27 @@
 import { UUID } from '@ledgerly/shared/types';
-import {
-  passwordChangeSchema,
-  usersUpdateSchema,
-} from '@ledgerly/shared/validation';
-import { UserService } from 'src/services/user.service';
 
 export class UserController {
-  constructor(private readonly userService: UserService) {}
-
-  async getById(id: UUID) {
-    return this.userService.getById(id);
+  getById(_id: UUID) {
+    // return this.userService.getById(id);
+    throw new Error('Not implemented yet');
   }
 
-  async update(id: UUID, requestBody: unknown) {
-    const updatedProfileDTO = usersUpdateSchema.parse(requestBody);
+  update(_id: UUID, _requestBody: unknown) {
+    // const updatedProfileDTO = usersUpdateSchema.parse(requestBody);
 
-    return this.userService.update(id, updatedProfileDTO);
+    // return this.userService.update(id, updatedProfileDTO);
+    throw new Error('Not implemented yet');
   }
 
-  async changePassword(id: UUID, requestBody: unknown) {
-    const passwordChangeDTO = passwordChangeSchema.parse(requestBody);
+  changePassword(_id: UUID, _requestBody: unknown) {
+    // const passwordChangeDTO = passwordChangeSchema.parse(requestBody);
 
-    await this.userService.changePassword(id, passwordChangeDTO);
+    // await this.userService.changePassword(id, passwordChangeDTO);
+    throw new Error('Not implemented yet');
   }
 
-  async delete(id: UUID) {
-    return this.userService.delete(id);
+  delete(_id: UUID) {
+    // return this.userService.delete(id);
+    throw new Error('Not implemented yet');
   }
 }

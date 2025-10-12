@@ -1,6 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
-import { AccountRepositoryInterface } from 'src/application/interfaces:toRefactor/AccountRepository.interface';
+import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
 import {
   AccountDbRow,
   AccountDbUpdate,

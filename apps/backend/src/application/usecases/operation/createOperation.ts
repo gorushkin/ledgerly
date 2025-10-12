@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import type { OperationRepository } from 'src/application/interfaces:toRefactor/OperationRepository.interface';
+import type { OperationRepository } from 'src/application/interfaces/OperationRepository.interface';
 import { OperationDbRow } from 'src/db/schema';
 import { Amount, Id } from 'src/domain/domain-core';
 import { Operation } from 'src/domain/operations/operation.entity';
@@ -7,7 +7,7 @@ import { DataBase } from 'src/types';
 
 import { GetAccountByIdUseCase } from '../accounts';
 
-export class AddOperationToEntryUseCase {
+export class CreateOperationUseCase {
   constructor(
     private readonly operationRepository: OperationRepository,
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,

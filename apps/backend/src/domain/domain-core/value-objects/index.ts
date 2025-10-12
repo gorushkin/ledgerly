@@ -6,3 +6,4 @@ export { Currency } from './Currency';
 export { Name } from './Name';
 export { Email } from './Email';
 export { UserOwnership } from './UserOwnership';
+export { Password } from './Password';

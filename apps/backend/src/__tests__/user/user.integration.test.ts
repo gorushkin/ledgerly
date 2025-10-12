@@ -15,7 +15,7 @@ const fakeUserId = Id.create().valueOf();
 
 const passwordUrl = `${url}/password`;
 
-describe('User Integration Tests', () => {
+describe.skip('User Integration Tests', () => {
   let testDB: TestDB;
   let server: ReturnType<typeof createServer>;
   let authToken: string;

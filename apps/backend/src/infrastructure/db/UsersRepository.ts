@@ -1,11 +1,11 @@
-import {
-  UserDbRowDTO,
-  UsersCreateDTO,
-  UsersResponseDTO,
-  UsersUpdateDTO,
-  UUID,
-} from '@ledgerly/shared/types';
+import { UsersResponseDTO, UsersUpdateDTO, UUID } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
+import {
+  CreateUserRequestDTO,
+  UserRepositoryInterface,
+  UserResponseDTO,
+} from 'src/application';
+import { UserDbRow } from 'src/db/schema';
 import { usersTable } from 'src/db/schemas';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { DataBase } from 'src/types';
@@ -18,17 +18,18 @@ const userSelect = {
   name: usersTable.name,
 } as const;
 
-const userWithHashedPasswordSelect = {
-  ...userSelect,
-  hashedPassword: usersTable.password,
-} as const;
-
-export class UsersRepository extends BaseRepository {
+export class UserRepository
+  extends BaseRepository
+  implements UserRepositoryInterface
+{
+  update(_userId: UUID, _userData: Partial<UserDbRow>): Promise<UserDbRow> {
+    throw new Error('Method not implemented.');
+  }
   constructor(db: DataBase) {
     super(db);
   }
 
-  async findByEmail(email: string): Promise<UserDbRowDTO | undefined> {
+  async getByEmail(email: string): Promise<UserResponseDTO | undefined> {
     return this.executeDatabaseOperation(
       async () =>
         this.db
@@ -40,11 +41,11 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async getUserByEmailWithPassword(email: string) {
+  async getByEmailWithPassword(email: string): Promise<UserDbRow | undefined> {
     return this.executeDatabaseOperation(
       async () =>
         this.db
-          .select(userWithHashedPasswordSelect)
+          .select()
           .from(usersTable)
           .where(eq(usersTable.email, email))
           .get(),
@@ -52,9 +53,10 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async getUserById(id: UUID, tx?: DataBase): Promise<UsersResponseDTO> {
+  async getById(id: UUID, tx?: DataBase): Promise<UserResponseDTO> {
     return this.executeDatabaseOperation(async () => {
       const dbToUse = tx ?? this.db;
+
       const user = await dbToUse
         .select(userSelect)
         .from(usersTable)
@@ -69,14 +71,10 @@ export class UsersRepository extends BaseRepository {
     }, `Failed to fetch user with ID ${id}`);
   }
 
-  async getUserByIdWithPassword(id: UUID) {
+  async getByIdWithPassword(id: UUID): Promise<UserDbRow | undefined> {
     return this.executeDatabaseOperation(
       async () =>
-        this.db
-          .select(userWithHashedPasswordSelect)
-          .from(usersTable)
-          .where(eq(usersTable.id, id))
-          .get(),
+        this.db.select().from(usersTable).where(eq(usersTable.id, id)).get(),
       `Failed to fetch user with password for ID ${id}`,
     );
   }
@@ -126,7 +124,7 @@ export class UsersRepository extends BaseRepository {
     }, `Failed to update password for user with ID ${id}`);
   }
 
-  async create(data: UsersCreateDTO): Promise<UsersResponseDTO> {
+  async create(data: CreateUserRequestDTO): Promise<UserResponseDTO> {
     return this.executeDatabaseOperation(
       async () =>
         this.db
@@ -138,7 +136,7 @@ export class UsersRepository extends BaseRepository {
     );
   }
 
-  async deleteUser(id: UUID): Promise<void> {
+  async delete(id: UUID): Promise<void> {
     return this.executeDatabaseOperation(async () => {
       const { rowsAffected } = await this.db
         .delete(usersTable)
