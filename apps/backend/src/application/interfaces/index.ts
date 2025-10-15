@@ -1,2 +1,2 @@
-export { AccountRepositoryInterface } from './AccountRepository.interface';
-export { UserRepositoryInterface } from './userRepository.interface';
+export type { AccountRepositoryInterface } from './AccountRepository.interface';
+export type { UserRepositoryInterface } from './userRepository.interface';
