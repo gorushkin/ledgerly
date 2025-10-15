@@ -2,7 +2,6 @@ import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import {
-  hash,
   createdAt,
   description,
   updatedAt,
@@ -15,7 +14,6 @@ import { usersTable } from './users';
 export const transactionsTable = sqliteTable('transactions', {
   createdAt,
   description,
-  hash,
   id,
   isTombstone,
   postingDate: getIsoDateString('posting_date'),

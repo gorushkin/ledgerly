@@ -7,3 +7,4 @@ export { Name } from './Name';
 export { Email } from './Email';
 export { UserOwnership } from './UserOwnership';
 export { Password } from './Password';
+export { DateValue } from './DateValue';

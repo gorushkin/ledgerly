@@ -26,11 +26,15 @@ export class Timestamp {
     return this._value;
   }
 
-  equals(other: Timestamp): boolean {
+  isEqualTo(other: Timestamp): boolean {
     return this._value === other._value;
   }
 
   valueOf(): IsoDatetimeString {
     return this._value;
+  }
+
+  toDate(): Date {
+    return new Date(this._value);
   }
 }
