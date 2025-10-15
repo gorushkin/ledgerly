@@ -45,24 +45,24 @@ export const getTransactionHash = (
 //   return objHashGenerator(operation, OPERATION_HASH_FIELDS);
 // };
 
-export const getTransactionWithHash = (
-  transaction: Omit<TransactionDbInsert, 'hash'>,
-): TransactionDbInsert => {
-  return {
-    ...transaction,
-    hash: getTransactionHash(transaction),
-  };
-};
+// export const getTransactionWithHash = (
+//   transaction: Omit<TransactionDbInsert, 'hash'>,
+// ): TransactionDbInsert => {
+//   return {
+//     ...transaction,
+//     hash: getTransactionHash(transaction),
+//   };
+// };
 
-const validateHash = <T extends Record<string, unknown>>(
-  obj: T,
-  fields: (keyof T)[],
-  actualHash: string,
-): boolean => {
-  const expected = objHashGenerator(obj, fields);
-  return expected === actualHash;
-};
+// const validateHash = <T extends Record<string, unknown>>(
+//   obj: T,
+//   fields: (keyof T)[],
+//   actualHash: string,
+// ): boolean => {
+//   const expected = objHashGenerator(obj, fields);
+//   return expected === actualHash;
+// };
 
-export const validateTransactionHash = (tx: TransactionDbInsert): boolean => {
-  return validateHash(tx, TRANSACTION_HASH_FIELDS, tx.hash);
-};
+// export const validateTransactionHash = (tx: TransactionDbInsert): boolean => {
+//   return validateHash(tx, TRANSACTION_HASH_FIELDS, tx.hash);
+// };

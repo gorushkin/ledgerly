@@ -65,7 +65,7 @@ describe('Transaction Domain Entity', () => {
     expect(restoredTransaction.toRecord()).toEqual(transaction.toRecord());
   });
 
-  it('should update description and touch updatedAt', async () => {
+  it('should update description and touch updatedAt', () => {
     const transaction = Transaction.create(
       userId,
       transactionData.description,
@@ -88,7 +88,7 @@ describe('Transaction Domain Entity', () => {
     expect(originalUpdatedAt).not.toEqual(transaction.getUpdatedAt());
   });
 
-  it('should update postingDate and touch updatedAt', async () => {
+  it('should update postingDate and touch updatedAt', () => {
     const transaction = Transaction.create(
       userId,
       transactionData.description,
@@ -109,7 +109,7 @@ describe('Transaction Domain Entity', () => {
     );
   });
 
-  it('should update transactionDate and touch updatedAt', async () => {
+  it('should update transactionDate and touch updatedAt', () => {
     const transaction = Transaction.create(
       userId,
       transactionData.description,

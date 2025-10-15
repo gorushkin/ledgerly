@@ -16,6 +16,9 @@ export class DateValue {
 
   static create(): DateValue {
     const now = isoDate.parse(getTodayDateString());
+    if (!now) {
+      throw new Error("Failed to parse today's date");
+    }
     return new DateValue(now);
   }
 

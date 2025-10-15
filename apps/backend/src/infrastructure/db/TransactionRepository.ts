@@ -132,7 +132,6 @@ export class TransactionRepository extends BaseRepository {
         .set({
           ...this.updateTimestamp,
           description: data.description,
-          hash: data.hash,
           postingDate: data.postingDate,
           transactionDate: data.transactionDate,
         })
