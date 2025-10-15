@@ -8,7 +8,7 @@ export class DateValue {
     const parsed = isoDate.parse(value);
 
     if (!parsed) {
-      throw new Error('Invalid UUID format');
+      throw new Error('Invalid date format');
     }
 
     this._value = parsed;

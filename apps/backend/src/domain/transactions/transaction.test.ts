@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Id } from '../domain-core';
 import { DateValue } from '../domain-core/value-objects/DateValue';
@@ -16,6 +16,14 @@ describe('Transaction Domain Entity', () => {
   const userId = Id.fromPersistence(transactionData.userId);
   const postingDate = DateValue.restore(transactionData.postingDate);
   const transactionDate = DateValue.restore(transactionData.transactionDate);
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('should create a valid transaction', () => {
     const transaction = Transaction.create(
@@ -67,7 +75,7 @@ describe('Transaction Domain Entity', () => {
 
     const originalUpdatedAt = transaction.getUpdatedAt();
 
-    await new Promise((r) => setTimeout(r, 5)); // Ensure time difference
+    vi.advanceTimersByTime(5);
 
     transaction.updateDescription('Updated description');
 
@@ -90,7 +98,7 @@ describe('Transaction Domain Entity', () => {
 
     const originalUpdatedAt = transaction.getUpdatedAt();
 
-    await new Promise((r) => setTimeout(r, 5)); // Ensure time difference
+    vi.advanceTimersByTime(5);
 
     transaction.updatePostingDate(DateValue.create());
 
@@ -111,7 +119,7 @@ describe('Transaction Domain Entity', () => {
 
     const originalUpdatedAt = transaction.getUpdatedAt();
 
-    await new Promise((r) => setTimeout(r, 5)); // Ensure time difference
+    vi.advanceTimersByTime(5);
 
     transaction.updateTransactionDate(DateValue.create());
 
