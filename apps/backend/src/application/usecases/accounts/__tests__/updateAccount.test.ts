@@ -86,7 +86,7 @@ describe('UpdateAccount', () => {
       updateAccount: vi.fn().mockReturnThis(),
     };
 
-    (Account.fromPersistence as Mock).mockReturnValue(mockAccountInstance);
+    (Account.restore as Mock).mockReturnValue(mockAccountInstance);
   });
 
   describe('execute', () => {

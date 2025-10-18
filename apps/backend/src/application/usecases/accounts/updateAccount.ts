@@ -29,14 +29,10 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
       accountId,
     );
 
-    const account = Account.fromPersistence(accountData);
+    const account = Account.restore(accountData);
 
     account.updateAccount(data);
 
-    return this.accountRepository.update(
-      userId,
-      accountId,
-      account.toPersistence(),
-    );
+    return this.accountRepository.update(userId, accountId, account.toRecord());
   }
 }

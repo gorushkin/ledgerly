@@ -73,7 +73,7 @@ describe('Account Domain Entity', () => {
       const createdAt = Timestamp.restore(createdAtValue);
       const updatedAt = Timestamp.restore(updatedAtValue);
 
-      const account = Account.fromPersistence({
+      const account = Account.restore({
         createdAt: createdAt.valueOf(),
         currency: currencyCodeEUR,
         currentClearedBalanceLocal: Amount.create('500').valueOf(),
@@ -160,13 +160,13 @@ describe('Account Domain Entity', () => {
 
         expect(account.isDeleted()).toBe(false);
 
-        const accountBeforeDeleting = account.toPersistence();
+        const accountBeforeDeleting = account.toRecord();
 
         account.markAsDeleted();
 
         expect(account.isDeleted()).toBe(true);
 
-        const accountAfterDeleting = account.toPersistence();
+        const accountAfterDeleting = account.toRecord();
 
         expect(accountBeforeDeleting).toEqual({
           ...accountAfterDeleting,

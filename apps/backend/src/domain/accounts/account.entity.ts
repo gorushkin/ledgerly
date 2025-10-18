@@ -66,7 +66,7 @@ export class Account {
     );
   }
 
-  static fromPersistence(data: AccountDbRow): Account {
+  static restore(data: AccountDbRow): Account {
     const {
       createdAt,
       currency,
@@ -143,7 +143,7 @@ export class Account {
     return this.ownership.getOwnerId();
   }
 
-  toPersistence(): AccountRepoInsert {
+  toRecord(): AccountRepoInsert {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       currency: this.currency.valueOf(),

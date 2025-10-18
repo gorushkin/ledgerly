@@ -4,7 +4,7 @@ const DEFAULT_MAX_RETRIES = 3;
 
 export type SaveWithIdRetryType = <
   InsertDto,
-  Entity extends { toPersistence(): InsertDto },
+  Entity extends { toRecord(): InsertDto },
   ResponseDto,
 >(
   entity: Entity,
@@ -15,7 +15,7 @@ export type SaveWithIdRetryType = <
 
 export const saveWithIdRetry: SaveWithIdRetryType = async <
   T,
-  E extends { toPersistence: () => T },
+  E extends { toRecord: () => T },
   K,
 >(
   entity: E,
@@ -24,7 +24,7 @@ export const saveWithIdRetry: SaveWithIdRetryType = async <
   retries: number = DEFAULT_MAX_RETRIES,
 ): Promise<K> => {
   try {
-    return await promise(entity.toPersistence());
+    return await promise(entity.toRecord());
   } catch (error) {
     if (error instanceof RecordAlreadyExistsError && retries > 0) {
       const newEntity = entityFactory();

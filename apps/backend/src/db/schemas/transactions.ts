@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
@@ -21,16 +22,14 @@ export const transactionsTable = sqliteTable('transactions', {
   updatedAt,
   userId: text('user_id')
     .notNull()
-    .references(() => usersTable.id, { onDelete: 'cascade' }),
+    .references(() => usersTable.id, { onDelete: 'cascade' })
+    .$type<UUID>(),
 });
 
 export type TransactionDbRow = InferSelectModel<typeof transactionsTable>;
 export type TransactionDbInsert = InferInsertModel<typeof transactionsTable>;
 
-export type TransactionRepoInsert = Omit<
-  TransactionDbInsert,
-  'id' | 'createdAt' | 'updatedAt'
->;
+export type TransactionRepoInsert = TransactionDbInsert;
 
 export type TransactionDbUpdate = Partial<
   Omit<TransactionDbRow, 'id' | 'userId' | 'createdAt' | 'updatedAt'>

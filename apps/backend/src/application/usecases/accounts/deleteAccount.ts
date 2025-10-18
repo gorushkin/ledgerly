@@ -24,7 +24,7 @@ export class DeleteAccountUseCase extends AccountUseCaseBase {
       accountId,
     );
 
-    const account = Account.fromPersistence(accountData);
+    const account = Account.restore(accountData);
 
     account.markAsDeleted();
 
