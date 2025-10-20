@@ -2,6 +2,7 @@
 import '@fastify/jwt';
 import { UUID } from '@ledgerly/shared/types';
 import { AppContainer } from 'src/di/types';
+import { User } from 'src/domain/users/user.entity';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
@@ -9,10 +10,7 @@ declare module '@fastify/jwt' {
       userId: UUID;
       email: string;
     };
-    user: {
-      userId: UUID;
-      email: string;
-    };
+    user: User;
   }
 }
 

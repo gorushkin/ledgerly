@@ -1,22 +1,15 @@
-import { AccountResponseDTO, UUID } from '@ledgerly/shared/types';
-import {
-  AccountRepositoryInterface,
-  UserRepositoryInterface,
-} from 'src/application/interfaces';
+import { AccountResponseDTO } from '@ledgerly/shared/types';
+import { AccountRepositoryInterface } from 'src/application/interfaces';
+import { User } from 'src/domain/users/user.entity';
 
 import { AccountUseCaseBase } from './accountBase';
 
 export class GetAllAccountsUseCase extends AccountUseCaseBase {
-  constructor(
-    accountRepository: AccountRepositoryInterface,
-    userRepository: UserRepositoryInterface,
-  ) {
-    super(accountRepository, userRepository);
+  constructor(accountRepository: AccountRepositoryInterface) {
+    super(accountRepository);
   }
 
-  async execute(userId: UUID): Promise<AccountResponseDTO[]> {
-    await this.ensureUserExists(userId);
-
-    return this.accountRepository.getAll(userId);
+  async execute(user: User): Promise<AccountResponseDTO[]> {
+    return this.accountRepository.getAll(user.id);
   }
 }

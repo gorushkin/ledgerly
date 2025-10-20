@@ -3,6 +3,7 @@ import {
   accountCreateSchema,
   accountUpdateSchema,
 } from '@ledgerly/shared/validation';
+import { User } from 'src/domain/users/user.entity';
 
 import {
   DeleteAccountUseCase,
@@ -21,30 +22,30 @@ export class AccountController {
     private readonly deleteAccountUseCase: DeleteAccountUseCase,
   ) {}
 
-  async getAll(userId: UUID) {
-    return this.getAllAccountsUseCase.execute(userId);
+  async getAll(user: User) {
+    return this.getAllAccountsUseCase.execute(user);
   }
 
-  async getById(userId: UUID, id: UUID) {
-    return this.getAccountByIdUseCase.execute(userId, id);
+  async getById(user: User, id: UUID) {
+    return this.getAccountByIdUseCase.execute(user, id);
   }
 
-  async create(userId: UUID, requestBody: unknown) {
+  async create(user: User, requestBody: unknown) {
     const accountCreateDto = accountCreateSchema.parse(requestBody);
 
-    return this.createAccountUseCase.execute(userId, {
+    return this.createAccountUseCase.execute(user, {
       ...accountCreateDto,
-      userId,
+      userId: user.id,
     });
   }
 
-  async update(userId: UUID, id: UUID, requestBody: unknown) {
+  async update(user: User, id: UUID, requestBody: unknown) {
     const accountUpdateDto = accountUpdateSchema.parse(requestBody);
 
-    return this.updateAccountUseCase.execute(userId, id, accountUpdateDto);
+    return this.updateAccountUseCase.execute(user, id, accountUpdateDto);
   }
 
-  async deleteAccount(userId: UUID, id: UUID) {
-    return this.deleteAccountUseCase.execute(userId, id);
+  async deleteAccount(user: User, id: UUID) {
+    return this.deleteAccountUseCase.execute(user, id);
   }
 }

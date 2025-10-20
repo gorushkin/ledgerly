@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import { UserResponseDTO } from 'src/application';
 import { UserDbInsert, UserDbRow } from 'src/db/schema';
 
@@ -48,7 +49,7 @@ export class User {
     return new User(identity, timestamps, email, name, password);
   }
 
-  toPersistence(): UserDbInsert {
+  toRecord(): UserDbInsert {
     return {
       createdAt: this.timestamps.getCreatedAt().valueOf(),
       email: this._email.valueOf(),
@@ -61,6 +62,10 @@ export class User {
 
   getId(): Id {
     return this.identity.getId();
+  }
+
+  get id(): UUID {
+    return this.identity.getId().valueOf();
   }
 
   // Public getters for read access
@@ -95,5 +100,9 @@ export class User {
       id: this.getId().valueOf(),
       name: this.name.valueOf(),
     };
+  }
+
+  verifyOwnership(userId: UUID): boolean {
+    return this.getId().valueOf() === userId;
   }
 }

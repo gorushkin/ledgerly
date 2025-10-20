@@ -1,4 +1,5 @@
 import { OperationRepository } from 'src/application/interfaces/OperationRepository.interface';
+import { createUser } from 'src/db/createTestUser';
 import { OperationDbRow } from 'src/db/schema';
 import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
@@ -9,8 +10,9 @@ import { describe, it, beforeEach, vi, expect } from 'vitest';
 import { GetAccountByIdUseCase } from '../../accounts';
 import { CreateOperationUseCase } from '../createOperation';
 
-describe('CreateOperationUseCase', () => {
-  const userId = Id.create();
+describe('CreateOperationUseCase', async () => {
+  const user = await createUser();
+
   const entryId = Id.create();
   const accountId = Id.create();
 
@@ -20,23 +22,24 @@ describe('CreateOperationUseCase', () => {
 
   let mockOperationRepository: { create: ReturnType<typeof vi.fn> };
   let mockGetAccountByIdUseCase: { execute: ReturnType<typeof vi.fn> };
+  let mockSavedOperationData: OperationDbRow;
 
   const tx = {} as DataBase;
 
-  const mockSavedOperationData: OperationDbRow = {
-    accountId: accountId.valueOf(),
-    amount: Amount.create(amount).toPersistence(),
-    createdAt: Timestamp.create().valueOf(),
-    description: 'Test operation',
-    entryId: entryId.valueOf(),
-    id: Id.create().valueOf(),
-    isSystem: false,
-    isTombstone: false,
-    updatedAt: Timestamp.create().valueOf(),
-    userId: userId.valueOf(),
-  };
-
   beforeEach(() => {
+    mockSavedOperationData = {
+      accountId: accountId.valueOf(),
+      amount: Amount.create(amount).toPersistence(),
+      createdAt: Timestamp.create().valueOf(),
+      description: 'Test operation',
+      entryId: entryId.valueOf(),
+      id: Id.create().valueOf(),
+      isSystem: false,
+      isTombstone: false,
+      updatedAt: Timestamp.create().valueOf(),
+      userId: user.id,
+    };
+
     mockOperationRepository = {
       create: vi.fn(),
     };
@@ -70,7 +73,7 @@ describe('CreateOperationUseCase', () => {
       .mockReturnValue(mockSavedOperationData as unknown as Operation);
 
     const result = await createOperationUseCase.execute(
-      userId.valueOf(),
+      user,
       accountId.valueOf(),
       entryId.valueOf(),
       amount,
@@ -79,7 +82,7 @@ describe('CreateOperationUseCase', () => {
     );
 
     expect(spyOperationCreate).toHaveBeenCalledWith(
-      Id.fromPersistence(userId.valueOf()),
+      Id.fromPersistence(user.id),
       Id.fromPersistence(mockSavedOperationData.id),
       Id.fromPersistence(mockSavedOperationData.entryId),
       Amount.create(amount),
@@ -87,7 +90,7 @@ describe('CreateOperationUseCase', () => {
     );
 
     expect(spyOperationRepositoryCreate).toHaveBeenCalledWith(
-      userId.valueOf(),
+      user.id,
       operationToPersistenceMock,
       tx,
     );
