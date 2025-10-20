@@ -5,6 +5,6 @@ export const transactionsRoutes = (app: FastifyInstance) => {
   const transactionController = app.container.controllers.transaction;
 
   app.get('/:id', async (request, response) => {
-    response.send({ user: request.user.toRecord() });
+    response.send({ user: request.user.toPersistence() });
   });
 };

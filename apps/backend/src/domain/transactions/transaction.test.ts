@@ -51,7 +51,7 @@ describe('Transaction Domain Entity', () => {
       transactionDate,
     );
 
-    const transactionRecord = transaction.toRecord();
+    const transactionRecord = transaction.toPersistence();
 
     expect(transactionRecord).toMatchObject({
       description: transactionData.description,
@@ -62,7 +62,9 @@ describe('Transaction Domain Entity', () => {
 
     const restoredTransaction = Transaction.restore(transactionRecord);
 
-    expect(restoredTransaction.toRecord()).toEqual(transaction.toRecord());
+    expect(restoredTransaction.toPersistence()).toEqual(
+      transaction.toPersistence(),
+    );
   });
 
   it('should update description and touch updatedAt', () => {

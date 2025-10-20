@@ -49,7 +49,7 @@ export class User {
     return new User(identity, timestamps, email, name, password);
   }
 
-  toRecord(): UserDbInsert {
+  toPersistence(): UserDbInsert {
     return {
       createdAt: this.timestamps.getCreatedAt().valueOf(),
       email: this._email.valueOf(),

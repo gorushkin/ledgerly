@@ -160,13 +160,13 @@ describe('Account Domain Entity', () => {
 
         expect(account.isDeleted()).toBe(false);
 
-        const accountBeforeDeleting = account.toRecord();
+        const accountBeforeDeleting = account.toPersistence();
 
         account.markAsDeleted();
 
         expect(account.isDeleted()).toBe(true);
 
-        const accountAfterDeleting = account.toRecord();
+        const accountAfterDeleting = account.toPersistence();
 
         expect(accountBeforeDeleting).toEqual({
           ...accountAfterDeleting,

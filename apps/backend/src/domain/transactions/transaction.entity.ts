@@ -138,7 +138,7 @@ export class Transaction {
     this.touch();
   }
 
-  toRecord(): TransactionDbRow {
+  toPersistence(): TransactionDbRow {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,

@@ -143,7 +143,7 @@ export class Account {
     return this.ownership.getOwnerId();
   }
 
-  toRecord(): AccountRepoInsert {
+  toPersistence(): AccountRepoInsert {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       currency: this.currency.valueOf(),

@@ -1,10 +1,9 @@
 import { CurrencyCode, Money } from '@ledgerly/shared/types';
+import { createUser } from 'src/db/createTestUser';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAllAccountsUseCase } from '../getAllAccounts';
-
-import { createUser } from './createUser';
 
 describe('GetAllAccounts', async () => {
   let getAllAccounts: GetAllAccountsUseCase;

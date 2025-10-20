@@ -68,7 +68,7 @@ describe('UpdateAccount', async () => {
     );
 
     const mockAccountInstance = {
-      toRecord: vi.fn().mockReturnValue({ name: 'Updated Account' }),
+      toPersistence: vi.fn().mockReturnValue({ name: 'Updated Account' }),
       updateAccount: vi.fn().mockReturnThis(),
     };
 

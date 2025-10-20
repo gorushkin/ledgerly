@@ -28,7 +28,7 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
     return this.accountRepository.update(
       user.id,
       accountId,
-      account.toRecord(),
+      account.toPersistence(),
     );
   }
 }
