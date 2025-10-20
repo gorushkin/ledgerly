@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import { UserResponseDTO } from 'src/application';
 import { UserDbInsert, UserDbRow } from 'src/db/schema';
 
@@ -63,6 +64,10 @@ export class User {
     return this.identity.getId();
   }
 
+  get id(): UUID {
+    return this.identity.getId().valueOf();
+  }
+
   // Public getters for read access
   get email(): Email {
     return this._email;
@@ -95,5 +100,9 @@ export class User {
       id: this.getId().valueOf(),
       name: this.name.valueOf(),
     };
+  }
+
+  verifyOwnership(userId: UUID): boolean {
+    return this.getId().valueOf() === userId;
   }
 }

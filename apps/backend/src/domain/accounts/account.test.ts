@@ -73,7 +73,7 @@ describe('Account Domain Entity', () => {
       const createdAt = Timestamp.restore(createdAtValue);
       const updatedAt = Timestamp.restore(updatedAtValue);
 
-      const account = Account.fromPersistence({
+      const account = Account.restore({
         createdAt: createdAt.valueOf(),
         currency: currencyCodeEUR,
         currentClearedBalanceLocal: Amount.create('500').valueOf(),

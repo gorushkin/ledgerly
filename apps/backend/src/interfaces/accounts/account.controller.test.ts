@@ -6,17 +6,20 @@ import {
   GetAllAccountsUseCase,
   UpdateAccountUseCase,
 } from 'src/application/usecases/accounts';
-import { Amount } from 'src/domain/domain-core';
+import { Amount, Email, Name, Password } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
+import { User } from 'src/domain/users/user.entity';
 import { AccountController } from 'src/interfaces/';
 import { describe, vi, beforeEach, it, expect } from 'vitest';
 import { ZodError } from 'zod';
 
-describe('AccountController', () => {
-  const userId = Id.fromPersistence(
-    'a2035d76-f6b1-4546-8637-6f034f4ade50',
-  ).valueOf();
+describe('AccountController', async () => {
+  const userName = Name.create('Ivan');
+  const userEmail = Email.create('ivan@example.com');
+  const userPassword = await Password.create('securepassword');
+
+  const user = User.create(userName, userEmail, userPassword);
 
   const accountId = Id.fromPersistence(
     'b2035d76-f6b1-4546-8637-6f034f4ade50',
@@ -60,9 +63,9 @@ describe('AccountController', () => {
 
       mockGetAllAccountsUseCase.execute.mockResolvedValue(mockAccounts);
 
-      const result = await accountController.getAll(userId);
+      const result = await accountController.getAll(user);
 
-      expect(mockGetAllAccountsUseCase.execute).toHaveBeenCalledWith(userId);
+      expect(mockGetAllAccountsUseCase.execute).toHaveBeenCalledWith(user);
       expect(mockGetAllAccountsUseCase.execute).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockAccounts);
     });
@@ -75,10 +78,10 @@ describe('AccountController', () => {
 
       mockGetAccountByIdUseCase.execute.mockResolvedValue(mockAccount);
 
-      const result = await accountController.getById(userId, accountId);
+      const result = await accountController.getById(user, accountId);
 
       expect(mockGetAccountByIdUseCase.execute).toHaveBeenCalledWith(
-        userId,
+        user,
         accountId,
       );
       expect(mockGetAccountByIdUseCase.execute).toHaveBeenCalledTimes(1);
@@ -94,18 +97,18 @@ describe('AccountController', () => {
         initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'liability',
-        userId,
+        userId: user.id,
       };
 
       const mockAccountResponse = requestBody;
 
       mockCreateAccountUseCase.execute.mockResolvedValue(requestBody);
 
-      const result = await accountController.create(userId, requestBody);
+      const result = await accountController.create(user, requestBody);
 
-      expect(mockCreateAccountUseCase.execute).toHaveBeenCalledWith(userId, {
+      expect(mockCreateAccountUseCase.execute).toHaveBeenCalledWith(user, {
         ...requestBody,
-        userId,
+        userId: user.id,
       });
 
       expect(mockCreateAccountUseCase.execute).toHaveBeenCalledTimes(1);
@@ -120,7 +123,7 @@ describe('AccountController', () => {
       };
 
       await expect(
-        accountController.create(userId, invalidRequestBody),
+        accountController.create(user, invalidRequestBody),
       ).rejects.toThrow(ZodError);
     });
   });
@@ -134,14 +137,14 @@ describe('AccountController', () => {
     };
 
     it('should call accountService.update with correct data', async () => {
-      await accountController.update(userId, accountId, requestBody);
+      await accountController.update(user, accountId, requestBody);
 
       const { ...mockAccountResponse } = {
         ...requestBody,
       };
 
       expect(mockUpdateAccountUseCase.execute).toHaveBeenCalledWith(
-        userId,
+        user,
         accountId,
         mockAccountResponse,
       );
@@ -157,7 +160,7 @@ describe('AccountController', () => {
       };
 
       await expect(
-        accountController.update(userId, accountId, invalidRequestBody),
+        accountController.update(user, accountId, invalidRequestBody),
       ).rejects.toThrow(ZodError);
     });
   });
@@ -166,11 +169,11 @@ describe('AccountController', () => {
     it('should call accountService.delete with correct id and userId', async () => {
       mockDeleteAccountUseCase.execute.mockResolvedValue(undefined);
 
-      await accountController.deleteAccount(accountId, userId);
+      await accountController.deleteAccount(user, accountId);
 
       expect(mockDeleteAccountUseCase.execute).toHaveBeenCalledWith(
+        user,
         accountId,
-        userId,
       );
       expect(mockDeleteAccountUseCase.execute).toHaveBeenCalledTimes(1);
     });

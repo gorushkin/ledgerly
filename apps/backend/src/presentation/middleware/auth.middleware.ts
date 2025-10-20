@@ -1,5 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { User } from 'src/domain/users/user.entity';
 
 import { AuthErrors } from '../errors/auth.errors';
 
@@ -18,7 +19,18 @@ export async function authMiddleware(
       userId: UUID;
       email: string;
     }>();
-    request.user = decoded;
+
+    const userRepository = request.server.container.repositories.user;
+
+    const rawUser = await userRepository.getByIdWithPassword(decoded.userId);
+
+    if (!rawUser) {
+      throw new AuthErrors.UnauthorizedError('User not found');
+    }
+
+    const user = User.fromPersistence(rawUser);
+
+    request.user = user;
   } catch {
     throw new AuthErrors.UnauthorizedError('Invalid or expired token');
   }

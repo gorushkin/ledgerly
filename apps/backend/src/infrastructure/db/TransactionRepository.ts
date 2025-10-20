@@ -1,5 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { eq, and, desc } from 'drizzle-orm';
+import { TransactionRepositoryInterface } from 'src/application';
 import {
   TransactionDbRow,
   TransactionDbUpdate,
@@ -11,7 +12,10 @@ import { DataBase, TxType } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
 
-export class TransactionRepository extends BaseRepository {
+export class TransactionRepository
+  extends BaseRepository
+  implements TransactionRepositoryInterface
+{
   constructor(db: DataBase) {
     super(db);
   }

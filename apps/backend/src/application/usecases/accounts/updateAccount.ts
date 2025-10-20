@@ -3,38 +3,30 @@ import {
   AccountUpdateDTO,
   UUID,
 } from '@ledgerly/shared/types';
-import { UserRepositoryInterface } from 'src/application/interfaces';
 import { Account } from 'src/domain/accounts/account.entity';
+import { User } from 'src/domain/users/user.entity';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 
 import { AccountUseCaseBase } from './accountBase';
 
 export class UpdateAccountUseCase extends AccountUseCaseBase {
-  constructor(
-    accountRepository: AccountRepository,
-    userRepository: UserRepositoryInterface,
-  ) {
-    super(accountRepository, userRepository);
+  constructor(accountRepository: AccountRepository) {
+    super(accountRepository);
   }
 
   async execute(
-    userId: UUID,
+    user: User,
     accountId: UUID,
     data: AccountUpdateDTO,
   ): Promise<AccountResponseDTO> {
-    await this.ensureUserExists(userId);
+    const accountData = await this.ensureAccountExistsAndOwned(user, accountId);
 
-    const accountData = await this.ensureAccountExistsAndOwned(
-      userId,
-      accountId,
-    );
-
-    const account = Account.fromPersistence(accountData);
+    const account = Account.restore(accountData);
 
     account.updateAccount(data);
 
     return this.accountRepository.update(
-      userId,
+      user.id,
       accountId,
       account.toPersistence(),
     );

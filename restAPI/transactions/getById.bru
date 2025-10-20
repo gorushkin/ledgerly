@@ -1,0 +1,19 @@
+meta {
+  name: getById
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/transactions
+  body: none
+  auth: bearer
+}
+
+headers {
+  ~Authorization: {{bearerToken}}
+}
+
+auth:bearer {
+  token: {{token}}
+}

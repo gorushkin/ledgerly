@@ -9,7 +9,11 @@ import { AccountRepository } from 'src/infrastructure/db/accounts/account.reposi
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
 import { UserRepository } from 'src/infrastructure/db/UsersRepository';
-import { AuthController, AccountController } from 'src/interfaces/';
+import {
+  AuthController,
+  AccountController,
+  TransactionController,
+} from 'src/interfaces/';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { DataBase } from 'src/types';
 
@@ -41,6 +45,7 @@ type Controllers = {
   account: AccountController;
   user: UserController;
   auth: AuthController;
+  transaction: TransactionController;
 };
 
 export type AppContainer = {

@@ -10,7 +10,11 @@ import { AccountRepository } from 'src/infrastructure/db/accounts/account.reposi
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
 import { UserRepository } from 'src/infrastructure/db/UsersRepository';
-import { AuthController, AccountController } from 'src/interfaces/';
+import {
+  AuthController,
+  AccountController,
+  TransactionController,
+} from 'src/interfaces/';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { DataBase } from 'src/types';
 
@@ -38,25 +42,12 @@ export const createContainer = (db: DataBase): AppContainer => {
   // Create Account Use Cases
   const createAccountUseCase = new CreateAccountUseCase(
     accountRepository,
-    userRepository,
     saveWithIdRetry,
   );
-  const getAllAccountsUseCase = new GetAllAccountsUseCase(
-    accountRepository,
-    userRepository,
-  );
-  const getAccountByIdUseCase = new GetAccountByIdUseCase(
-    accountRepository,
-    userRepository,
-  );
-  const updateAccountUseCase = new UpdateAccountUseCase(
-    accountRepository,
-    userRepository,
-  );
-  const deleteAccountUseCase = new DeleteAccountUseCase(
-    accountRepository,
-    userRepository,
-  );
+  const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
+  const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
+  const updateAccountUseCase = new UpdateAccountUseCase(accountRepository);
+  const deleteAccountUseCase = new DeleteAccountUseCase(accountRepository);
 
   const loginUserUseCase = new LoginUserUseCase(userRepository);
 
@@ -93,9 +84,12 @@ export const createContainer = (db: DataBase): AppContainer => {
     loginUserUseCase,
   );
 
+  const transactionController = new TransactionController();
+
   const controllers: AppContainer['controllers'] = {
     account: accountController,
     auth: authController,
+    transaction: transactionController,
     user: userController,
   };
 

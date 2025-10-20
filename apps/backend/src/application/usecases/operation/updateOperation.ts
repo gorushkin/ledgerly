@@ -1,8 +1,8 @@
-import { UUID } from '@ledgerly/shared/types';
 import { UpdateOperationRequestDTO } from 'src/application/dto';
 import { OperationRepository } from 'src/application/interfaces/OperationRepository.interface';
 import { Amount } from 'src/domain/domain-core';
 import { Operation } from 'src/domain/operations/operation.entity';
+import { User } from 'src/domain/users/user.entity';
 import { DataBase } from 'src/types';
 
 import { GetAccountByIdUseCase } from '../accounts';
@@ -14,7 +14,7 @@ export class UpdateOperationUseCase {
   ) {}
 
   async execute(
-    userId: UUID,
+    user: User,
     request: UpdateOperationRequestDTO,
     tx: DataBase,
   ): Promise<void> {
@@ -22,22 +22,22 @@ export class UpdateOperationUseCase {
 
     // TODO: add entryId validation
 
-    const operationRow = await this.operationRepository.getById(userId, id, tx);
+    const operationRow = await this.operationRepository.getById(
+      user.id,
+      id,
+      tx,
+    );
 
     if (!operationRow) {
       throw new Error('Operation not found');
     }
 
-    if (operationRow.userId !== userId) {
+    if (!user.verifyOwnership(operationRow.userId)) {
       throw new Error('Operation does not belong to user');
     }
 
     // TODO: validate that account belongs to user
-    await this.getAccountByIdUseCase.execute(
-      userId,
-      operationRow.accountId,
-      tx,
-    );
+    await this.getAccountByIdUseCase.execute(user, operationRow.accountId, tx);
 
     const operation = Operation.fromPersistence(operationRow);
 

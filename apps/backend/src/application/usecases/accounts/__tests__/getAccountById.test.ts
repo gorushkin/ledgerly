@@ -1,22 +1,22 @@
 import { CurrencyCode, Money } from '@ledgerly/shared/types';
-import { UserRepositoryInterface } from 'src/application/interfaces';
+import { createUser } from 'src/db/createTestUser';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAccountByIdUseCase } from '../getAccountById';
 
-describe('GetAccountByIdUseCase', () => {
+describe('GetAccountByIdUseCase', async () => {
+  const user = await createUser();
+
   let getAccountByIdUseCase: GetAccountByIdUseCase;
+
   let mockAccountRepository: {
     create: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
   };
   let mockUserRepository: { getById: ReturnType<typeof vi.fn> };
 
-  const userId = Id.fromPersistence(
-    '550e8400-e29b-41d4-a716-446655440000',
-  ).valueOf();
   const accountId = Id.fromPersistence(
     '550e8400-e29b-41d4-a716-446655440001',
   ).valueOf();
@@ -29,7 +29,7 @@ describe('GetAccountByIdUseCase', () => {
   const mockUser = {
     createdAt: new Date().toISOString(),
     email: 'test@example.com',
-    id: userId,
+    id: user.id,
     name: 'Test User',
   };
 
@@ -43,7 +43,7 @@ describe('GetAccountByIdUseCase', () => {
     name: accountName,
     type: accountType,
     updatedAt: new Date().toISOString(),
-    userId,
+    userId: user.id,
   };
 
   beforeEach(() => {
@@ -58,7 +58,6 @@ describe('GetAccountByIdUseCase', () => {
 
     getAccountByIdUseCase = new GetAccountByIdUseCase(
       mockAccountRepository as unknown as AccountRepository,
-      mockUserRepository as unknown as UserRepositoryInterface,
     );
   });
 
@@ -67,11 +66,10 @@ describe('GetAccountByIdUseCase', () => {
       mockUserRepository.getById.mockResolvedValue(mockUser);
       mockAccountRepository.getById.mockResolvedValue(mockSavedAccountData);
 
-      await getAccountByIdUseCase.execute(userId, accountId);
+      await getAccountByIdUseCase.execute(user, accountId);
 
-      expect(mockUserRepository.getById).toHaveBeenCalledWith(userId);
       expect(mockAccountRepository.getById).toHaveBeenCalledWith(
-        userId,
+        user.id,
         accountId,
       );
     });

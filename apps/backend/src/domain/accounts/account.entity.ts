@@ -66,7 +66,7 @@ export class Account {
     );
   }
 
-  static fromPersistence(data: AccountDbRow): Account {
+  static restore(data: AccountDbRow): Account {
     const {
       createdAt,
       currency,

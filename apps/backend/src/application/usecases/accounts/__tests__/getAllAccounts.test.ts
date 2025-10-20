@@ -1,36 +1,24 @@
 import { CurrencyCode, Money } from '@ledgerly/shared/types';
-import { UserRepositoryInterface } from 'src/application/interfaces';
-import { Id } from 'src/domain/domain-core/value-objects/Id';
+import { createUser } from 'src/db/createTestUser';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAllAccountsUseCase } from '../getAllAccounts';
 
-describe('GetAllAccounts', () => {
+describe('GetAllAccounts', async () => {
   let getAllAccounts: GetAllAccountsUseCase;
 
   let mockAccountRepository: {
     getAll: ReturnType<typeof vi.fn>;
   };
 
-  let mockUserRepository: { getById: ReturnType<typeof vi.fn> };
-
-  const userId = Id.fromPersistence(
-    '550e8400-e29b-41d4-a716-446655440000',
-  ).valueOf();
+  const user = await createUser();
 
   const accountName = 'Test Account';
   const description = 'Test account description';
   const initialBalance = 1000 as Money;
   const currency = 'USD' as CurrencyCode;
   const accountType = 'asset';
-
-  const mockUser = {
-    createdAt: new Date().toISOString(),
-    email: 'test@example.com',
-    id: userId,
-    name: 'Test User',
-  };
 
   const mockSavedAccountData = {
     createdAt: new Date().toISOString(),
@@ -42,7 +30,7 @@ describe('GetAllAccounts', () => {
     name: accountName,
     type: accountType,
     updatedAt: new Date().toISOString(),
-    userId,
+    userId: user.id,
   };
 
   beforeEach(() => {
@@ -50,26 +38,18 @@ describe('GetAllAccounts', () => {
       getAll: vi.fn(),
     };
 
-    mockUserRepository = {
-      getById: vi.fn(),
-    };
-
     getAllAccounts = new GetAllAccountsUseCase(
       mockAccountRepository as unknown as AccountRepository,
-      mockUserRepository as unknown as UserRepositoryInterface,
     );
   });
 
   describe('execute', () => {
     it('should return accounts for the user', async () => {
-      mockUserRepository.getById.mockResolvedValue(mockUser);
       mockAccountRepository.getAll.mockResolvedValue([mockSavedAccountData]);
 
-      const result = await getAllAccounts.execute(userId);
+      const result = await getAllAccounts.execute(user);
 
-      // TODO: do something with tx
-      expect(mockUserRepository.getById).toHaveBeenCalledWith(userId);
-      expect(mockAccountRepository.getAll).toHaveBeenCalledWith(userId);
+      expect(mockAccountRepository.getAll).toHaveBeenCalledWith(user.id);
 
       expect(result).toEqual([mockSavedAccountData]);
     });
