@@ -7,7 +7,7 @@ import {
   Id,
   Timestamp,
   Name,
-  UserOwnership,
+  ParentChildRelation,
   EntityIdentity,
   EntityTimestamps,
   SoftDelete,
@@ -19,13 +19,13 @@ export class Account {
   private readonly identity: EntityIdentity;
   private timestamps: EntityTimestamps;
   private softDelete: SoftDelete;
-  private readonly ownership: UserOwnership;
+  private readonly ownership: ParentChildRelation;
 
   private constructor(
     identity: EntityIdentity,
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
-    ownership: UserOwnership,
+    ownership: ParentChildRelation,
     private name: Name,
     private description: string,
     private initialBalance: Amount,
@@ -50,7 +50,7 @@ export class Account {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
-    const ownership = UserOwnership.create(userId);
+    const ownership = ParentChildRelation.create(userId, identity.getId());
 
     return new Account(
       identity,
@@ -87,7 +87,10 @@ export class Account {
       Timestamp.restore(createdAt),
     );
     const softDelete = SoftDelete.fromPersistence(isTombstone);
-    const ownership = UserOwnership.create(Id.fromPersistence(userId));
+    const ownership = ParentChildRelation.create(
+      Id.fromPersistence(userId),
+      identity.getId(),
+    );
 
     return new Account(
       identity,
@@ -136,11 +139,11 @@ export class Account {
 
   // Delegation methods for ownership
   belongsToUser(userId: Id): boolean {
-    return this.ownership.belongsToUser(userId);
+    return this.ownership.belongsToParent(userId);
   }
 
   getUserId(): Id {
-    return this.ownership.getOwnerId();
+    return this.ownership.getParentId();
   }
 
   toPersistence(): AccountRepoInsert {
@@ -155,7 +158,7 @@ export class Account {
       name: this.name.valueOf(),
       type: this.type.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
-      userId: this.ownership.getOwnerId().valueOf(),
+      userId: this.ownership.getParentId().valueOf(),
     };
   }
 

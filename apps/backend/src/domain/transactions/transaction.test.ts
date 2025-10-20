@@ -131,4 +131,57 @@ describe('Transaction Domain Entity', () => {
       originalUpdatedAt.toDate().getTime(),
     );
   });
+
+  describe('Entry Management', () => {
+    let transaction: Transaction;
+
+    beforeEach(() => {
+      transaction = Transaction.create(
+        userId,
+        transactionData.description,
+        postingDate,
+        transactionDate,
+      );
+    });
+
+    it('should start with empty entries array', () => {
+      expect(transaction.getEntries()).toEqual([]);
+    });
+
+    it.todo('should add entry successfully', () => {
+      // TODO: Implement when Entry.create is available
+      // const entry = Entry.create(/* appropriate parameters */);
+      // expect(() => transaction.addEntry(entry)).not.toThrow();
+      // expect(transaction.getEntries()).toHaveLength(1);
+    });
+
+    it.todo('should remove entry successfully', () => {
+      // TODO: Implement when Entry.create is available
+      // const entry = Entry.create(/* appropriate parameters */);
+      // transaction.addEntry(entry);
+      // transaction.removeEntry(entry.getId());
+      // expect(transaction.getEntries()).toHaveLength(0);
+    });
+
+    it.todo('should throw error when removing non-existent entry', () => {
+      // const nonExistentId = Id.create();
+      // expect(() => transaction.removeEntry(nonExistentId)).toThrow('Entry not found in transaction');
+    });
+
+    it.todo('should validate entry belongs to transaction when adding', () => {
+      // TODO: Test that entry validation works correctly
+    });
+
+    it('should provide read-only access to entries', () => {
+      const entries = transaction.getEntries();
+      expect(entries).toBeInstanceOf(Array);
+
+      // Should return a readonly array
+      expect(transaction.getEntries()).toHaveLength(0);
+    });
+
+    it.todo('should implement balance validation', () => {
+      // TODO: Implement isBalanced and validateBalance tests
+    });
+  });
 });
