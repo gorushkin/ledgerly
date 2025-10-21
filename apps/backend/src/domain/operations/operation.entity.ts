@@ -4,23 +4,23 @@ import {
   Id,
   Timestamp,
   Amount,
-  UserOwnership,
   EntityIdentity,
   EntityTimestamps,
   SoftDelete,
+  ParentChildRelation,
 } from '../domain-core';
 
 export class Operation {
   private readonly identity: EntityIdentity;
   private timestamps: EntityTimestamps;
   private softDelete: SoftDelete;
-  private readonly ownership: UserOwnership;
+  private readonly ownership: ParentChildRelation;
 
   private constructor(
     identity: EntityIdentity,
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
-    ownership: UserOwnership,
+    ownership: ParentChildRelation,
     public readonly accountId: Id,
     public readonly entryId: Id,
     public amount: Amount,
@@ -43,7 +43,7 @@ export class Operation {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
-    const ownership = UserOwnership.create(userId);
+    const ownership = ParentChildRelation.create(userId, identity.getId());
 
     return new Operation(
       identity,
@@ -78,7 +78,10 @@ export class Operation {
       Timestamp.restore(createdAt),
     );
     const softDelete = SoftDelete.fromPersistence(isTombstone);
-    const ownership = UserOwnership.create(Id.fromPersistence(userId));
+    const ownership = ParentChildRelation.create(
+      Id.fromPersistence(userId),
+      identity.getId(),
+    );
 
     return new Operation(
       identity,
@@ -126,11 +129,11 @@ export class Operation {
 
   // Delegation methods for ownership
   belongsToUser(userId: Id): boolean {
-    return this.ownership.belongsToUser(userId);
+    return this.ownership.belongsToParent(userId);
   }
 
   getUserId(): Id {
-    return this.ownership.getOwnerId();
+    return this.ownership.getParentId();
   }
 
   delete(): void {
@@ -179,7 +182,7 @@ export class Operation {
       isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
       updatedAt: this.getUpdatedAt().valueOf(),
-      userId: this.ownership.getOwnerId().valueOf(),
+      userId: this.getUserId().valueOf(),
     };
   }
 }

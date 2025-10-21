@@ -5,11 +5,13 @@ import {
   SoftDelete,
   ParentChildRelation,
 } from '../domain-core';
+import { Transaction } from '../transactions';
+import { User } from '../users/user.entity';
 
 export class Entry {
   private readonly identity: EntityIdentity;
-  private readonly timestamps: EntityTimestamps;
-  private readonly softDelete: SoftDelete;
+  private timestamps: EntityTimestamps;
+  private softDelete: SoftDelete;
   private readonly ownership: ParentChildRelation;
   private readonly transactionRelation: ParentChildRelation;
 
@@ -27,8 +29,35 @@ export class Entry {
     this.transactionRelation = transactionRelation;
   }
 
+  static create(user: User, transaction: Transaction): Entry {
+    const identity = EntityIdentity.create();
+    const timestamps = EntityTimestamps.create();
+    const softDelete = SoftDelete.create();
+    const ownership = ParentChildRelation.create(
+      user.getId(),
+      identity.getId(),
+    );
+
+    const transactionRelation = ParentChildRelation.create(
+      transaction.getId(),
+      identity.getId(),
+    );
+
+    return new Entry(
+      identity,
+      timestamps,
+      softDelete,
+      ownership,
+      transactionRelation,
+    );
+  }
+
   getId(): Id {
     return this.identity.getId();
+  }
+
+  belongsToUser(userId: Id): boolean {
+    return this.ownership.belongsToParent(userId);
   }
 
   belongsToTransaction(transactionId: Id): boolean {
@@ -37,5 +66,17 @@ export class Entry {
 
   getTransactionId(): Id {
     return this.transactionRelation.getParentId();
+  }
+
+  markAsDeleted(): void {
+    this.softDelete = this.softDelete.markAsDeleted();
+  }
+
+  isDeleted(): boolean {
+    return this.softDelete.isDeleted();
+  }
+
+  private touch(): void {
+    this.timestamps = this.timestamps.touch();
   }
 }
