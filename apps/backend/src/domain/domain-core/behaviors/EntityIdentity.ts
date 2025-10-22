@@ -28,4 +28,8 @@ export class EntityIdentity {
   static create(id?: Id): EntityIdentity {
     return new EntityIdentity(id ?? Id.create());
   }
+
+  static fromPersistence(id: Id): EntityIdentity {
+    return new EntityIdentity(id);
+  }
 }

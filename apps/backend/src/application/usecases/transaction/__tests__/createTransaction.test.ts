@@ -1,26 +1,35 @@
-import {
-  TransactionRepositoryInterface,
-  UserRepositoryInterface,
-} from 'src/application/interfaces';
-import { DateValue, Id } from 'src/domain/domain-core';
+import { TransactionRepositoryInterface } from 'src/application/interfaces';
+import { createUser } from 'src/db/createTestUser';
+import { Account, Entry } from 'src/domain';
+import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
+import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
 import { Transaction } from 'src/domain/transactions';
+import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateTransactionUseCase } from '../CreateTransaction';
 
-describe('CreateTransactionUseCase', () => {
+describe('CreateTransactionUseCase', async () => {
+  const user = await createUser();
+
   let createTransactionUseCase: CreateTransactionUseCase;
   let mockTransactionRepository: { create: ReturnType<typeof vi.fn> };
+  let mockAccountRepository: { getById: ReturnType<typeof vi.fn> };
 
-  let mockUserRepository: { getById: ReturnType<typeof vi.fn> };
-
-  const userIdValue = '550e8400-e29b-41d4-a716-446655440000';
-  const userId = Id.fromPersistence(userIdValue).valueOf();
   const transactionIdValue = '660e8400-e29b-41d4-a716-446655440001';
 
   const postingDate = DateValue.restore('2024-01-01').valueOf();
   const transactionDate = DateValue.restore('2024-01-02').valueOf();
   const description = 'Test Transaction';
+
+  const account = Account.create(
+    user.getId(),
+    Name.create('Test Account'),
+    'Account for testing',
+    Amount.create('0'),
+    Currency.create('USD'),
+    AccountType.create('asset'),
+  );
 
   const mockSavedTransactionData = {
     createdAt: new Date().toISOString(),
@@ -30,7 +39,7 @@ describe('CreateTransactionUseCase', () => {
     postingDate,
     transactionDate,
     updatedAt: new Date().toISOString(),
-    userId,
+    userId: user.id,
   };
 
   const mockedSaveWithIdRetry = vi
@@ -42,18 +51,18 @@ describe('CreateTransactionUseCase', () => {
       create: vi.fn(),
     };
 
-    mockUserRepository = {
-      getById: vi.fn(),
+    mockAccountRepository = {
+      getById: vi.fn().mockResolvedValue(account),
     };
 
     createTransactionUseCase = new CreateTransactionUseCase(
       mockTransactionRepository as unknown as TransactionRepositoryInterface,
-      mockUserRepository as unknown as UserRepositoryInterface,
+      mockAccountRepository as unknown as AccountRepository,
       mockedSaveWithIdRetry,
     );
   });
   describe('execute', () => {
-    it('should create a new transaction successfully', async () => {
+    it('should create a new transaction with entries successfully', async () => {
       const expectedResult = {
         ...mockSavedTransactionData,
         isTombstone: false,
@@ -61,21 +70,56 @@ describe('CreateTransactionUseCase', () => {
 
       mockedSaveWithIdRetry.mockResolvedValue(expectedResult);
 
-      const mockedTransaction = {} as unknown as Transaction;
+      const addEntry = vi.fn();
 
+      const mockedTransaction = {
+        addEntry,
+        getId: () => transactionIdValue,
+      } as unknown as Transaction;
+
+      const mockedEntry = {
+        addOperation: vi.fn(),
+        getId: () => 'some-entry-id',
+      } as unknown as Entry;
+
+      vi.spyOn(Account, 'restore').mockReturnValue(account);
       vi.spyOn(Transaction, 'create').mockReturnValue(mockedTransaction);
+      vi.spyOn(Entry, 'create').mockReturnValue(mockedEntry);
 
-      const result = await createTransactionUseCase.execute(userId, {
+      const entries = [
+        {
+          operations: [
+            {
+              accountId: account.getId().valueOf(),
+              amount: Amount.create('100').valueOf(),
+              description: 'Operation 1',
+            },
+            {
+              accountId: account.getId().valueOf(),
+              amount: Amount.create('100').valueOf(),
+              description: 'Operation 1',
+            },
+          ],
+        },
+      ];
+
+      const data = {
         description,
+        entries,
         postingDate,
         transactionDate,
-      });
+      };
+
+      const result = await createTransactionUseCase.execute(user, data);
 
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
         mockedTransaction,
         expect.any(Function),
         expect.any(Function),
       );
+
+      expect(addEntry).toHaveBeenCalledTimes(entries.length);
+      expect(addEntry).toHaveBeenCalledWith(mockedEntry);
 
       expect(result).toEqual(expectedResult);
     });

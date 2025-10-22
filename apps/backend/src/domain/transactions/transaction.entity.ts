@@ -16,7 +16,6 @@ export class Transaction {
   private timestamps: EntityTimestamps;
   private softDelete: SoftDelete;
   private readonly ownership: ParentChildRelation;
-
   private postingDate: DateValue;
   private transactionDate: DateValue;
   private entries: Entry[] = [];

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Id } from '../domain-core';
 import { DateValue } from '../domain-core/value-objects/DateValue';
+import { Entry } from '../entries';
 
 import { Transaction } from './transaction.entity';
 
@@ -148,11 +149,33 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.getEntries()).toEqual([]);
     });
 
-    it.todo('should add entry successfully', () => {
-      // TODO: Implement when Entry.create is available
-      // const entry = Entry.create(/* appropriate parameters */);
-      // expect(() => transaction.addEntry(entry)).not.toThrow();
-      // expect(transaction.getEntries()).toHaveLength(1);
+    it('should add entry successfully', () => {
+      const transaction = Transaction.create(
+        userId,
+        transactionData.description,
+        postingDate,
+        transactionDate,
+      );
+
+      const mockEntry1 = {
+        belongsToTransaction: () => true,
+        data: 'mock entry data1',
+      } as unknown as Entry;
+
+      const mockEntry2 = {
+        belongsToTransaction: () => true,
+        data: 'mock entry data2',
+      } as unknown as Entry;
+
+      vi.spyOn(Entry, 'create').mockReturnValue(mockEntry1);
+
+      transaction.addEntry(mockEntry1);
+      transaction.addEntry(mockEntry2);
+
+      const entries = transaction.getEntries();
+      expect(entries).toHaveLength(2);
+      expect(entries[0]).toBe(mockEntry1);
+      expect(entries[1]).toBe(mockEntry2);
     });
 
     it.todo('should remove entry successfully', () => {

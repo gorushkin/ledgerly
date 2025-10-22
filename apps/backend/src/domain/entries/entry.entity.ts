@@ -5,6 +5,7 @@ import {
   SoftDelete,
   ParentChildRelation,
 } from '../domain-core';
+import { Operation } from '../operations';
 import { Transaction } from '../transactions';
 import { User } from '../users/user.entity';
 
@@ -14,6 +15,7 @@ export class Entry {
   private softDelete: SoftDelete;
   private readonly ownership: ParentChildRelation;
   private readonly transactionRelation: ParentChildRelation;
+  private operations: Operation[] = [];
 
   private constructor(
     identity: EntityIdentity,
@@ -21,15 +23,21 @@ export class Entry {
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
     transactionRelation: ParentChildRelation,
+    operations: Operation[],
   ) {
     this.identity = identity;
     this.timestamps = timestamps;
     this.softDelete = softDelete;
     this.ownership = ownership;
     this.transactionRelation = transactionRelation;
+    this.operations = operations;
   }
 
-  static create(user: User, transaction: Transaction): Entry {
+  static create(
+    user: User,
+    transaction: Transaction,
+    operations: Operation[],
+  ): Entry {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
@@ -49,6 +57,7 @@ export class Entry {
       softDelete,
       ownership,
       transactionRelation,
+      operations,
     );
   }
 
@@ -78,5 +87,9 @@ export class Entry {
 
   private touch(): void {
     this.timestamps = this.timestamps.touch();
+  }
+
+  addOperation(operation: Operation): void {
+    console.info('Adding operation to entry:', operation);
   }
 }

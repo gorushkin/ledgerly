@@ -1,10 +1,10 @@
-import { UUID } from '@ledgerly/shared/types';
+import { MoneyString, UUID } from '@ledgerly/shared/types';
 
 // Request DTOs for creation
 
 export type CreateOperationRequestDTO = {
   accountId: UUID;
-  amount: number;
+  amount: MoneyString;
   description?: string;
 };
 
@@ -24,7 +24,7 @@ export type OperationResponseDTO = {
   id: UUID;
   entryId: UUID;
   accountId: UUID;
-  amount: number;
+  amount: MoneyString;
   type: 'debit' | 'credit';
   isSystem: boolean;
   description?: string;
