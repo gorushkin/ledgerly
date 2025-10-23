@@ -11,7 +11,11 @@ dotenv.config();
 const isTestEnvironment =
   process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
 
-let db: ReturnType<typeof drizzle>;
+export type DataBase = ReturnType<typeof drizzle<typeof schemas>>;
+
+export type TxType = Parameters<Parameters<DataBase['transaction']>[0]>[0];
+
+let db: DataBase;
 
 if (isTestEnvironment) {
   const client = createClient({ url: 'file::memory:' });

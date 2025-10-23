@@ -15,9 +15,9 @@ import { createClient } from '@libsql/client';
 import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
+import { DataBase } from 'src/db';
 import { Amount } from 'src/domain/domain-core';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { DataBase } from 'src/types';
 
 import { OperationDbInsert, TransactionDbRow, UserDbRow } from './schema';
 import * as schema from './schemas';

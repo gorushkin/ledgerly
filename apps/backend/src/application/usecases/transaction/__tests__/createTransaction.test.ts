@@ -13,7 +13,10 @@ describe('CreateTransactionUseCase', async () => {
   const user = await createUser();
 
   let createTransactionUseCase: CreateTransactionUseCase;
-  let mockTransactionRepository: { create: ReturnType<typeof vi.fn> };
+  let mockTransactionRepository: {
+    create: ReturnType<typeof vi.fn>;
+    getDB: ReturnType<typeof vi.fn>;
+  };
   let mockAccountRepository: { getById: ReturnType<typeof vi.fn> };
 
   const transactionIdValue = '660e8400-e29b-41d4-a716-446655440001';
@@ -49,6 +52,10 @@ describe('CreateTransactionUseCase', async () => {
   beforeEach(() => {
     mockTransactionRepository = {
       create: vi.fn(),
+      getDB: vi.fn().mockReturnValue({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+        transaction: (cb: Function) => cb({}),
+      }),
     };
 
     mockAccountRepository = {

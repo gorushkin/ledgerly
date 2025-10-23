@@ -5,6 +5,7 @@ import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAc
 import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
 import { GetAllAccountsUseCase } from 'src/application/usecases/accounts/getAllAccounts';
 import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAccount';
+import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
@@ -16,7 +17,6 @@ import {
   TransactionController,
 } from 'src/interfaces/';
 import { UserController } from 'src/presentation/controllers/user.controller';
-import { DataBase } from 'src/types';
 
 import { AppContainer } from './types';
 

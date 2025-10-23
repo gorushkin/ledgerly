@@ -1,10 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
+import { DataBase } from 'src/db';
 import {
   OperationDbInsert,
   OperationDbRow,
   OperationDbUpdate,
 } from 'src/db/schema';
-import { DataBase } from 'src/types';
 
 export type OperationRepository = {
   create(

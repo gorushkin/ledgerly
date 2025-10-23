@@ -1,5 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
+import { DataBase } from 'src/db';
 import {
   DBErrorContext,
   DatabaseError,
@@ -9,7 +10,6 @@ import {
 } from 'src/presentation/errors';
 import { BusinessLogicError } from 'src/presentation/errors/businessLogic.error';
 import { adaptLibsqlError } from 'src/presentation/errors/database/libsql-adapter';
-import { DataBase } from 'src/types';
 
 export type NormalizedDbError =
   | { type: 'unique'; table: string; field: string; value?: string }

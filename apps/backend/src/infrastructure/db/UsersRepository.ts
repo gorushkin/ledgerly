@@ -5,10 +5,10 @@ import {
   UserRepositoryInterface,
   UserResponseDTO,
 } from 'src/application';
+import { DataBase } from 'src/db';
 import { UserDbRow } from 'src/db/schema';
 import { usersTable } from 'src/db/schemas';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
-import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
 

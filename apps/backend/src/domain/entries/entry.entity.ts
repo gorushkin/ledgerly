@@ -23,20 +23,20 @@ export class Entry {
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
     transactionRelation: ParentChildRelation,
-    operations: Operation[],
+    operations?: Operation[],
   ) {
     this.identity = identity;
     this.timestamps = timestamps;
     this.softDelete = softDelete;
     this.ownership = ownership;
     this.transactionRelation = transactionRelation;
-    this.operations = operations;
+    this.operations = operations ?? [];
   }
 
   static create(
     user: User,
     transaction: Transaction,
-    operations: Operation[],
+    operations?: Operation[],
   ): Entry {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();

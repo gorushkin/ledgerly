@@ -1,6 +1,7 @@
 import { UUID } from '@ledgerly/shared/types';
 import { eq, and, desc } from 'drizzle-orm';
 import { TransactionRepositoryInterface } from 'src/application';
+import { DataBase, TxType } from 'src/db';
 import {
   TransactionDbRow,
   TransactionDbUpdate,
@@ -8,7 +9,6 @@ import {
 } from 'src/db/schema';
 import { transactionsTable } from 'src/db/schemas';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
-import { DataBase, TxType } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
 
@@ -18,6 +18,10 @@ export class TransactionRepository
 {
   constructor(db: DataBase) {
     super(db);
+  }
+
+  getDB(): DataBase {
+    return this.db;
   }
 
   async getAll(): Promise<TransactionDbRow[]> {

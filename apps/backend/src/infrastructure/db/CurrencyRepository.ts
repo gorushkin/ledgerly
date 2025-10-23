@@ -1,6 +1,6 @@
 import { CurrencyResponseDTO } from 'src/application';
+import { DataBase } from 'src/db';
 import { currenciesTable } from 'src/db/schema';
-import { DataBase } from 'src/types';
 
 import { BaseRepository } from './BaseRepository';
 

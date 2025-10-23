@@ -1,5 +1,5 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
-import { DataBase } from 'src/types';
+import { DataBase } from 'src/db';
 
 import { db } from '../index';
 import { currenciesTable } from '../schemas';

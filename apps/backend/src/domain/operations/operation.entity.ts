@@ -200,6 +200,10 @@ export class Operation {
     this.touch();
   }
 
+  getAccountId(): Id {
+    return this.accountRelation.getParentId();
+  }
+
   toPersistence(): OperationDbInsert {
     return {
       accountId: this.accountRelation.getChildId().valueOf(),

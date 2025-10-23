@@ -1,3 +1,4 @@
+import { TxType, DataBase } from 'src/db';
 import { TransactionRepoInsert, TransactionDbRow } from 'src/db/schema';
 
 export type TransactionRepositoryInterface = {
@@ -10,5 +11,6 @@ export type TransactionRepositoryInterface = {
   //   ): Promise<Transaction[]>;
   //   delete(userId: UUID, id: UUID): Promise<boolean>;
   //   exists(userId: UUID, id: UUID): Promise<boolean>;
-  create(data: TransactionRepoInsert): Promise<TransactionDbRow>;
+  create(data: TransactionRepoInsert, tx: TxType): Promise<TransactionDbRow>;
+  getDB(): DataBase;
 };
