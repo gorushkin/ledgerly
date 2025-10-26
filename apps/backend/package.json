@@ -23,7 +23,7 @@
     "generateCustom": "drizzle-kit --config=drizzle.config.ts generate --custom --name",
     "drop:tables": "tsx src/db/scripts/drop-tables.ts",
     "ts-check": "tsc -b --noEmit",
-    "check": "pnpm ts-check && pnpm lint",
+    "check": "pnpm ts-check && pnpm lint:fix",
     "delete:db": "rm -rf ./data/* && mkdir -p ./data",
     "delete:migrations": "rm -rf ./drizzle",
     "delete:all": "pnpm delete:db && pnpm delete:migrations",

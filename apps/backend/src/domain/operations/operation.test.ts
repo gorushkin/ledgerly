@@ -1,33 +1,43 @@
-import { Id } from 'src/domain/domain-core/value-objects/Id';
+import {
+  createAccount,
+  createEntry,
+  createTransaction,
+  createUser,
+} from 'src/db/createTestUser';
 import { describe, expect, it } from 'vitest';
 
 import { Amount } from '../domain-core';
 
 import { Operation } from './operation.entity';
 
-const userIdValue = Id.fromPersistence(
-  '123e4567-e89b-12d3-a456-426614174000',
-).valueOf();
+describe('Operation Domain Entity', async () => {
+  const user = await createUser();
 
-const accountId = Id.fromPersistence('223e4567-e89b-12d3-a456-426614174000');
-const entryId = Id.fromPersistence('323e4567-e89b-12d3-a456-426614174000');
+  const account = createAccount(user);
 
-const userId = Id.fromPersistence(userIdValue);
+  const transaction = createTransaction(user, {
+    description: 'Test Transaction',
+    postingDate: '2023-01-01',
+    transactionDate: '2023-01-01',
+  });
 
-describe('Operation Domain Entity', () => {
+  const entry = createEntry(user, transaction, []);
+
   it('should create a valid operation', () => {
     const operation = Operation.create(
-      userId,
-      accountId,
-      entryId,
+      user,
+      account,
+      entry,
       Amount.create('100'),
       'Test operation',
     );
 
     expect(operation).toBeInstanceOf(Operation);
-    expect(operation.getUserId()).toEqual(userId);
-    expect(operation.accountId).toEqual(accountId);
-    expect(operation.amount).toEqual(Amount.create('100'));
+    expect(operation.getUserId().valueOf()).toEqual(user.getId().valueOf());
+    expect(operation.getAccountId().valueOf()).toEqual(
+      account.getId().valueOf(),
+    );
+    expect(operation.amount.valueOf()).toEqual(Amount.create('100').valueOf());
     expect(operation.isSystem).toBe(false);
     expect(operation.getId()).toBeDefined();
     expect(operation.getCreatedAt()).toBeDefined();
@@ -36,9 +46,9 @@ describe('Operation Domain Entity', () => {
 
   it('should serialize and deserialize correctly', () => {
     const operation = Operation.create(
-      userId,
-      accountId,
-      entryId,
+      user,
+      account,
+      entry,
       Amount.create('100'),
       'Test operation',
     );
@@ -47,7 +57,7 @@ describe('Operation Domain Entity', () => {
 
     const restoredOperation = Operation.fromPersistence({
       ...persistenceData,
-      userId: userId.valueOf(),
+      userId: user.getId().valueOf(),
     });
 
     expect(restoredOperation.toPersistence()).toEqual(
@@ -87,9 +97,9 @@ describe('Operation Domain Entity', () => {
 
   it('should allow zero amount operations', () => {
     const operation = Operation.create(
-      userId,
-      accountId,
-      entryId,
+      user,
+      account,
+      entry,
       Amount.create('0'),
       'Zero amount operation',
     );
@@ -99,9 +109,9 @@ describe('Operation Domain Entity', () => {
 
   it('should handle negative amounts correctly', () => {
     const operation = Operation.create(
-      userId,
-      accountId,
-      entryId,
+      user,
+      account,
+      entry,
       Amount.create('-50'),
       'Negative amount operation',
     );
@@ -112,17 +122,17 @@ describe('Operation Domain Entity', () => {
   describe('calculations', () => {
     it('should add amounts correctly', () => {
       const operation1 = Operation.create(
-        userId,
-        accountId,
-        entryId,
+        user,
+        account,
+        entry,
         Amount.create('100'),
         'Test operation 1',
       );
 
       const operation2 = Operation.create(
-        userId,
-        accountId,
-        entryId,
+        user,
+        account,
+        entry,
         Amount.create('50'),
         'Test operation 2',
       );
@@ -133,17 +143,17 @@ describe('Operation Domain Entity', () => {
     });
     it('should subtract amounts correctly', () => {
       const operation1 = Operation.create(
-        userId,
-        accountId,
-        entryId,
+        user,
+        account,
+        entry,
         Amount.create('100'),
         'Test operation 1',
       );
 
       const operation2 = Operation.create(
-        userId,
-        accountId,
-        entryId,
+        user,
+        account,
+        entry,
         Amount.create('50'),
         'Test operation 2',
       );

@@ -5,6 +5,6 @@ export { Amount } from './Amount';
 export { Currency } from './Currency';
 export { Name } from './Name';
 export { Email } from './Email';
-export { UserOwnership } from './UserOwnership';
+export { ParentChildRelation } from './ParentChildRelation';
 export { Password } from './Password';
 export { DateValue } from './DateValue';

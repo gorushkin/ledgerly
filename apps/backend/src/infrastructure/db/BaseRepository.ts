@@ -1,5 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
+import { DataBase } from 'src/db';
 import {
   DBErrorContext,
   DatabaseError,
@@ -9,7 +10,8 @@ import {
 } from 'src/presentation/errors';
 import { BusinessLogicError } from 'src/presentation/errors/businessLogic.error';
 import { adaptLibsqlError } from 'src/presentation/errors/database/libsql-adapter';
-import { DataBase } from 'src/types';
+
+import { TransactionManager } from './TransactionManager';
 
 export type NormalizedDbError =
   | { type: 'unique'; table: string; field: string; value?: string }
@@ -25,7 +27,14 @@ type RetryAwareContext = DBErrorContext & {
 const DEFAULT_MAX_RETRIES = 3;
 
 export class BaseRepository {
-  constructor(readonly db: DataBase) {}
+  constructor(
+    public readonly db: DataBase,
+    protected readonly transactionManager: TransactionManager,
+  ) {}
+
+  protected getDbClient() {
+    return this.transactionManager.getCurrentTransaction();
+  }
 
   protected get createTimestamps() {
     const now = isoDatetime.parse(new Date().toISOString());
@@ -46,57 +55,55 @@ export class BaseRepository {
     errorMessage: string,
     context?: RetryAwareContext,
   ): Promise<T> {
-    while (true) {
-      try {
-        return await operation();
-      } catch (error) {
-        const normalized = adaptLibsqlError(error, context);
+    try {
+      return await operation();
+    } catch (error) {
+      const normalized = adaptLibsqlError(error, context);
 
-        if (normalized) {
-          if (normalized.type === 'foreign_key') {
-            throw new ForeignKeyConstraintError({
-              context: {
-                field: normalized.field,
-                tableName: normalized.table,
-                value: normalized.value,
-              },
-            });
-          }
-
-          if (normalized.type === 'unique') {
-            throw new RecordAlreadyExistsError({
-              context: {
-                field: normalized.field,
-                tableName: normalized.table,
-                value: normalized.value,
-              },
-            });
-          }
-
-          if (normalized.type === 'primary_key') {
-            throw new RecordAlreadyExistsError({
-              context: {
-                field: normalized.field,
-                tableName: normalized.table,
-                value: normalized.value,
-              },
-            });
-          }
+      if (normalized) {
+        if (normalized.type === 'foreign_key') {
+          throw new ForeignKeyConstraintError({
+            context: {
+              field: normalized.field,
+              tableName: normalized.table,
+              value: normalized.value,
+            },
+          });
         }
 
-        if (error instanceof InvalidDataError) throw error;
-        if (error instanceof BusinessLogicError) throw error;
-
-        if (process.env.NODE_ENV !== 'test') {
-          console.error(`Database error: ${errorMessage}`, error);
+        if (normalized.type === 'unique') {
+          throw new RecordAlreadyExistsError({
+            context: {
+              field: normalized.field,
+              tableName: normalized.table,
+              value: normalized.value,
+            },
+          });
         }
 
-        throw new DatabaseError({
-          cause: error as Error,
-          context,
-          message: errorMessage,
-        });
+        if (normalized.type === 'primary_key') {
+          throw new RecordAlreadyExistsError({
+            context: {
+              field: normalized.field,
+              tableName: normalized.table,
+              value: normalized.value,
+            },
+          });
+        }
       }
+
+      if (error instanceof InvalidDataError) throw error;
+      if (error instanceof BusinessLogicError) throw error;
+
+      if (process.env.NODE_ENV !== 'test') {
+        console.error(`Database error: ${errorMessage}`, error);
+      }
+
+      throw new DatabaseError({
+        cause: error as Error,
+        context,
+        message: errorMessage,
+      });
     }
   }
 

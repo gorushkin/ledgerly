@@ -1,9 +1,11 @@
 import { IsoDateString, IsoDatetimeString, UUID } from '@ledgerly/shared/types';
 
+import { CreateEntryRequestDTO, EntryResponseDTO } from './entry.dto';
+
 // Request DTOs for creation
 export type CreateTransactionRequestDTO = {
   description: string;
-  // entries: CreateEntryRequestDTO[];
+  entries: CreateEntryRequestDTO[];
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
 };
@@ -21,7 +23,7 @@ export type TransactionResponseDTO = {
   updatedAt: IsoDatetimeString;
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
-  // entries: EntryResponseDTO[];
+  entries: EntryResponseDTO[];
 };
 
 export type GetTransactionsQueryDTO = {

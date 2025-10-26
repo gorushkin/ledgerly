@@ -3,13 +3,11 @@ import Fastify from 'fastify';
 import { config } from 'src/config/config';
 import { createContainer } from 'src/di/container';
 import { errorHandler } from 'src/libs/errorHandler';
-import { DataBase } from 'src/types';
 
 import { db as defaultDb } from '../db';
 
 import { registerRoutes } from './routes';
-// TODO: fix as unknown as DataBase
-export function createServer(db: DataBase = defaultDb as unknown as DataBase) {
+export function createServer(db = defaultDb) {
   const fastify = Fastify({
     logger: false,
   });

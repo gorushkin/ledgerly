@@ -1,3 +1,4 @@
+import { TransactionResponseDTO } from 'src/application';
 import { TransactionDbRow } from 'src/db/schema';
 
 import {
@@ -6,24 +7,25 @@ import {
   Id,
   SoftDelete,
   Timestamp,
-  UserOwnership,
+  ParentChildRelation,
   DateValue,
 } from '../domain-core';
+import { Entry } from '../entries';
 
 export class Transaction {
   private readonly identity: EntityIdentity;
   private timestamps: EntityTimestamps;
   private softDelete: SoftDelete;
-  private readonly ownership: UserOwnership;
-
+  private readonly ownership: ParentChildRelation;
   private postingDate: DateValue;
   private transactionDate: DateValue;
+  private entries: Entry[] = [];
 
   private constructor(
     identity: EntityIdentity,
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
-    ownership: UserOwnership,
+    ownership: ParentChildRelation,
     postingDate: DateValue,
     transactionDate: DateValue,
     public description: string,
@@ -46,7 +48,7 @@ export class Transaction {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
-    const ownership = UserOwnership.create(userId);
+    const ownership = ParentChildRelation.create(userId, identity.getId());
 
     return new Transaction(
       identity,
@@ -77,7 +79,10 @@ export class Transaction {
       Timestamp.restore(createdAt),
     );
     const softDelete = SoftDelete.fromPersistence(isTombstone);
-    const ownership = UserOwnership.create(Id.fromPersistence(userId));
+    const ownership = ParentChildRelation.create(
+      Id.fromPersistence(userId),
+      identity.getId(),
+    );
 
     return new Transaction(
       identity,
@@ -114,11 +119,11 @@ export class Transaction {
   }
 
   belongsToUser(userId: Id): boolean {
-    return this.ownership.belongsToUser(userId);
+    return this.ownership.belongsToParent(userId);
   }
 
   getUserId(): Id {
-    return this.ownership.getOwnerId();
+    return this.ownership.getParentId();
   }
 
   delete(): void {
@@ -182,5 +187,66 @@ export class Transaction {
 
   getTransactionDate(): DateValue {
     return this.transactionDate;
+  }
+
+  // Entry management methods
+  addEntry(entry: Entry): void {
+    this.validateUpdateIsAllowed();
+
+    // Validate entry belongs to this transaction
+    if (!entry.belongsToTransaction(this.getId())) {
+      throw new Error('Entry does not belong to this transaction');
+    }
+
+    this.entries.push(entry);
+    this.touch();
+  }
+
+  removeEntry(entryId: Id): void {
+    this.validateUpdateIsAllowed();
+
+    const entryIndex = this.entries.findIndex((entry) =>
+      entry.getId().isEqualTo(entryId),
+    );
+
+    if (entryIndex === -1) {
+      throw new Error('Entry not found in transaction');
+    }
+
+    this.entries.splice(entryIndex, 1);
+    this.touch();
+  }
+
+  getEntries(): readonly Entry[] {
+    return [...this.entries];
+  }
+
+  isBalanced(): boolean {
+    // All entries must sum to zero for a balanced transaction
+    // const total = this.entries.reduce(
+    //   (sum, entry) => sum + entry.getAmount().valueOf(),
+    //   0,
+    // );
+    // return total === 0;
+    return true; // Placeholder implementation
+  }
+
+  validateBalance(): void {
+    if (!this.isBalanced()) {
+      throw new Error('Transaction is not balanced');
+    }
+  }
+
+  toResponseDTO(): TransactionResponseDTO {
+    return {
+      createdAt: this.getCreatedAt().valueOf(),
+      description: this.description,
+      entries: this.entries.map((entry) => entry.toResponseDTO()),
+      id: this.getId().valueOf(),
+      postingDate: this.postingDate.valueOf(),
+      transactionDate: this.transactionDate.valueOf(),
+      updatedAt: this.getUpdatedAt().valueOf(),
+      userId: this.getUserId().valueOf(),
+    };
   }
 }

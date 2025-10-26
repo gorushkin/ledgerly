@@ -1,6 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
+import { DataBase } from 'src/db';
 import { UserDbRow } from 'src/db/schema';
-import { DataBase } from 'src/types';
 
 import {
   CreateUserRequestDTO,

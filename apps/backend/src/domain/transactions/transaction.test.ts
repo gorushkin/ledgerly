@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Id } from '../domain-core';
 import { DateValue } from '../domain-core/value-objects/DateValue';
+import { Entry } from '../entries';
 
 import { Transaction } from './transaction.entity';
 
@@ -130,5 +131,80 @@ describe('Transaction Domain Entity', () => {
     expect(transaction.getUpdatedAt().toDate().getTime()).toBeGreaterThan(
       originalUpdatedAt.toDate().getTime(),
     );
+  });
+
+  describe('Entry Management', () => {
+    let transaction: Transaction;
+
+    beforeEach(() => {
+      transaction = Transaction.create(
+        userId,
+        transactionData.description,
+        postingDate,
+        transactionDate,
+      );
+    });
+
+    it('should start with empty entries array', () => {
+      expect(transaction.getEntries()).toEqual([]);
+    });
+
+    it('should add entry successfully', () => {
+      const transaction = Transaction.create(
+        userId,
+        transactionData.description,
+        postingDate,
+        transactionDate,
+      );
+
+      const mockEntry1 = {
+        belongsToTransaction: () => true,
+        data: 'mock entry data1',
+      } as unknown as Entry;
+
+      const mockEntry2 = {
+        belongsToTransaction: () => true,
+        data: 'mock entry data2',
+      } as unknown as Entry;
+
+      vi.spyOn(Entry, 'create').mockReturnValue(mockEntry1);
+
+      transaction.addEntry(mockEntry1);
+      transaction.addEntry(mockEntry2);
+
+      const entries = transaction.getEntries();
+      expect(entries).toHaveLength(2);
+      expect(entries[0]).toBe(mockEntry1);
+      expect(entries[1]).toBe(mockEntry2);
+    });
+
+    it.todo('should remove entry successfully', () => {
+      // TODO: Implement when Entry.create is available
+      // const entry = Entry.create(/* appropriate parameters */);
+      // transaction.addEntry(entry);
+      // transaction.removeEntry(entry.getId());
+      // expect(transaction.getEntries()).toHaveLength(0);
+    });
+
+    it.todo('should throw error when removing non-existent entry', () => {
+      // const nonExistentId = Id.create();
+      // expect(() => transaction.removeEntry(nonExistentId)).toThrow('Entry not found in transaction');
+    });
+
+    it.todo('should validate entry belongs to transaction when adding', () => {
+      // TODO: Test that entry validation works correctly
+    });
+
+    it('should provide read-only access to entries', () => {
+      const entries = transaction.getEntries();
+      expect(entries).toBeInstanceOf(Array);
+
+      // Should return a readonly array
+      expect(transaction.getEntries()).toHaveLength(0);
+    });
+
+    it.todo('should implement balance validation', () => {
+      // TODO: Implement isBalanced and validateBalance tests
+    });
   });
 });

@@ -1,28 +1,32 @@
+import { OperationResponseDTO } from 'src/application/dto/operation.dto';
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
+import { Account, Entry, User } from '..';
 import {
   Id,
   Timestamp,
   Amount,
-  UserOwnership,
   EntityIdentity,
   EntityTimestamps,
   SoftDelete,
+  ParentChildRelation,
 } from '../domain-core';
 
 export class Operation {
   private readonly identity: EntityIdentity;
   private timestamps: EntityTimestamps;
   private softDelete: SoftDelete;
-  private readonly ownership: UserOwnership;
+  private readonly ownership: ParentChildRelation;
+  private readonly entryRelation: ParentChildRelation;
+  private readonly accountRelation: ParentChildRelation;
 
   private constructor(
     identity: EntityIdentity,
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
-    ownership: UserOwnership,
-    public readonly accountId: Id,
-    public readonly entryId: Id,
+    ownership: ParentChildRelation,
+    entryRelation: ParentChildRelation,
+    accountRelation: ParentChildRelation,
     public amount: Amount,
     public description: string,
     public readonly isSystem: boolean,
@@ -31,27 +35,43 @@ export class Operation {
     this.timestamps = timestamps;
     this.softDelete = softDelete;
     this.ownership = ownership;
+    this.entryRelation = entryRelation;
+    this.accountRelation = accountRelation;
   }
 
   static create(
-    userId: Id,
-    accountId: Id,
-    entryId: Id,
+    user: User,
+    account: Account,
+    entry: Entry,
     amount: Amount,
     description: string,
   ): Operation {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
-    const ownership = UserOwnership.create(userId);
+
+    const ownership = ParentChildRelation.create(
+      user.getId(),
+      identity.getId(),
+    );
+
+    const entryRelation = ParentChildRelation.create(
+      entry.getId(),
+      identity.getId(),
+    );
+
+    const accountRelation = ParentChildRelation.create(
+      account.getId(),
+      identity.getId(),
+    );
 
     return new Operation(
       identity,
       timestamps,
       softDelete,
       ownership,
-      accountId,
-      entryId,
+      entryRelation,
+      accountRelation,
       amount,
       description,
       false,
@@ -72,21 +92,36 @@ export class Operation {
       userId,
     } = data;
 
-    const identity = new EntityIdentity(Id.fromPersistence(id));
+    const identity = EntityIdentity.fromPersistence(Id.fromPersistence(id));
+
     const timestamps = EntityTimestamps.fromPersistence(
       Timestamp.restore(updatedAt),
       Timestamp.restore(createdAt),
     );
     const softDelete = SoftDelete.fromPersistence(isTombstone);
-    const ownership = UserOwnership.create(Id.fromPersistence(userId));
+
+    const ownership = ParentChildRelation.create(
+      Id.fromPersistence(userId),
+      identity.getId(),
+    );
+
+    const entryRelation = ParentChildRelation.create(
+      Id.fromPersistence(entryId),
+      identity.getId(),
+    );
+
+    const accountRelation = ParentChildRelation.create(
+      Id.fromPersistence(accountId),
+      identity.getId(),
+    );
 
     return new Operation(
       identity,
       timestamps,
       softDelete,
       ownership,
-      Id.fromPersistence(accountId),
-      Id.fromPersistence(entryId),
+      entryRelation,
+      accountRelation,
       Amount.fromPersistence(amount),
       description,
       isSystem,
@@ -126,11 +161,11 @@ export class Operation {
 
   // Delegation methods for ownership
   belongsToUser(userId: Id): boolean {
-    return this.ownership.belongsToUser(userId);
+    return this.ownership.belongsToParent(userId);
   }
 
   getUserId(): Id {
-    return this.ownership.getOwnerId();
+    return this.ownership.getParentId();
   }
 
   delete(): void {
@@ -168,18 +203,35 @@ export class Operation {
     this.touch();
   }
 
+  getAccountId(): Id {
+    return this.accountRelation.getParentId();
+  }
+
   toPersistence(): OperationDbInsert {
     return {
-      accountId: this.accountId.valueOf(),
+      accountId: this.accountRelation.getParentId().valueOf(),
       amount: this.amount.valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
-      entryId: this.entryId.valueOf(),
+      entryId: this.entryRelation.getParentId().valueOf(),
       id: this.getId().valueOf(),
       isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
       updatedAt: this.getUpdatedAt().valueOf(),
-      userId: this.ownership.getOwnerId().valueOf(),
+      userId: this.getUserId().valueOf(),
+    };
+  }
+
+  toResponseDTO(): OperationResponseDTO {
+    return {
+      accountId: this.getAccountId().valueOf(),
+      amount: this.amount.valueOf(),
+      createdAt: this.getCreatedAt().valueOf(),
+      description: this.description,
+      entryId: this.entryRelation.getParentId().valueOf(),
+      id: this.getId().valueOf(),
+      isSystem: this.isSystem,
+      updatedAt: this.getUpdatedAt().valueOf(),
     };
   }
 }

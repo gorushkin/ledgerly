@@ -1,6 +1,7 @@
 import { UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
+import { DataBase, TxType } from 'src/db';
 import {
   AccountDbRow,
   AccountDbUpdate,
@@ -8,16 +9,16 @@ import {
   accountsTable,
 } from 'src/db/schemas/accounts';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
-import { DataBase } from 'src/types';
 
 import { BaseRepository } from '../BaseRepository';
+import { TransactionManager } from '../TransactionManager';
 
 export class AccountRepository
   extends BaseRepository
   implements AccountRepositoryInterface
 {
-  constructor(db: DataBase) {
-    super(db);
+  constructor(db: DataBase, transactionManager: TransactionManager) {
+    super(db, transactionManager);
   }
 
   async getAll(userId: UUID): Promise<AccountDbRow[]> {
@@ -57,9 +58,11 @@ export class AccountRepository
     );
   }
 
-  getById(userId: UUID, id: UUID): Promise<AccountDbRow> {
+  getById(userId: UUID, id: UUID, tx?: TxType): Promise<AccountDbRow> {
     return this.executeDatabaseOperation<AccountDbRow>(async () => {
-      const account = await this.db
+      const dbClient = tx ?? this.db;
+
+      const account = await dbClient
         .select()
         .from(accountsTable)
         .where(

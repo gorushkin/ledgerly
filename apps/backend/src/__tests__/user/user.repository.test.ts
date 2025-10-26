@@ -1,7 +1,8 @@
 import { UserRepositoryInterface } from 'src/application';
 import { Id, Password } from 'src/domain/domain-core';
+import { TransactionManager } from 'src/infrastructure/db';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
-import { describe, beforeEach, it, expect } from 'vitest';
+import { describe, beforeEach, it, expect, vi } from 'vitest';
 
 import { TestDB } from '../../db/test-db';
 import { UserRepository } from '../../infrastructure/db/UsersRepository';
@@ -11,6 +12,12 @@ describe('UsersRepository', () => {
 
   let userRepository: UserRepositoryInterface;
 
+  const transactionManager = {
+    run: vi.fn((cb: () => unknown) => {
+      return cb();
+    }),
+  };
+
   const email = 'test@example.com';
   const password = 'password123';
   const name = 'Test User';
@@ -19,7 +26,10 @@ describe('UsersRepository', () => {
     testDB = new TestDB();
     await testDB.setupTestDb();
 
-    userRepository = new UserRepository(testDB.db);
+    userRepository = new UserRepository(
+      testDB.db,
+      transactionManager as unknown as TransactionManager,
+    );
   });
 
   describe('getById', () => {
