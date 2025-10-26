@@ -23,6 +23,7 @@ import { Amount, DateValue } from 'src/domain/domain-core';
 import { Entry } from 'src/domain/entries';
 import { Transaction } from 'src/domain/transactions';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
+
 export class CreateTransactionUseCase {
   constructor(
     protected readonly transactionManager: TransactionManagerInterface,
@@ -76,10 +77,6 @@ export class CreateTransactionUseCase {
       }
 
       const account = Account.restore(rawAccount);
-
-      if (!account) {
-        throw new Error(`Account restore failed: ${opData.accountId}`);
-      }
 
       const createOperation = this.createOperation(
         user,

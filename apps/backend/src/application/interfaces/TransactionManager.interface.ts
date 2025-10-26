@@ -4,5 +4,5 @@ export type TransactionContext = {
 };
 
 export type TransactionManagerInterface = {
-  run<T>(callback: (context: TransactionContext) => Promise<T>): Promise<T>;
+  run<T>(callback: (context?: TransactionContext) => Promise<T>): Promise<T>;
 };
