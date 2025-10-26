@@ -18,7 +18,7 @@ export const createUser = async (
   } = {},
 ) => {
   const {
-    email = `testuser+${Date.now()}@example.com`,
+    email = `testuser+${crypto.randomUUID()}@example.com`,
     name = 'Test User',
     password = 'SecurePassword123',
   } = params;

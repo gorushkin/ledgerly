@@ -11,13 +11,14 @@ import {
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 
 import { BaseRepository } from '../BaseRepository';
+import { TransactionManager } from '../TransactionManager';
 
 export class AccountRepository
   extends BaseRepository
   implements AccountRepositoryInterface
 {
-  constructor(db: DataBase) {
-    super(db);
+  constructor(db: DataBase, transactionManager: TransactionManager) {
+    super(db, transactionManager);
   }
 
   async getAll(userId: UUID): Promise<AccountDbRow[]> {

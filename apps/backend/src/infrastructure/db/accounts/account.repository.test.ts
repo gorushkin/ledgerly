@@ -10,9 +10,10 @@ import {
   RecordAlreadyExistsError,
 } from 'src/presentation/errors';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
-import { describe, beforeEach, it, expect } from 'vitest';
+import { describe, beforeEach, it, expect, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
+import { TransactionManager } from '../TransactionManager';
 
 const firstUserAccounts = ['firstUserAccount1', 'firstUserAccount2'];
 const secondUserAccounts = ['secondUserAccount1', 'secondUserAccount2'];
@@ -51,13 +52,23 @@ const accountData = getAccountData(accountDataRaw);
 describe('AccountRepository', () => {
   let testDB: TestDB;
 
+  const transactionManager = {
+    run: vi.fn((cb: () => unknown) => {
+      return cb();
+    }),
+  };
+
   let accountRepository: AccountRepository;
   let user: UserDbRow;
 
   beforeEach(async () => {
     testDB = new TestDB();
     await testDB.setupTestDb();
-    accountRepository = new AccountRepository(testDB.db);
+
+    accountRepository = new AccountRepository(
+      testDB.db,
+      transactionManager as unknown as TransactionManager,
+    );
     user = await testDB.createUser();
   });
 

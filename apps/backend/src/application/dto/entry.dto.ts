@@ -1,9 +1,6 @@
-import { UUID } from '@ledgerly/shared/types';
+import { IsoDatetimeString, UUID } from '@ledgerly/shared/types';
 
-import {
-  CreateOperationRequestDTO,
-  OperationResponseDTO,
-} from './operation.dto';
+import { CreateOperationRequestDTO } from './operation.dto';
 
 // Request DTOs for creation
 
@@ -18,12 +15,12 @@ export type CreateEntryRequestDTO = {
 export type EntryResponseDTO = {
   id: UUID;
   transactionId: UUID;
-  createdAt: Date;
-  updatedAt: Date;
-  operations: OperationResponseDTO[];
-  isBalanced: boolean;
-  totalDebit: number;
-  totalCredit: number;
+  createdAt: IsoDatetimeString;
+  updatedAt: IsoDatetimeString;
+  // operations: OperationResponseDTO[];
+  // isBalanced: boolean;
+  // totalDebit: number;
+  // totalCredit: number;
 };
 
 // Query DTOs

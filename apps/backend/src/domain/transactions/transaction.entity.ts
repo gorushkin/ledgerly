@@ -221,9 +221,14 @@ export class Transaction {
   }
 
   isBalanced(): boolean {
-    // TODO: Implement balance check logic
-    // All entries must sum to zero
-    return true; // Placeholder
+    // All entries must sum to zero for a balanced transaction
+    // const total = this.entries.reduce(
+    //   (sum, entry) => sum + entry.getAmount().valueOf(),
+    //   0,
+    // );
+    // return total === 0;
+
+    return true; // Placeholder implementation
   }
 
   validateBalance(): void {

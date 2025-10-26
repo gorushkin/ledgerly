@@ -206,11 +206,11 @@ export class Operation {
 
   toPersistence(): OperationDbInsert {
     return {
-      accountId: this.accountRelation.getChildId().valueOf(),
+      accountId: this.accountRelation.getParentId().valueOf(),
       amount: this.amount.valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
-      entryId: this.entryRelation.getChildId().valueOf(),
+      entryId: this.entryRelation.getParentId().valueOf(),
       id: this.getId().valueOf(),
       isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),

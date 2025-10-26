@@ -7,6 +7,7 @@ import { GetAllAccountsUseCase } from 'src/application/usecases/accounts/getAllA
 import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAccount';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
+import { TransactionManager } from 'src/infrastructure/db';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
@@ -21,10 +22,14 @@ import { UserController } from 'src/presentation/controllers/user.controller';
 import { AppContainer } from './types';
 
 export const createContainer = (db: DataBase): AppContainer => {
-  const accountRepository = new AccountRepository(db);
-  const currencyRepository = new CurrencyRepository(db);
-  const transactionRepository = new TransactionRepository(db);
-  const userRepository = new UserRepository(db);
+  const transactionManager = new TransactionManager(db);
+  const accountRepository = new AccountRepository(db, transactionManager);
+  const currencyRepository = new CurrencyRepository(db, transactionManager);
+  const transactionRepository = new TransactionRepository(
+    db,
+    transactionManager,
+  );
+  const userRepository = new UserRepository(db, transactionManager);
 
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,

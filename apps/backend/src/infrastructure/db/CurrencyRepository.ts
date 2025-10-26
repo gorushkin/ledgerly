@@ -3,10 +3,11 @@ import { DataBase } from 'src/db';
 import { currenciesTable } from 'src/db/schema';
 
 import { BaseRepository } from './BaseRepository';
+import { TransactionManager } from './TransactionManager';
 
 export class CurrencyRepository extends BaseRepository {
-  constructor(db: DataBase) {
-    super(db);
+  constructor(db: DataBase, transactionManager: TransactionManager) {
+    super(db, transactionManager);
   }
 
   getAll(): Promise<CurrencyResponseDTO[]> {

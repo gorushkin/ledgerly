@@ -25,10 +25,10 @@ export type OperationResponseDTO = {
   entryId: UUID;
   accountId: UUID;
   amount: MoneyString;
-  type: 'debit' | 'credit';
-  isSystem: boolean;
+  // type: 'debit' | 'credit';
+  // isSystem: boolean;
   description?: string;
-  displayAmount: string;
+  // displayAmount: string;
 };
 
 // Query DTOs

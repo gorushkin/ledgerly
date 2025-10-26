@@ -1,9 +1,12 @@
+import { EntryDbRow } from 'src/db/schemas/entries';
+
 import {
   EntityIdentity,
   EntityTimestamps,
   Id,
   SoftDelete,
   ParentChildRelation,
+  Timestamp,
 } from '../domain-core';
 import { Operation } from '../operations';
 import { Transaction } from '../transactions';
@@ -91,5 +94,23 @@ export class Entry {
 
   addOperation(operation: Operation): void {
     console.info('Adding operation to entry:', operation);
+  }
+
+  getUpdatedAt(): Timestamp {
+    return this.timestamps.getUpdatedAt();
+  }
+
+  getCreatedAt(): Timestamp {
+    return this.timestamps.getCreatedAt();
+  }
+
+  toPersistence(): EntryDbRow {
+    return {
+      createdAt: this.getCreatedAt().valueOf(),
+      id: this.identity.getId().valueOf(),
+      transactionId: this.transactionRelation.getParentId().valueOf(),
+      updatedAt: this.getUpdatedAt().valueOf(),
+      userId: this.ownership.getParentId().valueOf(),
+    };
   }
 }

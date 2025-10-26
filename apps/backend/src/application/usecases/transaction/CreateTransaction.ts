@@ -1,11 +1,21 @@
+import { UUID } from '@ledgerly/shared/types';
 import {
+  CreateEntryRequestDTO,
+  CreateOperationRequestDTO,
   CreateTransactionRequestDTO,
+  EntryResponseDTO,
+  OperationResponseDTO,
   TransactionResponseDTO,
 } from 'src/application/dto';
-import { TransactionRepositoryInterface } from 'src/application/interfaces';
+import {
+  TransactionManagerInterface,
+  TransactionRepositoryInterface,
+  EntryRepositoryInterface,
+  OperationRepositoryInterface,
+} from 'src/application/interfaces';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
-import { TxType } from 'src/db';
-import { TransactionRepoInsert } from 'src/db/schema';
+import { OperationRepoInsert, TransactionRepoInsert } from 'src/db/schema';
+import { EntryRepoInsert } from 'src/db/schemas/entries';
 import { Account, Operation, User } from 'src/domain';
 import { Amount, DateValue } from 'src/domain/domain-core';
 import { Entry } from 'src/domain/entries';
@@ -13,7 +23,10 @@ import { Transaction } from 'src/domain/transactions';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 export class CreateTransactionUseCase {
   constructor(
+    protected readonly transactionManager: TransactionManagerInterface,
     protected readonly transactionRepository: TransactionRepositoryInterface,
+    protected readonly entryRepository: EntryRepositoryInterface,
+    protected readonly operationRepository: OperationRepositoryInterface,
     protected readonly accountRepository: AccountRepository,
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
   ) {}
@@ -22,64 +35,172 @@ export class CreateTransactionUseCase {
     user: User,
     data: CreateTransactionRequestDTO,
   ): Promise<TransactionResponseDTO> {
-    const db = this.transactionRepository.getDB();
-
-    return await db.transaction(async (tx: TxType) => {
-      const postingDateVO = DateValue.restore(data.postingDate);
-      const transactionDateVO = DateValue.restore(data.transactionDate);
-
-      const createTransaction = () =>
-        Transaction.create(
-          user.getId(),
-          data.description,
-          postingDateVO,
-          transactionDateVO,
-        );
+    return await this.transactionManager.run(async () => {
+      const createTransaction = () => this.createTransaction(user, data);
 
       const transaction = createTransaction();
 
-      const createEntries = data.entries.map(async (entryData) => {
-        const entry = Entry.create(user, transaction, []);
-        const createOperations = entryData.operations.map(async (opData) => {
-          const rawAccount = await this.accountRepository.getById(
-            user.id,
-            opData.accountId,
-            tx,
-          );
-
-          const account = Account.restore(rawAccount);
-
-          const amount = Amount.create(opData.amount);
-          return Operation.create(
-            user,
-            account,
-            entry,
-            amount,
-            opData.description ?? '',
-          );
-        });
-
-        const operations = await Promise.all(createOperations);
-        operations.forEach((operation) => entry.addOperation(operation));
-
-        return entry;
-      });
-
-      const entries = await Promise.all(createEntries);
-      entries.forEach((entry) => transaction.addEntry(entry));
-
-      const result = await this.saveWithIdRetry<
-        TransactionRepoInsert,
-        Transaction,
-        TransactionResponseDTO
-      >(
+      const savedTransaction = await this.saveTransaction(
         transaction,
-        () =>
-          this.transactionRepository.create(transaction.toPersistence(), tx),
         createTransaction,
       );
 
-      return result;
+      const entries = await this.createEntriesWithOperations(
+        user,
+        transaction,
+        data.entries,
+      );
+
+      entries.forEach((entry) => transaction.addEntry(entry));
+
+      return savedTransaction;
     });
+  }
+
+  private async createOperationsForEntry(
+    user: User,
+    entry: Entry,
+    operations: CreateOperationRequestDTO[],
+  ) {
+    const accountsMap = new Map<UUID, Account>();
+
+    const promises = operations.map(async (opData) => {
+      const rawAccount = await this.accountRepository.getById(
+        user.getId().valueOf(),
+        opData.accountId,
+      );
+
+      const account = Account.restore(rawAccount);
+      accountsMap.set(opData.accountId, account);
+    });
+
+    await Promise.all(promises);
+
+    const createOperations = operations.map(async (opData) => {
+      const account = accountsMap.get(opData.accountId);
+
+      if (!account) {
+        throw new Error(`Account not found: ${opData.accountId}`);
+      }
+
+      const createOperation = this.createOperation(
+        user,
+        account,
+        entry,
+        opData,
+      );
+
+      const operation = createOperation();
+
+      await this.saveOperation(operation, createOperation);
+
+      return operation;
+    });
+
+    return await Promise.all(createOperations);
+  }
+
+  private async createEntriesWithOperations(
+    user: User,
+    transaction: Transaction,
+    rawEntries: CreateEntryRequestDTO[],
+  ): Promise<Entry[]> {
+    const createEntries = rawEntries.map(async (entryData) => {
+      const createEntry = this.createEntry(user, transaction);
+
+      const entry = createEntry();
+
+      await this.saveEntry(entry, createEntry);
+
+      const operations = await this.createOperationsForEntry(
+        user,
+        entry,
+        entryData.operations,
+      );
+
+      operations.forEach((operation) => entry.addOperation(operation));
+
+      return entry;
+    });
+
+    return Promise.all(createEntries);
+  }
+
+  private async saveTransaction(
+    transaction: Transaction,
+    createTransaction: () => Transaction,
+  ) {
+    const result = await this.saveWithIdRetry<
+      TransactionRepoInsert,
+      Transaction,
+      TransactionResponseDTO
+    >(
+      transaction,
+      this.transactionRepository.create.bind(this.transactionRepository),
+      createTransaction,
+    );
+
+    return result;
+  }
+
+  private async saveEntry(entry: Entry, createEntry: () => Entry) {
+    const result = await this.saveWithIdRetry<
+      EntryRepoInsert,
+      Entry,
+      EntryResponseDTO
+    >(
+      entry,
+      this.entryRepository.create.bind(this.entryRepository),
+      createEntry,
+    );
+
+    return result;
+  }
+
+  private async saveOperation(
+    entry: Operation,
+    createOperation: () => Operation,
+  ) {
+    const result = await this.saveWithIdRetry<
+      OperationRepoInsert,
+      Operation,
+      OperationResponseDTO
+    >(
+      entry,
+      this.operationRepository.create.bind(this.operationRepository),
+      createOperation,
+    );
+
+    return result;
+  }
+
+  private createTransaction(user: User, data: CreateTransactionRequestDTO) {
+    const postingDateVO = DateValue.restore(data.postingDate);
+    const transactionDateVO = DateValue.restore(data.transactionDate);
+
+    const createTransaction = () =>
+      Transaction.create(
+        user.getId(),
+        data.description,
+        postingDateVO,
+        transactionDateVO,
+      );
+    return createTransaction();
+  }
+
+  private createEntry(user: User, transaction: Transaction) {
+    return () => Entry.create(user, transaction, []);
+  }
+
+  private createOperation(
+    user: User,
+    account: Account,
+    entry: Entry,
+    data: CreateOperationRequestDTO,
+  ) {
+    const amount = Amount.create(data.amount);
+
+    return () =>
+      Operation.create(user, account, entry, amount, data.description ?? '');
   }
 }

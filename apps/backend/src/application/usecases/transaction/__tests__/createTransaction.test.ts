@@ -1,4 +1,9 @@
-import { TransactionRepositoryInterface } from 'src/application/interfaces';
+import {
+  EntryRepositoryInterface,
+  OperationRepositoryInterface,
+  TransactionManagerInterface,
+  TransactionRepositoryInterface,
+} from 'src/application/interfaces';
 import { createUser } from 'src/db/createTestUser';
 import { Account, Entry } from 'src/domain';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
@@ -13,10 +18,23 @@ describe('CreateTransactionUseCase', async () => {
   const user = await createUser();
 
   let createTransactionUseCase: CreateTransactionUseCase;
+
   let mockTransactionRepository: {
     create: ReturnType<typeof vi.fn>;
     getDB: ReturnType<typeof vi.fn>;
   };
+
+  let mockEntryRepository: {
+    create: ReturnType<typeof vi.fn>;
+    getDB: ReturnType<typeof vi.fn>;
+  };
+
+  let mockOperationRepository: {
+    create: ReturnType<typeof vi.fn>;
+    getDB: ReturnType<typeof vi.fn>;
+  };
+
+  let transactionManager: { run: ReturnType<typeof vi.fn> };
   let mockAccountRepository: { getById: ReturnType<typeof vi.fn> };
 
   const transactionIdValue = '660e8400-e29b-41d4-a716-446655440001';
@@ -53,8 +71,21 @@ describe('CreateTransactionUseCase', async () => {
     mockTransactionRepository = {
       create: vi.fn(),
       getDB: vi.fn().mockReturnValue({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-        transaction: (cb: Function) => cb({}),
+        transaction: <T>(cb: (trx: unknown) => T): T => cb({}),
+      }),
+    };
+
+    mockEntryRepository = {
+      create: vi.fn(),
+      getDB: vi.fn().mockReturnValue({
+        transaction: <T>(cb: (trx: unknown) => T): T => cb({}),
+      }),
+    };
+
+    mockOperationRepository = {
+      create: vi.fn(),
+      getDB: vi.fn().mockReturnValue({
+        transaction: <T>(cb: (trx: unknown) => T): T => cb({}),
       }),
     };
 
@@ -62,8 +93,17 @@ describe('CreateTransactionUseCase', async () => {
       getById: vi.fn().mockResolvedValue(account),
     };
 
+    transactionManager = {
+      run: vi.fn((cb: () => unknown) => {
+        return cb();
+      }),
+    };
+
     createTransactionUseCase = new CreateTransactionUseCase(
+      transactionManager as unknown as TransactionManagerInterface,
       mockTransactionRepository as unknown as TransactionRepositoryInterface,
+      mockEntryRepository as unknown as EntryRepositoryInterface,
+      mockOperationRepository as unknown as OperationRepositoryInterface,
       mockAccountRepository as unknown as AccountRepository,
       mockedSaveWithIdRetry,
     );
