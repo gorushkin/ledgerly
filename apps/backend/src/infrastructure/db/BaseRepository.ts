@@ -28,7 +28,7 @@ const DEFAULT_MAX_RETRIES = 3;
 
 export class BaseRepository {
   constructor(
-    protected readonly db: DataBase,
+    public readonly db: DataBase,
     protected readonly transactionManager: TransactionManager,
   ) {}
 

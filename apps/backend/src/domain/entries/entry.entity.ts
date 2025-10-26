@@ -93,11 +93,6 @@ export class Entry {
     this.timestamps = this.timestamps.touch();
   }
 
-  addOperation(operation: Operation): void {
-    console.info('Adding operation to entry:', operation);
-    this.operations.push(operation);
-  }
-
   getUpdatedAt(): Timestamp {
     return this.timestamps.getUpdatedAt();
   }
@@ -124,5 +119,9 @@ export class Entry {
       transactionId: this.getTransactionId().valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
     };
+  }
+
+  addOperations(operations: Operation[]): void {
+    this.operations.push(...operations);
   }
 }

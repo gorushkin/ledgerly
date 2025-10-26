@@ -71,10 +71,14 @@ export class CreateTransactionUseCase {
         opData.accountId,
       );
 
+      if (!rawAccount) {
+        throw new Error(`Account not found: ${opData.accountId}`);
+      }
+
       const account = Account.restore(rawAccount);
 
       if (!account) {
-        throw new Error(`Account not found: ${opData.accountId}`);
+        throw new Error(`Account restore failed: ${opData.accountId}`);
       }
 
       const createOperation = this.createOperation(
@@ -112,7 +116,7 @@ export class CreateTransactionUseCase {
         entryData.operations,
       );
 
-      operations.forEach((operation) => entry.addOperation(operation));
+      entry.addOperations(operations);
 
       return entry;
     });

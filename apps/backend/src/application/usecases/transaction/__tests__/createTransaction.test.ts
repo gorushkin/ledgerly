@@ -127,7 +127,7 @@ describe('CreateTransactionUseCase', async () => {
       } as unknown as Transaction;
 
       const mockedEntry = {
-        addOperation: vi.fn(),
+        addOperations: vi.fn(),
         getId: () => 'some-entry-id',
       } as unknown as Entry;
 

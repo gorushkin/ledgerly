@@ -18,7 +18,8 @@ export class TransactionManager implements TransactionManagerInterface {
         const context: TransactionContext = {};
         return await callback(context);
       } catch (error) {
-        console.error('Transaction error, rolling back:', error);
+        // logger.error({ error }, 'Transaction error, rolling back');
+        console.error('Transaction error, rolling back');
         // TODO: log error to monitoring service
         throw error;
       } finally {

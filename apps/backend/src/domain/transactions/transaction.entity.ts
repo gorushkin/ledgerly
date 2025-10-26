@@ -228,7 +228,6 @@ export class Transaction {
     //   0,
     // );
     // return total === 0;
-
     return true; // Placeholder implementation
   }
 
