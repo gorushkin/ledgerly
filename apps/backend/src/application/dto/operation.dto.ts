@@ -1,4 +1,4 @@
-import { MoneyString, UUID } from '@ledgerly/shared/types';
+import { IsoDatetimeString, MoneyString, UUID } from '@ledgerly/shared/types';
 
 // Request DTOs for creation
 
@@ -25,10 +25,10 @@ export type OperationResponseDTO = {
   entryId: UUID;
   accountId: UUID;
   amount: MoneyString;
-  // type: 'debit' | 'credit';
-  // isSystem: boolean;
+  isSystem: boolean;
   description?: string;
-  // displayAmount: string;
+  createdAt: IsoDatetimeString;
+  updatedAt: IsoDatetimeString;
 };
 
 // Query DTOs

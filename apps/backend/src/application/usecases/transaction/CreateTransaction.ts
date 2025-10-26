@@ -3,7 +3,6 @@ import {
   CreateEntryRequestDTO,
   CreateOperationRequestDTO,
   CreateTransactionRequestDTO,
-  EntryResponseDTO,
   OperationResponseDTO,
   TransactionResponseDTO,
 } from 'src/application/dto';
@@ -14,8 +13,12 @@ import {
   OperationRepositoryInterface,
 } from 'src/application/interfaces';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
-import { OperationRepoInsert, TransactionRepoInsert } from 'src/db/schema';
-import { EntryRepoInsert } from 'src/db/schemas/entries';
+import {
+  OperationRepoInsert,
+  TransactionDbRow,
+  TransactionRepoInsert,
+} from 'src/db/schema';
+import { EntryDbRow, EntryRepoInsert } from 'src/db/schemas/entries';
 import { Account, Operation, User } from 'src/domain';
 import { Amount, DateValue } from 'src/domain/domain-core';
 import { Entry } from 'src/domain/entries';
@@ -40,10 +43,7 @@ export class CreateTransactionUseCase {
 
       const transaction = createTransaction();
 
-      const savedTransaction = await this.saveTransaction(
-        transaction,
-        createTransaction,
-      );
+      await this.saveTransaction(transaction, createTransaction);
 
       const entries = await this.createEntriesWithOperations(
         user,
@@ -53,7 +53,7 @@ export class CreateTransactionUseCase {
 
       entries.forEach((entry) => transaction.addEntry(entry));
 
-      return savedTransaction;
+      return transaction.toResponseDTO();
     });
   }
 
@@ -133,7 +133,7 @@ export class CreateTransactionUseCase {
     const result = await this.saveWithIdRetry<
       TransactionRepoInsert,
       Transaction,
-      TransactionResponseDTO
+      TransactionDbRow
     >(
       transaction,
       this.transactionRepository.create.bind(this.transactionRepository),
@@ -147,7 +147,7 @@ export class CreateTransactionUseCase {
     const result = await this.saveWithIdRetry<
       EntryRepoInsert,
       Entry,
-      EntryResponseDTO
+      EntryDbRow
     >(
       entry,
       this.entryRepository.create.bind(this.entryRepository),

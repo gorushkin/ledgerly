@@ -1,3 +1,4 @@
+import { EntryResponseDTO } from 'src/application';
 import { EntryDbRow } from 'src/db/schemas/entries';
 
 import {
@@ -108,9 +109,19 @@ export class Entry {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       id: this.identity.getId().valueOf(),
-      transactionId: this.transactionRelation.getParentId().valueOf(),
+      transactionId: this.getTransactionId().valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),
+    };
+  }
+
+  toResponseDTO(): EntryResponseDTO {
+    return {
+      createdAt: this.getCreatedAt().valueOf(),
+      id: this.getId().valueOf(),
+      operations: this.operations.map((operation) => operation.toResponseDTO()),
+      transactionId: this.getTransactionId().valueOf(),
+      updatedAt: this.getUpdatedAt().valueOf(),
     };
   }
 }

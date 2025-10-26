@@ -33,7 +33,7 @@ export class BaseRepository {
   ) {}
 
   protected getDbClient() {
-    return this.transactionManager.getCurrentTransaction() ?? this.db;
+    return this.transactionManager.getCurrentTransaction();
   }
 
   protected get createTimestamps() {

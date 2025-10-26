@@ -1,3 +1,4 @@
+import { OperationResponseDTO } from 'src/application/dto/operation.dto';
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
 import { Account, Entry, User } from '..';
@@ -17,6 +18,7 @@ export class Operation {
   private softDelete: SoftDelete;
   private readonly ownership: ParentChildRelation;
   private readonly entryRelation: ParentChildRelation;
+  private readonly accountRelation: ParentChildRelation;
 
   private constructor(
     identity: EntityIdentity,
@@ -24,7 +26,7 @@ export class Operation {
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
     entryRelation: ParentChildRelation,
-    public readonly accountRelation: ParentChildRelation,
+    accountRelation: ParentChildRelation,
     public amount: Amount,
     public description: string,
     public readonly isSystem: boolean,
@@ -34,6 +36,7 @@ export class Operation {
     this.softDelete = softDelete;
     this.ownership = ownership;
     this.entryRelation = entryRelation;
+    this.accountRelation = accountRelation;
   }
 
   static create(
@@ -216,6 +219,19 @@ export class Operation {
       isTombstone: this.softDelete.getIsTombstone(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
+    };
+  }
+
+  toResponseDTO(): OperationResponseDTO {
+    return {
+      accountId: this.getAccountId().valueOf(),
+      amount: this.amount.valueOf(),
+      createdAt: this.getCreatedAt().valueOf(),
+      description: this.description,
+      entryId: this.entryRelation.getParentId().valueOf(),
+      id: this.getId().valueOf(),
+      isSystem: this.isSystem,
+      updatedAt: this.getUpdatedAt().valueOf(),
     };
   }
 }
