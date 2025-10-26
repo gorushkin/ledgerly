@@ -122,6 +122,8 @@ describe('CreateTransactionUseCase', async () => {
       const mockedTransaction = {
         addEntry,
         getId: () => transactionIdValue,
+        toResponseDTO: () => expectedResult,
+        validateBalance: vi.fn(),
       } as unknown as Transaction;
 
       const mockedEntry = {

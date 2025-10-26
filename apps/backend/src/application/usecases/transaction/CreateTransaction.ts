@@ -1,4 +1,3 @@
-import { UUID } from '@ledgerly/shared/types';
 import {
   CreateEntryRequestDTO,
   CreateOperationRequestDTO,
@@ -51,7 +50,11 @@ export class CreateTransactionUseCase {
         data.entries,
       );
 
-      entries.forEach((entry) => transaction.addEntry(entry));
+      for (const entry of entries) {
+        transaction.addEntry(entry);
+      }
+
+      transaction.validateBalance();
 
       return transaction.toResponseDTO();
     });
@@ -62,22 +65,13 @@ export class CreateTransactionUseCase {
     entry: Entry,
     operations: CreateOperationRequestDTO[],
   ) {
-    const accountsMap = new Map<UUID, Account>();
-
-    const promises = operations.map(async (opData) => {
+    const createOperations = operations.map(async (opData) => {
       const rawAccount = await this.accountRepository.getById(
         user.getId().valueOf(),
         opData.accountId,
       );
 
       const account = Account.restore(rawAccount);
-      accountsMap.set(opData.accountId, account);
-    });
-
-    await Promise.all(promises);
-
-    const createOperations = operations.map(async (opData) => {
-      const account = accountsMap.get(opData.accountId);
 
       if (!account) {
         throw new Error(`Account not found: ${opData.accountId}`);

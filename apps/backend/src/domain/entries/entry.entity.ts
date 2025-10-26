@@ -95,6 +95,7 @@ export class Entry {
 
   addOperation(operation: Operation): void {
     console.info('Adding operation to entry:', operation);
+    this.operations.push(operation);
   }
 
   getUpdatedAt(): Timestamp {

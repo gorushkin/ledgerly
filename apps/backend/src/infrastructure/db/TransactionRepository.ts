@@ -6,6 +6,10 @@ import { transactionsTable } from 'src/db/schemas';
 import { BaseRepository } from './BaseRepository';
 import { TransactionManager } from './TransactionManager';
 
+/**
+ * TransactionRepository is currently a work in progress.
+ * TODO: Implement additional repository methods for transaction management.
+ */
 export class TransactionRepository
   extends BaseRepository
   implements TransactionRepositoryInterface
