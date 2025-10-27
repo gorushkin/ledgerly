@@ -105,4 +105,12 @@ export class User {
   verifyOwnership(userId: UUID): boolean {
     return this.getId().valueOf() === userId;
   }
+
+  validUserOwnership(userId: UUID): void {
+    const isUserOwner = this.getId().valueOf() === userId.valueOf();
+
+    if (!isUserOwner) {
+      throw new Error('User is not the owner of the account');
+    }
+  }
 }

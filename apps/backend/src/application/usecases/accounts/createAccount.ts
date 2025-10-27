@@ -1,8 +1,4 @@
-import {
-  AccountCreateDTO,
-  AccountResponseDTO,
-  CurrencyCode,
-} from '@ledgerly/shared/types';
+import { AccountCreateDTO, AccountResponseDTO } from '@ledgerly/shared/types';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { AccountRepoInsert } from 'src/db/schema';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
@@ -22,24 +18,17 @@ export class CreateAccountUseCase extends AccountUseCaseBase {
     super(accountRepository);
   }
 
-  private isValidCurrencyCode(code: string): code is CurrencyCode {
-    const validCodes: string[] = ['USD', 'EUR', 'GBP', 'RUB'];
-    return validCodes.includes(code);
-  }
-
   async execute(
     user: User,
     data: AccountCreateDTO,
   ): Promise<AccountResponseDTO> {
     const { currency, description, initialBalance, name, type } = data;
 
-    if (!this.isValidCurrencyCode(currency)) {
-      throw new Error(`Invalid currency code: ${String(currency)}`);
-    }
+    user.validUserOwnership(data.userId);
 
     const createAccount = () =>
       Account.create(
-        user.getId(),
+        user,
         Name.create(name),
         description,
         Amount.create(initialBalance),

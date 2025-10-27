@@ -31,7 +31,7 @@ export const createUser = async (
 
 export const createAccount = (user: User) => {
   return Account.create(
-    user.getId(),
+    user,
     Name.create('Test Account'),
     'Account for testing',
     Amount.create('0'),

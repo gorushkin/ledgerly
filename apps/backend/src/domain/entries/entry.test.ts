@@ -1,7 +1,10 @@
 import { createUser } from 'src/db/createTestUser';
 import { describe, expect, it } from 'vitest';
 
-import { DateValue } from '../domain-core';
+import { AccountType } from '../accounts/account-type.enum.ts';
+import { Account } from '../accounts/account.entity';
+import { Amount, Currency, DateValue, Name } from '../domain-core';
+import { Operation } from '../operations/operation.entity.js';
 import { Transaction } from '../transactions';
 
 import { Entry } from './entry.entity';
@@ -11,6 +14,24 @@ describe('Entry Domain Entity', async () => {
   const anotherUser = await createUser();
   const transactionPostingDate = DateValue.restore('2024-01-01');
   const transactionDate = DateValue.restore('2024-01-01');
+
+  const usdAccount = Account.create(
+    user,
+    Name.create('USD Account'),
+    'USD',
+    Amount.create('0'),
+    Currency.create('USD'),
+    AccountType.create('asset'),
+  );
+
+  const eurAccount = Account.create(
+    user,
+    Name.create('EUR Account'),
+    'EUR',
+    Amount.create('0'),
+    Currency.create('EUR'),
+    AccountType.create('asset'),
+  );
 
   const transaction = Transaction.create(
     user.getId(),
@@ -104,5 +125,36 @@ describe('Entry Domain Entity', async () => {
     entry.markAsDeleted();
 
     expect(entry.belongsToUser(user.getId())).toBe(true);
+  });
+
+  it('should add operations properly', () => {
+    const entry = Entry.create(user, transaction);
+
+    const fromUsdOperation = Operation.create(
+      user,
+      usdAccount,
+      entry,
+      Amount.create('100'),
+      'From USD',
+    );
+
+    const toEurOperation = Operation.create(
+      user,
+      eurAccount,
+      entry,
+      Amount.create('100'),
+      'To EUR',
+    );
+
+    const operations = [fromUsdOperation, toEurOperation];
+
+    entry.addOperations(operations);
+
+    expect(entry.getOperations().length).toBe(operations.length);
+
+    const entryOperations = entry.getOperations();
+
+    expect(entryOperations).toContain(fromUsdOperation);
+    expect(entryOperations).toContain(toEurOperation);
   });
 });

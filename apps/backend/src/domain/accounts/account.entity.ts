@@ -12,6 +12,7 @@ import {
   EntityTimestamps,
   SoftDelete,
 } from '../domain-core';
+import { User } from '../users/user.entity';
 
 import { AccountType } from './account-type.enum.ts';
 
@@ -40,7 +41,7 @@ export class Account {
   }
 
   static create(
-    userId: Id,
+    user: User,
     name: Name,
     description: string,
     initialBalance: Amount,
@@ -50,7 +51,11 @@ export class Account {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
-    const ownership = ParentChildRelation.create(userId, identity.getId());
+
+    const ownership = ParentChildRelation.create(
+      user.getId(),
+      identity.getId(),
+    );
 
     return new Account(
       identity,
@@ -181,5 +186,9 @@ export class Account {
     this.name = name;
 
     this.touch(Timestamp.create());
+  }
+
+  getCurrency(): Currency {
+    return this.currency;
   }
 }

@@ -1,3 +1,4 @@
+import { createUser } from 'src/db/createTestUser';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { Timestamp } from 'src/domain/domain-core/value-objects/Timestamp';
@@ -13,8 +14,6 @@ const userIdValue = Id.fromPersistence(
 ).valueOf();
 const userTypeValue = 'asset';
 
-const userId = Id.fromPersistence(userIdValue);
-
 const currencyUSD = Currency.create('USD');
 const currencyEUR = Currency.create('EUR');
 
@@ -22,13 +21,16 @@ const currencyCodeEUR = currencyEUR.valueOf();
 
 const name = Name.create('account-name');
 
-describe('Account Domain Entity', () => {
+describe('Account Domain Entity', async () => {
   const accountType = AccountType.create(userTypeValue);
+  const user = await createUser();
+
+  const userId = user.getId();
 
   describe('create method', () => {
     it('should create account with valid data', () => {
       const account = Account.create(
-        userId,
+        user,
         name,
         'account-description',
         Amount.create('0'),
@@ -52,7 +54,7 @@ describe('Account Domain Entity', () => {
     it('should throw error for wrong account type', () => {
       expect(() =>
         Account.create(
-          userId,
+          user,
           name,
           'account-description',
           Amount.create('0'),
@@ -100,7 +102,7 @@ describe('Account Domain Entity', () => {
   describe('account management', () => {
     it('should update account with valid value', () => {
       const account = Account.create(
-        userId,
+        user,
         Name.create('initial-name'),
         'description',
         Amount.create('0'),
@@ -112,71 +114,71 @@ describe('Account Domain Entity', () => {
 
       expect(account).toHaveProperty('name', Name.create('updated-name'));
     });
+  });
 
-    describe('softDelete method', () => {
-      it('should mark account as tombstone', () => {
-        const account = Account.create(
-          userId,
-          name,
-          'account-description',
-          Amount.create('0'),
-          currencyUSD,
-          accountType,
-        );
+  describe('softDelete method', () => {
+    it('should mark account as tombstone', () => {
+      const account = Account.create(
+        user,
+        name,
+        'account-description',
+        Amount.create('0'),
+        currencyUSD,
+        accountType,
+      );
 
-        expect(account.isDeleted()).toBe(false);
+      expect(account.isDeleted()).toBe(false);
 
-        account.markAsDeleted();
+      account.markAsDeleted();
 
-        expect(account.isDeleted()).toBe(true);
+      expect(account.isDeleted()).toBe(true);
+    });
+
+    it('should not allow updates after soft deletion', () => {
+      const account = Account.create(
+        user,
+        name,
+        'account-description',
+        Amount.create('0'),
+        currencyUSD,
+        accountType,
+      );
+
+      account.markAsDeleted();
+
+      expect(() => account.updateAccount({ name: 'new-name' })).toThrowError(
+        'Cannot update a deleted entity',
+      );
+    });
+
+    it('should not update account during soft deletion', () => {
+      const account = Account.create(
+        user,
+        name,
+        'account-description',
+        Amount.create('0'),
+        currencyUSD,
+        accountType,
+      );
+
+      expect(account.isDeleted()).toBe(false);
+
+      const accountBeforeDeleting = account.toPersistence();
+
+      account.markAsDeleted();
+
+      expect(account.isDeleted()).toBe(true);
+
+      const accountAfterDeleting = account.toPersistence();
+
+      expect(accountBeforeDeleting).toEqual({
+        ...accountAfterDeleting,
+        isTombstone: false,
       });
 
-      it('should not allow updates after soft deletion', () => {
-        const account = Account.create(
-          userId,
-          name,
-          'account-description',
-          Amount.create('0'),
-          currencyUSD,
-          accountType,
-        );
-
-        account.markAsDeleted();
-
-        expect(() => account.updateAccount({ name: 'new-name' })).toThrowError(
-          'Cannot update a deleted entity',
-        );
-      });
-
-      it('should not update account during soft deletion', () => {
-        const account = Account.create(
-          userId,
-          name,
-          'account-description',
-          Amount.create('0'),
-          currencyUSD,
-          accountType,
-        );
-
-        expect(account.isDeleted()).toBe(false);
-
-        const accountBeforeDeleting = account.toPersistence();
-
-        account.markAsDeleted();
-
-        expect(account.isDeleted()).toBe(true);
-
-        const accountAfterDeleting = account.toPersistence();
-
-        expect(accountBeforeDeleting).toEqual({
-          ...accountAfterDeleting,
-          isTombstone: false,
-        });
-
-        // expect(() => account.updateAccount({ name: 'new-name' })).toThrowError(
-        //   'Cannot update a deleted entity',
-        // );
-      });
+      // expect(() => account.updateAccount({ name: 'new-name' })).toThrowError(
+      //   'Cannot update a deleted entity',
+      // );
     });
   });
 });
