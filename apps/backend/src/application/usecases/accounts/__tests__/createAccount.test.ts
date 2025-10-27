@@ -70,7 +70,6 @@ describe('CreateAccountUseCase', async () => {
         initialBalance,
         name: accountName,
         type: accountType,
-        userId: user.id,
       });
 
       // Assert
@@ -95,7 +94,6 @@ describe('CreateAccountUseCase', async () => {
           initialBalance,
           name: accountName,
           type: accountType,
-          userId: user.id,
         }),
       ).rejects.toThrow('Account name cannot be empty');
 
@@ -120,7 +118,6 @@ describe('CreateAccountUseCase', async () => {
         initialBalance,
         name: accountName,
         type: accountType,
-        userId: user.id,
       });
 
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(

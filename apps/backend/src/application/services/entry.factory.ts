@@ -30,7 +30,7 @@ export class EntryFactory {
     transaction: Transaction,
     entryData: CreateEntryRequestDTO,
   ): Promise<Entry> {
-    const createEntry = () => Entry.create(user, transaction, []);
+    const createEntry = () => Entry.create(user, transaction);
 
     const entry = createEntry();
 

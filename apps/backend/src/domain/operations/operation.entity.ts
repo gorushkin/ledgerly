@@ -21,7 +21,7 @@ export class Operation {
   private readonly accountRelation: ParentChildRelation;
 
   private constructor(
-    public readonly identity: EntityIdentity,
+    private readonly identity: EntityIdentity,
     private readonly currency: Currency,
 
     timestamps: EntityTimestamps,

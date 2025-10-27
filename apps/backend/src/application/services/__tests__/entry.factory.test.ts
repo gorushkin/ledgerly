@@ -73,7 +73,7 @@ describe('EntryFactory', async () => {
     );
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(Entry.create).toHaveBeenCalledWith(user, transaction, []);
+    expect(Entry.create).toHaveBeenCalledWith(user, transaction);
 
     expect(mockAddOperations).toHaveBeenCalledWith(mockOperations);
 

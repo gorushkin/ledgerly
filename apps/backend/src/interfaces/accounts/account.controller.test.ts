@@ -97,7 +97,6 @@ describe('AccountController', async () => {
         initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'liability',
-        userId: user.id,
       };
 
       const mockAccountResponse = requestBody;
@@ -106,10 +105,10 @@ describe('AccountController', async () => {
 
       const result = await accountController.create(user, requestBody);
 
-      expect(mockCreateAccountUseCase.execute).toHaveBeenCalledWith(user, {
-        ...requestBody,
-        userId: user.id,
-      });
+      expect(mockCreateAccountUseCase.execute).toHaveBeenCalledWith(
+        user,
+        requestBody,
+      );
 
       expect(mockCreateAccountUseCase.execute).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockAccountResponse);
