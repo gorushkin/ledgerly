@@ -26,7 +26,6 @@ export type AccountCreateDTO = {
   initialBalance: MoneyString;
   name: string;
   type: AccountType;
-  userId: UUID;
 };
 
 export type AccountUpdateDTO = Partial<

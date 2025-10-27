@@ -57,6 +57,7 @@ describe('Operation Domain Entity', async () => {
 
     const restoredOperation = Operation.fromPersistence({
       ...persistenceData,
+      currencyCode: account.getCurrency().valueOf(),
       userId: user.getId().valueOf(),
     });
 
@@ -64,36 +65,6 @@ describe('Operation Domain Entity', async () => {
       operation.toPersistence(),
     );
   });
-
-  // it('should throw an error for currency mismatch on add', () => {
-  //   const operation = Operation.create(
-  //     userId,
-  //     accountId,
-  //     Amount.create('100'),
-  //     'Test operation',
-  //   );
-
-  //   const differentCurrencyAmount = Amount.create('50');
-
-  //   expect(() => {
-  //     operation.amount.add(differentCurrencyAmount);
-  //   }).toThrow('Currency mismatch');
-  // });
-
-  // it('should throw an error for currency mismatch on subtract', () => {
-  //   const operation = Operation.create(
-  //     userId,
-  //     accountId,
-  //     Money.create('100', 'USD'),
-  //     'Test operation',
-  //   );
-
-  //   const differentCurrencyMoney = Money.create('50', 'EUR');
-
-  //   expect(() => {
-  //     operation.amount.subtract(differentCurrencyMoney);
-  //   }).toThrow('Currency mismatch');
-  // });
 
   it('should allow zero amount operations', () => {
     const operation = Operation.create(

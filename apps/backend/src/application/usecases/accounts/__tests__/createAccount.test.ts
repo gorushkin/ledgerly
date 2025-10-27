@@ -54,11 +54,14 @@ describe('CreateAccountUseCase', async () => {
   describe('execute', () => {
     it('should create a new account successfully', async () => {
       // Arrange
-      const expectedResult = {
-        ...mockSavedAccountData,
-        isTombstone: false,
-      };
-      mockedSaveWithIdRetry.mockResolvedValue(expectedResult);
+
+      const mockedSaveWithIdRetryResult = {};
+
+      const mockedAccount = {} as unknown as Account;
+
+      vi.spyOn(Account, 'create').mockReturnValue(mockedAccount);
+
+      mockedSaveWithIdRetry.mockResolvedValue(mockedSaveWithIdRetryResult);
 
       // Act
       const result = await createAccountUseCase.execute(user, {
@@ -67,16 +70,15 @@ describe('CreateAccountUseCase', async () => {
         initialBalance,
         name: accountName,
         type: accountType,
-        userId: user.id,
       });
 
       // Assert
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
-        expect.any(Object), // Account instance
+        mockedAccount,
         expect.any(Function), // bound create method
         expect.any(Function), // entityFactory function
       );
-      expect(result).toEqual(expectedResult);
+      expect(result).toEqual(mockedSaveWithIdRetryResult);
     });
 
     it.skip('should handle Account.create validation errors', async () => {
@@ -92,7 +94,6 @@ describe('CreateAccountUseCase', async () => {
           initialBalance,
           name: accountName,
           type: accountType,
-          userId: user.id,
         }),
       ).rejects.toThrow('Account name cannot be empty');
 
@@ -117,7 +118,6 @@ describe('CreateAccountUseCase', async () => {
         initialBalance,
         name: accountName,
         type: accountType,
-        userId: user.id,
       });
 
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(

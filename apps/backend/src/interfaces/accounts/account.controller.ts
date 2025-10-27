@@ -33,10 +33,7 @@ export class AccountController {
   async create(user: User, requestBody: unknown) {
     const accountCreateDto = accountCreateSchema.parse(requestBody);
 
-    return this.createAccountUseCase.execute(user, {
-      ...accountCreateDto,
-      userId: user.id,
-    });
+    return this.createAccountUseCase.execute(user, accountCreateDto);
   }
 
   async update(user: User, id: UUID, requestBody: unknown) {

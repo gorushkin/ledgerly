@@ -105,4 +105,14 @@ export class User {
   verifyOwnership(userId: UUID): boolean {
     return this.getId().valueOf() === userId;
   }
+
+  validateUserOwnership(userId: UUID): void {
+    const isUserOwner = this.getId().valueOf() === userId;
+
+    if (!isUserOwner) {
+      // TODO: Replace with proper error handling
+      // throw new UnauthorizedAccessError();
+      throw new Error('User ID mismatch: unauthorized access');
+    }
+  }
 }

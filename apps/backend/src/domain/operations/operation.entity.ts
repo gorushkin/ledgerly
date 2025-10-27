@@ -10,10 +10,10 @@ import {
   EntityTimestamps,
   SoftDelete,
   ParentChildRelation,
+  Currency,
 } from '../domain-core';
 
 export class Operation {
-  private readonly identity: EntityIdentity;
   private timestamps: EntityTimestamps;
   private softDelete: SoftDelete;
   private readonly ownership: ParentChildRelation;
@@ -21,7 +21,8 @@ export class Operation {
   private readonly accountRelation: ParentChildRelation;
 
   private constructor(
-    identity: EntityIdentity,
+    private readonly identity: EntityIdentity,
+    private readonly currency: Currency,
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
@@ -31,7 +32,6 @@ export class Operation {
     public description: string,
     public readonly isSystem: boolean,
   ) {
-    this.identity = identity;
     this.timestamps = timestamps;
     this.softDelete = softDelete;
     this.ownership = ownership;
@@ -67,6 +67,7 @@ export class Operation {
 
     return new Operation(
       identity,
+      account.getCurrency(),
       timestamps,
       softDelete,
       ownership,
@@ -78,11 +79,14 @@ export class Operation {
     );
   }
 
-  static fromPersistence(data: OperationDbRow): Operation {
+  static fromPersistence(
+    data: OperationDbRow & { currencyCode: string },
+  ): Operation {
     const {
       accountId,
       amount,
       createdAt,
+      currencyCode,
       description,
       entryId,
       id,
@@ -115,8 +119,11 @@ export class Operation {
       identity.getId(),
     );
 
+    const currency = Currency.fromPersistence(currencyCode);
+
     return new Operation(
       identity,
+      currency,
       timestamps,
       softDelete,
       ownership,
@@ -233,5 +240,9 @@ export class Operation {
       isSystem: this.isSystem,
       updatedAt: this.getUpdatedAt().valueOf(),
     };
+  }
+
+  hasSameCurrency(other: Operation): boolean {
+    return this.currency.isEqualTo(other.currency);
   }
 }

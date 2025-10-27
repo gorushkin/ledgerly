@@ -124,4 +124,8 @@ export class Entry {
   addOperations(operations: Operation[]): void {
     this.operations.push(...operations);
   }
+
+  getOperations(): Operation[] {
+    return this.operations;
+  }
 }
