@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { AccountType } from '../accounts/account-type.enum.ts';
 import { Account } from '../accounts/account.entity';
 import { Amount, Currency, DateValue, Name } from '../domain-core';
-import { Operation } from '../operations/operation.entity.js';
+import { Operation } from '../operations/operation.entity';
 import { Transaction } from '../transactions';
 
 import { Entry } from './entry.entity';

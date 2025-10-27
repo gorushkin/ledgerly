@@ -23,7 +23,6 @@ export class Operation {
   private constructor(
     private readonly identity: EntityIdentity,
     private readonly currency: Currency,
-
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
     ownership: ParentChildRelation,

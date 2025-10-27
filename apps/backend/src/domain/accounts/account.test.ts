@@ -2,10 +2,11 @@ import { createUser } from 'src/db/createTestUser';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { Timestamp } from 'src/domain/domain-core/value-objects/Timestamp';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Amount, Name } from '../domain-core';
 import { Currency } from '../domain-core/value-objects/Currency';
+import { User } from '../users/user.entity';
 
 import { Account } from './account.entity';
 
@@ -21,11 +22,16 @@ const currencyCodeEUR = currencyEUR.valueOf();
 
 const name = Name.create('account-name');
 
-describe('Account Domain Entity', async () => {
+describe('Account Domain Entity', () => {
   const accountType = AccountType.create(userTypeValue);
-  const user = await createUser();
 
-  const userId = user.getId();
+  let user: User;
+  let userId: ReturnType<typeof Id.fromPersistence>;
+
+  beforeAll(async () => {
+    user = await createUser();
+    userId = user.getId();
+  });
 
   describe('create method', () => {
     it('should create account with valid data', () => {

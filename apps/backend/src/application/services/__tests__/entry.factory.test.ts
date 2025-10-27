@@ -3,14 +3,22 @@ import { EntryRepositoryInterface } from 'src/application/interfaces';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { createTransaction, createUser } from 'src/db/createTestUser';
 import { Entry, Operation } from 'src/domain';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import { EntryFactory } from '../entry.factory';
 import { OperationFactory } from '../operation.factory';
 
-describe('EntryFactory', async () => {
-  const user = await createUser();
-  const transaction = createTransaction(user);
+describe('EntryFactory', () => {
+  let user: Awaited<ReturnType<typeof createUser>>;
+  let transaction: ReturnType<typeof createTransaction>;
 
   let entryFactory: EntryFactory;
 
@@ -25,6 +33,11 @@ describe('EntryFactory', async () => {
   let mockSaveWithIdRetry: SaveWithIdRetryType;
 
   const mockOperations = [] as unknown as Operation[];
+
+  beforeAll(async () => {
+    user = await createUser();
+    transaction = createTransaction(user);
+  });
 
   beforeEach(() => {
     mockCreateOperationService = {
@@ -107,14 +120,19 @@ describe('EntryFactory', async () => {
 
     expect(mockSaveWithIdRetry).toHaveBeenCalledTimes(rawEntries.length);
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    mockSaveWithIdRetry.mock.calls.forEach(
+    const testData = (
+      mockSaveWithIdRetry as unknown as { mock: { calls: unknown[] } }
+    ).mock.calls as unknown as [
+      Entry,
+      (entry: Entry) => Promise<Entry>,
+      () => Entry,
+    ][];
+
+    testData.forEach(
       (
         [entry, repoArg, createFn]: [
           Entry,
-          typeof mockEntryRepository.create,
+          (entry: Entry) => Promise<Entry>,
           () => Entry,
         ],
         index: number,

@@ -9,16 +9,14 @@ import { Account, Entry, Operation, User } from 'src/domain';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
-import { describe, it, vi, beforeEach, expect } from 'vitest';
+import { describe, it, vi, beforeEach, expect, beforeAll } from 'vitest';
 
 import { OperationFactory } from '../';
 
-describe('OperationFactory', async () => {
-  const user = await createUser();
-
-  const transaction = createTransaction(user);
-
-  const entry = createEntry(user, transaction, []);
+describe('OperationFactory', () => {
+  let user: User;
+  let transaction: ReturnType<typeof createTransaction>;
+  let entry: ReturnType<typeof createEntry>;
 
   let operationFactory: OperationFactory;
 
@@ -30,25 +28,38 @@ describe('OperationFactory', async () => {
 
   let mockedSaveWithIdRetry: SaveWithIdRetryType;
 
-  const usdAccount = Account.create(
-    user,
-    Name.create('Test Account'),
-    'Account for testing',
-    Amount.create('0'),
-    Currency.create('USD'),
-    AccountType.create('asset'),
-  );
+  let usdAccount: Account;
+  let eurAccount: Account;
 
-  const eurAccount = Account.create(
-    user,
-    Name.create('Test Account'),
-    'Account for testing',
-    Amount.create('0'),
-    Currency.create('EUR'),
-    AccountType.create('asset'),
-  );
+  let accounts: Account[];
 
-  const accounts = [usdAccount, eurAccount];
+  beforeAll(async () => {
+    user = await createUser();
+
+    transaction = createTransaction(user);
+
+    entry = createEntry(user, transaction, []);
+
+    usdAccount = Account.create(
+      user,
+      Name.create('Test Account'),
+      'Account for testing',
+      Amount.create('0'),
+      Currency.create('USD'),
+      AccountType.create('asset'),
+    );
+
+    eurAccount = Account.create(
+      user,
+      Name.create('Test Account'),
+      'Account for testing',
+      Amount.create('0'),
+      Currency.create('EUR'),
+      AccountType.create('asset'),
+    );
+
+    accounts = [usdAccount, eurAccount];
+  });
 
   beforeEach(() => {
     mockOperationRepository = {
