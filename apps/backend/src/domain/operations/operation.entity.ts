@@ -243,7 +243,7 @@ export class Operation {
     };
   }
 
-  isCurrencyDifferent(other: Operation): boolean {
-    return this.currency.isEqualTo(other.currency) === false;
+  hasSameCurrency(other: Operation): boolean {
+    return this.currency.isEqualTo(other.currency);
   }
 }

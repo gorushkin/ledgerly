@@ -150,7 +150,7 @@ describe('OperationFactory', async () => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     Operation.create.mock.calls.forEach(
       (
-        [user, account, entry, amount, description]: [
+        [calledUser, account, entry, amount, description]: [
           User,
           Account,
           Entry,
@@ -165,13 +165,13 @@ describe('OperationFactory', async () => {
           index as keyof typeof operationsRaw
         ] as unknown as Operation;
 
-        expect(user).toBe(user);
+        expect(calledUser).toBe(user);
         expect(account).toEqual(currAccount);
         expect(account).toBeInstanceOf(Account);
         expect(entry).toBe(entry);
         expect(amount).toBeInstanceOf(Amount);
-        expect(amount.valueOf()).toBe(currOperation.amount.valueOf());
-        expect(description).toBe(currOperation.description);
+        expect(amount.valueOf()).toBe(currOperation.amount);
+        expect(description).toBe(operationsRaw[index].description);
       },
     );
 

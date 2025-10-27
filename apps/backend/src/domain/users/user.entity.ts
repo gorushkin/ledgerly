@@ -106,11 +106,11 @@ export class User {
     return this.getId().valueOf() === userId;
   }
 
-  validUserOwnership(userId: UUID): void {
+  validateUserOwnership(userId: UUID): void {
     const isUserOwner = this.getId().valueOf() === userId.valueOf();
 
     if (!isUserOwner) {
-      throw new Error('User is not the owner of the account');
+      throw new Error('User ID mismatch: unauthorized access');
     }
   }
 }

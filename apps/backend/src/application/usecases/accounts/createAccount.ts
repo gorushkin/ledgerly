@@ -24,7 +24,7 @@ export class CreateAccountUseCase extends AccountUseCaseBase {
   ): Promise<AccountResponseDTO> {
     const { currency, description, initialBalance, name, type } = data;
 
-    user.validUserOwnership(data.userId);
+    user.validateUserOwnership(data.userId);
 
     const createAccount = () =>
       Account.create(
