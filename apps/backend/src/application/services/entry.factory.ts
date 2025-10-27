@@ -18,29 +18,34 @@ export class EntryFactory {
     transaction: Transaction,
     rawEntries: CreateEntryRequestDTO[],
   ): Promise<Entry[]> {
-    const createEntries = rawEntries.map(async (entryData) => {
-      const createEntry = this.createEntry(user, transaction);
-
-      const entry = createEntry();
-
-      await this.saveEntry(entry, createEntry);
-
-      const operations =
-        await this.createOperationService.createOperationsForEntry(
-          user,
-          entry,
-          entryData.operations,
-        );
-
-      entry.addOperations(operations);
-
-      return entry;
-    });
+    const createEntries = rawEntries.map(async (entryData) =>
+      this.createEntryWithOperations(user, transaction, entryData),
+    );
 
     return Promise.all(createEntries);
   }
-  private createEntry(user: User, transaction: Transaction) {
-    return () => Entry.create(user, transaction, []);
+
+  async createEntryWithOperations(
+    user: User,
+    transaction: Transaction,
+    entryData: CreateEntryRequestDTO,
+  ): Promise<Entry> {
+    const createEntry = () => Entry.create(user, transaction, []);
+
+    const entry = createEntry();
+
+    await this.saveEntry(entry, createEntry);
+
+    const operations =
+      await this.createOperationService.createOperationsForEntry(
+        user,
+        entry,
+        entryData.operations,
+      );
+
+    entry.addOperations(operations);
+
+    return entry;
   }
 
   private async saveEntry(entry: Entry, createEntry: () => Entry) {
