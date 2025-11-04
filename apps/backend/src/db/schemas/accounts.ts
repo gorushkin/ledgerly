@@ -10,6 +10,7 @@ import {
   id,
   isTombstone,
   getMoneyColumn,
+  getBooleanColumn,
 } from './common';
 import { currenciesTable } from './currencies';
 import { usersTable } from './users';
@@ -26,6 +27,7 @@ export const accountsTable = sqliteTable(
     description,
     id,
     initialBalance: getMoneyColumn('initial_balance'),
+    isSystem: getBooleanColumn('is_system'),
     isTombstone,
     name: text('name').notNull(),
     type: text('type', {

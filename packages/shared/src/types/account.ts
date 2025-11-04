@@ -1,21 +1,24 @@
 import { CurrencyCode, IsoDatetimeString, MoneyString, UUID } from "./types";
 
-export type AccountType =
+export type AccountTypeValue =
   | "asset"
   | "liability"
   | "equity"
   | "income"
+  | "currencyTrading"
   | "expense";
 
 export type AccountDomain = {
   createdAt: IsoDatetimeString;
   currency: CurrencyCode;
-  currentClearedBalanceLocal: string;
+  currentClearedBalanceLocal: MoneyString;
   description: string;
   id: UUID;
-  initialBalance: string;
+  initialBalance: MoneyString;
+  isSystem: boolean;
+  isTombstone: boolean;
   name: string;
-  type: AccountType;
+  type: AccountTypeValue;
   updatedAt: IsoDatetimeString;
   userId: UUID;
 };
@@ -25,7 +28,7 @@ export type AccountCreateDTO = {
   description: string;
   initialBalance: MoneyString;
   name: string;
-  type: AccountType;
+  type: AccountTypeValue;
 };
 
 export type AccountUpdateDTO = Partial<

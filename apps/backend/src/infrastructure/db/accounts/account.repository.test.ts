@@ -1,4 +1,4 @@
-import { CurrencyCode, AccountType, UUID } from '@ledgerly/shared/types';
+import { CurrencyCode, AccountTypeValue, UUID } from '@ledgerly/shared/types';
 import dayjs from 'dayjs';
 import { AccountDbInsert, AccountDbRow, UserDbRow } from 'src/db/schema';
 import { Amount } from 'src/domain/domain-core';
@@ -24,13 +24,14 @@ const getAccountData = (params: {
   userId: UUID;
   name: string;
   currency: CurrencyCode;
-  type: AccountType;
+  type: AccountTypeValue;
 }): AccountDbInsert => {
   return {
     currency: params.currency,
     currentClearedBalanceLocal: Amount.create('0').valueOf(),
     description: 'This is a test account',
     initialBalance: Amount.create('100').valueOf(),
+    isSystem: false,
     isTombstone: false,
     name: params.name,
     type: params.type,

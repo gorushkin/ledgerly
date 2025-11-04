@@ -1,4 +1,5 @@
 import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
+import { AccountFactory } from 'src/application/services';
 import { saveWithIdRetry } from 'src/application/shared/saveWithIdRetry';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
 import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
@@ -44,11 +45,10 @@ export const createContainer = (db: DataBase): AppContainer => {
     passwordManager,
   };
 
+  const accountFactory = new AccountFactory(accountRepository, saveWithIdRetry);
+
   // Create Account Use Cases
-  const createAccountUseCase = new CreateAccountUseCase(
-    accountRepository,
-    saveWithIdRetry,
-  );
+  const createAccountUseCase = new CreateAccountUseCase(accountFactory);
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
   const updateAccountUseCase = new UpdateAccountUseCase(accountRepository);
@@ -98,9 +98,14 @@ export const createContainer = (db: DataBase): AppContainer => {
     user: userController,
   };
 
+  const factories: AppContainer['factories'] = {
+    account: accountFactory,
+  };
+
   return {
     controllers,
     db,
+    factories,
     repositories,
     services,
     useCases,

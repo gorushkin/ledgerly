@@ -1,4 +1,4 @@
-import { AccountUpdateDTO } from '@ledgerly/shared/types';
+import { AccountResponseDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
 import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
 
 import {
@@ -27,12 +27,13 @@ export class Account {
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
-    private name: Name,
-    private description: string,
-    private initialBalance: Amount,
-    private currentClearedBalanceLocal: Amount,
-    private currency: Currency,
-    private type: AccountType,
+    private _name: Name,
+    private _description: string,
+    private _initialBalance: Amount,
+    private _currentClearedBalanceLocal: Amount,
+    private _currency: Currency,
+    private _type: AccountType,
+    private _isSystem: boolean,
   ) {
     this.identity = identity;
     this.timestamps = timestamps;
@@ -57,6 +58,8 @@ export class Account {
       identity.getId(),
     );
 
+    const isSystem = type.isSystemType();
+
     return new Account(
       identity,
       timestamps,
@@ -68,6 +71,7 @@ export class Account {
       Amount.create('0'),
       currency,
       type,
+      isSystem,
     );
   }
 
@@ -79,6 +83,7 @@ export class Account {
       description,
       id,
       initialBalance,
+      isSystem,
       isTombstone,
       name,
       type,
@@ -108,6 +113,7 @@ export class Account {
       Amount.create(currentClearedBalanceLocal),
       Currency.create(currency),
       AccountType.create(type),
+      isSystem,
     );
   }
 
@@ -154,21 +160,22 @@ export class Account {
   toPersistence(): AccountRepoInsert {
     return {
       createdAt: this.getCreatedAt().valueOf(),
-      currency: this.currency.valueOf(),
-      currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
-      description: this.description,
+      currency: this._currency.valueOf(),
+      currentClearedBalanceLocal: this._currentClearedBalanceLocal.valueOf(),
+      description: this._description,
       id: this.getId().valueOf(),
-      initialBalance: this.initialBalance.valueOf(),
+      initialBalance: this._initialBalance.valueOf(),
+      isSystem: this._isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
-      name: this.name.valueOf(),
-      type: this.type.valueOf(),
+      name: this._name.valueOf(),
+      type: this._type.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),
     };
   }
 
   getType(): AccountType {
-    return this.type;
+    return this._type;
   }
 
   updateAccount(data: AccountUpdateDTO): void {
@@ -176,19 +183,40 @@ export class Account {
 
     const currency = data.currency
       ? Currency.create(data.currency)
-      : this.currency;
+      : this._currency;
 
-    const name = data.name ? Name.create(data.name) : this.name;
+    const name = data.name ? Name.create(data.name) : this._name;
 
-    this.description = data.description ?? this.description;
-    this.type = data.type ? AccountType.create(data.type) : this.type;
-    this.currency = currency;
-    this.name = name;
+    this._description = data.description ?? this._description;
+    this._type = data.type ? AccountType.create(data.type) : this._type;
+    this._currency = currency;
+    this._name = name;
 
     this.touch(Timestamp.create());
   }
 
-  getCurrency(): Currency {
-    return this.currency;
+  isCurrencySame(currency: Currency): boolean {
+    return this._currency.valueOf() === currency.valueOf();
+  }
+
+  get currency(): Currency {
+    return this._currency;
+  }
+
+  toResponseDTO(): AccountResponseDTO {
+    return {
+      createdAt: this.getCreatedAt().valueOf(),
+      currency: this._currency.valueOf(),
+      currentClearedBalanceLocal: this._currentClearedBalanceLocal.valueOf(),
+      description: this._description,
+      id: this.getId().valueOf(),
+      initialBalance: this._initialBalance.valueOf(),
+      isSystem: this._isSystem,
+      isTombstone: this.softDelete.getIsTombstone(),
+      name: this._name.valueOf(),
+      type: this._type.valueOf(),
+      updatedAt: this.getUpdatedAt().valueOf(),
+      userId: this.ownership.getParentId().valueOf(),
+    };
   }
 }

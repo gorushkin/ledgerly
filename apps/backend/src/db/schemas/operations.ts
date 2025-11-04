@@ -9,7 +9,6 @@ import {
   updatedAt,
   isTombstone,
   id,
-  getBooleanColumn,
   getMoneyColumn,
 } from './common';
 import { entriesTable } from './entries';
@@ -30,7 +29,6 @@ export const operationsTable = sqliteTable(
       .references(() => entriesTable.id, { onDelete: 'cascade' })
       .$type<UUID>(),
     id,
-    isSystem: getBooleanColumn('is_system'),
     isTombstone,
     updatedAt,
     userId: text('user_id')

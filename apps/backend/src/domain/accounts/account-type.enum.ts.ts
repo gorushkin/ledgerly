@@ -1,16 +1,37 @@
-type AccountTypeValue = 'asset' | 'liability' | 'equity' | 'income' | 'expense';
+export type AccountTypeValue =
+  | 'asset'
+  | 'liability'
+  | 'equity'
+  | 'income'
+  | 'expense'
+  | 'currencyTrading';
+
+export const ACCOUNT_TYPES: AccountTypeValue[] = [
+  'asset',
+  'liability',
+  'equity',
+  'income',
+  'expense',
+  'currencyTrading',
+];
+
+export const SYSTEM_ACCOUNT_TYPES: AccountTypeValue[] = ['currencyTrading'];
+
+export const ACCOUNT_TYPE_VALUES = ACCOUNT_TYPES as [
+  AccountTypeValue,
+  ...AccountTypeValue[],
+];
+
+export const SYSTEM_ACCOUNT_TYPE_VALUES = SYSTEM_ACCOUNT_TYPES as [
+  AccountTypeValue,
+  ...AccountTypeValue[],
+];
 
 export class AccountType {
   private constructor(private readonly _value: AccountTypeValue) {}
 
-  static create(type: string): AccountType {
-    if (
-      type !== 'asset' &&
-      type !== 'liability' &&
-      type !== 'equity' &&
-      type !== 'income' &&
-      type !== 'expense'
-    ) {
+  static create(type: AccountTypeValue): AccountType {
+    if (!ACCOUNT_TYPE_VALUES.includes(type)) {
       throw new Error(`Invalid account type: ${type}`);
     }
 
@@ -27,5 +48,9 @@ export class AccountType {
 
   valueOf(): AccountTypeValue {
     return this._value;
+  }
+
+  isSystemType(): boolean {
+    return SYSTEM_ACCOUNT_TYPE_VALUES.includes(this._value);
   }
 }

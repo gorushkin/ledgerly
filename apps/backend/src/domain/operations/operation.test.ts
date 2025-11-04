@@ -38,8 +38,7 @@ describe('Operation Domain Entity', async () => {
       account.getId().valueOf(),
     );
     expect(operation.amount.valueOf()).toEqual(Amount.create('100').valueOf());
-    expect(operation.isSystem).toBe(false);
-    expect(operation.getId()).toBeDefined();
+    expect(operation.id).toBeDefined();
     expect(operation.getCreatedAt()).toBeDefined();
     expect(operation.getUpdatedAt()).toBeDefined();
   });
@@ -57,7 +56,7 @@ describe('Operation Domain Entity', async () => {
 
     const restoredOperation = Operation.fromPersistence({
       ...persistenceData,
-      currencyCode: account.getCurrency().valueOf(),
+      currencyCode: account.currency.valueOf(),
       userId: user.getId().valueOf(),
     });
 

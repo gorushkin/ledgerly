@@ -30,7 +30,6 @@ export class Operation {
     accountRelation: ParentChildRelation,
     public amount: Amount,
     public description: string,
-    public readonly isSystem: boolean,
   ) {
     this.timestamps = timestamps;
     this.softDelete = softDelete;
@@ -67,7 +66,7 @@ export class Operation {
 
     return new Operation(
       identity,
-      account.getCurrency(),
+      account.currency,
       timestamps,
       softDelete,
       ownership,
@@ -75,7 +74,6 @@ export class Operation {
       accountRelation,
       amount,
       description,
-      false,
     );
   }
 
@@ -90,7 +88,6 @@ export class Operation {
       description,
       entryId,
       id,
-      isSystem,
       isTombstone,
       updatedAt,
       userId,
@@ -131,7 +128,6 @@ export class Operation {
       accountRelation,
       Amount.fromPersistence(amount),
       description,
-      isSystem,
     );
   }
 
@@ -185,7 +181,7 @@ export class Operation {
   }
 
   canBeUpdated(): boolean {
-    return !this.isSystem && !this.isDeleted();
+    return !this.isDeleted();
   }
 
   updateAmount(amount: Amount): void {
@@ -214,6 +210,10 @@ export class Operation {
     return this.accountRelation.getParentId();
   }
 
+  belongsToAccount(account: Account): boolean {
+    return this.accountRelation.belongsToParent(account.getId());
+  }
+
   toPersistence(): OperationDbInsert {
     return {
       accountId: this.accountRelation.getParentId().valueOf(),
@@ -221,8 +221,7 @@ export class Operation {
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
       entryId: this.entryRelation.getParentId().valueOf(),
-      id: this.getId().valueOf(),
-      isSystem: this.isSystem,
+      id: this.id.valueOf(),
       isTombstone: this.softDelete.getIsTombstone(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
@@ -236,13 +235,12 @@ export class Operation {
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
       entryId: this.entryRelation.getParentId().valueOf(),
-      id: this.getId().valueOf(),
-      isSystem: this.isSystem,
+      id: this.id.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
     };
   }
 
-  hasSameCurrency(other: Operation): boolean {
-    return this.currency.isEqualTo(other.currency);
+  get id(): Id {
+    return this.identity.getId();
   }
 }

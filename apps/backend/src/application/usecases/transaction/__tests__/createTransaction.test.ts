@@ -1,4 +1,8 @@
 import {
+  CreateEntryRequestDTO,
+  CreateTransactionRequestDTO,
+} from 'src/application/dto';
+import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -125,24 +129,24 @@ describe('CreateTransactionUseCase', async () => {
       vi.spyOn(Transaction, 'create').mockReturnValue(mockedTransaction);
       vi.spyOn(Entry, 'create').mockReturnValue(mockedEntry);
 
-      const entries = [
+      const entries: CreateEntryRequestDTO[] = [
         {
-          operations: [
-            {
+          operations: {
+            from: {
               accountId: usdAccount.getId().valueOf(),
               amount: Amount.create('100').valueOf(),
               description: 'Operation 1',
             },
-            {
+            to: {
               accountId: eurAccount.getId().valueOf(),
               amount: Amount.create('100').valueOf(),
               description: 'Operation 1',
             },
-          ],
+          },
         },
       ];
 
-      const data = {
+      const data: CreateTransactionRequestDTO = {
         description,
         entries,
         postingDate,

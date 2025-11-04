@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import { dateInIsoFormat } from '@ledgerly/shared/libs';
 import {
-  AccountType,
+  AccountTypeValue,
   CurrencyCode,
   IsoDateString,
   MoneyString,
@@ -155,7 +155,7 @@ export class TestDB {
     params?: {
       name?: string;
       currency?: CurrencyCode;
-      type?: AccountType;
+      type?: AccountTypeValue;
       initialBalance?: MoneyString;
       description?: string;
     },
@@ -183,6 +183,7 @@ export class TestDB {
         userId: accountData.userId,
         ...TestDB.createTimestamps,
         ...TestDB.uuid,
+        isSystem: false,
       })
       .returning()
       .get();

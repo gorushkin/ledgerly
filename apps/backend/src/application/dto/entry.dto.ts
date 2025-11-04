@@ -7,8 +7,13 @@ import {
 
 // Request DTOs for creation
 
+export type EntryOperations = {
+  from: CreateOperationRequestDTO;
+  to: CreateOperationRequestDTO;
+};
+
 export type CreateEntryRequestDTO = {
-  operations: CreateOperationRequestDTO[];
+  operations: EntryOperations;
 };
 
 // Request DTOs for updating
