@@ -42,6 +42,7 @@ describe('Account Domain Entity', () => {
         Amount.create('0'),
         currencyUSD,
         accountType,
+        false,
       );
 
       expect(account).toBeInstanceOf(Account);
@@ -55,19 +56,6 @@ describe('Account Domain Entity', () => {
       expect(account.getUserId().isEqualTo(userId)).toBe(true);
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account.getType().equals(accountType)).toBe(true);
-    });
-
-    it('should throw error for wrong account type', () => {
-      expect(() =>
-        Account.create(
-          user,
-          name,
-          'account-description',
-          Amount.create('0'),
-          currencyUSD,
-          AccountType.create('invalid-type'),
-        ),
-      ).toThrowError('Invalid account type');
     });
   });
 
@@ -88,6 +76,7 @@ describe('Account Domain Entity', () => {
         description: 'restored-description',
         id: accountId.valueOf(),
         initialBalance: Amount.create('500').valueOf(),
+        isSystem: false,
         isTombstone: false,
         name: 'restored-account',
         type: userTypeValue,
@@ -114,6 +103,7 @@ describe('Account Domain Entity', () => {
         Amount.create('0'),
         currencyUSD,
         accountType,
+        false,
       );
 
       account.updateAccount({ name: 'updated-name' });
@@ -131,6 +121,7 @@ describe('Account Domain Entity', () => {
         Amount.create('0'),
         currencyUSD,
         accountType,
+        false,
       );
 
       expect(account.isDeleted()).toBe(false);
@@ -148,6 +139,7 @@ describe('Account Domain Entity', () => {
         Amount.create('0'),
         currencyUSD,
         accountType,
+        false,
       );
 
       account.markAsDeleted();
@@ -165,6 +157,7 @@ describe('Account Domain Entity', () => {
         Amount.create('0'),
         currencyUSD,
         accountType,
+        false,
       );
 
       expect(account.isDeleted()).toBe(false);

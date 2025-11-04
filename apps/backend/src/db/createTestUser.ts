@@ -37,6 +37,7 @@ export const createAccount = (user: User) => {
     Amount.create('0'),
     Currency.create('USD'),
     AccountType.create('asset'),
+    false,
   );
 };
 
