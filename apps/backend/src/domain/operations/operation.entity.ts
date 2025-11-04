@@ -28,9 +28,8 @@ export class Operation {
     ownership: ParentChildRelation,
     entryRelation: ParentChildRelation,
     accountRelation: ParentChildRelation,
-    public amount: Amount,
+    public _amount: Amount,
     public description: string,
-    public readonly isSystem: boolean,
   ) {
     this.timestamps = timestamps;
     this.softDelete = softDelete;
@@ -67,7 +66,7 @@ export class Operation {
 
     return new Operation(
       identity,
-      account.getCurrency(),
+      account.currency,
       timestamps,
       softDelete,
       ownership,
@@ -75,7 +74,6 @@ export class Operation {
       accountRelation,
       amount,
       description,
-      false,
     );
   }
 
@@ -90,7 +88,6 @@ export class Operation {
       description,
       entryId,
       id,
-      isSystem,
       isTombstone,
       updatedAt,
       userId,
@@ -131,7 +128,6 @@ export class Operation {
       accountRelation,
       Amount.fromPersistence(amount),
       description,
-      isSystem,
     );
   }
 
@@ -185,7 +181,7 @@ export class Operation {
   }
 
   canBeUpdated(): boolean {
-    return !this.isSystem && !this.isDeleted();
+    return !this.isDeleted();
   }
 
   updateAmount(amount: Amount): void {
@@ -193,7 +189,7 @@ export class Operation {
       throw new Error('Operation cannot be updated');
     }
 
-    this.amount = amount;
+    this._amount = amount;
     this.touch();
   }
 
@@ -214,35 +210,45 @@ export class Operation {
     return this.accountRelation.getParentId();
   }
 
+  belongsToAccount(account: Account): boolean {
+    return this.accountRelation.belongsToParent(account.getId());
+  }
+
   toPersistence(): OperationDbInsert {
     return {
       accountId: this.accountRelation.getParentId().valueOf(),
-      amount: this.amount.valueOf(),
+      amount: this._amount.valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
       entryId: this.entryRelation.getParentId().valueOf(),
       id: this.getId().valueOf(),
-      isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
     };
   }
 
+  get amount(): Amount {
+    return this._amount;
+  }
+
   toResponseDTO(): OperationResponseDTO {
     return {
       accountId: this.getAccountId().valueOf(),
-      amount: this.amount.valueOf(),
+      amount: this._amount.valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
       entryId: this.entryRelation.getParentId().valueOf(),
       id: this.getId().valueOf(),
-      isSystem: this.isSystem,
       updatedAt: this.getUpdatedAt().valueOf(),
     };
   }
 
   hasSameCurrency(other: Operation): boolean {
     return this.currency.isEqualTo(other.currency);
+  }
+
+  get id() {
+    return this.identity.getId();
   }
 }

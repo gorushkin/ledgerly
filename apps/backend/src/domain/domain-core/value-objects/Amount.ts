@@ -6,7 +6,12 @@ import {
 
 export class Amount {
   private readonly minor: bigint;
-  constructor(value: string) {
+  private constructor(value: string | bigint) {
+    if (typeof value === 'bigint') {
+      this.minor = value;
+      return;
+    }
+
     const parsed = moneyAmountBigint.parse(value);
 
     if (typeof parsed !== 'bigint') {
@@ -33,14 +38,22 @@ export class Amount {
   }
 
   add(other: Amount): Amount {
-    return new Amount(String(this.minor + other.minor));
+    return new Amount(this.minor + other.minor);
   }
 
   subtract(other: Amount): Amount {
-    return new Amount(String(this.minor - other.minor));
+    return new Amount(this.minor - other.minor);
+  }
+
+  negate(): Amount {
+    return new Amount(-this.minor);
   }
 
   toPersistence(): MoneyString {
     return moneyAmountString.parse(String(this.minor));
+  }
+
+  isZero(): boolean {
+    return this.minor === BigInt(0);
   }
 }

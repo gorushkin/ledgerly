@@ -25,7 +25,6 @@ export type OperationResponseDTO = {
   entryId: UUID;
   accountId: UUID;
   amount: MoneyString;
-  isSystem: boolean;
   description?: string;
   createdAt: IsoDatetimeString;
   updatedAt: IsoDatetimeString;

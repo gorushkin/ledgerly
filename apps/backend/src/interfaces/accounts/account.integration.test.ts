@@ -2,7 +2,7 @@ import { ROUTES } from '@ledgerly/shared/routes';
 import {
   AccountCreateDTO,
   AccountResponseDTO,
-  AccountType,
+  AccountTypeValue,
   UUID,
 } from '@ledgerly/shared/types';
 import { AccountRepoInsert } from 'src/db/schema';
@@ -21,7 +21,7 @@ const firstUserAccounts = [
     description: 'This is a test account',
     initialBalance: Amount.create('1000').valueOf(),
     name: 'Test Account',
-    type: 'asset' as AccountType,
+    type: 'asset' as AccountTypeValue,
   },
   {
     currency: Currency.create('USD').valueOf(),
@@ -29,7 +29,7 @@ const firstUserAccounts = [
     description: 'Savings account for future expenses',
     initialBalance: Amount.create('1000').valueOf(),
     name: 'Savings Account',
-    type: 'cash' as AccountType,
+    type: 'cash' as AccountTypeValue,
   },
 ];
 
@@ -121,12 +121,13 @@ describe('Accounts Integration Tests', () => {
 
   describe('POST /api/accounts', () => {
     it('should create a new account', async () => {
+      //TODO: create entity with Account.create
       const newAccount = {
         currency: 'USD',
         description: 'This is a new account',
         initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
-        type: 'asset' as AccountType,
+        type: 'asset' as AccountTypeValue,
       };
 
       const response = await server.inject({
