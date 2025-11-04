@@ -28,7 +28,7 @@ export class Operation {
     ownership: ParentChildRelation,
     entryRelation: ParentChildRelation,
     accountRelation: ParentChildRelation,
-    private _amount: Amount,
+    public amount: Amount,
     public description: string,
   ) {
     this.timestamps = timestamps;
@@ -189,7 +189,7 @@ export class Operation {
       throw new Error('Operation cannot be updated');
     }
 
-    this._amount = amount;
+    this.amount = amount;
     this.touch();
   }
 
@@ -217,29 +217,25 @@ export class Operation {
   toPersistence(): OperationDbInsert {
     return {
       accountId: this.accountRelation.getParentId().valueOf(),
-      amount: this._amount.valueOf(),
+      amount: this.amount.valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
       entryId: this.entryRelation.getParentId().valueOf(),
-      id: this.getId().valueOf(),
+      id: this.id.valueOf(),
       isTombstone: this.softDelete.getIsTombstone(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
     };
   }
 
-  get amount(): Amount {
-    return this._amount;
-  }
-
   toResponseDTO(): OperationResponseDTO {
     return {
       accountId: this.getAccountId().valueOf(),
-      amount: this._amount.valueOf(),
+      amount: this.amount.valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
       entryId: this.entryRelation.getParentId().valueOf(),
-      id: this.getId().valueOf(),
+      id: this.id.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
     };
   }
@@ -248,7 +244,7 @@ export class Operation {
     return this.currency.isEqualTo(other.currency);
   }
 
-  get id() {
+  get id(): Id {
     return this.identity.getId();
   }
 }

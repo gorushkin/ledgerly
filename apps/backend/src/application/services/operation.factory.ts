@@ -56,7 +56,7 @@ export class OperationFactory {
     amount: Amount;
     direction: 'from' | 'to';
   }) {
-    return `Currency trading - balanced ${direction} operation, ${account.currency.valueOf()}:${amount.valueOf()}`;
+    return `Currency trading: ${direction} ${account.currency.valueOf()} ${amount.valueOf()}`;
   }
 
   private async addTradingOperations(
@@ -136,7 +136,7 @@ export class OperationFactory {
 
     if (!balance.isZero()) {
       throw new Error(
-        `Operations amounts are not balanced: from=${from.amount.valueOf()}, to=${to.amount.valueOf()}`,
+        `Operations amounts are not balanced: (including system operations)from=${from.amount.valueOf()}, to=${to.amount.valueOf()}`,
       );
     }
   }

@@ -50,7 +50,6 @@ describe('CreateTransactionUseCase', async () => {
     Amount.create('0'),
     Currency.create('USD'),
     AccountType.create('asset'),
-    false,
   );
 
   const eurAccount = Account.create(
@@ -60,7 +59,6 @@ describe('CreateTransactionUseCase', async () => {
     Amount.create('0'),
     Currency.create('EUR'),
     AccountType.create('asset'),
-    false,
   );
 
   const mockedEntries = [

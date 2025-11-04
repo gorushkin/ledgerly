@@ -48,7 +48,6 @@ export class Account {
     initialBalance: Amount,
     currency: Currency,
     type: AccountType,
-    isSystem: boolean,
   ): Account {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
@@ -58,6 +57,8 @@ export class Account {
       user.getId(),
       identity.getId(),
     );
+
+    const isSystem = type.isSystemType();
 
     return new Account(
       identity,

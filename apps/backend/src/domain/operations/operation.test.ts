@@ -38,7 +38,7 @@ describe('Operation Domain Entity', async () => {
       account.getId().valueOf(),
     );
     expect(operation.amount.valueOf()).toEqual(Amount.create('100').valueOf());
-    expect(operation.getId()).toBeDefined();
+    expect(operation.id).toBeDefined();
     expect(operation.getCreatedAt()).toBeDefined();
     expect(operation.getUpdatedAt()).toBeDefined();
   });

@@ -58,7 +58,6 @@ describe('OperationFactory', () => {
       Amount.create('0'),
       Currency.create('USD'),
       AccountType.create('asset'),
-      false,
     );
 
     usdAccount2 = Account.create(
@@ -68,7 +67,6 @@ describe('OperationFactory', () => {
       Amount.create('0'),
       Currency.create('USD'),
       AccountType.create('asset'),
-      false,
     );
 
     eurAccount = Account.create(
@@ -78,7 +76,6 @@ describe('OperationFactory', () => {
       Amount.create('0'),
       Currency.create('EUR'),
       AccountType.create('asset'),
-      false,
     );
 
     eurSystemAccount = Account.create(
@@ -88,7 +85,6 @@ describe('OperationFactory', () => {
       Amount.create('0'),
       Currency.create('EUR'),
       AccountType.create('currencyTrading'),
-      true,
     );
 
     usdSystemAccount = Account.create(
@@ -98,7 +94,6 @@ describe('OperationFactory', () => {
       Amount.create('0'),
       Currency.create('USD'),
       AccountType.create('currencyTrading'),
-      true,
     );
   });
 

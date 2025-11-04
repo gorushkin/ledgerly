@@ -42,7 +42,6 @@ describe('Account Domain Entity', () => {
         Amount.create('0'),
         currencyUSD,
         accountType,
-        false,
       );
 
       expect(account).toBeInstanceOf(Account);
@@ -103,7 +102,6 @@ describe('Account Domain Entity', () => {
         Amount.create('0'),
         currencyUSD,
         accountType,
-        false,
       );
 
       account.updateAccount({ name: 'updated-name' });
@@ -121,7 +119,6 @@ describe('Account Domain Entity', () => {
         Amount.create('0'),
         currencyUSD,
         accountType,
-        false,
       );
 
       expect(account.isDeleted()).toBe(false);
@@ -139,7 +136,6 @@ describe('Account Domain Entity', () => {
         Amount.create('0'),
         currencyUSD,
         accountType,
-        false,
       );
 
       account.markAsDeleted();
@@ -157,7 +153,6 @@ describe('Account Domain Entity', () => {
         Amount.create('0'),
         currencyUSD,
         accountType,
-        false,
       );
 
       expect(account.isDeleted()).toBe(false);

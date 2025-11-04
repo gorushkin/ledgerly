@@ -15,7 +15,6 @@ import {
 import { currenciesTable } from './currencies';
 import { usersTable } from './users';
 
-// TODO: name = System:CurrencyTrading:${currency}
 export const accountsTable = sqliteTable(
   'accounts',
   {

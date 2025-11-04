@@ -17,14 +17,15 @@ export const ACCOUNT_TYPES: AccountTypeValue[] = [
 
 export const SYSTEM_ACCOUNT_TYPES: AccountTypeValue[] = ['currencyTrading'];
 
-export const ACCOUNT_TYPE_VALUES = ACCOUNT_TYPES.map((t) => t) as [
+export const ACCOUNT_TYPE_VALUES = ACCOUNT_TYPES as [
   AccountTypeValue,
   ...AccountTypeValue[],
 ];
 
-export const SYSTEM_ACCOUNT_TYPE_VALUES = SYSTEM_ACCOUNT_TYPES.map(
-  (t) => t,
-) as [AccountTypeValue, ...AccountTypeValue[]];
+export const SYSTEM_ACCOUNT_TYPE_VALUES = SYSTEM_ACCOUNT_TYPES as [
+  AccountTypeValue,
+  ...AccountTypeValue[],
+];
 
 export class AccountType {
   private constructor(private readonly _value: AccountTypeValue) {}

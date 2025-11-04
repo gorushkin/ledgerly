@@ -17,10 +17,6 @@ export class AccountFactory {
   async createAccount(user: User, data: AccountCreateDTO): Promise<Account> {
     const { currency, description, initialBalance, name, type } = data;
 
-    const accountType = AccountType.create(type);
-
-    const isSystem = accountType.isSystemType();
-
     const createAccount = () =>
       Account.create(
         user,
@@ -28,8 +24,7 @@ export class AccountFactory {
         description,
         Amount.create(initialBalance),
         Currency.create(currency),
-        accountType,
-        isSystem,
+        AccountType.create(type),
       );
 
     const account = createAccount();

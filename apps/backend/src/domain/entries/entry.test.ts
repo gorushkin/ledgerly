@@ -22,7 +22,6 @@ describe('Entry Domain Entity', async () => {
     Amount.create('0'),
     Currency.create('USD'),
     AccountType.create('asset'),
-    false,
   );
 
   const eurAccount = Account.create(
@@ -32,7 +31,6 @@ describe('Entry Domain Entity', async () => {
     Amount.create('0'),
     Currency.create('EUR'),
     AccountType.create('asset'),
-    false,
   );
 
   const transaction = Transaction.create(
