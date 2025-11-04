@@ -240,10 +240,6 @@ export class Operation {
     };
   }
 
-  hasSameCurrency(other: Operation): boolean {
-    return this.currency.isEqualTo(other.currency);
-  }
-
   get id(): Id {
     return this.identity.getId();
   }

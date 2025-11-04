@@ -56,7 +56,7 @@ export class OperationFactory {
     amount: Amount;
     direction: 'from' | 'to';
   }) {
-    return `Currency trading: ${direction} ${account.currency.valueOf()} ${amount.valueOf()}`;
+    return `Currency exchange ${direction} ${account.currency.valueOf()} account: ${amount.valueOf()}`;
   }
 
   private async addTradingOperations(
@@ -195,9 +195,7 @@ export class OperationFactory {
       to: toOperation,
     });
 
-    return [fromOperation, toOperation, ...(systemOperations ?? [])].filter(
-      Boolean,
-    );
+    return [fromOperation, toOperation, ...(systemOperations ?? [])];
   }
 
   private async getOperationAccount(
@@ -225,7 +223,7 @@ export class OperationFactory {
     const amount = Amount.create(opData.amount);
 
     const createOperation = () =>
-      Operation.create(user, account, entry, amount, opData.description ?? '');
+      Operation.create(user, account, entry, amount, opData.description);
 
     const operation = createOperation();
 
