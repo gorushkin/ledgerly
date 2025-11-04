@@ -1,4 +1,3 @@
-import { MoneyString } from '@ledgerly/shared/types';
 import { OperationRepoInsert } from 'src/db/schema';
 import { Account, Entry, Operation, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
@@ -43,7 +42,6 @@ export class OperationFactory {
       currency: currency,
       description: 'System account for internal operations',
       initialBalance: Amount.create('0').valueOf(),
-      isSystem: true,
       name: `System Account (${currency})`,
       type: 'currencyTrading',
     });
@@ -55,7 +53,7 @@ export class OperationFactory {
     direction,
   }: {
     account: Account;
-    amount: MoneyString;
+    amount: Amount;
     direction: 'from' | 'to';
   }) {
     return `Currency trading - balanced ${direction} operation, ${account.currency.valueOf()}:${amount.valueOf()}`;
@@ -89,7 +87,7 @@ export class OperationFactory {
       amount: oppositeFrom.valueOf(),
       description: this.getSystemAccountDescription({
         account: fromAccount,
-        amount: oppositeFrom.valueOf(),
+        amount: oppositeFrom,
         direction: 'from',
       }),
     };
@@ -99,7 +97,7 @@ export class OperationFactory {
       amount: oppositeTo.valueOf(),
       description: this.getSystemAccountDescription({
         account: toAccount,
-        amount: oppositeTo.valueOf(),
+        amount: oppositeTo,
         direction: 'to',
       }),
     };

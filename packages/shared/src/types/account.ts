@@ -27,7 +27,7 @@ export type AccountCreateDTO = {
   currency: CurrencyCode;
   description: string;
   initialBalance: MoneyString;
-  isSystem?: boolean;
+  // isSystem?: boolean;
   name: string;
   type: AccountTypeValue;
 };

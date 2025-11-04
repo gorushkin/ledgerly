@@ -48,11 +48,11 @@ describe('Account Domain Entity', () => {
       expect(account).toBeInstanceOf(Account);
       expect(account.getId()).toBeDefined();
       expect(account.getUserId()).toBe(userId);
-      expect(account).toHaveProperty('name', name);
-      expect(account).toHaveProperty('description', 'account-description');
-      expect(account).toHaveProperty('initialBalance', Amount.create('0'));
-      expect(account).toHaveProperty('currency', currencyUSD);
-      expect(account).toHaveProperty('type', { _value: 'asset' });
+      expect(account).toHaveProperty('_name', name);
+      expect(account).toHaveProperty('_description', 'account-description');
+      expect(account).toHaveProperty('_initialBalance', Amount.create('0'));
+      expect(account).toHaveProperty('_currency', currencyUSD);
+      expect(account).toHaveProperty('_type', { _value: 'asset' });
       expect(account.getUserId().isEqualTo(userId)).toBe(true);
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account.getType().equals(accountType)).toBe(true);
@@ -87,10 +87,10 @@ describe('Account Domain Entity', () => {
       expect(account).toBeInstanceOf(Account);
       expect(account.getId().toString()).toBe(accountIdValue);
       expect(account.getUserId().toString()).toBe(userIdValue);
-      expect(account).toHaveProperty('name', Name.create('restored-account'));
-      expect(account).toHaveProperty('description', 'restored-description');
-      expect(account).toHaveProperty('initialBalance', Amount.create('500'));
-      expect(account).toHaveProperty('currency', currencyEUR);
+      expect(account).toHaveProperty('_name', Name.create('restored-account'));
+      expect(account).toHaveProperty('_description', 'restored-description');
+      expect(account).toHaveProperty('_initialBalance', Amount.create('500'));
+      expect(account).toHaveProperty('_currency', currencyEUR);
     });
   });
 
@@ -108,7 +108,7 @@ describe('Account Domain Entity', () => {
 
       account.updateAccount({ name: 'updated-name' });
 
-      expect(account).toHaveProperty('name', Name.create('updated-name'));
+      expect(account).toHaveProperty('_name', Name.create('updated-name'));
     });
   });
 
@@ -180,4 +180,6 @@ describe('Account Domain Entity', () => {
       // );
     });
   });
+
+  it.todo('add test to cover isSystem property');
 });

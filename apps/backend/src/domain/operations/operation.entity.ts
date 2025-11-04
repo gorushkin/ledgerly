@@ -28,7 +28,7 @@ export class Operation {
     ownership: ParentChildRelation,
     entryRelation: ParentChildRelation,
     accountRelation: ParentChildRelation,
-    public _amount: Amount,
+    private _amount: Amount,
     public description: string,
   ) {
     this.timestamps = timestamps;

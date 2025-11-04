@@ -37,7 +37,7 @@ describe('Operation Domain Entity', async () => {
     expect(operation.getAccountId().valueOf()).toEqual(
       account.getId().valueOf(),
     );
-    expect(operation._amount.valueOf()).toEqual(Amount.create('100').valueOf());
+    expect(operation.amount.valueOf()).toEqual(Amount.create('100').valueOf());
     expect(operation.getId()).toBeDefined();
     expect(operation.getCreatedAt()).toBeDefined();
     expect(operation.getUpdatedAt()).toBeDefined();
@@ -74,7 +74,7 @@ describe('Operation Domain Entity', async () => {
       'Zero amount operation',
     );
 
-    expect(operation._amount.valueOf()).toBe('0');
+    expect(operation.amount.valueOf()).toBe('0');
   });
 
   it('should handle negative amounts correctly', () => {
@@ -86,7 +86,7 @@ describe('Operation Domain Entity', async () => {
       'Negative amount operation',
     );
 
-    expect(operation._amount.valueOf()).toBe('-50');
+    expect(operation.amount.valueOf()).toBe('-50');
   });
 
   describe('calculations', () => {
@@ -107,7 +107,7 @@ describe('Operation Domain Entity', async () => {
         'Test operation 2',
       );
 
-      const result = operation1._amount.add(operation2._amount);
+      const result = operation1.amount.add(operation2.amount);
 
       expect(result.valueOf()).toBe('150');
     });
@@ -128,7 +128,7 @@ describe('Operation Domain Entity', async () => {
         'Test operation 2',
       );
 
-      const result = operation1._amount.subtract(operation2._amount);
+      const result = operation1.amount.subtract(operation2.amount);
 
       expect(result.valueOf()).toBe('50');
     });

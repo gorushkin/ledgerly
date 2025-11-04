@@ -19,6 +19,6 @@ export class CreateAccountUseCase {
       type,
     });
 
-    return account.toPersistence();
+    return account.toResponseDTO();
   }
 }

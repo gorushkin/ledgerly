@@ -37,7 +37,7 @@ describe('CreateAccountUseCase', async () => {
       const mockedResult = { data: 'some account data' };
 
       const mockedAccount = {
-        toPersistence: vi.fn().mockResolvedValue(mockedResult),
+        toResponseDTO: vi.fn().mockResolvedValue(mockedResult),
       } as unknown as Account;
 
       accountFactory.createAccount.mockResolvedValue(mockedAccount);

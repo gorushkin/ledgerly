@@ -1,4 +1,4 @@
-import { AccountUpdateDTO } from '@ledgerly/shared/types';
+import { AccountResponseDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
 import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
 
 import {
@@ -27,13 +27,13 @@ export class Account {
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
-    private name: Name,
-    private description: string,
-    private initialBalance: Amount,
-    private currentClearedBalanceLocal: Amount,
+    private _name: Name,
+    private _description: string,
+    private _initialBalance: Amount,
+    private _currentClearedBalanceLocal: Amount,
     private _currency: Currency,
-    private type: AccountType,
-    private isSystem: boolean,
+    private _type: AccountType,
+    private _isSystem: boolean,
   ) {
     this.identity = identity;
     this.timestamps = timestamps;
@@ -160,21 +160,21 @@ export class Account {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       currency: this._currency.valueOf(),
-      currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
-      description: this.description,
+      currentClearedBalanceLocal: this._currentClearedBalanceLocal.valueOf(),
+      description: this._description,
       id: this.getId().valueOf(),
-      initialBalance: this.initialBalance.valueOf(),
-      isSystem: this.isSystem,
+      initialBalance: this._initialBalance.valueOf(),
+      isSystem: this._isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
-      name: this.name.valueOf(),
-      type: this.type.valueOf(),
+      name: this._name.valueOf(),
+      type: this._type.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),
     };
   }
 
   getType(): AccountType {
-    return this.type;
+    return this._type;
   }
 
   updateAccount(data: AccountUpdateDTO): void {
@@ -184,12 +184,12 @@ export class Account {
       ? Currency.create(data.currency)
       : this._currency;
 
-    const name = data.name ? Name.create(data.name) : this.name;
+    const name = data.name ? Name.create(data.name) : this._name;
 
-    this.description = data.description ?? this.description;
-    this.type = data.type ? AccountType.create(data.type) : this.type;
+    this._description = data.description ?? this._description;
+    this._type = data.type ? AccountType.create(data.type) : this._type;
     this._currency = currency;
-    this.name = name;
+    this._name = name;
 
     this.touch(Timestamp.create());
   }
@@ -200,5 +200,22 @@ export class Account {
 
   get currency(): Currency {
     return this._currency;
+  }
+
+  toResponseDTO(): AccountResponseDTO {
+    return {
+      createdAt: this.getCreatedAt().valueOf(),
+      currency: this._currency.valueOf(),
+      currentClearedBalanceLocal: this._currentClearedBalanceLocal.valueOf(),
+      description: this._description,
+      id: this.getId().valueOf(),
+      initialBalance: this._initialBalance.valueOf(),
+      isSystem: this._isSystem,
+      isTombstone: this.softDelete.getIsTombstone(),
+      name: this._name.valueOf(),
+      type: this._type.valueOf(),
+      updatedAt: this.getUpdatedAt().valueOf(),
+      userId: this.ownership.getParentId().valueOf(),
+    };
   }
 }
