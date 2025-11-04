@@ -1,4 +1,5 @@
 import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
+import { AccountFactory } from 'src/application/services';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
 import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
 import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
@@ -48,6 +49,12 @@ type Controllers = {
   transaction: TransactionController;
 };
 
+type Factories = {
+  account: AccountFactory;
+  // operation: OperationFactory;
+  // entry: EntryFactory;
+};
+
 export type AppContainer = {
   db: DataBase;
   repositories: Repositories;
@@ -57,4 +64,5 @@ export type AppContainer = {
     auth: AuthUseCases;
   };
   controllers: Controllers;
+  factories: Factories;
 };

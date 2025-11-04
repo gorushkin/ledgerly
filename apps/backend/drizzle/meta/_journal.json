@@ -15,6 +15,13 @@
       "when": 1761583589325,
       "tag": "0001_superb_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1762276097445,
+      "tag": "0002_spooky_harry_osborn",
+      "breakpoints": true
     }
   ]
 }

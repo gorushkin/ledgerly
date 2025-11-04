@@ -183,6 +183,7 @@ export class TestDB {
         userId: accountData.userId,
         ...TestDB.createTimestamps,
         ...TestDB.uuid,
+        isSystem: false,
       })
       .returning()
       .get();

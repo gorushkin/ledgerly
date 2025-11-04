@@ -1,4 +1,4 @@
-import { UUID } from '@ledgerly/shared/types';
+import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
 import { DataBase, TxType } from 'src/db';
@@ -135,5 +135,12 @@ export class AccountRepository
 
       return updatedAccount;
     }, `Failed to delete account with ID ${id}`);
+  }
+
+  findSystemAccount(
+    _userId: UUID,
+    _currency: CurrencyCode,
+  ): Promise<AccountDbRow | null> {
+    throw new Error('Method not implemented.');
   }
 }
