@@ -173,9 +173,9 @@ export class TestDB {
       ...TestDB.uuid,
       ...TestDB.createTimestamps,
       date: params?.date ?? TestDB.isoDateString,
-      transactionId: transaction.id,
       userId,
       ...params,
+      transactionId: params?.transactionId ?? transaction.id,
     };
 
     const entry = await this.db

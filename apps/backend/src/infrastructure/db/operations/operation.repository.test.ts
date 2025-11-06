@@ -59,7 +59,7 @@ describe('OperationRepository', () => {
       entryId,
       id,
       isTombstone: false,
-      updatedAt: updatedAt,
+      updatedAt,
       userId,
     };
 
