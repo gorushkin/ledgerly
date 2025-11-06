@@ -16,10 +16,16 @@ import { sql, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
-import { Amount } from 'src/domain/domain-core';
+import { Amount, DateValue } from 'src/domain/domain-core';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
-import { OperationDbInsert, TransactionDbRow, UserDbRow } from './schema';
+import {
+  EntryDbRow,
+  OperationDbInsert,
+  TransactionDbInsert,
+  TransactionDbRow,
+  UserDbRow,
+} from './schema';
 import * as schema from './schemas';
 import { accountsTable, usersTable } from './schemas';
 import { seedCurrencies } from './scripts/currenciesSeed';
@@ -148,6 +154,67 @@ export class TestDB {
       .get();
 
     return user;
+  };
+
+  createEntry = async (
+    userId: UUID,
+    params?: {
+      transactionId?: UUID;
+      date?: IsoDateString;
+    },
+  ): Promise<EntryDbRow> => {
+    const transaction = await this.createTransaction(userId, {
+      description: `Entry Transaction ${this.transactionCounter.getNextName()}`,
+      postingDate: TestDB.isoDateString,
+      transactionDate: TestDB.isoDateString,
+    });
+
+    const entryData = {
+      ...TestDB.uuid,
+      ...TestDB.createTimestamps,
+      date: params?.date ?? TestDB.isoDateString,
+      transactionId: transaction.id,
+      userId,
+      ...params,
+    };
+
+    const entry = await this.db
+      .insert(schema.entriesTable)
+      .values(entryData)
+      .returning()
+      .get();
+
+    return entry;
+  };
+
+  createTransaction = async (
+    userId: UUID,
+    params?: {
+      description: string;
+      postingDate: IsoDateString;
+      transactionDate: IsoDateString;
+    },
+  ): Promise<TransactionDbRow> => {
+    const transactionData: TransactionDbInsert = {
+      ...TestDB.uuid,
+      ...TestDB.createTimestamps,
+      description:
+        params?.description ??
+        `Test Transaction ${this.transactionCounter.getNextName()}`,
+      isTombstone: false,
+      postingDate: DateValue.create().valueOf(),
+      transactionDate: DateValue.create().valueOf(),
+      ...params,
+      userId,
+    };
+
+    const transaction = await this.db
+      .insert(schema.transactionsTable)
+      .values(transactionData)
+      .returning()
+      .get();
+
+    return transaction;
   };
 
   createAccount = async (
