@@ -4,7 +4,7 @@ import {
   OperationDbRow,
   UserDbRow,
 } from 'src/db/schema';
-import { Amount } from 'src/domain/domain-core';
+import { Amount, Id, Timestamp } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
@@ -47,9 +47,9 @@ describe('OperationRepository', () => {
     const userId = user.id;
     const entryId = entry.id;
     const amount = Amount.create('1000');
-    const id = TestDB.uuid.id;
-    const createdAt = TestDB.createTimestamps.createdAt;
-    const updatedAt = TestDB.createTimestamps.updatedAt;
+    const id = Id.create().valueOf();
+    const createdAt = Timestamp.create().valueOf();
+    const updatedAt = Timestamp.create().valueOf();
 
     const expectedResult: OperationDbRow = {
       accountId,
