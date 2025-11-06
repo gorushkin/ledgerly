@@ -40,7 +40,7 @@ describe('EntryRepository', () => {
     const updatedAt = Timestamp.create().valueOf();
     const id = Id.create().valueOf();
 
-    const expectedResult: EntryDbRow = {
+    const entryInput: EntryDbRow = {
       createdAt,
       id,
       transactionId,
@@ -48,14 +48,8 @@ describe('EntryRepository', () => {
       userId,
     };
 
-    const entry = await entryRepository.create({
-      createdAt,
-      id,
-      transactionId,
-      updatedAt,
-      userId,
-    });
+    const entry = await entryRepository.create(entryInput);
 
-    expect(entry).toEqual(expectedResult);
+    expect(entry).toEqual(entryInput);
   });
 });

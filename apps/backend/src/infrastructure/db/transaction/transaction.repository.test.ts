@@ -1,8 +1,4 @@
-import {
-  TransactionDbInsert,
-  TransactionDbRow,
-  UserDbRow,
-} from 'src/db/schema';
+import { TransactionDbInsert, UserDbRow } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import { DateValue } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
@@ -54,19 +50,8 @@ describe('TransactionRepository', () => {
       userId: user.id,
     };
 
-    const expectedResult: TransactionDbRow = {
-      createdAt,
-      description: 'Test transaction',
-      id,
-      isTombstone: false,
-      postingDate,
-      transactionDate,
-      updatedAt,
-      userId: user.id,
-    };
-
     const result = await transactionRepository.create(transactionData);
 
-    expect(result).toEqual(expectedResult);
+    expect(result).toEqual(transactionData);
   });
 });
