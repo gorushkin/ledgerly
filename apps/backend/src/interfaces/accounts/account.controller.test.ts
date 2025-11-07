@@ -6,7 +6,7 @@ import {
   GetAllAccountsUseCase,
   UpdateAccountUseCase,
 } from 'src/application/usecases/accounts';
-import { Amount, Email, Name, Password } from 'src/domain/domain-core';
+import { Amount } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { User } from 'src/domain/users/user.entity';
@@ -14,12 +14,10 @@ import { AccountController } from 'src/interfaces/';
 import { describe, vi, beforeEach, it, expect } from 'vitest';
 import { ZodError } from 'zod';
 
-describe('AccountController', async () => {
-  const userName = Name.create('Ivan');
-  const userEmail = Email.create('ivan@example.com');
-  const userPassword = await Password.create('securepassword');
+import { createUser } from '../helpers';
 
-  const user = User.create(userName, userEmail, userPassword);
+describe('AccountController', () => {
+  let user: User;
 
   const accountId = Id.fromPersistence(
     'b2035d76-f6b1-4546-8637-6f034f4ade50',
@@ -53,7 +51,9 @@ describe('AccountController', async () => {
     mockDeleteAccountUseCase as unknown as DeleteAccountUseCase,
   );
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    user = await createUser();
+
     vi.clearAllMocks();
   });
 

@@ -12,9 +12,7 @@ export type EntryOperations = {
   to: CreateOperationRequestDTO;
 };
 
-export type CreateEntryRequestDTO = {
-  operations: EntryOperations;
-};
+export type CreateEntryRequestDTO = EntryOperations;
 
 // Request DTOs for updating
 

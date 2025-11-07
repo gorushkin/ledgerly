@@ -131,17 +131,15 @@ describe('CreateTransactionUseCase', async () => {
 
       const entries: CreateEntryRequestDTO[] = [
         {
-          operations: {
-            from: {
-              accountId: usdAccount.getId().valueOf(),
-              amount: Amount.create('100').valueOf(),
-              description: 'Operation 1',
-            },
-            to: {
-              accountId: eurAccount.getId().valueOf(),
-              amount: Amount.create('100').valueOf(),
-              description: 'Operation 1',
-            },
+          from: {
+            accountId: usdAccount.getId().valueOf(),
+            amount: Amount.create('100').valueOf(),
+            description: 'Operation 1',
+          },
+          to: {
+            accountId: eurAccount.getId().valueOf(),
+            amount: Amount.create('100').valueOf(),
+            description: 'Operation 1',
           },
         },
       ];

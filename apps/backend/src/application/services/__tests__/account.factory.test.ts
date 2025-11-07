@@ -1,20 +1,19 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
 import { AccountRepositoryInterface } from 'src/application/interfaces';
 import { createUser } from 'src/db/createTestUser';
+import { User } from 'src/domain';
 import { Account } from 'src/domain/accounts/account.entity';
 import { Amount } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AccountFactory } from '../account.factory';
 
-describe('CreateAccountUseCase', async () => {
-  const user = await createUser();
+describe('CreateAccountUseCase', () => {
+  let user: User;
 
   let accountFactory: AccountFactory;
   let mockAccountRepository: { create: ReturnType<typeof vi.fn> };
   let mockedSaveWithIdRetry: ReturnType<typeof vi.fn>;
-
-  // const accountIdValue = '660e8400-e29b-41d4-a716-446655440001';
 
   const accountName = 'Test Account';
   const description = 'Test account description';
@@ -22,7 +21,9 @@ describe('CreateAccountUseCase', async () => {
   const currency = 'USD' as CurrencyCode;
   const accountType = 'asset';
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    user = await createUser();
+
     mockAccountRepository = {
       create: vi.fn(),
     };
