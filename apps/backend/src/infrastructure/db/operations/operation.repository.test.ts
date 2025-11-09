@@ -32,7 +32,6 @@ describe('OperationRepository', () => {
     await testDB.setupTestDb();
 
     operationRepository = new OperationRepository(
-      testDB.db,
       transactionManager as unknown as TransactionManager,
     );
 

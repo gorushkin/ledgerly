@@ -28,7 +28,6 @@ describe('UsersRepository', () => {
     await testDB.setupTestDb();
 
     userRepository = new UserRepository(
-      testDB.db,
       transactionManager as unknown as TransactionManager,
     );
   });

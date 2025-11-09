@@ -1,7 +1,6 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
-import { DataBase } from 'src/db';
 import {
   AccountDbRow,
   AccountDbUpdate,
@@ -11,16 +10,11 @@ import {
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 
 import { BaseRepository } from '../BaseRepository';
-import { TransactionManager } from '../TransactionManager';
 
 export class AccountRepository
   extends BaseRepository
   implements AccountRepositoryInterface
 {
-  constructor(db: DataBase, transactionManager: TransactionManager) {
-    super(db, transactionManager);
-  }
-
   async getAll(userId: UUID): Promise<AccountDbRow[]> {
     return this.executeDatabaseOperation<AccountDbRow[]>(
       () =>

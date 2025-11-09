@@ -116,7 +116,7 @@ export class Entry {
     OperationResponseDTO,
   ] {
     const operations = this.operations.reduce(
-      (acc, operation) => {
+      (acc: OperationResponseDTO[], operation) => {
         if (operation.isSystem) {
           return acc;
         }
@@ -124,7 +124,7 @@ export class Entry {
         acc.push(operation.toResponseDTO());
         return acc;
       },
-      [] as unknown as [OperationResponseDTO, OperationResponseDTO],
+      [],
     );
 
     if (operations.length !== 2) {
@@ -133,7 +133,7 @@ export class Entry {
       );
     }
 
-    return operations;
+    return [operations[0], operations[1]];
   }
 
   toResponseDTO(): EntryResponseDTO {

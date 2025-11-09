@@ -31,15 +31,12 @@ import { AppContainer } from './types';
 
 export const createContainer = (db: DataBase): AppContainer => {
   const transactionManager = new TransactionManager(db);
-  const accountRepository = new AccountRepository(db, transactionManager);
-  const currencyRepository = new CurrencyRepository(db, transactionManager);
-  const transactionRepository = new TransactionRepository(
-    db,
-    transactionManager,
-  );
-  const userRepository = new UserRepository(db, transactionManager);
-  const operationRepository = new OperationRepository(db, transactionManager);
-  const entryRepository = new EntryRepository(db, transactionManager);
+  const accountRepository = new AccountRepository(transactionManager);
+  const currencyRepository = new CurrencyRepository(transactionManager);
+  const transactionRepository = new TransactionRepository(transactionManager);
+  const userRepository = new UserRepository(transactionManager);
+  const operationRepository = new OperationRepository(transactionManager);
+  const entryRepository = new EntryRepository(transactionManager);
 
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,

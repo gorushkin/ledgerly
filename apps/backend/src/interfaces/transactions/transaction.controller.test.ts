@@ -1,3 +1,4 @@
+import { CreateTransactionRequestDTO } from 'src/application';
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
 import { User } from 'src/domain';
 import { Id } from 'src/domain/domain-core';
@@ -47,7 +48,10 @@ describe('TransactionController', () => {
         transactionDate: '2024-01-02',
       };
 
-      const result = await transactionController.create(user, requestBody);
+      const result = await transactionController.create(
+        user,
+        requestBody as unknown as CreateTransactionRequestDTO,
+      );
 
       expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledWith(
         user,

@@ -5,13 +5,11 @@ import {
   UserRepositoryInterface,
   UserResponseDTO,
 } from 'src/application';
-import { DataBase } from 'src/db';
 import { UserDbRow } from 'src/db/schema';
 import { usersTable } from 'src/db/schemas';
 import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 
 import { BaseRepository } from './BaseRepository';
-import { TransactionManager } from './TransactionManager';
 
 const userSelect = {
   email: usersTable.email,
@@ -25,9 +23,6 @@ export class UserRepository
 {
   update(_userId: UUID, _userData: Partial<UserDbRow>): Promise<UserDbRow> {
     throw new Error('Method not implemented.');
-  }
-  constructor(db: DataBase, transactionManager: TransactionManager) {
-    super(db, transactionManager);
   }
 
   async getByEmail(email: string): Promise<UserResponseDTO | undefined> {

@@ -23,10 +23,12 @@ import {
   EntryDbRow,
   TransactionDbInsert,
   TransactionDbRow,
+  transactionsTable,
+  accountsTable,
+  usersTable,
   UserDbRow,
 } from './schema';
 import * as schema from './schemas';
-import { accountsTable, usersTable } from './schemas';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -113,6 +115,7 @@ export class TestDB {
     const migrationsFolder = join(__dirname, '../../drizzle');
     await migrate(this.db, { migrationsFolder });
     // await this.test();
+    // Currency seeding is disabled for faster test setup. Uncomment if needed.
     // await seedCurrencies(this.db);
   }
 
@@ -256,5 +259,11 @@ export class TestDB {
       .get();
 
     return account;
+  };
+
+  deleteData = async () => {
+    await this.db.delete(transactionsTable);
+    await this.db.delete(accountsTable);
+    await this.db.delete(usersTable);
   };
 }

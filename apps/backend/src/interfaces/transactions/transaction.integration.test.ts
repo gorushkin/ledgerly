@@ -53,11 +53,13 @@ describe('Transactions Integration Tests', () => {
       const fromOperation = {
         accountId: account1.id,
         amount: '-100',
+        description: 'Transfer from checking',
       };
 
       const toOperation = {
         accountId: account2.id,
         amount: '100',
+        description: 'Transfer to savings',
       };
 
       const payload = {
@@ -89,5 +91,158 @@ describe('Transactions Integration Tests', () => {
         expect(entry.operations.length).toBe(2);
       });
     });
+
+    it('should fail when required fields are missing', async () => {
+      const payload = {
+        // missing description, entries, postingDate, transactionDate
+        description: 'incomplete transaction',
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should fail with invalid amounts', async () => {
+      const account1 = await testDB.createAccount(userId, { name: 'Checking' });
+      const account2 = await testDB.createAccount(userId, { name: 'Savings' });
+
+      const payload = {
+        description: 'invalid amount',
+        entries: [
+          [
+            { accountId: account1.id, amount: 'not-a-number' },
+            { accountId: account2.id, amount: '100' },
+          ],
+        ],
+        postingDate: '2025-11-07',
+        transactionDate: '2025-11-07',
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should fail for unauthorized access', async () => {
+      const account1 = await testDB.createAccount(userId, { name: 'Checking' });
+      const account2 = await testDB.createAccount(userId, { name: 'Savings' });
+
+      const payload = {
+        description: 'unauthorized',
+        entries: [
+          [
+            { accountId: account1.id, amount: '-100' },
+            { accountId: account2.id, amount: '100' },
+          ],
+        ],
+        postingDate: '2025-11-07',
+        transactionDate: '2025-11-07',
+      };
+
+      const response = await server.inject({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it.skip('should fail for non-existent accounts', async () => {
+      const payload = {
+        description: 'non-existent account',
+        entries: [
+          [
+            { accountId: 'non-existent-id', amount: '-100' },
+            { accountId: 'another-non-existent-id', amount: '100' },
+          ],
+        ],
+        postingDate: '2025-11-07',
+        transactionDate: '2025-11-07',
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it.skip('should fail for zero amounts', async () => {
+      const account1 = await testDB.createAccount(userId, { name: 'Checking' });
+      const account2 = await testDB.createAccount(userId, { name: 'Savings' });
+
+      const payload = {
+        description: 'zero amount',
+        entries: [
+          [
+            { accountId: account1.id, amount: '0' },
+            { accountId: account2.id, amount: '0' },
+          ],
+        ],
+        postingDate: '2025-11-07',
+        transactionDate: '2025-11-07',
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it.skip('should fail when from and to accounts are the same', async () => {
+      const account1 = await testDB.createAccount(userId, { name: 'Checking' });
+
+      const payload = {
+        description: 'same accounts',
+        entries: [
+          [
+            { accountId: account1.id, amount: '-100' },
+            { accountId: account1.id, amount: '100' },
+          ],
+        ],
+        postingDate: '2025-11-07',
+        transactionDate: '2025-11-07',
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
   });
+
+  it.todo('should fail when required fields are missing');
 });

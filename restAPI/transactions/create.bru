@@ -22,12 +22,16 @@ body:json {
   {
     "description": "some transaction",
     "entries": [
-      {
-        "from": {
-          "accountId": "{{accountId1}}"
+      [
+        {
+          "accountId": "{{accountId1}}",
+          "amount": "-100"
         },
-        "to": {}
-      }
+        {
+          "accountId": "{{accountId2}}",
+          "amount": "100"
+        }
+      ]
     ],
     "postingDate": "2025-11-07",
     "transactionDate": "2025-11-07"

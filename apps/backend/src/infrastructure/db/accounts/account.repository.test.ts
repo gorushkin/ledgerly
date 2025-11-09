@@ -68,7 +68,6 @@ describe('AccountRepository', () => {
     await testDB.setupTestDb();
 
     accountRepository = new AccountRepository(
-      testDB.db,
       transactionManager as unknown as TransactionManager,
     );
     user = await testDB.createUser();
