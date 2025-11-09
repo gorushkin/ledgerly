@@ -129,7 +129,7 @@ export class Entry {
 
     if (operations.length !== 2) {
       throw new Error(
-        'Entry must have exactly two non-system operations for response DTO',
+        `Entry ${this.getId().valueOf()} must have exactly two non-system operations for response DTO, found ${operations.length}`,
       );
     }
 

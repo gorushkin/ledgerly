@@ -118,8 +118,16 @@ describe('Transactions Integration Tests', () => {
         description: 'invalid amount',
         entries: [
           [
-            { accountId: account1.id, amount: 'not-a-number' },
-            { accountId: account2.id, amount: '100' },
+            {
+              accountId: account1.id,
+              amount: 'not-a-number',
+              description: 'Invalid amount',
+            },
+            {
+              accountId: account2.id,
+              amount: '100',
+              description: 'Valid amount',
+            },
           ],
         ],
         postingDate: '2025-11-07',
@@ -146,8 +154,16 @@ describe('Transactions Integration Tests', () => {
         description: 'unauthorized',
         entries: [
           [
-            { accountId: account1.id, amount: '-100' },
-            { accountId: account2.id, amount: '100' },
+            {
+              accountId: account1.id,
+              amount: '-100',
+              description: 'Transfer from checking',
+            },
+            {
+              accountId: account2.id,
+              amount: '100',
+              description: 'Transfer to savings',
+            },
           ],
         ],
         postingDate: '2025-11-07',

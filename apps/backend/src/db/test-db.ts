@@ -114,9 +114,6 @@ export class TestDB {
     await this.db.run(sql`PRAGMA foreign_keys = ON;`);
     const migrationsFolder = join(__dirname, '../../drizzle');
     await migrate(this.db, { migrationsFolder });
-    // await this.test();
-    // Currency seeding is disabled for faster test setup. Uncomment if needed.
-    // await seedCurrencies(this.db);
   }
 
   async cleanupTestDb() {
