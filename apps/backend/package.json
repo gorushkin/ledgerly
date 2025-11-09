@@ -31,7 +31,7 @@
     "testDB": "tsx src/db/test-db.ts",
     "seed:currencies": "tsx src/db/scripts/currenciesSeed.ts",
     "db:reset": "pnpm delete:db && pnpm migrate",
-    "full-check": "pnpm check && pnpm test &&  pnpm build"
+    "full-check": "pnpm check && pnpm test && pnpm build"
   },
   "keywords": [],
   "author": "",
