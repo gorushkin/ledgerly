@@ -9,7 +9,7 @@ import { OperationFactory } from './operation.factory';
 
 export class EntryFactory {
   constructor(
-    protected readonly createOperationService: OperationFactory,
+    protected readonly operationFactory: OperationFactory,
     protected readonly entryRepository: EntryRepositoryInterface,
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
   ) {}
@@ -36,12 +36,11 @@ export class EntryFactory {
 
     await this.saveEntry(entry, createEntry);
 
-    const operations =
-      await this.createOperationService.createOperationsForEntry(
-        user,
-        entry,
-        entryData.operations,
-      );
+    const operations = await this.operationFactory.createOperationsForEntry(
+      user,
+      entry,
+      entryData,
+    );
 
     entry.addOperations(operations);
 

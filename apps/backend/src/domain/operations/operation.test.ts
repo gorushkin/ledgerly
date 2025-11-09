@@ -56,7 +56,7 @@ describe('Operation Domain Entity', async () => {
 
     const restoredOperation = Operation.fromPersistence({
       ...persistenceData,
-      currencyCode: account.currency.valueOf(),
+      account,
       userId: user.getId().valueOf(),
     });
 

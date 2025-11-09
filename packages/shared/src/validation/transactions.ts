@@ -3,18 +3,27 @@ import { z } from "zod";
 import {
   uuid,
   requiredText,
-  notNullText,
   isoDate,
   isoDatetime,
+  moneyAmountString,
 } from "./baseValidations";
+
+export const operationCreateSchema = z.object({
+  accountId: uuid,
+  amount: moneyAmountString,
+  description: requiredText,
+});
+
+export const entryCreateSchema = z.tuple([
+  operationCreateSchema,
+  operationCreateSchema,
+]);
 
 export const transactionCreateSchema = z.object({
   description: requiredText,
-  hash: notNullText,
-  id: uuid,
+  entries: z.array(entryCreateSchema),
   postingDate: isoDate,
   transactionDate: isoDate,
-  userId: uuid,
 });
 
 export const transactionUpdateSchema = z.object({

@@ -17,6 +17,7 @@ describe('OperationRepository', () => {
   let operationRepository: OperationRepository;
 
   const transactionManager = {
+    getCurrentTransaction: () => testDB.db,
     run: vi.fn((cb: () => unknown) => {
       return cb();
     }),
@@ -31,7 +32,6 @@ describe('OperationRepository', () => {
     await testDB.setupTestDb();
 
     operationRepository = new OperationRepository(
-      testDB.db,
       transactionManager as unknown as TransactionManager,
     );
 

@@ -13,3 +13,8 @@ get {
 auth:bearer {
   token: {{token}}
 }
+
+vars:post-response {
+  accountId1: res.body[0].id
+  accountId2: res.body[1].id
+}

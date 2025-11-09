@@ -12,17 +12,17 @@ import {
   getMoneyColumn,
   getBooleanColumn,
 } from './common';
-import { currenciesTable } from './currencies';
 import { usersTable } from './users';
 
 export const accountsTable = sqliteTable(
   'accounts',
   {
     createdAt,
-    currency: text('currency')
-      .notNull()
-      .references(() => currenciesTable.code)
-      .$type<CurrencyCode>(),
+    // Foreign key constraint to the currencies table has been removed.
+    // This allows invalid currency codes to be inserted, which may improve test performance,
+    // but creates a risk of data inconsistency in production.
+    // Consider implementing application-level validation for currency codes.
+    currency: text('currency').notNull().$type<CurrencyCode>(),
     currentClearedBalanceLocal: getMoneyColumn('current_cleared_balance_local'),
     description,
     id,

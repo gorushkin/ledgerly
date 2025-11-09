@@ -1,4 +1,4 @@
-import { EntryOperations } from 'src/application/dto';
+import { CreateEntryRequestDTO } from 'src/application/dto';
 import {
   AccountRepositoryInterface,
   OperationRepositoryInterface,
@@ -140,7 +140,7 @@ describe('OperationFactory', () => {
       description: 'Operation to',
     };
 
-    const operationsRaw: EntryOperations = { from, to };
+    const operationsRaw: CreateEntryRequestDTO = [from, to];
 
     mockAccountRepository.getById = vi
       .fn()
@@ -181,13 +181,13 @@ describe('OperationFactory', () => {
     expect(mockAccountRepository.getById).toHaveBeenNthCalledWith(
       1,
       user.getId().valueOf(),
-      operationsRaw.from.accountId,
+      operationsRaw[0].accountId,
     );
 
     expect(mockAccountRepository.getById).toHaveBeenNthCalledWith(
       2,
       user.getId().valueOf(),
-      operationsRaw.to.accountId,
+      operationsRaw[1].accountId,
     );
 
     expect(mockedSaveWithIdRetry).toHaveBeenCalledTimes(
@@ -257,24 +257,22 @@ describe('OperationFactory', () => {
   it.skip('should throw an error if account not found', async () => {
     mockAccountRepository.getById = vi.fn().mockResolvedValue(null);
 
-    const operationsRaw: EntryOperations = {
-      from: {
+    const operationsRaw: CreateEntryRequestDTO = [
+      {
         accountId: usdAccount1.getId().valueOf(),
         amount: Amount.create('100').valueOf(),
         description: 'Operation 1',
       },
-      to: {
+      {
         accountId: usdAccount2.getId().valueOf(),
         amount: Amount.create('100').valueOf(),
         description: 'Operation 1',
       },
-    };
+    ];
 
     await expect(
       operationFactory.createOperationsForEntry(user, entry, operationsRaw),
-    ).rejects.toThrowError(
-      `Account not found: ${operationsRaw.from.accountId}`,
-    );
+    ).rejects.toThrowError(`Account not found: ${operationsRaw[0].accountId}`);
   });
 
   it.skip('should create trading operations if accounts have different currencies', async () => {
@@ -304,16 +302,16 @@ describe('OperationFactory', () => {
       },
     };
 
-    const operationsRaw: EntryOperations = {
-      from: {
+    const operationsRaw: CreateEntryRequestDTO = [
+      {
         ...testData.from.operation,
         amount: testData.from.amount.valueOf(),
       },
-      to: {
+      {
         ...testData.to.operation,
         amount: testData.to.amount.valueOf(),
       },
-    };
+    ];
 
     accountFactory.createAccount = vi
       .fn()
@@ -372,23 +370,36 @@ describe('OperationFactory', () => {
       .mockResolvedValueOnce(usdAccount1.toPersistence())
       .mockResolvedValueOnce(usdAccount2.toPersistence());
 
-    const operationsRaw: EntryOperations = {
-      from: {
+    // const operationsRaw: CreateEntryRequestDTO = {
+    //   from: {
+    //     accountId: usdAccount1.getId().valueOf(),
+    //     amount: Amount.create('100').valueOf(),
+    //     description: 'Operation 1',
+    //   },
+    //   to: {
+    //     accountId: usdAccount2.getId().valueOf(),
+    //     amount: Amount.create('100').valueOf(),
+    //     description: 'Operation 1',
+    //   },
+    // };
+
+    const operationsRaw: CreateEntryRequestDTO = [
+      {
         accountId: usdAccount1.getId().valueOf(),
         amount: Amount.create('100').valueOf(),
         description: 'Operation 1',
       },
-      to: {
+      {
         accountId: usdAccount2.getId().valueOf(),
         amount: Amount.create('100').valueOf(),
         description: 'Operation 1',
       },
-    };
+    ];
 
     await expect(
       operationFactory.createOperationsForEntry(user, entry, operationsRaw),
     ).rejects.toThrowError(
-      `Operations amounts are not balanced: from=${operationsRaw.from.amount.valueOf()}, to=${operationsRaw.to.amount.valueOf()}`,
+      `Operations amounts are not balanced: from=${operationsRaw[0].amount.valueOf()}, to=${operationsRaw[1].amount.valueOf()}`,
     );
   });
 });

@@ -1,6 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
-import { DataBase } from 'src/db';
 import {
   DBErrorContext,
   DatabaseError,
@@ -27,13 +26,14 @@ type RetryAwareContext = DBErrorContext & {
 const DEFAULT_MAX_RETRIES = 3;
 
 export class BaseRepository {
-  constructor(
-    public readonly db: DataBase,
-    protected readonly transactionManager: TransactionManager,
-  ) {}
+  constructor(protected readonly transactionManager: TransactionManager) {}
 
   protected getDbClient() {
     return this.transactionManager.getCurrentTransaction();
+  }
+
+  get db() {
+    return this.getDbClient();
   }
 
   protected get createTimestamps() {

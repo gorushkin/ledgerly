@@ -27,13 +27,13 @@ export class Account {
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
-    private _name: Name,
-    private _description: string,
-    private _initialBalance: Amount,
-    private _currentClearedBalanceLocal: Amount,
-    private _currency: Currency,
-    private _type: AccountType,
-    private _isSystem: boolean,
+    private name: Name,
+    private description: string,
+    private initialBalance: Amount,
+    private currentClearedBalanceLocal: Amount,
+    public currency: Currency,
+    private type: AccountType,
+    public isSystem: boolean,
   ) {
     this.identity = identity;
     this.timestamps = timestamps;
@@ -160,22 +160,22 @@ export class Account {
   toPersistence(): AccountRepoInsert {
     return {
       createdAt: this.getCreatedAt().valueOf(),
-      currency: this._currency.valueOf(),
-      currentClearedBalanceLocal: this._currentClearedBalanceLocal.valueOf(),
-      description: this._description,
+      currency: this.currency.valueOf(),
+      currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
+      description: this.description,
       id: this.getId().valueOf(),
-      initialBalance: this._initialBalance.valueOf(),
-      isSystem: this._isSystem,
+      initialBalance: this.initialBalance.valueOf(),
+      isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
-      name: this._name.valueOf(),
-      type: this._type.valueOf(),
+      name: this.name.valueOf(),
+      type: this.type.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),
     };
   }
 
   getType(): AccountType {
-    return this._type;
+    return this.type;
   }
 
   updateAccount(data: AccountUpdateDTO): void {
@@ -183,38 +183,34 @@ export class Account {
 
     const currency = data.currency
       ? Currency.create(data.currency)
-      : this._currency;
+      : this.currency;
 
-    const name = data.name ? Name.create(data.name) : this._name;
+    const name = data.name ? Name.create(data.name) : this.name;
 
-    this._description = data.description ?? this._description;
-    this._type = data.type ? AccountType.create(data.type) : this._type;
-    this._currency = currency;
-    this._name = name;
+    this.description = data.description ?? this.description;
+    this.type = data.type ? AccountType.create(data.type) : this.type;
+    this.currency = currency;
+    this.name = name;
 
     this.touch(Timestamp.create());
   }
 
   isCurrencySame(currency: Currency): boolean {
-    return this._currency.valueOf() === currency.valueOf();
-  }
-
-  get currency(): Currency {
-    return this._currency;
+    return this.currency.valueOf() === currency.valueOf();
   }
 
   toResponseDTO(): AccountResponseDTO {
     return {
       createdAt: this.getCreatedAt().valueOf(),
-      currency: this._currency.valueOf(),
-      currentClearedBalanceLocal: this._currentClearedBalanceLocal.valueOf(),
-      description: this._description,
+      currency: this.currency.valueOf(),
+      currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
+      description: this.description,
       id: this.getId().valueOf(),
-      initialBalance: this._initialBalance.valueOf(),
-      isSystem: this._isSystem,
+      initialBalance: this.initialBalance.valueOf(),
+      isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
-      name: this._name.valueOf(),
-      type: this._type.valueOf(),
+      name: this.name.valueOf(),
+      type: this.type.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),
     };

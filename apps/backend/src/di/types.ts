@@ -5,11 +5,14 @@ import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAc
 import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
 import { GetAllAccountsUseCase } from 'src/application/usecases/accounts/getAllAccounts';
 import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAccount';
+import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
-import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
+import { EntryRepository } from 'src/infrastructure/db/entries/entry.repository';
+import { OperationRepository } from 'src/infrastructure/db/operations/operation.repository';
+import { TransactionRepository } from 'src/infrastructure/db/transaction/transaction.repository';
 import { UserRepository } from 'src/infrastructure/db/UsersRepository';
 import {
   AuthController,
@@ -23,6 +26,8 @@ type Repositories = {
   transaction: TransactionRepository;
   account: AccountRepository;
   user: UserRepository;
+  operation: OperationRepository;
+  entry: EntryRepository;
 };
 
 type Services = {
@@ -40,6 +45,10 @@ type AccountUseCases = {
 type AuthUseCases = {
   registerUser: RegisterUserUseCase;
   loginUser: LoginUserUseCase;
+};
+
+type TransactionUseCases = {
+  createTransaction: CreateTransactionUseCase;
 };
 
 type Controllers = {
@@ -62,6 +71,7 @@ export type AppContainer = {
   useCases: {
     account: AccountUseCases;
     auth: AuthUseCases;
+    transaction: TransactionUseCases;
   };
   controllers: Controllers;
   factories: Factories;

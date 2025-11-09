@@ -14,6 +14,7 @@ describe('EntryRepository', () => {
   let transaction: TransactionDbRow;
 
   const transactionManager = {
+    getCurrentTransaction: () => testDB.db,
     run: vi.fn((cb: () => unknown) => {
       return cb();
     }),
@@ -27,7 +28,6 @@ describe('EntryRepository', () => {
     transaction = await testDB.createTransaction(user.id);
 
     entryRepository = new EntryRepository(
-      testDB.db,
       transactionManager as unknown as TransactionManager,
     );
   });
