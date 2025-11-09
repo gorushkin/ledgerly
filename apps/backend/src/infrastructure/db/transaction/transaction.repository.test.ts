@@ -30,26 +30,50 @@ describe('TransactionRepository', () => {
     );
   });
 
-  it('should create a transaction successfully', async () => {
-    const createdAt = Timestamp.create().valueOf();
-    const updatedAt = Timestamp.create().valueOf();
-    const id = Id.create().valueOf();
-    const postingDate = DateValue.create().valueOf();
-    const transactionDate = DateValue.create().valueOf();
+  describe('create', () => {
+    it('should create a transaction successfully', async () => {
+      const createdAt = Timestamp.create().valueOf();
+      const updatedAt = Timestamp.create().valueOf();
+      const id = Id.create().valueOf();
+      const postingDate = DateValue.create().valueOf();
+      const transactionDate = DateValue.create().valueOf();
 
-    const transactionData: TransactionDbInsert = {
-      createdAt,
-      description: 'Test transaction',
-      id,
-      isTombstone: false,
-      postingDate,
-      transactionDate,
-      updatedAt,
-      userId: user.id,
-    };
+      const transactionData: TransactionDbInsert = {
+        createdAt,
+        description: 'Test transaction',
+        id,
+        isTombstone: false,
+        postingDate,
+        transactionDate,
+        updatedAt,
+        userId: user.id,
+      };
 
-    const result = await transactionRepository.create(transactionData);
+      const result = await transactionRepository.create(transactionData);
 
-    expect(result).toEqual(transactionData);
+      expect(result).toEqual(transactionData);
+    });
+  });
+
+  describe('getById', () => {
+    it('should retrieve a transaction by ID', async () => {
+      const transaction = await testDB.createTransaction(user.id);
+
+      const fetchedTransaction = await transactionRepository.getById(
+        user.id,
+        transaction.id,
+      );
+
+      expect(fetchedTransaction).toEqual(transaction);
+    });
+
+    it('should return null if transaction not found', async () => {
+      const fetchedTransaction = await transactionRepository.getById(
+        user.id,
+        Id.create().valueOf(),
+      );
+
+      expect(fetchedTransaction).toBeNull();
+    });
   });
 });

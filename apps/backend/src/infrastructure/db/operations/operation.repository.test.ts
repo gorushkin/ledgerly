@@ -83,22 +83,30 @@ describe('OperationRepository', () => {
   });
 
   describe('getByEntryId', () => {
-    it('should retrieve operations by entry ID', async () => {
-      const operation1 = await testDB.createOperation(user.id, {
+    let operation1: OperationDbRow;
+    let operation2: OperationDbRow;
+
+    beforeEach(async () => {
+      operation1 = await testDB.createOperation(user.id, {
         accountId: account1.id,
         amount: Amount.create('500').valueOf(),
         description: 'Operation for entry',
         entryId: entry.id,
       });
 
-      const operation2 = await testDB.createOperation(user.id, {
+      operation2 = await testDB.createOperation(user.id, {
         accountId: account2.id,
         amount: Amount.create('300').valueOf(),
         description: 'Another operation for entry',
         entryId: entry.id,
       });
+    });
 
-      const operations = await operationRepository.getByEntryId(entry.id);
+    it('should retrieve operations by entry ID', async () => {
+      const operations = await operationRepository.getByEntryId(
+        user.id,
+        entry.id,
+      );
 
       expect(operations).toHaveLength(2);
       expect(operations).toEqual(
@@ -107,6 +115,37 @@ describe('OperationRepository', () => {
           expect.objectContaining({ id: operation2.id }),
         ]),
       );
+    });
+
+    it('should return an empty array if no operations found for the entry ID', async () => {
+      const anotherEntry = await testDB.createEntry(user.id);
+
+      const operations = await operationRepository.getByEntryId(
+        user.id,
+        anotherEntry.id,
+      );
+
+      expect(operations).toHaveLength(0);
+    });
+
+    it('should not retrieve operations for a different user', async () => {
+      const anotherUser = await testDB.createUser();
+
+      const operations = await operationRepository.getByEntryId(
+        anotherUser.id,
+        entry.id,
+      );
+
+      expect(operations).toHaveLength(0);
+    });
+
+    it('should return an empty array if entry ID does not exist', async () => {
+      const operations = await operationRepository.getByEntryId(
+        user.id,
+        Id.create().valueOf(),
+      );
+
+      expect(operations).toHaveLength(0);
     });
   });
 });
