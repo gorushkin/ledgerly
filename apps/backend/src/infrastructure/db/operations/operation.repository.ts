@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { OperationRepositoryInterface } from 'src/application';
 import {
   OperationDbInsert,
@@ -22,13 +22,18 @@ export class OperationRepository
     );
   }
 
-  getByEntryId(entryId: UUID): Promise<OperationDbRow[]> {
+  getByEntryId(userId: UUID, entryId: UUID): Promise<OperationDbRow[]> {
     return this.executeDatabaseOperation(
       async () => {
         const result = await this.db
           .select()
           .from(operationsTable)
-          .where(eq(operationsTable.entryId, entryId))
+          .where(
+            and(
+              eq(operationsTable.entryId, entryId),
+              eq(operationsTable.userId, userId),
+            ),
+          )
           .all();
 
         return result;
