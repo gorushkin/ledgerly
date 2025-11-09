@@ -25,7 +25,8 @@ describe('OperationRepository', () => {
 
   let user: UserDbRow;
   let entry: EntryDbRow;
-  let account: AccountDbRow;
+  let account1: AccountDbRow;
+  let account2: AccountDbRow;
 
   beforeEach(async () => {
     testDB = new TestDB();
@@ -37,44 +38,75 @@ describe('OperationRepository', () => {
 
     user = await testDB.createUser();
 
-    account = await testDB.createAccount(user.id);
+    account1 = await testDB.createAccount(user.id, { name: 'Account 1' });
+    account2 = await testDB.createAccount(user.id, { name: 'Account 2' });
 
     entry = await testDB.createEntry(user.id);
   });
 
-  it('should create an operation successfully', async () => {
-    const accountId = account.id;
-    const userId = user.id;
-    const entryId = entry.id;
-    const amount = Amount.create('1000');
-    const id = Id.create().valueOf();
-    const createdAt = Timestamp.create().valueOf();
-    const updatedAt = Timestamp.create().valueOf();
+  describe('create', () => {
+    it('should create an operation successfully', async () => {
+      const accountId = account1.id;
+      const userId = user.id;
+      const entryId = entry.id;
+      const amount = Amount.create('1000');
+      const id = Id.create().valueOf();
+      const createdAt = Timestamp.create().valueOf();
+      const updatedAt = Timestamp.create().valueOf();
 
-    const expectedResult: OperationDbRow = {
-      accountId,
-      amount: amount.valueOf(),
-      createdAt,
-      description: 'Test operation',
-      entryId,
-      id,
-      isTombstone: false,
-      updatedAt,
-      userId,
-    };
+      const expectedResult: OperationDbRow = {
+        accountId,
+        amount: amount.valueOf(),
+        createdAt,
+        description: 'Test operation',
+        entryId,
+        id,
+        isTombstone: false,
+        updatedAt,
+        userId,
+      };
 
-    const result = await operationRepository.create({
-      accountId,
-      amount: amount.valueOf(),
-      createdAt,
-      description: 'Test operation',
-      entryId,
-      id,
-      isTombstone: false,
-      updatedAt: updatedAt,
-      userId,
+      const result = await operationRepository.create({
+        accountId,
+        amount: amount.valueOf(),
+        createdAt,
+        description: 'Test operation',
+        entryId,
+        id,
+        isTombstone: false,
+        updatedAt: updatedAt,
+        userId,
+      });
+
+      expect(result).toEqual(expectedResult);
     });
+  });
 
-    expect(result).toEqual(expectedResult);
+  describe('getByEntryId', () => {
+    it('should retrieve operations by entry ID', async () => {
+      const operation1 = await testDB.createOperation(user.id, {
+        accountId: account1.id,
+        amount: Amount.create('500').valueOf(),
+        description: 'Operation for entry',
+        entryId: entry.id,
+      });
+
+      const operation2 = await testDB.createOperation(user.id, {
+        accountId: account2.id,
+        amount: Amount.create('300').valueOf(),
+        description: 'Another operation for entry',
+        entryId: entry.id,
+      });
+
+      const operations = await operationRepository.getByEntryId(entry.id);
+
+      expect(operations).toHaveLength(2);
+      expect(operations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: operation1.id }),
+          expect.objectContaining({ id: operation2.id }),
+        ]),
+      );
+    });
   });
 });
