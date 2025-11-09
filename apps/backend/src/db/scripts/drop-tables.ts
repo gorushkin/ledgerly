@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { sql } from 'drizzle-orm';
 
 import { db } from '../index';
@@ -13,14 +12,14 @@ async function dropTables() {
       WHERE type = 'table' AND name NOT LIKE 'sqlite_%';`,
     );
 
-    console.log('tables: ', tables);
+    console.info('tables: ', tables);
 
     for (const { name } of tables) {
-      console.log(`Dropping table ${name}…`);
+      console.info(`Dropping table ${name}…`);
       await db.run(sql.raw(`DROP TABLE IF EXISTS "${name}";`));
     }
 
-    console.log('All tables dropped successfully!');
+    console.info('All tables dropped successfully!');
   } catch (error) {
     console.error('Error dropping tables:', error);
   }

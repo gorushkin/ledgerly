@@ -38,21 +38,11 @@ describe('TransactionController', () => {
         description: 'Test Operation To',
       };
 
-      const entries = [
-        {
-          from: operationFrom,
-          to: operationTo,
-        },
-      ];
+      const entries = [[operationFrom, operationTo]];
 
       const requestBody = {
         description: 'Test Transaction',
-        entries: [
-          {
-            from: operationFrom,
-            to: operationTo,
-          },
-        ],
+        entries,
         postingDate: '2024-01-01',
         transactionDate: '2024-01-02',
       };

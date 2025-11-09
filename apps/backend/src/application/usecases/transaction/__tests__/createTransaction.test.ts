@@ -130,18 +130,18 @@ describe('CreateTransactionUseCase', async () => {
       vi.spyOn(Entry, 'create').mockReturnValue(mockedEntry);
 
       const entries: CreateEntryRequestDTO[] = [
-        {
-          from: {
+        [
+          {
             accountId: usdAccount.getId().valueOf(),
             amount: Amount.create('100').valueOf(),
             description: 'Operation 1',
           },
-          to: {
+          {
             accountId: eurAccount.getId().valueOf(),
             amount: Amount.create('100').valueOf(),
             description: 'Operation 1',
           },
-        },
+        ],
       ];
 
       const data: CreateTransactionRequestDTO = {

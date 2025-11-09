@@ -1,7 +1,7 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
-import { DataBase, TxType } from 'src/db';
+import { DataBase } from 'src/db';
 import {
   AccountDbRow,
   AccountDbUpdate,
@@ -58,11 +58,9 @@ export class AccountRepository
     );
   }
 
-  getById(userId: UUID, id: UUID, tx?: TxType): Promise<AccountDbRow> {
+  getById(userId: UUID, id: UUID): Promise<AccountDbRow> {
     return this.executeDatabaseOperation<AccountDbRow>(async () => {
-      const dbClient = tx ?? this.db;
-
-      const account = await dbClient
+      const account = await this.db
         .select()
         .from(accountsTable)
         .where(

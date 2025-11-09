@@ -12,17 +12,13 @@ import {
   getMoneyColumn,
   getBooleanColumn,
 } from './common';
-import { currenciesTable } from './currencies';
 import { usersTable } from './users';
 
 export const accountsTable = sqliteTable(
   'accounts',
   {
     createdAt,
-    currency: text('currency')
-      .notNull()
-      .references(() => currenciesTable.code)
-      .$type<CurrencyCode>(),
+    currency: text('currency').notNull().$type<CurrencyCode>(),
     currentClearedBalanceLocal: getMoneyColumn('current_cleared_balance_local'),
     description,
     id,

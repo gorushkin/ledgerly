@@ -13,6 +13,7 @@ describe('UsersRepository', () => {
   let userRepository: UserRepositoryInterface;
 
   const transactionManager = {
+    getCurrentTransaction: () => testDB.db,
     run: vi.fn((cb: () => unknown) => {
       return cb();
     }),

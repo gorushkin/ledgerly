@@ -1,0 +1,35 @@
+meta {
+  name: create
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/transactions
+  body: json
+  auth: bearer
+}
+
+headers {
+  ~Authorization: {{bearerToken}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "description": "some transaction",
+    "entries": [
+      {
+        "from": {
+          "accountId": "{{accountId1}}"
+        },
+        "to": {}
+      }
+    ],
+    "postingDate": "2025-11-07",
+    "transactionDate": "2025-11-07"
+  }
+}

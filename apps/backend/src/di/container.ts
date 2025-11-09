@@ -18,7 +18,7 @@ import { AccountRepository } from 'src/infrastructure/db/accounts/account.reposi
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { EntryRepository } from 'src/infrastructure/db/entries/entry.repository';
 import { OperationRepository } from 'src/infrastructure/db/operations/operation.repository';
-import { TransactionRepository } from 'src/infrastructure/db/TransactionRepository';
+import { TransactionRepository } from 'src/infrastructure/db/transaction/transaction.repository';
 import { UserRepository } from 'src/infrastructure/db/UsersRepository';
 import {
   AuthController,

@@ -54,11 +54,9 @@ export class UserRepository
     );
   }
 
-  async getById(id: UUID, tx?: DataBase): Promise<UserResponseDTO> {
+  async getById(id: UUID): Promise<UserResponseDTO> {
     return this.executeDatabaseOperation(async () => {
-      const dbToUse = tx ?? this.db;
-
-      const user = await dbToUse
+      const user = await this.db
         .select(userSelect)
         .from(usersTable)
         .where(eq(usersTable.id, id))

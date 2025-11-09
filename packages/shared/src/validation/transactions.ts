@@ -14,10 +14,10 @@ export const operationCreateSchema = z.object({
   description: requiredText,
 });
 
-export const entryCreateSchema = z.object({
-  from: operationCreateSchema,
-  to: operationCreateSchema,
-});
+export const entryCreateSchema = z.tuple([
+  operationCreateSchema,
+  operationCreateSchema,
+]);
 
 export const transactionCreateSchema = z.object({
   description: requiredText,

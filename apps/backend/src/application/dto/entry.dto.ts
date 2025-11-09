@@ -7,12 +7,15 @@ import {
 
 // Request DTOs for creation
 
-export type EntryOperations = {
-  from: CreateOperationRequestDTO;
-  to: CreateOperationRequestDTO;
-};
+export type CreateEntryRequestDTO = [
+  CreateOperationRequestDTO,
+  CreateOperationRequestDTO,
+];
 
-export type CreateEntryRequestDTO = EntryOperations;
+export type EntryOperationsResponseDTO = [
+  OperationResponseDTO,
+  OperationResponseDTO,
+];
 
 // Request DTOs for updating
 
@@ -23,7 +26,8 @@ export type EntryResponseDTO = {
   transactionId: UUID;
   createdAt: IsoDatetimeString;
   updatedAt: IsoDatetimeString;
-  operations: OperationResponseDTO[];
+  operations: EntryOperationsResponseDTO;
+  userId: UUID;
 };
 
 // Query DTOs

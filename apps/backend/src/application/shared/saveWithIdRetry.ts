@@ -35,6 +35,6 @@ export const saveWithIdRetry: SaveWithIdRetryType = async <
         retries - 1,
       );
     }
-    throw new Error('Failed to create account');
+    throw new Error('Failed to create entity');
   }
 };

@@ -28,12 +28,16 @@ const DEFAULT_MAX_RETRIES = 3;
 
 export class BaseRepository {
   constructor(
-    public readonly db: DataBase,
+    public readonly _db: DataBase,
     protected readonly transactionManager: TransactionManager,
   ) {}
 
   protected getDbClient() {
     return this.transactionManager.getCurrentTransaction();
+  }
+
+  get db() {
+    return this.getDbClient();
   }
 
   protected get createTimestamps() {

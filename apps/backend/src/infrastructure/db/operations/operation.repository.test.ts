@@ -17,6 +17,7 @@ describe('OperationRepository', () => {
   let operationRepository: OperationRepository;
 
   const transactionManager = {
+    getCurrentTransaction: () => testDB.db,
     run: vi.fn((cb: () => unknown) => {
       return cb();
     }),

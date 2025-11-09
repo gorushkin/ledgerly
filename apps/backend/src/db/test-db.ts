@@ -12,7 +12,7 @@ import {
 } from '@ledgerly/shared/types';
 import { isoDate, isoDatetime } from '@ledgerly/shared/validation';
 import { createClient } from '@libsql/client';
-import { sql, eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
@@ -21,14 +21,12 @@ import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
 import {
   EntryDbRow,
-  OperationDbInsert,
   TransactionDbInsert,
   TransactionDbRow,
   UserDbRow,
 } from './schema';
 import * as schema from './schemas';
 import { accountsTable, usersTable } from './schemas';
-import { seedCurrencies } from './scripts/currenciesSeed';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -63,7 +61,12 @@ export class TestDB {
   operationCounter = new Counter('operation');
   userCounter = new Counter('user');
 
-  constructor() {
+  constructor(db?: DataBase) {
+    if (db) {
+      this.db = db;
+      return;
+    }
+
     const client = createClient({
       url: 'file::memory:',
     });
@@ -90,23 +93,18 @@ export class TestDB {
   }
 
   test = async () => {
+    console.info('Running test checks on the test database...');
+
     try {
-      const transactionTableResult = await this.db.all(
-        sql`SELECT name FROM sqlite_master WHERE type='table' AND name='transactions';`,
+      const allTables = await this.db.all<{ name: string }>(
+        sql`SELECT name 
+        FROM sqlite_schema 
+        WHERE type = 'table' AND name NOT LIKE 'sqlite_%';`,
       );
-      console.info('result: ', transactionTableResult);
-      if (transactionTableResult.length > 0) {
-        console.info('✅ Transaction table exists');
-        // Дополнительная проверка структуры таблицы transactions
-        const tableInfo = await this.db.all(
-          sql`PRAGMA table_info(transactions);`,
-        );
-        console.info('📋 Transactions table structure:', tableInfo);
-      } else {
-        console.info('❌ Transactions table not found');
-      }
+
+      console.info('📋 All tables in the database:', allTables);
     } catch (error) {
-      console.error('❌ Error checking transactions table:', error);
+      console.error('❌ Error retrieving tables:', error);
     }
   };
 
@@ -114,13 +112,15 @@ export class TestDB {
     await this.db.run(sql`PRAGMA foreign_keys = ON;`);
     const migrationsFolder = join(__dirname, '../../drizzle');
     await migrate(this.db, { migrationsFolder });
-    await seedCurrencies(this.db);
+    // await this.test();
+    // await seedCurrencies(this.db);
   }
 
   async cleanupTestDb() {
     await this.db.run(sql`PRAGMA foreign_keys = OFF;`);
 
     const tables = Object.keys(schema);
+
     for (const table of tables) {
       await this.db.run(sql.raw(`DROP TABLE IF EXISTS ${table};`));
     }
@@ -256,120 +256,5 @@ export class TestDB {
       .get();
 
     return account;
-  };
-
-  // createTransaction = async (params: {
-  //   userId: UUID;
-  //   description?: string;
-  //   postingDate?: IsoDateString;
-  //   transactionDate?: IsoDateString;
-  // }): Promise<TransactionDbRow> => {
-  //   const transactionData = {
-  //     description: `Test Transaction ${this.transactionCounter.getNextName()}`,
-  //     postingDate: TestDB.isoDateString,
-  //     transactionDate: TestDB.isoDateString,
-  //     ...params,
-  //     ...TestDB.createTimestamps,
-  //     ...TestDB.uuid,
-  //     hash: `hash-${this.transactionCounter.getNextName()}`,
-  //     userId: params.userId,
-  //   };
-
-  //   const result = this.db
-  //     .insert(schema.transactionsTable)
-  //     .values(transactionData)
-  //     .returning()
-  //     .get();
-
-  //   return result;
-  // };
-
-  getTransactionById = async (
-    id: UUID,
-  ): Promise<TransactionDbRow | undefined> => {
-    const transaction = await this.db
-      .select()
-      .from(schema.transactionsTable)
-      .where(eq(schema.transactionsTable.id, id))
-      .get();
-
-    return transaction;
-  };
-
-  updateTransaction = async (
-    id: UUID,
-    updates: Partial<{
-      description: string;
-      postingDate?: IsoDateString;
-      transactionDate?: IsoDateString;
-      hash: string;
-      isTombstone: boolean;
-    }>,
-  ): Promise<TransactionDbRow> => {
-    const updatedTransaction = await this.db
-      .update(schema.transactionsTable)
-      .set({
-        ...updates,
-        ...TestDB.updateTimestamp,
-      })
-      .where(eq(schema.transactionsTable.id, id))
-      .returning()
-      .get();
-
-    return updatedTransaction;
-  };
-
-  // createOperation = async (params: {
-  //   accountId: UUID;
-  //   amountLocal?: number;
-  //   transactionId: UUID;
-  //   description?: string;
-  //   category?: string;
-  //   userId?: UUID;
-  //   rateBasePerLocal?: number;
-  //   isTombstone?: boolean;
-  // }) => {
-  //   const operationData = {
-  //     amount: 100 as Money,
-  //     category: 'Test Category',
-  //     description: `Test Operation ${this.operationCounter.getNextName()}`,
-  //     isTombstone: !!params.isTombstone,
-  //     ...params,
-  //     transactionId: params.transactionId ?? crypto.randomUUID(),
-  //     userId: params.userId ?? crypto.randomUUID(),
-  //     ...TestDB.createTimestamps,
-  //     ...TestDB.uuid,
-  //   };
-
-  //   const operation = await this.db
-  //     .insert(schema.operationsTable)
-  //     .values(operationData)
-  //     .returning()
-  //     .get();
-
-  //   return operation;
-  // };
-
-  // getOperationsByTransactionId = async (
-  //   transactionId: UUID,
-  // ): Promise<OperationDbInsert[]> => {
-  //   const operations = await this.db
-  //     .select()
-  //     .from(schema.operationsTable)
-  //     .where(eq(schema.operationsTable.transactionId, transactionId));
-
-  //   return operations;
-  // };
-
-  getOperationById = async (
-    id: UUID,
-  ): Promise<OperationDbInsert | undefined> => {
-    const operation = await this.db
-      .select()
-      .from(schema.operationsTable)
-      .where(eq(schema.operationsTable.id, id))
-      .get();
-
-    return operation;
   };
 }

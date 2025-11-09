@@ -4,7 +4,7 @@ import { Amount } from 'src/domain/domain-core';
 
 import {
   CreateOperationRequestDTO,
-  EntryOperations,
+  CreateEntryRequestDTO,
   OperationResponseDTO,
 } from '../dto';
 import {
@@ -61,10 +61,10 @@ export class OperationFactory {
 
   private async addTradingOperations(
     user: User,
-    { from, to }: EntryOperations,
+    [from, to]: CreateEntryRequestDTO,
     fromAccount: Account,
     toAccount: Account,
-  ): Promise<EntryOperations | null> {
+  ): Promise<CreateEntryRequestDTO | null> {
     if (fromAccount.isCurrencySame(toAccount.currency)) {
       return null;
     }
@@ -102,7 +102,7 @@ export class OperationFactory {
       }),
     };
 
-    return { from: balancedFromOperationDTO, to: balancedToOperationDTO };
+    return [balancedFromOperationDTO, balancedToOperationDTO];
   }
 
   validateInputOperationsAmounts({
@@ -144,10 +144,10 @@ export class OperationFactory {
   async createOperationsForEntry(
     user: User,
     entry: Entry,
-    operations: EntryOperations,
+    operations: CreateEntryRequestDTO,
   ) {
-    const fromAccount = await this.getOperationAccount(user, operations.from);
-    const toAccount = await this.getOperationAccount(user, operations.to);
+    const fromAccount = await this.getOperationAccount(user, operations[0]);
+    const toAccount = await this.getOperationAccount(user, operations[1]);
 
     const tradingOperationsDTO = await this.addTradingOperations(
       user,
@@ -159,14 +159,14 @@ export class OperationFactory {
     const fromOperation = await this.createOperation(
       user,
       entry,
-      operations.from,
+      operations[0],
       fromAccount,
     );
 
     const toOperation = await this.createOperation(
       user,
       entry,
-      operations.to,
+      operations[1],
       toAccount,
     );
 
@@ -175,14 +175,14 @@ export class OperationFactory {
           this.createOperation(
             user,
             entry,
-            tradingOperationsDTO.from,
-            await this.getOperationAccount(user, tradingOperationsDTO.from),
+            tradingOperationsDTO[0],
+            await this.getOperationAccount(user, tradingOperationsDTO[0]),
           ),
           this.createOperation(
             user,
             entry,
-            tradingOperationsDTO.to,
-            await this.getOperationAccount(user, tradingOperationsDTO.to),
+            tradingOperationsDTO[1],
+            await this.getOperationAccount(user, tradingOperationsDTO[1]),
           ),
         ])
       : null;

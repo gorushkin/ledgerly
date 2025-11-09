@@ -15,9 +15,8 @@ describe('TransactionRepository', () => {
   let user: UserDbRow;
 
   const transactionManager = {
-    run: vi.fn((cb: () => unknown) => {
-      return cb();
-    }),
+    getCurrentTransaction: () => testDB.db,
+    run: vi.fn((cb: () => unknown) => cb()),
   };
 
   beforeEach(async () => {

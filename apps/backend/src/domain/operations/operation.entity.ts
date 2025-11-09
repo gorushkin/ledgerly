@@ -10,7 +10,6 @@ import {
   EntityTimestamps,
   SoftDelete,
   ParentChildRelation,
-  Currency,
 } from '../domain-core';
 
 export class Operation {
@@ -22,7 +21,7 @@ export class Operation {
 
   private constructor(
     private readonly identity: EntityIdentity,
-    private readonly currency: Currency,
+    private readonly account: Account,
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
@@ -66,7 +65,7 @@ export class Operation {
 
     return new Operation(
       identity,
-      account.currency,
+      account,
       timestamps,
       softDelete,
       ownership,
@@ -78,13 +77,13 @@ export class Operation {
   }
 
   static fromPersistence(
-    data: OperationDbRow & { currencyCode: string },
+    data: OperationDbRow & { account: Account },
   ): Operation {
     const {
+      account,
       accountId,
       amount,
       createdAt,
-      currencyCode,
       description,
       entryId,
       id,
@@ -116,11 +115,9 @@ export class Operation {
       identity.getId(),
     );
 
-    const currency = Currency.fromPersistence(currencyCode);
-
     return new Operation(
       identity,
-      currency,
+      account,
       timestamps,
       softDelete,
       ownership,
@@ -237,10 +234,15 @@ export class Operation {
       entryId: this.entryRelation.getParentId().valueOf(),
       id: this.id.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
+      userId: this.getUserId().valueOf(),
     };
   }
 
   get id(): Id {
     return this.identity.getId();
+  }
+
+  get isSystem(): boolean {
+    return this.account.isSystem;
   }
 }

@@ -2,6 +2,7 @@ import { db } from '../index';
 import { transactionsTable } from '../schemas';
 import { accountsTable } from '../schemas/accounts';
 import { usersTable } from '../schemas/users';
+import { TestDB } from '../test-db';
 
 class SeedError extends Error {
   constructor(message: string) {
@@ -22,6 +23,7 @@ const deleteData = async () => {
     throw new Error('Ошибка при удалении данных');
   }
 };
+
 export const addData = () => {
   try {
     console.info('Starting seeding...');
@@ -55,3 +57,24 @@ const seed = async () => {
 };
 
 void seed();
+
+const runSeeder = async () => {
+  const testDB = new TestDB(db);
+  await testDB.cleanupTestDb();
+  await testDB.setupTestDb();
+
+  const user = await testDB.createUser({
+    email: 'test@example4.com',
+    name: 'Ivan',
+    password: 'hashed_password',
+  });
+
+  await testDB.createAccount(user.id, {
+    name: 'Savings Account',
+  });
+  await testDB.createAccount(user.id, {
+    name: 'Checking Account',
+  });
+};
+
+void runSeeder();

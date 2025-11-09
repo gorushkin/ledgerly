@@ -28,6 +28,7 @@ export type OperationResponseDTO = {
   description?: string;
   createdAt: IsoDatetimeString;
   updatedAt: IsoDatetimeString;
+  userId: UUID;
 };
 
 // Query DTOs

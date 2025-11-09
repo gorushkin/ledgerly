@@ -1,4 +1,4 @@
-import { EntryResponseDTO } from 'src/application';
+import { EntryResponseDTO, OperationResponseDTO } from 'src/application';
 import { EntryDbRow } from 'src/db/schemas/entries';
 
 import {
@@ -111,13 +111,41 @@ export class Entry {
     };
   }
 
+  private getOperationsForResponseDTO(): [
+    OperationResponseDTO,
+    OperationResponseDTO,
+  ] {
+    const operations = this.operations.reduce(
+      (acc, operation) => {
+        if (operation.isSystem) {
+          return acc;
+        }
+
+        acc.push(operation.toResponseDTO());
+        return acc;
+      },
+      [] as unknown as [OperationResponseDTO, OperationResponseDTO],
+    );
+
+    if (operations.length !== 2) {
+      throw new Error(
+        'Entry must have exactly two non-system operations for response DTO',
+      );
+    }
+
+    return operations;
+  }
+
   toResponseDTO(): EntryResponseDTO {
+    const operations = this.getOperationsForResponseDTO();
+
     return {
       createdAt: this.getCreatedAt().valueOf(),
       id: this.getId().valueOf(),
-      operations: this.operations.map((operation) => operation.toResponseDTO()),
+      operations,
       transactionId: this.getTransactionId().valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
+      userId: this.ownership.getParentId().valueOf(),
     };
   }
 
