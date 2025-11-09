@@ -99,5 +99,16 @@ describe('EntryRepository', () => {
 
       expect(entries).toHaveLength(0);
     });
+
+    it('should return an empty array when a non-existent transaction ID is provided', async () => {
+      const nonExistentTransactionId = Id.create().valueOf();
+
+      const entries = await entryRepository.getByTransactionId(
+        user.id,
+        nonExistentTransactionId,
+      );
+
+      expect(entries).toHaveLength(0);
+    });
   });
 });
