@@ -258,6 +258,32 @@ export class TestDB {
     return account;
   };
 
+  createOperation = async (
+    userId: UUID,
+    params: {
+      accountId: UUID;
+      description: string;
+      entryId: UUID;
+      amount: MoneyString;
+    },
+  ) => {
+    const operationData = {
+      ...TestDB.uuid,
+      ...TestDB.createTimestamps,
+      ...params,
+      isTombstone: false,
+      userId,
+    };
+
+    const operation = await this.db
+      .insert(schema.operationsTable)
+      .values(operationData)
+      .returning()
+      .get();
+
+    return operation;
+  };
+
   deleteData = async () => {
     await this.db.delete(transactionsTable);
     await this.db.delete(accountsTable);
