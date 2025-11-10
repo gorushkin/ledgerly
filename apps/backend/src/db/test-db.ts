@@ -265,9 +265,11 @@ export class TestDB {
       description: string;
       entryId: UUID;
       amount: MoneyString;
+      isSystem?: boolean;
     },
   ) => {
     const operationData = {
+      isSystem: params.isSystem ?? false,
       ...TestDB.uuid,
       ...TestDB.createTimestamps,
       ...params,

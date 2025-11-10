@@ -1,0 +1,1 @@
+ALTER TABLE `operations` ADD `is_system` integer NOT NULL;

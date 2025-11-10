@@ -34,3 +34,5 @@ export const getMoneyColumn = getNumericColumn<MoneyString>;
 
 export const getIsoDateString = (column: string) =>
   text(column).notNull().$type<IsoDateString>();
+
+export const isSystem = getBooleanColumn('is_system');

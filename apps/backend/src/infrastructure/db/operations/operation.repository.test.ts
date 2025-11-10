@@ -53,15 +53,19 @@ describe('OperationRepository', () => {
       const id = Id.create().valueOf();
       const createdAt = Timestamp.create().valueOf();
       const updatedAt = Timestamp.create().valueOf();
+      const isSystem = false;
+      const isTombstone = false;
+      const description = 'Test operation';
 
       const expectedResult: OperationDbRow = {
         accountId,
         amount: amount.valueOf(),
         createdAt,
-        description: 'Test operation',
+        description,
         entryId,
         id,
-        isTombstone: false,
+        isSystem,
+        isTombstone,
         updatedAt,
         userId,
       };
@@ -70,11 +74,12 @@ describe('OperationRepository', () => {
         accountId,
         amount: amount.valueOf(),
         createdAt,
-        description: 'Test operation',
+        description,
         entryId,
         id,
-        isTombstone: false,
-        updatedAt: updatedAt,
+        isSystem,
+        isTombstone,
+        updatedAt,
         userId,
       });
 
