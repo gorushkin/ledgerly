@@ -10,6 +10,7 @@ import {
   isTombstone,
   id,
   getMoneyColumn,
+  isSystem,
 } from './common';
 import { entriesTable } from './entries';
 import { usersTable } from './users';
@@ -29,6 +30,7 @@ export const operationsTable = sqliteTable(
       .references(() => entriesTable.id, { onDelete: 'cascade' })
       .$type<UUID>(),
     id,
+    isSystem,
     isTombstone,
     updatedAt,
     userId: text('user_id')

@@ -219,6 +219,7 @@ export class Operation {
       description: this.description,
       entryId: this.entryRelation.getParentId().valueOf(),
       id: this.id.valueOf(),
+      isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
