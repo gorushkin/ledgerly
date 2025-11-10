@@ -6,6 +6,7 @@ import {
   TransactionRepositoryInterface,
   TransactionResponseDTO,
 } from 'src/application';
+import { EntryDbRow, OperationDbRow } from 'src/db/schema';
 import { TransactionViewMapper } from 'src/domain/transactions/TransactionViewMapper';
 
 export class GetTransactionByIdUseCase {
@@ -34,7 +35,7 @@ export class GetTransactionByIdUseCase {
         transactionId,
       );
 
-      const entries = [];
+      const entries: (EntryDbRow & { operations: OperationDbRow[] })[] = [];
 
       for (const entry of entryRecords) {
         const operations = await this.operationRepository.getByEntryId(

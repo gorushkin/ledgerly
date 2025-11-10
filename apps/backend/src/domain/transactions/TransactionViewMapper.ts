@@ -30,6 +30,12 @@ export class TransactionViewMapper {
       .filter((op) => !op.isSystem)
       .map(this.mapOperation.bind(this));
 
+    if (entryOperations.length !== 2) {
+      throw new Error(
+        `Entry with id ${entry.id} must have exactly 2 non-system operations, but got ${entryOperations.length}.`,
+      );
+    }
+
     const operations: EntryOperationsResponseDTO = [
       entryOperations[0],
       entryOperations[1],
@@ -58,7 +64,7 @@ export class TransactionViewMapper {
     };
   }
 
-  // private static calculateTotal(transaction: Transaction): string {
+  //   // You can use MoneyAmount here
   //   const totalValue = transaction.entries
   //     .flatMap((e) => e.operations)
   //     .filter((op) => !op.isSystem)

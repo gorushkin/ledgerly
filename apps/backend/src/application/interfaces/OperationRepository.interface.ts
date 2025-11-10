@@ -1,4 +1,4 @@
-import { UUID } from 'node_modules/@ledgerly/shared/src/types/types';
+import { UUID } from '@ledgerly/shared/types';
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
 export type OperationRepositoryInterface = {

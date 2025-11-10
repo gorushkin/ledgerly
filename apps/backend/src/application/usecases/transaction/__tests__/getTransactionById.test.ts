@@ -61,15 +61,6 @@ describe('GetTransactionByIdUseCase', () => {
       userId,
     };
 
-    const mockEntry2 = {
-      createdAt: Timestamp.create().valueOf(),
-      id: Id.create().valueOf(),
-      isTombstone: false,
-      transactionId,
-      updatedAt: Timestamp.create().valueOf(),
-      userId,
-    };
-
     const mockOperation1 = {
       accountId: Id.create().valueOf(),
       amount: '1000',
@@ -88,7 +79,7 @@ describe('GetTransactionByIdUseCase', () => {
       amount: '500',
       createdAt: Timestamp.create().valueOf(),
       description: 'Operation 2',
-      entryId: mockEntry2.id,
+      entryId: mockEntry1.id,
       id: Id.create().valueOf(),
       isSystem: false,
       isTombstone: false,
@@ -98,14 +89,12 @@ describe('GetTransactionByIdUseCase', () => {
 
     mockTransactionRepository.getById.mockResolvedValue(mockTransactionData);
 
-    mockEntryRepository.getByTransactionId.mockResolvedValue([
-      mockEntry1,
-      mockEntry2,
-    ]);
+    mockEntryRepository.getByTransactionId.mockResolvedValue([mockEntry1]);
 
-    mockOperationRepository.getByEntryId
-      .mockResolvedValueOnce([mockOperation1])
-      .mockResolvedValueOnce([mockOperation2]);
+    mockOperationRepository.getByEntryId.mockResolvedValueOnce([
+      mockOperation1,
+      mockOperation2,
+    ]);
 
     const transaction = await getTransactionByIdUseCase.execute(
       userId,
@@ -132,11 +121,11 @@ describe('GetTransactionByIdUseCase', () => {
 
     expect(mockOperationRepository.getByEntryId).toHaveBeenCalledWith(
       userId,
-      mockEntry2.id,
+      mockEntry1.id,
     );
   });
 
-  it('should return null if transaction not found', async () => {
+  it('should throw error if transaction not found', async () => {
     const transactionId = Id.create().valueOf();
     const userId = Id.create().valueOf();
 
