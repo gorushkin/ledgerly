@@ -34,6 +34,11 @@ export class TransactionViewMapper {
         `Entry with id ${entryId} must have exactly 2 non-system operations, but got ${array.length}.`,
       );
     }
+    if (!array[0] || !array[1]) {
+      throw new Error(
+        `Entry with id ${entryId} has undefined operation(s) in the array.`,
+      );
+    }
     return [array[0], array[1]];
   }
 

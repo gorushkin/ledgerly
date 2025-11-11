@@ -4,7 +4,7 @@ import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import { transactionsTable, usersTable } from '../schema';
 
-import { createdAt, id, updatedAt } from './common';
+import { id, createdAt, updatedAt } from './common';
 import { operationsTable } from './operations';
 import type { OperationDbRow } from './operations';
 
