@@ -1,4 +1,3 @@
-import { OperationResponseDTO } from 'src/application/dto/operation.dto';
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
 import { Account, Entry, User } from '..';
@@ -221,19 +220,6 @@ export class Operation {
       id: this.id.valueOf(),
       isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
-      updatedAt: this.getUpdatedAt().valueOf(),
-      userId: this.getUserId().valueOf(),
-    };
-  }
-
-  toResponseDTO(): OperationResponseDTO {
-    return {
-      accountId: this.getAccountId().valueOf(),
-      amount: this.amount.valueOf(),
-      createdAt: this.getCreatedAt().valueOf(),
-      description: this.description,
-      entryId: this.entryRelation.getParentId().valueOf(),
-      id: this.id.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
     };

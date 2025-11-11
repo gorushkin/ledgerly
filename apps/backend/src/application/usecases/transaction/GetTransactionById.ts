@@ -5,9 +5,9 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
   TransactionResponseDTO,
+  TransactionViewMapper,
 } from 'src/application';
 import { EntryDbRow, OperationDbRow } from 'src/db/schema';
-import { TransactionViewMapper } from 'src/domain/transactions/TransactionViewMapper';
 
 export class GetTransactionByIdUseCase {
   constructor(

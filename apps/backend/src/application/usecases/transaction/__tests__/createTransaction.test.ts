@@ -62,8 +62,43 @@ describe('CreateTransactionUseCase', async () => {
   );
 
   const mockedEntries = [
-    { id: 'some-entry-id-1', operations: [] },
-    { id: 'some-entry-id-2', operations: [] },
+    {
+      getCreatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
+      getId: () => ({ valueOf: () => 'some-entry-id-1' }),
+      getOperations: () => [
+        {
+          amount: { valueOf: () => '100' },
+          description: 'Operation 1',
+          getAccountId: () => ({ valueOf: () => usdAccount.getId().valueOf() }),
+          getCreatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
+          getUpdatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
+          getUserId: () => ({ valueOf: () => user.getId().valueOf() }),
+          id: { valueOf: () => 'operation-id-1' },
+          isSystem: false,
+        },
+        {
+          amount: { valueOf: () => '100' },
+          description: 'Operation 2',
+          getAccountId: () => ({ valueOf: () => eurAccount.getId().valueOf() }),
+          getCreatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
+          getUpdatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
+          getUserId: () => ({ valueOf: () => user.getId().valueOf() }),
+          id: { valueOf: () => 'operation-id-2' },
+          isSystem: false,
+        },
+      ],
+      getTransactionId: () => ({ valueOf: () => transactionIdValue.valueOf() }),
+      getUpdatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
+      id: 'some-entry-id-1',
+      operations: [],
+      toPersistence: () => ({
+        createdAt: '2024-01-01T00:00:00Z',
+        id: 'some-entry-id-1',
+        transactionId: transactionIdValue.valueOf(),
+        updatedAt: '2024-01-01T00:00:00Z',
+        userId: user.getId().valueOf(),
+      }),
+    },
   ] as unknown as Entry[];
 
   const mockedSaveWithIdRetry = vi
@@ -103,7 +138,6 @@ describe('CreateTransactionUseCase', async () => {
 
   describe('execute', () => {
     it('should create a new transaction with entries successfully', async () => {
-      const mockExpectedResult = { data: 'toResponseDTO' };
       const mockedSaveWithIdRetryResult = {
         data: 'mockedSaveWithIdRetryResult',
       };
@@ -112,11 +146,33 @@ describe('CreateTransactionUseCase', async () => {
 
       const mockAddEntry = vi.fn();
       const mockValidateBalance = vi.fn();
+      const mockGetCreatedAt = vi
+        .fn()
+        .mockReturnValue({ valueOf: () => '2024-01-01T00:00:00Z' });
+      const mockGetUpdatedAt = vi
+        .fn()
+        .mockReturnValue({ valueOf: () => '2024-01-01T00:00:00Z' });
+      const mockGetPostingDate = vi
+        .fn()
+        .mockReturnValue({ valueOf: () => postingDate });
+      const mockGetTransactionDate = vi
+        .fn()
+        .mockReturnValue({ valueOf: () => transactionDate });
+      const mockGetUserId = vi
+        .fn()
+        .mockReturnValue({ valueOf: () => user.getId().valueOf() });
+      const mockGetEntries = vi.fn().mockReturnValue(mockedEntries);
 
       const mockedTransaction = {
         addEntry: mockAddEntry,
+        description,
+        getCreatedAt: mockGetCreatedAt,
+        getEntries: mockGetEntries,
         getId: () => transactionIdValue,
-        toResponseDTO: () => mockExpectedResult,
+        getPostingDate: mockGetPostingDate,
+        getTransactionDate: mockGetTransactionDate,
+        getUpdatedAt: mockGetUpdatedAt,
+        getUserId: mockGetUserId,
         validateBalance: mockValidateBalance,
       } as unknown as Transaction;
 
@@ -167,7 +223,14 @@ describe('CreateTransactionUseCase', async () => {
 
       expect(mockValidateBalance).toHaveBeenCalled();
 
-      expect(result).toEqual(mockExpectedResult);
+      expect(result).toMatchObject({
+        description,
+        id: transactionIdValue.valueOf(),
+        postingDate,
+        transactionDate,
+        userId: user.getId().valueOf(),
+      });
+      expect(result.entries).toHaveLength(1);
     });
   });
 });

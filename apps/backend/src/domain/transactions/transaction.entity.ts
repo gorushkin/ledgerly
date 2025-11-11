@@ -1,4 +1,3 @@
-import { TransactionResponseDTO } from 'src/application';
 import { TransactionDbRow } from 'src/db/schema';
 
 import {
@@ -235,18 +234,5 @@ export class Transaction {
     if (!this.isBalanced()) {
       throw new Error('Transaction is not balanced');
     }
-  }
-
-  toResponseDTO(): TransactionResponseDTO {
-    return {
-      createdAt: this.getCreatedAt().valueOf(),
-      description: this.description,
-      entries: this.entries.map((entry) => entry.toResponseDTO()),
-      id: this.getId().valueOf(),
-      postingDate: this.postingDate.valueOf(),
-      transactionDate: this.transactionDate.valueOf(),
-      updatedAt: this.getUpdatedAt().valueOf(),
-      userId: this.getUserId().valueOf(),
-    };
   }
 }

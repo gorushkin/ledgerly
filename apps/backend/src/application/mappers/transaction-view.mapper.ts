@@ -1,10 +1,11 @@
-import { OperationResponseDTO } from 'src/application';
+import { EntryDbRow, OperationDbRow, TransactionDbRow } from 'src/db/schema';
+
 import {
   EntryOperationsResponseDTO,
   EntryResponseDTO,
-} from 'src/application/dto/entry.dto';
-import { TransactionResponseDTO } from 'src/application/dto/transaction.dto';
-import { EntryDbRow, OperationDbRow, TransactionDbRow } from 'src/db/schema';
+  OperationResponseDTO,
+  TransactionResponseDTO,
+} from '../dto';
 
 export class TransactionViewMapper {
   static toView(
@@ -64,4 +65,3 @@ export class TransactionViewMapper {
     };
   }
 }
-//   // You can use MoneyAmount here
