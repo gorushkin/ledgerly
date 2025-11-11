@@ -39,6 +39,7 @@ export class GetTransactionByIdUseCase {
 
       for (const entry of entryRecords) {
         // TODO: optimize with batch query to avoid N+1 problem
+        // https://github.com/gorushkin/ledgerly/issues/83
         // Map operations to their respective entries or Fetch all operations for all entry IDs in a single query
         const operations = await this.operationRepository.getByEntryId(
           userId,
