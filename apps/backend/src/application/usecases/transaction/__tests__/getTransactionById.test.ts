@@ -118,11 +118,6 @@ describe('GetTransactionByIdUseCase', () => {
       userId,
       mockEntry1.id,
     );
-
-    expect(mockOperationRepository.getByEntryId).toHaveBeenCalledWith(
-      userId,
-      mockEntry1.id,
-    );
   });
 
   it('should throw error if transaction not found', async () => {

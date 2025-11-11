@@ -31,7 +31,7 @@ export class EntryRepository
           )
           .all(),
       'EntryRepository.getByTransactionId',
-      { field: 'entry', tableName: 'entries', value: transactionId },
+      { field: 'transactionId', tableName: 'entries', value: transactionId },
     );
   }
 }

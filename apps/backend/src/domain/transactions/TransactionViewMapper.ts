@@ -44,7 +44,7 @@ export class TransactionViewMapper {
     return {
       createdAt: entry.createdAt,
       id: entry.id,
-      operations: operations,
+      operations,
       transactionId: entry.transactionId,
       updatedAt: entry.updatedAt,
       userId: entry.userId,
@@ -63,14 +63,5 @@ export class TransactionViewMapper {
       userId: op.userId,
     };
   }
-
-  //   // You can use MoneyAmount here
-  //   const totalValue = transaction.entries
-  //     .flatMap((e) => e.operations)
-  //     .filter((op) => !op.isSystem)
-  //     .reduce((acc, op) => acc + op.amount.value, 0);
-
-  //   // можно использовать MoneyAmount здесь
-  //   return totalValue.toFixed(2);
-  // }
 }
+//   // You can use MoneyAmount here

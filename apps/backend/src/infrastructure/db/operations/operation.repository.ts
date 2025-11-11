@@ -39,7 +39,7 @@ export class OperationRepository
         return result;
       },
       'OperationRepository.getByEntryId',
-      { field: 'operation', tableName: 'operations', value: entryId },
+      { field: 'entryId', tableName: 'operations', value: entryId },
     );
   }
 }
