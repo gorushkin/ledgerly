@@ -1,7 +1,14 @@
 import { UUID } from '@ledgerly/shared/types';
-import { TransactionRepoInsert, TransactionDbRow } from 'src/db/schema';
+import {
+  TransactionRepoInsert,
+  TransactionDbRow,
+  TransactionWithRelations,
+} from 'src/db/schema';
 
 export type TransactionRepositoryInterface = {
   create(data: TransactionRepoInsert): Promise<TransactionDbRow>;
-  getById(userId: UUID, transactionId: UUID): Promise<TransactionDbRow | null>;
+  getById(
+    userId: UUID,
+    transactionId: UUID,
+  ): Promise<TransactionWithRelations | null>;
 };

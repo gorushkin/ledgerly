@@ -1,4 +1,8 @@
-import { EntryDbRow, OperationDbRow, TransactionDbRow } from 'src/db/schema';
+import {
+  EntryWithOperations,
+  OperationDbRow,
+  TransactionWithRelations,
+} from 'src/db/schema';
 
 import {
   EntryOperationsResponseDTO,
@@ -8,14 +12,11 @@ import {
 } from '../dto';
 
 export class TransactionViewMapper {
-  static toView(
-    transaction: TransactionDbRow,
-    entries: (EntryDbRow & { operations: OperationDbRow[] })[],
-  ): TransactionResponseDTO {
+  static toView(transaction: TransactionWithRelations): TransactionResponseDTO {
     return {
       createdAt: transaction.createdAt,
       description: transaction.description,
-      entries: entries.map(this.mapEntry.bind(this)),
+      entries: transaction.entries.map(this.mapEntry.bind(this)),
       id: transaction.id,
       postingDate: transaction.postingDate,
       transactionDate: transaction.transactionDate,
@@ -24,23 +25,32 @@ export class TransactionViewMapper {
     };
   }
 
-  private static mapEntry(
-    entry: EntryDbRow & { operations: OperationDbRow[] },
-  ): EntryResponseDTO {
+  /**
+   * Type guard to ensure array has exactly 2 elements and convert to tuple
+   */
+  private static ensureTwoOperations<T>(array: T[], entryId: string): [T, T] {
+    if (array.length !== 2) {
+      throw new Error(
+        `Entry with id ${entryId} must have exactly 2 non-system operations, but got ${array.length}.`,
+      );
+    }
+    if (!array[0] || !array[1]) {
+      throw new Error(
+        `Entry with id ${entryId} has undefined operation(s) in the array.`,
+      );
+    }
+    return [array[0], array[1]];
+  }
+
+  private static mapEntry(entry: EntryWithOperations): EntryResponseDTO {
     const entryOperations = entry.operations
       .filter((op) => !op.isSystem)
       .map(this.mapOperation.bind(this));
 
-    if (entryOperations.length !== 2) {
-      throw new Error(
-        `Entry with id ${entry.id} must have exactly 2 non-system operations, but got ${entryOperations.length}.`,
-      );
-    }
-
-    const operations: EntryOperationsResponseDTO = [
-      entryOperations[0],
-      entryOperations[1],
-    ];
+    const operations: EntryOperationsResponseDTO = this.ensureTwoOperations(
+      entryOperations,
+      entry.id,
+    );
 
     return {
       createdAt: entry.createdAt,

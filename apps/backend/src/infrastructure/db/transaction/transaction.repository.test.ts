@@ -64,7 +64,7 @@ describe('TransactionRepository', () => {
         transaction.id,
       );
 
-      expect(fetchedTransaction).toEqual(transaction);
+      expect(fetchedTransaction).toEqual({ ...transaction, entries: [] });
     });
 
     it('should return null if transaction not found', async () => {

@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
+import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
 import { sqliteTable, text, index } from 'drizzle-orm/sqlite-core';
 
 import { accountsTable } from './accounts';
@@ -44,6 +44,13 @@ export const operationsTable = sqliteTable(
     index('idx_operations_user').on(t.userId),
   ],
 );
+
+export const operationsRelations = relations(operationsTable, ({ one }) => ({
+  entry: one(entriesTable, {
+    fields: [operationsTable.entryId],
+    references: [entriesTable.id],
+  }),
+}));
 
 export type OperationDbRow = InferSelectModel<typeof operationsTable>;
 export type OperationDbInsert = InferInsertModel<typeof operationsTable>;

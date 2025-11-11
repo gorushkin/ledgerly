@@ -4,6 +4,7 @@ import { TransactionRepositoryInterface } from 'src/application';
 import {
   TransactionDbInsert,
   TransactionDbRow,
+  TransactionWithRelations,
   transactionsTable,
 } from 'src/db/schema';
 
@@ -26,19 +27,22 @@ export class TransactionRepository
     );
   }
 
-  getById(userId: UUID, transactionId: UUID): Promise<TransactionDbRow | null> {
+  getById(
+    userId: UUID,
+    transactionId: UUID,
+  ): Promise<TransactionWithRelations | null> {
     return this.executeDatabaseOperation(
       async () => {
-        const result = await this.db
-          .select()
-          .from(transactionsTable)
-          .where(
-            and(
+        const result: TransactionWithRelations | undefined =
+          await this.db.query.transactionsTable.findFirst({
+            where: and(
               eq(transactionsTable.id, transactionId),
               eq(transactionsTable.userId, userId),
             ),
-          )
-          .get();
+            with: {
+              entries: { with: { operations: true } },
+            },
+          });
 
         return result ?? null;
       },
