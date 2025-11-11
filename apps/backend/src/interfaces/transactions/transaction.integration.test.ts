@@ -264,7 +264,7 @@ describe('Transactions Integration Tests', () => {
   describe('GET /api/transactions/:id', () => {
     let transaction: TransactionDbRow;
     let entries: EntryDbRow[];
-    const mapEntryOperationsMap: Record<UUID, OperationDbRow[]> = {};
+    const entryOperationsMap: Record<UUID, OperationDbRow[]> = {};
 
     const entry1operationData = [
       {
@@ -337,8 +337,8 @@ describe('Transactions Integration Tests', () => {
         }),
       );
 
-      mapEntryOperationsMap[entries[0].id] = entry1ps;
-      mapEntryOperationsMap[entries[1].id] = entry2ps;
+      entryOperationsMap[entries[0].id] = entry1ps;
+      entryOperationsMap[entries[1].id] = entry2ps;
     });
 
     it('should retrieve a transaction by ID', async () => {
@@ -370,7 +370,7 @@ describe('Transactions Integration Tests', () => {
         expect(entry.updatedAt).toBe(originalEntry?.updatedAt);
 
         entry.operations.forEach((op, index) => {
-          const originalOp = mapEntryOperationsMap[entry.id][index];
+          const originalOp = entryOperationsMap[entry.id][index];
 
           expect(op.id).toBe(originalOp.id);
           expect(op.userId).toBe(userId);

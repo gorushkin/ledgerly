@@ -38,6 +38,8 @@ export class GetTransactionByIdUseCase {
       const entries: (EntryDbRow & { operations: OperationDbRow[] })[] = [];
 
       for (const entry of entryRecords) {
+        // TODO: optimize with batch query to avoid N+1 problem
+        // Map operations to their respective entries or Fetch all operations for all entry IDs in a single query
         const operations = await this.operationRepository.getByEntryId(
           userId,
           entry.id,
