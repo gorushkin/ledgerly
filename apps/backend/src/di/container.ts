@@ -91,10 +91,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   );
 
   const getTransactionByIdUseCase = new GetTransactionByIdUseCase(
-    transactionManager,
     transactionRepository,
-    entryRepository,
-    operationRepository,
   );
 
   const useCases: AppContainer['useCases'] = {
