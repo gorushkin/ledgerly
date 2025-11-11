@@ -49,12 +49,9 @@ pnpm --filter frontend build
 
 ## Key Features
 
-- Account management
+- Account management (Asset, Liability, Income, Expense)
 - Transaction tracking with split entries
 - Multi-currency support
-- Category-based expense tracking
+- Income/Expense account-based classification
 - User profile management
-    ...reactDom.configs.recommended.rules,
-  },
-})
 ```

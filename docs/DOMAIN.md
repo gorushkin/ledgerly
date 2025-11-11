@@ -35,8 +35,12 @@ Represents a single financial entry affecting an account.
 #### Key Properties
 - Links to an entry and an account
 - Amount is always stored in the account's currency
-- Positive amount = debit (increase in assets/expenses)
-- Negative amount = credit (decrease in assets/expenses, increase in liabilities/income)
+- Positive amount = debit
+  - Increases Asset and Expense accounts
+  - Decreases Liability, Income, and Equity accounts
+- Negative amount = credit
+  - Decreases Asset and Expense accounts
+  - Increases Liability, Income, and Equity accounts
 - Trading operations are created automatically for currency conversion
 
 ### Account
@@ -47,16 +51,12 @@ Represents different financial accounts with unified structure for all account t
   - **Asset**: Real money (wallet, card, bank account)
   - **Liability**: Debts, loans, credit
   - **Income**: Revenue sources (salary, interest)
-  - **Expense**: Spending categories (food, rent)
+  - For Income/Expense: reporting metric (sum of operations over a specified reporting period, not "real money" or all-time cumulative sum)
 - Has a designated currency (for Asset/Liability)
 - **Balance tracking**:
   - For Asset/Liability: real balance, must match reality
   - For Income/Expense: reporting metric (sum over period), not "real money"
 - Balance is calculated from operations
-
-### Category
-**Note**: The system uses Account types (Income/Expense) instead of separate categories.
-Operations are classified by linking to Income/Expense accounts, eliminating the need for a separate Category entity.
 
 ### Currency
 Represents different monetary units used in the system.
@@ -74,12 +74,16 @@ Represents different monetary units used in the system.
 1. Each transaction must have at least one entry
 2. Each entry must have at least two operations
 3. Sum of all operations within an entry must equal zero
-4. Positive amount represents debit (increase in assets/expenses)
-5. Negative amount represents credit (decrease in assets/expenses, increase in liabilities/income)
+4. Positive amount represents debit:
+   - Increases Asset and Expense accounts
+   - Decreases Liability, Income, and Equity accounts
+5. Negative amount represents credit:
+   - Decreases Asset and Expense accounts
+   - Increases Liability, Income, and Equity accounts
 6. System-wide balance: sum of all operations across all accounts must equal zero
 
 ### Currency Handling
-1. Each operation stores amount only in the account's currency
+2. **Income/Expense accounts**: Balance is calculated as the sum of operations within a specified reporting period, used only for reporting
 2. When an entry involves different currencies, trading operations are automatically created
 3. Trading operations balance currency differences within an entry
 4. Currency conversion context is stored in trading operations, not in main operations
