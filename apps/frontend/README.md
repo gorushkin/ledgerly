@@ -54,4 +54,3 @@ pnpm --filter frontend build
 - Multi-currency support
 - Income/Expense account-based classification
 - User profile management
-```

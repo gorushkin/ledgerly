@@ -51,7 +51,7 @@ Represents different financial accounts with unified structure for all account t
   - **Asset**: Real money (wallet, card, bank account)
   - **Liability**: Debts, loans, credit
   - **Income**: Revenue sources (salary, interest)
-  - For Income/Expense: reporting metric (sum of operations over a specified reporting period, not "real money" or all-time cumulative sum)
+  - For Income/Expense: reporting metric (sum of operations over a specified reporting period, not ‘real money’ or all-time cumulative sum)
 - Has a designated currency (for Asset/Liability)
 - **Balance tracking**:
   - For Asset/Liability: real balance, must match reality
@@ -83,7 +83,7 @@ Represents different monetary units used in the system.
 6. System-wide balance: sum of all operations across all accounts must equal zero
 
 ### Currency Handling
-2. **Income/Expense accounts**: Balance is calculated as the sum of operations within a specified reporting period, used only for reporting
+1. **Income/Expense accounts**: Balance is calculated as the sum of operations within a specified reporting period, used only for reporting
 2. When an entry involves different currencies, trading operations are automatically created
 3. Trading operations balance currency differences within an entry
 4. Currency conversion context is stored in trading operations, not in main operations
