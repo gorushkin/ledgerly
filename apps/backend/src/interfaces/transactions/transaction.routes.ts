@@ -1,11 +1,18 @@
-import { type TransactionCreateInput } from '@ledgerly/shared/validation';
+import {
+  uniqueIdSchema,
+  type TransactionCreateInput,
+} from '@ledgerly/shared/validation';
 import type { FastifyInstance } from 'fastify';
 
 export const transactionsRoutes = (app: FastifyInstance) => {
   const transactionController = app.container.controllers.transaction;
 
   app.get('/:id', async (request, response) => {
-    response.send({ user: request.user.toPersistence() });
+    const { id } = uniqueIdSchema.parse(request.params);
+
+    const transaction = await transactionController.getById(request.user, id);
+
+    response.send(transaction);
   });
 
   app.post<{ Body: TransactionCreateInput }>('/', async (request, reply) => {

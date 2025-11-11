@@ -1,5 +1,6 @@
 import { CreateTransactionRequestDTO } from 'src/application';
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
+import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
 import { User } from 'src/domain';
 import { Id } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,8 +18,13 @@ describe('TransactionController', () => {
     execute: vi.fn().mockResolvedValue(mockTransaction),
   };
 
+  const mockGetTransactionByIdUseCase = {
+    execute: vi.fn().mockResolvedValue(mockTransaction),
+  };
+
   const transactionController = new TransactionController(
     mockCreateTransactionUseCase as unknown as CreateTransactionUseCase,
+    mockGetTransactionByIdUseCase as unknown as GetTransactionByIdUseCase,
   );
 
   beforeEach(async () => {
@@ -64,6 +70,23 @@ describe('TransactionController', () => {
       );
 
       expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+
+      expect(result).equals(mockTransaction);
+    });
+  });
+
+  describe('getById', () => {
+    it('should call GetTransactionByIdUseCase with correct parameters', async () => {
+      const transactionId = Id.create().valueOf();
+
+      const result = await transactionController.getById(user, transactionId);
+
+      expect(mockGetTransactionByIdUseCase.execute).toHaveBeenCalledWith(
+        user.id,
+        transactionId,
+      );
+
+      expect(mockGetTransactionByIdUseCase.execute).toHaveBeenCalledTimes(1);
 
       expect(result).equals(mockTransaction);
     });

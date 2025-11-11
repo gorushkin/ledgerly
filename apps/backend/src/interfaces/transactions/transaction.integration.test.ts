@@ -1,8 +1,9 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import { UUID } from '@ledgerly/shared/types';
 import { TransactionResponseDTO } from 'src/application';
+import { EntryDbRow, OperationDbRow, TransactionDbRow } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
-import { Id } from 'src/domain/domain-core';
+import { Amount, Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/server';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -260,5 +261,126 @@ describe('Transactions Integration Tests', () => {
     });
   });
 
-  it.todo('should fail when required fields are missing');
+  describe('GET /api/transactions/:id', () => {
+    let transaction: TransactionDbRow;
+    let entries: EntryDbRow[];
+    const entryOperationsMap: Record<UUID, OperationDbRow[]> = {};
+
+    const entry1operationData = [
+      {
+        amount: Amount.create('-100').valueOf(),
+        description: 'Transfer from checking',
+        isSystem: false,
+      },
+      {
+        amount: Amount.create('100').valueOf(),
+        description: 'Transfer to savings',
+        isSystem: false,
+      },
+    ];
+
+    const entry2operationData = [
+      {
+        amount: Amount.create('50').valueOf(),
+        description: 'Deposit to checking',
+        isSystem: false,
+      },
+      {
+        amount: Amount.create('-50').valueOf(),
+        description: 'Withdrawal from savings',
+        isSystem: false,
+      },
+    ];
+
+    beforeEach(async () => {
+      const accounts = await Promise.all([
+        testDB.createAccount(userId, {
+          name: 'Checking',
+        }),
+        testDB.createAccount(userId, {
+          name: 'Savings',
+        }),
+      ]);
+
+      transaction = await testDB.createTransaction(userId);
+
+      entries = await Promise.all([
+        testDB.createEntry(userId, {
+          transactionId: transaction.id,
+        }),
+        testDB.createEntry(userId, {
+          transactionId: transaction.id,
+        }),
+      ]);
+
+      const entry1ps = await Promise.all(
+        entry1operationData.map((opData) => {
+          return testDB.createOperation(userId, {
+            accountId: opData.amount.startsWith('-')
+              ? accounts[0].id
+              : accounts[1].id,
+            entryId: entries[0].id,
+            ...opData,
+          });
+        }),
+      );
+
+      const entry2ps = await Promise.all(
+        entry2operationData.map((opData) => {
+          return testDB.createOperation(userId, {
+            accountId: opData.amount.startsWith('-')
+              ? accounts[1].id
+              : accounts[0].id,
+            entryId: entries[1].id,
+            ...opData,
+          });
+        }),
+      );
+
+      entryOperationsMap[entries[0].id] = entry1ps;
+      entryOperationsMap[entries[1].id] = entry2ps;
+    });
+
+    it('should retrieve a transaction by ID', async () => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${transaction.id}`,
+      });
+
+      const transactionResponse = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(transactionResponse.id).toBe(transaction.id);
+      expect(transactionResponse.userId).toBe(userId);
+      expect(transactionResponse.entries.length).toBe(entries.length);
+
+      transactionResponse.entries.forEach((entry) => {
+        expect(entry.userId).toBe(userId);
+        const originalEntry = entries.find((e) => e.id === entry.id);
+        expect(originalEntry).toBeDefined();
+        expect(entry.operations.length).toBe(2);
+        expect(entry.transactionId).toBe(transaction.id);
+        expect(entry.id).toBe(originalEntry?.id);
+        expect(entry.createdAt).toBe(originalEntry?.createdAt);
+        expect(entry.updatedAt).toBe(originalEntry?.updatedAt);
+
+        entry.operations.forEach((op, index) => {
+          const originalOp = entryOperationsMap[entry.id][index];
+
+          expect(op.id).toBe(originalOp.id);
+          expect(op.userId).toBe(userId);
+          expect(op.entryId).toBe(entry.id);
+          expect(op.amount).toBe(originalOp.amount);
+          expect(op.description).toBe(originalOp.description);
+          expect(op.createdAt).toBe(originalOp.createdAt);
+          expect(op.updatedAt).toBe(originalOp.updatedAt);
+        });
+      });
+    });
+  });
 });

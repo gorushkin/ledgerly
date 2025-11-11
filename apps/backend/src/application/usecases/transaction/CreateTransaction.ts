@@ -6,6 +6,7 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
+import { TransactionMapper } from 'src/application/mappers';
 import { EntryFactory, OperationFactory } from 'src/application/services';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { TransactionDbRow, TransactionRepoInsert } from 'src/db/schema';
@@ -45,7 +46,7 @@ export class CreateTransactionUseCase {
 
       transaction.validateBalance();
 
-      return transaction.toResponseDTO();
+      return TransactionMapper.toResponseDTO(transaction);
     });
   }
 

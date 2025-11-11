@@ -1,3 +1,5 @@
+import { UUID } from '@ledgerly/shared/types';
+import { and, eq } from 'drizzle-orm';
 import { TransactionRepositoryInterface } from 'src/application';
 import {
   TransactionDbInsert,
@@ -21,6 +23,27 @@ export class TransactionRepository
         tableName: 'transactions',
         value: transaction.id,
       },
+    );
+  }
+
+  getById(userId: UUID, transactionId: UUID): Promise<TransactionDbRow | null> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const result = await this.db
+          .select()
+          .from(transactionsTable)
+          .where(
+            and(
+              eq(transactionsTable.id, transactionId),
+              eq(transactionsTable.userId, userId),
+            ),
+          )
+          .get();
+
+        return result ?? null;
+      },
+      'TransactionRepository.getById',
+      { field: 'transaction', tableName: 'transactions', value: transactionId },
     );
   }
 }

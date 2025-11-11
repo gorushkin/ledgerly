@@ -146,6 +146,7 @@ export class OperationFactory {
     entry: Entry,
     operations: CreateEntryRequestDTO,
   ) {
+    // TODO: maybe we do not need to fetch accounts for both operations upfront
     const fromAccount = await this.getOperationAccount(user, operations[0]);
     const toAccount = await this.getOperationAccount(user, operations[1]);
 
