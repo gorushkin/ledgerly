@@ -11,4 +11,8 @@ export type TransactionRepositoryInterface = {
     userId: UUID,
     transactionId: UUID,
   ): Promise<TransactionWithRelations | null>;
+  getByAccountId(
+    userId: UUID,
+    accountId: UUID,
+  ): Promise<TransactionWithRelations[]>;
 };
