@@ -38,13 +38,12 @@ export default tseslint.config(
     },
     rules: {
       ...baseConfig.rules,
-      // Override base config for frontend
-      '@typescript-eslint/consistent-type-definitions': 'off',
-
-      // React-specific rules
       ...reactHooks.configs.recommended.rules,
       ...react.configs.recommended.rules,
       ...react.configs['jsx-runtime'].rules,
+
+      // Override base config for frontend
+      '@typescript-eslint/consistent-type-definitions': 'off',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       'react-hooks/exhaustive-deps': 'error',
 
