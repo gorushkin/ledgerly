@@ -5,7 +5,7 @@ import {
 import { TransactionWithRelations } from 'src/db/schema';
 import { Id } from 'src/domain/domain-core';
 import { ForbiddenError } from 'src/presentation/errors/businessLogic.error';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { GetTransactionsByAccountIdUseCase } from '../GetTransactionsByAccountId';
 
@@ -26,6 +26,10 @@ describe('GetTransactionsByAccountIdUseCase', () => {
       accountRepository as unknown as AccountRepositoryInterface,
     );
 
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('should retrieve transactions by account ID', async () => {
     const mockTransactions = [] as TransactionWithRelations[];
 
@@ -36,6 +40,10 @@ describe('GetTransactionsByAccountIdUseCase', () => {
       accountId,
     );
 
+    expect(accountRepository.ensureUserOwnsAccount).toHaveBeenCalledWith(
+      userId,
+      accountId,
+    );
     expect(transactionRepository.getByAccountId).toHaveBeenCalledWith(
       userId,
       accountId,
@@ -71,5 +79,7 @@ describe('GetTransactionsByAccountIdUseCase', () => {
       userId,
       accountId,
     );
+
+    expect(transactionRepository.getByAccountId).not.toHaveBeenCalled();
   });
 });

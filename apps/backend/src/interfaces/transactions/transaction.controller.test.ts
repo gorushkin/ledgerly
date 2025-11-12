@@ -14,6 +14,7 @@ describe('TransactionController', () => {
   let user: User;
 
   const mockTransaction = { data: 'mockTransaction' };
+  const mockTransactions = [{ data: 'mockTransaction' }];
 
   const mockCreateTransactionUseCase = {
     execute: vi.fn().mockResolvedValue(mockTransaction),
@@ -24,7 +25,7 @@ describe('TransactionController', () => {
   };
 
   const mockGetTransactionsByAccountIdUseCase = {
-    execute: vi.fn().mockResolvedValue(mockTransaction),
+    execute: vi.fn().mockResolvedValue(mockTransactions),
   };
 
   const transactionController = new TransactionController(
@@ -77,7 +78,7 @@ describe('TransactionController', () => {
 
       expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledTimes(1);
 
-      expect(result).equals(mockTransaction);
+      expect(result).toEqual(mockTransaction);
     });
   });
 
@@ -102,6 +103,10 @@ describe('TransactionController', () => {
     it('should call GetTransactionsByAccountIdUseCase with correct parameters', async () => {
       const accountId = Id.create().valueOf();
 
+      mockGetTransactionsByAccountIdUseCase.execute.mockResolvedValue([
+        mockTransaction,
+      ]);
+
       const result = await transactionController.getByAccountId(
         user,
         accountId,
@@ -115,7 +120,7 @@ describe('TransactionController', () => {
         mockGetTransactionsByAccountIdUseCase.execute,
       ).toHaveBeenCalledTimes(1);
 
-      expect(result).equals(mockTransaction);
+      expect(result).toEqual(mockTransactions);
     });
   });
 });
