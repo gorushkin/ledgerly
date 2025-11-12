@@ -6,14 +6,10 @@ export class GetTransactionsByAccountIdUseCase {
     private readonly transactionRepository: TransactionRepositoryInterface,
   ) {}
   async execute(userId: UUID, accountId: UUID) {
-    console.log('accountId: ', accountId);
-    console.log('userId: ', userId);
-
     const transactions = await this.transactionRepository.getByAccountId(
       userId,
       accountId,
     );
-    console.log('transactions: ', transactions);
 
     return transactions;
   }
