@@ -12,6 +12,7 @@ import { GetAllAccountsUseCase } from 'src/application/usecases/accounts/getAllA
 import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAccount';
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
 import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
+import { GetTransactionsByAccountIdUseCase } from 'src/application/usecases/transaction/GetTransactionsByAccountId';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { TransactionManager } from 'src/infrastructure/db';
@@ -94,6 +95,12 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionRepository,
   );
 
+  const getTransactionsByAccountIdUseCase =
+    new GetTransactionsByAccountIdUseCase(
+      transactionRepository,
+      accountRepository,
+    );
+
   const useCases: AppContainer['useCases'] = {
     account: {
       archiveAccount: deleteAccountUseCase,
@@ -109,6 +116,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     transaction: {
       createTransaction: createTransactionUseCase,
       getTransactionById: getTransactionByIdUseCase,
+      getTransactionsByAccountId: getTransactionsByAccountIdUseCase,
     },
   };
 
@@ -129,6 +137,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const transactionController = new TransactionController(
     createTransactionUseCase,
     getTransactionByIdUseCase,
+    getTransactionsByAccountIdUseCase,
   );
 
   const controllers: AppContainer['controllers'] = {

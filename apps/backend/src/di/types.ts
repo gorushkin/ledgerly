@@ -5,6 +5,7 @@ import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAc
 import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
 import { GetAllAccountsUseCase } from 'src/application/usecases/accounts/getAllAccounts';
 import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAccount';
+import { GetTransactionsByAccountIdUseCase } from 'src/application/usecases/transaction';
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
 import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
 import { DataBase } from 'src/db';
@@ -51,6 +52,7 @@ type AuthUseCases = {
 type TransactionUseCases = {
   createTransaction: CreateTransactionUseCase;
   getTransactionById: GetTransactionByIdUseCase;
+  getTransactionsByAccountId: GetTransactionsByAccountIdUseCase;
 };
 
 type Controllers = {
