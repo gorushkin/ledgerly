@@ -1,5 +1,6 @@
 {
   "name": "ledgerly",
+  "type": "module",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -41,6 +42,7 @@
     "delete:db": "rm -rf apps/backend/data/sqlite.db",
     "reset:db": "pnpm run delete:db && pnpm run migrate && pnpm run seed",
     "ts-check": "pnpm run -r --parallel ts-check",
+    "check": "pnpm run -r --parallel check",
     "prepare": "husky"
   },
   "dependencies": {
