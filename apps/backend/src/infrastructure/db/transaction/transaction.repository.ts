@@ -50,4 +50,10 @@ export class TransactionRepository
       { field: 'transaction', tableName: 'transactions', value: transactionId },
     );
   }
+  getByAccountId(
+    _userId: UUID,
+    _accountId: UUID,
+  ): Promise<TransactionWithRelations[]> {
+    throw new Error('Method not implemented.');
+  }
 }
