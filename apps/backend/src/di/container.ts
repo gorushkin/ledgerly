@@ -96,7 +96,10 @@ export const createContainer = (db: DataBase): AppContainer => {
   );
 
   const getTransactionsByAccountIdUseCase =
-    new GetTransactionsByAccountIdUseCase(transactionRepository);
+    new GetTransactionsByAccountIdUseCase(
+      transactionRepository,
+      accountRepository,
+    );
 
   const useCases: AppContainer['useCases'] = {
     account: {
@@ -113,7 +116,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     transaction: {
       createTransaction: createTransactionUseCase,
       getTransactionById: getTransactionByIdUseCase,
-      getTransactionsByAccountIdUseCase: getTransactionsByAccountIdUseCase,
+      getTransactionsByAccountId: getTransactionsByAccountIdUseCase,
     },
   };
 

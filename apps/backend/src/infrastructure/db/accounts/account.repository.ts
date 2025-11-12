@@ -7,7 +7,10 @@ import {
   AccountRepoInsert,
   accountsTable,
 } from 'src/db/schemas/accounts';
-import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
+import {
+  ForbiddenError,
+  NotFoundError,
+} from 'src/presentation/errors/businessLogic.error';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -132,7 +135,34 @@ export class AccountRepository
   findSystemAccount(
     _userId: UUID,
     _currency: CurrencyCode,
-  ): Promise<AccountDbRow | null> {
+  ): Promise<AccountDbRow> {
     throw new Error('Method not implemented.');
+  }
+
+  async ensureUserOwnsAccount(userId: UUID, accountId: UUID) {
+    return this.executeDatabaseOperation<AccountDbRow>(async () => {
+      const account = await this.db
+        .select()
+        .from(accountsTable)
+        .where(
+          and(
+            eq(accountsTable.id, accountId),
+            eq(accountsTable.isTombstone, false),
+          ),
+        )
+        .get();
+
+      if (!account) {
+        throw new NotFoundError(`Account with ID ${accountId} not found`);
+      }
+
+      if (account.userId !== userId) {
+        throw new ForbiddenError(
+          'You do not have permission to access this account',
+        );
+      }
+
+      return account;
+    }, 'Failed to verify account ownership');
   }
 }

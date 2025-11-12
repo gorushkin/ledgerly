@@ -52,7 +52,7 @@ type AuthUseCases = {
 type TransactionUseCases = {
   createTransaction: CreateTransactionUseCase;
   getTransactionById: GetTransactionByIdUseCase;
-  getTransactionsByAccountIdUseCase: GetTransactionsByAccountIdUseCase;
+  getTransactionsByAccountId: GetTransactionsByAccountIdUseCase;
 };
 
 type Controllers = {

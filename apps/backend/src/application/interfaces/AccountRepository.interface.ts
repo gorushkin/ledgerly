@@ -13,5 +13,6 @@ export type AccountRepositoryInterface = {
   findSystemAccount(
     userId: UUID,
     currency: CurrencyCode,
-  ): Promise<AccountDbRow | null>;
+  ): Promise<AccountDbRow>;
+  ensureUserOwnsAccount(userId: UUID, accountId: UUID): Promise<AccountDbRow>;
 };
