@@ -1,1 +1,1 @@
-pnpm --filter backend ts-check && pnpm --filter backend test
+pnpm --filter backend check && pnpm --filter backend test
