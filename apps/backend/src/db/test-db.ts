@@ -163,11 +163,15 @@ export class TestDB {
       date?: IsoDateString;
     },
   ): Promise<EntryDbRow> => {
-    const transaction = await this.createTransaction(userId, {
-      description: `Entry Transaction ${this.transactionCounter.getNextName()}`,
-      postingDate: TestDB.isoDateString,
-      transactionDate: TestDB.isoDateString,
-    });
+    const transactionId =
+      params?.transactionId ??
+      (
+        await this.createTransaction(userId, {
+          description: `Entry Transaction ${this.transactionCounter.getNextName()}`,
+          postingDate: TestDB.isoDateString,
+          transactionDate: TestDB.isoDateString,
+        })
+      ).id;
 
     const entryData = {
       ...TestDB.uuid,
@@ -175,7 +179,7 @@ export class TestDB {
       date: params?.date ?? TestDB.isoDateString,
       userId,
       ...params,
-      transactionId: params?.transactionId ?? transaction.id,
+      transactionId,
     };
 
     const entry = await this.db
@@ -284,6 +288,17 @@ export class TestDB {
       .get();
 
     return operation;
+  };
+
+  getOperationsByAccountId = async (userId: UUID, accountId: UUID) => {
+    const operations = await this.db
+      .select()
+      .from(schema.operationsTable)
+      .where(
+        sql`${schema.operationsTable.accountId} = ${accountId} AND ${schema.operationsTable.userId} = ${userId}`,
+      );
+
+    return operations;
   };
 
   deleteData = async () => {
