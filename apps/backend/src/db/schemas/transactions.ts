@@ -30,10 +30,7 @@ export const transactionsTable = sqliteTable(
       .$type<UUID>(),
   },
 
-  (t) => [
-    index('idx_transactions_user').on(t.userId),
-    index('idx_transactions_date').on(t.transactionDate),
-  ],
+  (t) => [index('idx_transactions_user_date').on(t.userId, t.transactionDate)],
 );
 
 export const transactionsRelations = relations(
