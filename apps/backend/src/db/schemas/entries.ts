@@ -23,7 +23,10 @@ export const entriesTable = sqliteTable(
       .references(() => usersTable.id, { onDelete: 'cascade' })
       .$type<UUID>(),
   },
-  (t) => [index('idx_entries_tx').on(t.transactionId)],
+  (t) => [
+    index('idx_entries_tx').on(t.transactionId),
+    index('idx_entries_user').on(t.userId),
+  ],
 );
 
 export const entriesRelations = relations(entriesTable, ({ many, one }) => ({
