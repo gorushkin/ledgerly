@@ -170,12 +170,12 @@ describe('TransactionRepository', () => {
         account1.id,
       );
 
-      const Ids = transactions.flatMap((tx) =>
+      const ids = transactions.flatMap((tx) =>
         tx.entries.flatMap((entry) => entry.operations.map((op) => op.id)),
       );
 
       operationsByAccount1.forEach((op) => {
-        expect(Ids).toContain(op.id);
+        expect(ids).toContain(op.id);
 
         const matchingOp = transactions
           .flatMap((tx) => tx.entries)

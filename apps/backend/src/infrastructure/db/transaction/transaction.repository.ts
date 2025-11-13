@@ -57,38 +57,42 @@ export class TransactionRepository
     userId: UUID,
     accountId: UUID,
   ): Promise<TransactionWithRelations[]> {
-    const txRows = await this.db
-      .select({ id: transactionsTable.id })
-      .from(transactionsTable)
-      .innerJoin(
-        entriesTable,
-        and(
-          eq(entriesTable.transactionId, transactionsTable.id),
-          eq(entriesTable.userId, userId),
-        ),
-      )
-      .innerJoin(
-        operationsTable,
-        and(
-          eq(operationsTable.entryId, entriesTable.id),
-          eq(operationsTable.userId, userId),
-        ),
-      )
-      .where(eq(operationsTable.accountId, accountId))
-      .groupBy(transactionsTable.id)
-      .orderBy(transactionsTable.createdAt);
+    return this.executeDatabaseOperation(
+      async () => {
+        const transactionRows = await this.db
+          .select({ id: transactionsTable.id })
+          .from(transactionsTable)
+          .innerJoin(
+            entriesTable,
+            and(
+              eq(entriesTable.transactionId, transactionsTable.id),
+              eq(entriesTable.userId, userId),
+            ),
+          )
+          .innerJoin(
+            operationsTable,
+            and(
+              eq(operationsTable.entryId, entriesTable.id),
+              eq(operationsTable.userId, userId),
+            ),
+          )
+          .where(eq(operationsTable.accountId, accountId))
+          .groupBy(transactionsTable.id)
+          .orderBy(transactionsTable.createdAt);
 
-    const txIds = txRows.map((r) => r.id);
+        const transactionIds = transactionRows.map((r) => r.id);
 
-    if (txIds.length === 0) return [];
+        if (transactionIds.length === 0) return [];
 
-    const fullTx = await this.db.query.transactionsTable.findMany({
-      where: inArray(transactionsTable.id, txIds),
-      with: {
-        entries: { with: { operations: true } },
+        return await this.db.query.transactionsTable.findMany({
+          where: inArray(transactionsTable.id, transactionIds),
+          with: {
+            entries: { with: { operations: true } },
+          },
+        });
       },
-    });
-
-    return fullTx;
+      'TransactionRepository.getByAccountId',
+      { field: 'account', tableName: 'accounts', value: accountId },
+    );
   }
 }
