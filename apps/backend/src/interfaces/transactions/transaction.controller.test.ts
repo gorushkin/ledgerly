@@ -1,7 +1,7 @@
 import { CreateTransactionRequestDTO } from 'src/application';
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
+import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction/GetAllTransactions';
 import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
-import { GetTransactionsByAccountIdUseCase } from 'src/application/usecases/transaction/GetTransactionsByAccountId';
 import { User } from 'src/domain';
 import { Id } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,14 +24,14 @@ describe('TransactionController', () => {
     execute: vi.fn().mockResolvedValue(mockTransaction),
   };
 
-  const mockGetTransactionsByAccountIdUseCase = {
+  const mockGetAllTransactionsUseCase = {
     execute: vi.fn().mockResolvedValue(mockTransactions),
   };
 
   const transactionController = new TransactionController(
     mockCreateTransactionUseCase as unknown as CreateTransactionUseCase,
     mockGetTransactionByIdUseCase as unknown as GetTransactionByIdUseCase,
-    mockGetTransactionsByAccountIdUseCase as unknown as GetTransactionsByAccountIdUseCase,
+    mockGetAllTransactionsUseCase as unknown as GetAllTransactionsUseCase,
   );
 
   beforeEach(async () => {
@@ -99,26 +99,24 @@ describe('TransactionController', () => {
     });
   });
 
-  describe('getByAccountId', () => {
+  describe('getAll', () => {
     it('should call GetTransactionsByAccountIdUseCase with correct parameters', async () => {
       const accountId = Id.create().valueOf();
 
-      mockGetTransactionsByAccountIdUseCase.execute.mockResolvedValue([
+      mockGetAllTransactionsUseCase.execute.mockResolvedValue([
         mockTransaction,
       ]);
 
-      const result = await transactionController.getByAccountId(
-        user,
+      const result = await transactionController.getAll(user, {
         accountId,
+      });
+
+      expect(mockGetAllTransactionsUseCase.execute).toHaveBeenCalledWith(
+        user.id,
+        { accountId },
       );
 
-      expect(
-        mockGetTransactionsByAccountIdUseCase.execute,
-      ).toHaveBeenCalledWith(user.id, accountId);
-
-      expect(
-        mockGetTransactionsByAccountIdUseCase.execute,
-      ).toHaveBeenCalledTimes(1);
+      expect(mockGetAllTransactionsUseCase.execute).toHaveBeenCalledTimes(1);
 
       expect(result).toEqual(mockTransactions);
     });

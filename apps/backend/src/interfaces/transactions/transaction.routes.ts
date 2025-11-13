@@ -1,4 +1,5 @@
 import {
+  getTransactionsQuerySchema,
   uniqueIdSchema,
   type TransactionCreateInput,
 } from '@ledgerly/shared/validation';
@@ -15,10 +16,23 @@ export const transactionsRoutes = (app: FastifyInstance) => {
     response.send(transaction);
   });
 
-  app.post<{ Body: TransactionCreateInput }>('/', async (request, reply) => {
+  app.post<{ Body: TransactionCreateInput }>('/', async (request, response) => {
     const user = request.user;
 
     const transaction = await transactionController.create(user, request.body);
-    reply.status(201).send(transaction);
+    response.status(201).send(transaction);
   });
+
+  app.get<{ Body: TransactionCreateInput[] }>(
+    '/',
+    async (request, response) => {
+      const user = request.user;
+
+      const query = getTransactionsQuerySchema.parse(request.query);
+
+      const transactions = await transactionController.getAll(user, query);
+
+      response.status(201).send(transactions);
+    },
+  );
 };

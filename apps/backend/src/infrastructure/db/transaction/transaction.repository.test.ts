@@ -35,7 +35,7 @@ describe('TransactionRepository', () => {
     );
   });
 
-  describe.skip('create', () => {
+  describe('create', () => {
     it('should create a transaction successfully', async () => {
       const createdAt = Timestamp.create().valueOf();
       const updatedAt = Timestamp.create().valueOf();
@@ -60,7 +60,7 @@ describe('TransactionRepository', () => {
     });
   });
 
-  describe.skip('getById', () => {
+  describe('getById', () => {
     it('should retrieve a transaction by ID', async () => {
       const transaction = await testDB.createTransaction(user.id);
 
@@ -82,7 +82,7 @@ describe('TransactionRepository', () => {
     });
   });
 
-  describe('getByAccountId', () => {
+  describe('getAll', () => {
     let account1: AccountDbRow;
     let account2: AccountDbRow;
     let account3: AccountDbRow;
@@ -165,10 +165,9 @@ describe('TransactionRepository', () => {
         account1.id,
       );
 
-      const transactions = await transactionRepository.getByAccountId(
-        user.id,
-        account1.id,
-      );
+      const transactions = await transactionRepository.getAll(user.id, {
+        accountId: account1.id,
+      });
 
       const ids = transactions.flatMap((tx) =>
         tx.entries.flatMap((entry) => entry.operations.map((op) => op.id)),
@@ -191,10 +190,9 @@ describe('TransactionRepository', () => {
   });
 
   it('should return empty array if no transactions found for account ID', async () => {
-    const transactions = await transactionRepository.getByAccountId(
-      user.id,
-      Id.create().valueOf(),
-    );
+    const transactions = await transactionRepository.getAll(user.id, {
+      accountId: Id.create().valueOf(),
+    });
 
     expect(transactions).toEqual([]);
   });
@@ -206,10 +204,9 @@ describe('TransactionRepository', () => {
       name: 'Other User Account',
     });
 
-    const transactions = await transactionRepository.getByAccountId(
-      user.id,
-      account.id,
-    );
+    const transactions = await transactionRepository.getAll(user.id, {
+      accountId: account.id,
+    });
 
     expect(transactions).toEqual([]);
   });
