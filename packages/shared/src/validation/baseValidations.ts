@@ -43,3 +43,7 @@ export const moneyAmountBigint = z
   .regex(/^-?\d+$/)
   .transform((val) => BigInt(val))
   .brand<"MoneyBig">();
+
+export const getTransactionsQuerySchema = z.object({
+  accountId: uuid.optional(),
+});

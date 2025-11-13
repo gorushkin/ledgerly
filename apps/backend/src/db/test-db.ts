@@ -306,4 +306,83 @@ export class TestDB {
     await this.db.delete(accountsTable);
     await this.db.delete(usersTable);
   };
+
+  seedTestData = async (initUser?: UserDbRow) => {
+    const user =
+      initUser ??
+      (await this.createUser({
+        email: 'test@example4.com',
+        name: 'Ivan',
+        password: 'hashed_password',
+      }));
+
+    const account1 = await this.createAccount(user.id, {
+      name: 'Savings Account',
+    });
+    const account2 = await this.createAccount(user.id, {
+      name: 'Checking Account',
+    });
+
+    const account3 = await this.createAccount(user.id, {
+      name: 'Credit Card',
+    });
+
+    const transaction1 = await this.createTransaction(user.id);
+    const transaction2 = await this.createTransaction(user.id);
+    const entry1Transaction1 = await this.createEntry(user.id, {
+      transactionId: transaction1.id,
+    });
+
+    const entry2Transaction1 = await this.createEntry(user.id, {
+      transactionId: transaction1.id,
+    });
+
+    const entry1Transaction2 = await this.createEntry(user.id, {
+      transactionId: transaction2.id,
+    });
+
+    await this.createOperation(user.id, {
+      accountId: account1.id,
+      amount: Amount.create('10000').valueOf(),
+      description: 'Initial Deposit',
+      entryId: entry1Transaction1.id,
+    });
+
+    await this.createOperation(user.id, {
+      accountId: account2.id,
+      amount: Amount.create('-5000').valueOf(),
+      description: 'Grocery Shopping',
+      entryId: entry1Transaction1.id,
+    });
+
+    await this.createOperation(user.id, {
+      accountId: account3.id,
+      amount: Amount.create('2000').valueOf(),
+      description: 'Credit Card Payment',
+      entryId: entry2Transaction1.id,
+    });
+
+    await this.createOperation(user.id, {
+      accountId: account1.id,
+      amount: Amount.create('-2000').valueOf(),
+      description: 'Utility Bill',
+      entryId: entry2Transaction1.id,
+    });
+
+    await this.createOperation(user.id, {
+      accountId: account1.id,
+      amount: Amount.create('15000').valueOf(),
+      description: 'Salary',
+      entryId: entry1Transaction2.id,
+    });
+
+    await this.createOperation(user.id, {
+      accountId: account2.id,
+      amount: Amount.create('-15000').valueOf(),
+      description: 'Rent Payment',
+      entryId: entry1Transaction2.id,
+    });
+
+    return { account1, account2, account3, transaction1, transaction2, user };
+  };
 }

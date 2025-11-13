@@ -1,4 +1,4 @@
-import { UUID } from '@ledgerly/shared/types';
+import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
 import { and, eq, inArray } from 'drizzle-orm';
 import { TransactionRepositoryInterface } from 'src/application';
 import {
@@ -53,12 +53,16 @@ export class TransactionRepository
     );
   }
 
-  async getByAccountId(
+  async getAll(
     userId: UUID,
-    accountId: UUID,
+    query?: TransactionQueryParams,
   ): Promise<TransactionWithRelations[]> {
     return this.executeDatabaseOperation(
       async () => {
+        const accountFilter = query?.accountId
+          ? eq(operationsTable.accountId, query.accountId)
+          : undefined;
+
         const transactionRows = await this.db
           .select({ id: transactionsTable.id })
           .from(transactionsTable)
@@ -74,9 +78,9 @@ export class TransactionRepository
             and(
               eq(operationsTable.entryId, entriesTable.id),
               eq(operationsTable.userId, userId),
+              ...(accountFilter ? [accountFilter] : []),
             ),
           )
-          .where(eq(operationsTable.accountId, accountId))
           .groupBy(transactionsTable.id)
           .orderBy(transactionsTable.createdAt);
 
@@ -91,8 +95,12 @@ export class TransactionRepository
           },
         });
       },
-      'TransactionRepository.getByAccountId',
-      { field: 'account', tableName: 'accounts', value: accountId },
+      'TransactionRepository.getAll',
+      {
+        field: 'transactions',
+        tableName: 'transactions',
+        value: Object.values(query ?? {}).join(', '),
+      },
     );
   }
 }

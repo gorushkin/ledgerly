@@ -7,24 +7,23 @@ import { Id } from 'src/domain/domain-core';
 import { ForbiddenError } from 'src/presentation/errors/businessLogic.error';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { GetTransactionsByAccountIdUseCase } from '../GetTransactionsByAccountId';
+import { GetAllTransactionsUseCase } from '../GetAllTransactions';
 
 describe('GetTransactionsByAccountIdUseCase', () => {
   const userId = Id.create().valueOf();
   const accountId = Id.create().valueOf();
   const transactionRepository = {
-    getByAccountId: vi.fn(),
+    getAll: vi.fn(),
   };
 
   const accountRepository = {
     ensureUserOwnsAccount: vi.fn(),
   };
 
-  const getTransactionsByAccountIdUseCase =
-    new GetTransactionsByAccountIdUseCase(
-      transactionRepository as unknown as TransactionRepositoryInterface,
-      accountRepository as unknown as AccountRepositoryInterface,
-    );
+  const getAllTransactionsUseCase = new GetAllTransactionsUseCase(
+    transactionRepository as unknown as TransactionRepositoryInterface,
+    accountRepository as unknown as AccountRepositoryInterface,
+  );
 
   afterEach(() => {
     vi.clearAllMocks();
@@ -33,36 +32,32 @@ describe('GetTransactionsByAccountIdUseCase', () => {
   it('should retrieve transactions by account ID', async () => {
     const mockTransactions = [] as TransactionWithRelations[];
 
-    transactionRepository.getByAccountId.mockResolvedValue(mockTransactions);
+    transactionRepository.getAll.mockResolvedValue(mockTransactions);
 
-    const result = await getTransactionsByAccountIdUseCase.execute(
-      userId,
+    const result = await getAllTransactionsUseCase.execute(userId, {
       accountId,
-    );
+    });
 
     expect(accountRepository.ensureUserOwnsAccount).toHaveBeenCalledWith(
       userId,
       accountId,
     );
-    expect(transactionRepository.getByAccountId).toHaveBeenCalledWith(
-      userId,
+    expect(transactionRepository.getAll).toHaveBeenCalledWith(userId, {
       accountId,
-    );
+    });
     expect(result).toBe(mockTransactions);
   });
 
   it('should return an empty array if no transactions are found', async () => {
-    transactionRepository.getByAccountId.mockResolvedValue([]);
+    transactionRepository.getAll.mockResolvedValue([]);
 
-    const result = await getTransactionsByAccountIdUseCase.execute(
-      userId,
+    const result = await getAllTransactionsUseCase.execute(userId, {
       accountId,
-    );
+    });
 
-    expect(transactionRepository.getByAccountId).toHaveBeenCalledWith(
-      userId,
+    expect(transactionRepository.getAll).toHaveBeenCalledWith(userId, {
       accountId,
-    );
+    });
     expect(result).toEqual([]);
   });
 
@@ -72,7 +67,9 @@ describe('GetTransactionsByAccountIdUseCase', () => {
     );
 
     await expect(
-      getTransactionsByAccountIdUseCase.execute(userId, accountId),
+      getAllTransactionsUseCase.execute(userId, {
+        accountId,
+      }),
     ).rejects.toThrow('You do not have permission to access this account');
 
     expect(accountRepository.ensureUserOwnsAccount).toHaveBeenCalledWith(
@@ -80,6 +77,6 @@ describe('GetTransactionsByAccountIdUseCase', () => {
       accountId,
     );
 
-    expect(transactionRepository.getByAccountId).not.toHaveBeenCalled();
+    expect(transactionRepository.getAll).not.toHaveBeenCalled();
   });
 });

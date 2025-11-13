@@ -1,7 +1,12 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import { UUID } from '@ledgerly/shared/types';
 import { TransactionResponseDTO } from 'src/application';
-import { EntryDbRow, OperationDbRow, TransactionDbRow } from 'src/db/schema';
+import {
+  EntryDbRow,
+  OperationDbRow,
+  TransactionDbRow,
+  UserDbRow,
+} from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import { Amount, Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/server';
@@ -20,6 +25,7 @@ describe('Transactions Integration Tests', () => {
   let server: ReturnType<typeof createServer>;
   let authToken: string;
   let userId: UUID;
+  let user: UserDbRow;
 
   beforeEach(async () => {
     testDB = new TestDB();
@@ -28,7 +34,7 @@ describe('Transactions Integration Tests', () => {
 
     await server.ready();
 
-    const user = await testDB.createUser(testUser);
+    user = await testDB.createUser(testUser);
 
     const token = server.jwt.sign({
       email: user.email,
@@ -381,6 +387,104 @@ describe('Transactions Integration Tests', () => {
           expect(op.updatedAt).toBe(originalOp.updatedAt);
         });
       });
+    });
+  });
+
+  describe('GET /api/transactions', () => {
+    it('should retrieve all transactions for the user', async () => {
+      await testDB.seedTestData(user);
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const transactions = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO[];
+
+      const userTransactions = transactions.filter(
+        (tx) => tx.userId === userId,
+      );
+
+      expect(userTransactions).toHaveLength(2);
+    });
+
+    it('should return empty array if user has no transactions', async () => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const transactions = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO[];
+
+      const userTransactions = transactions.filter(
+        (tx) => tx.userId === userId,
+      );
+
+      expect(userTransactions).toHaveLength(0);
+    });
+
+    it('should return filtered transactions based on query params', async () => {
+      const { account3 } = await testDB.seedTestData(user);
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?accountId=${account3.id}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const transactions = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO[];
+
+      expect(transactions).toHaveLength(1);
+    });
+
+    it('should throw 400 for invalid query params', async () => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?accountId=12`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should not throw 400 for nonexisting param key', async () => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?someRandomParam=someValue`,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const transactions = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO[];
+
+      expect(transactions).toHaveLength(0);
     });
   });
 });

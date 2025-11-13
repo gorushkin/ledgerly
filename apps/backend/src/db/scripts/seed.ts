@@ -12,12 +12,9 @@ const runSeeder = async () => {
     password: 'hashed_password',
   });
 
-  await testDB.createAccount(user.id, {
-    name: 'Savings Account',
-  });
-  await testDB.createAccount(user.id, {
-    name: 'Checking Account',
-  });
+  await testDB.seedTestData(user);
+
+  console.info('Database seeding completed.');
 };
 
 void runSeeder();

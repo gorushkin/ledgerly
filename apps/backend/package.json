@@ -14,7 +14,7 @@
     "start": "node --experimental-specifier-resolution=node dist/index.js",
     "migrateOld": "drizzle-kit push --config=drizzle.config.ts",
     "migrate": "drizzle-kit migrate --config=drizzle.config.ts",
-    "seed": "tsx src/db/scripts/seed.ts",
+    "db:seed": "tsx src/db/scripts/seed.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "studio": "pnpm drizzle-kit studio",
