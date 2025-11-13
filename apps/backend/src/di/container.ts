@@ -95,7 +95,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionRepository,
   );
 
-  const getTransactionsByAccountIdUseCase = new GetAllTransactionsUseCase(
+  const getAllTransactionsUseCase = new GetAllTransactionsUseCase(
     transactionRepository,
     accountRepository,
   );
@@ -114,7 +114,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     },
     transaction: {
       createTransaction: createTransactionUseCase,
-      getAllTransactions: getTransactionsByAccountIdUseCase,
+      getAllTransactions: getAllTransactionsUseCase,
       getTransactionById: getTransactionByIdUseCase,
     },
   };
@@ -136,7 +136,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const transactionController = new TransactionController(
     createTransactionUseCase,
     getTransactionByIdUseCase,
-    getTransactionsByAccountIdUseCase,
+    getAllTransactionsUseCase,
   );
 
   const controllers: AppContainer['controllers'] = {

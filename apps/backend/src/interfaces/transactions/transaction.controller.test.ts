@@ -100,7 +100,7 @@ describe('TransactionController', () => {
   });
 
   describe('getAll', () => {
-    it('should call GetTransactionsByAccountIdUseCase with correct parameters', async () => {
+    it('should call GetAllTransactionsUseCase with correct parameters', async () => {
       const accountId = Id.create().valueOf();
 
       mockGetAllTransactionsUseCase.execute.mockResolvedValue([

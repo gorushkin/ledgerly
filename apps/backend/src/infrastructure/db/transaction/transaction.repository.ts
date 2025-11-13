@@ -99,7 +99,7 @@ export class TransactionRepository
       {
         field: 'transactions',
         tableName: 'transactions',
-        value: Object.values(query ?? {}).join(', '),
+        value: JSON.stringify(query),
       },
     );
   }

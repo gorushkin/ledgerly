@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAllTransactionsUseCase } from '../GetAllTransactions';
 
-describe('GetTransactionsByAccountIdUseCase', () => {
+describe('GetAllTransactionsUseCase', () => {
   const userId = Id.create().valueOf();
   const accountId = Id.create().valueOf();
   const transactionRepository = {

@@ -469,7 +469,7 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it('should not throw 400 for nonexisting param key', async () => {
+    it('should ignore unknown query parameters and return 200', async () => {
       const response = await server.inject({
         headers: {
           Authorization: `Bearer ${authToken}`,
