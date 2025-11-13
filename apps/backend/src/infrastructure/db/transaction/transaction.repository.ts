@@ -1,10 +1,12 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { TransactionRepositoryInterface } from 'src/application';
 import {
   TransactionDbInsert,
   TransactionDbRow,
   TransactionWithRelations,
+  entriesTable,
+  operationsTable,
   transactionsTable,
 } from 'src/db/schema';
 
@@ -50,10 +52,47 @@ export class TransactionRepository
       { field: 'transaction', tableName: 'transactions', value: transactionId },
     );
   }
-  getByAccountId(
-    _userId: UUID,
-    _accountId: UUID,
+
+  async getByAccountId(
+    userId: UUID,
+    accountId: UUID,
   ): Promise<TransactionWithRelations[]> {
-    throw new Error('Method not implemented.');
+    return this.executeDatabaseOperation(
+      async () => {
+        const transactionRows = await this.db
+          .select({ id: transactionsTable.id })
+          .from(transactionsTable)
+          .innerJoin(
+            entriesTable,
+            and(
+              eq(entriesTable.transactionId, transactionsTable.id),
+              eq(entriesTable.userId, userId),
+            ),
+          )
+          .innerJoin(
+            operationsTable,
+            and(
+              eq(operationsTable.entryId, entriesTable.id),
+              eq(operationsTable.userId, userId),
+            ),
+          )
+          .where(eq(operationsTable.accountId, accountId))
+          .groupBy(transactionsTable.id)
+          .orderBy(transactionsTable.createdAt);
+
+        const transactionIds = transactionRows.map((r) => r.id);
+
+        if (transactionIds.length === 0) return [];
+
+        return await this.db.query.transactionsTable.findMany({
+          where: inArray(transactionsTable.id, transactionIds),
+          with: {
+            entries: { with: { operations: true } },
+          },
+        });
+      },
+      'TransactionRepository.getByAccountId',
+      { field: 'account', tableName: 'accounts', value: accountId },
+    );
   }
 }
