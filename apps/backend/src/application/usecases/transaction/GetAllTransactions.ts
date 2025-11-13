@@ -13,7 +13,7 @@ export class GetAllTransactionsUseCase {
     if (query?.accountId) {
       await this.accountRepository.ensureUserOwnsAccount(
         userId,
-        query?.accountId,
+        query.accountId,
       );
     }
 

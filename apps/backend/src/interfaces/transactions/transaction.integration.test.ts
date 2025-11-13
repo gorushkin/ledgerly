@@ -402,7 +402,7 @@ describe('Transactions Integration Tests', () => {
         url,
       });
 
-      expect(response.statusCode).toBe(201);
+      expect(response.statusCode).toBe(200);
 
       const transactions = JSON.parse(
         response.body,
@@ -424,7 +424,7 @@ describe('Transactions Integration Tests', () => {
         url,
       });
 
-      expect(response.statusCode).toBe(201);
+      expect(response.statusCode).toBe(200);
 
       const transactions = JSON.parse(
         response.body,
@@ -448,7 +448,7 @@ describe('Transactions Integration Tests', () => {
         url: `${url}?accountId=${account3.id}`,
       });
 
-      expect(response.statusCode).toBe(201);
+      expect(response.statusCode).toBe(200);
 
       const transactions = JSON.parse(
         response.body,
@@ -478,7 +478,7 @@ describe('Transactions Integration Tests', () => {
         url: `${url}?someRandomParam=someValue`,
       });
 
-      expect(response.statusCode).toBe(201);
+      expect(response.statusCode).toBe(200);
 
       const transactions = JSON.parse(
         response.body,
