@@ -1,6 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
-import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import {
   createdAt,
@@ -14,19 +14,27 @@ import { entriesTable } from './entries';
 import type { EntryWithOperations, EntryWithTwoOperations } from './entries';
 import { usersTable } from './users';
 
-export const transactionsTable = sqliteTable('transactions', {
-  createdAt,
-  description,
-  id,
-  isTombstone,
-  postingDate: getIsoDateString('posting_date'),
-  transactionDate: getIsoDateString('transaction_date'),
-  updatedAt,
-  userId: text('user_id')
-    .notNull()
-    .references(() => usersTable.id, { onDelete: 'cascade' })
-    .$type<UUID>(),
-});
+export const transactionsTable = sqliteTable(
+  'transactions',
+  {
+    createdAt,
+    description,
+    id,
+    isTombstone,
+    postingDate: getIsoDateString('posting_date'),
+    transactionDate: getIsoDateString('transaction_date'),
+    updatedAt,
+    userId: text('user_id')
+      .notNull()
+      .references(() => usersTable.id, { onDelete: 'cascade' })
+      .$type<UUID>(),
+  },
+
+  (t) => [
+    index('idx_transactions_user').on(t.userId),
+    index('idx_transactions_date').on(t.transactionDate),
+  ],
+);
 
 export const transactionsRelations = relations(
   transactionsTable,
