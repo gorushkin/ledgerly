@@ -1,5 +1,6 @@
 import { CreateTransactionRequestDTO } from 'src/application';
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
+import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction/GetAllTransactions';
 import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
 import { User } from 'src/domain';
 import { Id } from 'src/domain/domain-core';
@@ -13,6 +14,7 @@ describe('TransactionController', () => {
   let user: User;
 
   const mockTransaction = { data: 'mockTransaction' };
+  const mockTransactions = [{ data: 'mockTransaction' }];
 
   const mockCreateTransactionUseCase = {
     execute: vi.fn().mockResolvedValue(mockTransaction),
@@ -22,9 +24,14 @@ describe('TransactionController', () => {
     execute: vi.fn().mockResolvedValue(mockTransaction),
   };
 
+  const mockGetAllTransactionsUseCase = {
+    execute: vi.fn().mockResolvedValue(mockTransactions),
+  };
+
   const transactionController = new TransactionController(
     mockCreateTransactionUseCase as unknown as CreateTransactionUseCase,
     mockGetTransactionByIdUseCase as unknown as GetTransactionByIdUseCase,
+    mockGetAllTransactionsUseCase as unknown as GetAllTransactionsUseCase,
   );
 
   beforeEach(async () => {
@@ -71,7 +78,7 @@ describe('TransactionController', () => {
 
       expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledTimes(1);
 
-      expect(result).equals(mockTransaction);
+      expect(result).toEqual(mockTransaction);
     });
   });
 
@@ -89,6 +96,29 @@ describe('TransactionController', () => {
       expect(mockGetTransactionByIdUseCase.execute).toHaveBeenCalledTimes(1);
 
       expect(result).equals(mockTransaction);
+    });
+  });
+
+  describe('getAll', () => {
+    it('should call GetAllTransactionsUseCase with correct parameters', async () => {
+      const accountId = Id.create().valueOf();
+
+      mockGetAllTransactionsUseCase.execute.mockResolvedValue([
+        mockTransaction,
+      ]);
+
+      const result = await transactionController.getAll(user, {
+        accountId,
+      });
+
+      expect(mockGetAllTransactionsUseCase.execute).toHaveBeenCalledWith(
+        user.id,
+        { accountId },
+      );
+
+      expect(mockGetAllTransactionsUseCase.execute).toHaveBeenCalledTimes(1);
+
+      expect(result).toEqual(mockTransactions);
     });
   });
 });

@@ -1,10 +1,12 @@
-import { UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
+import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
+import { and, eq, inArray } from 'drizzle-orm';
 import { TransactionRepositoryInterface } from 'src/application';
 import {
   TransactionDbInsert,
   TransactionDbRow,
   TransactionWithRelations,
+  entriesTable,
+  operationsTable,
   transactionsTable,
 } from 'src/db/schema';
 
@@ -48,6 +50,57 @@ export class TransactionRepository
       },
       'TransactionRepository.getById',
       { field: 'transaction', tableName: 'transactions', value: transactionId },
+    );
+  }
+
+  async getAll(
+    userId: UUID,
+    query?: TransactionQueryParams,
+  ): Promise<TransactionWithRelations[]> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const accountFilter = query?.accountId
+          ? eq(operationsTable.accountId, query.accountId)
+          : undefined;
+
+        const transactionRows = await this.db
+          .select({ id: transactionsTable.id })
+          .from(transactionsTable)
+          .innerJoin(
+            entriesTable,
+            and(
+              eq(entriesTable.transactionId, transactionsTable.id),
+              eq(entriesTable.userId, userId),
+            ),
+          )
+          .innerJoin(
+            operationsTable,
+            and(
+              eq(operationsTable.entryId, entriesTable.id),
+              eq(operationsTable.userId, userId),
+              ...(accountFilter ? [accountFilter] : []),
+            ),
+          )
+          .groupBy(transactionsTable.id)
+          .orderBy(transactionsTable.createdAt);
+
+        const transactionIds = transactionRows.map((r) => r.id);
+
+        if (transactionIds.length === 0) return [];
+
+        return await this.db.query.transactionsTable.findMany({
+          where: inArray(transactionsTable.id, transactionIds),
+          with: {
+            entries: { with: { operations: true } },
+          },
+        });
+      },
+      'TransactionRepository.getAll',
+      {
+        field: 'transactions',
+        tableName: 'transactions',
+        value: JSON.stringify(query),
+      },
     );
   }
 }

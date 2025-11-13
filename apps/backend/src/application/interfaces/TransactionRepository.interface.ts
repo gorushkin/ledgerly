@@ -1,4 +1,4 @@
-import { UUID } from '@ledgerly/shared/types';
+import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
 import {
   TransactionRepoInsert,
   TransactionDbRow,
@@ -11,4 +11,8 @@ export type TransactionRepositoryInterface = {
     userId: UUID,
     transactionId: UUID,
   ): Promise<TransactionWithRelations | null>;
+  getAll(
+    userId: UUID,
+    query?: TransactionQueryParams,
+  ): Promise<TransactionWithRelations[]>;
 };
