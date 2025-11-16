@@ -1,8 +1,12 @@
 import { CreateEntryRequestDTO } from 'src/application';
-import { EntryRepositoryInterface } from 'src/application/interfaces';
+import {
+  AccountRepositoryInterface,
+  EntryRepositoryInterface,
+} from 'src/application/interfaces';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { createTransaction, createUser } from 'src/db/createTestUser';
-import { Entry, Operation } from 'src/domain';
+import { Account, Entry, Operation } from 'src/domain';
+import { Amount, Id } from 'src/domain/domain-core';
 import {
   afterEach,
   beforeAll,
@@ -13,6 +17,7 @@ import {
   vi,
 } from 'vitest';
 
+import { AccountFactory } from '..';
 import { EntryFactory } from '../entry.factory';
 import { OperationFactory } from '../operation.factory';
 
@@ -22,17 +27,26 @@ describe('EntryFactory', () => {
 
   let entryFactory: EntryFactory;
 
-  let mockCreateOperationService: {
+  let mockCreateOperationFactory: {
     createOperationsForEntry: ReturnType<typeof vi.fn>;
+    preloadAccounts: ReturnType<typeof vi.fn>;
+  };
+
+  let accountFactory: {
+    findOrCreateSystemAccount: ReturnType<typeof vi.fn>;
   };
 
   let mockEntryRepository: {
     create: ReturnType<typeof vi.fn>;
   };
 
+  let mockAccountRepository: {
+    getByIds: ReturnType<typeof vi.fn>;
+  };
+
   let mockSaveWithIdRetry: SaveWithIdRetryType;
 
-  const mockOperations = [] as unknown as Operation[];
+  const mockOperations = [{ data: 'mockData' }] as unknown as Operation[];
 
   beforeAll(async () => {
     user = await createUser();
@@ -40,19 +54,30 @@ describe('EntryFactory', () => {
   });
 
   beforeEach(() => {
-    mockCreateOperationService = {
+    mockCreateOperationFactory = {
       createOperationsForEntry: vi.fn().mockResolvedValue(mockOperations),
+      preloadAccounts: vi.fn().mockResolvedValue(new Map()),
     };
 
     mockEntryRepository = {
       create: vi.fn(),
     };
 
+    accountFactory = {
+      findOrCreateSystemAccount: vi.fn(),
+    };
+
+    mockAccountRepository = {
+      getByIds: vi.fn(),
+    };
+
     mockSaveWithIdRetry = vi.fn().mockResolvedValue({ name: 'mocked entry' });
 
     entryFactory = new EntryFactory(
-      mockCreateOperationService as unknown as OperationFactory,
+      mockCreateOperationFactory as unknown as OperationFactory,
       mockEntryRepository as unknown as EntryRepositoryInterface,
+      mockAccountRepository as unknown as AccountRepositoryInterface,
+      accountFactory as unknown as AccountFactory,
       mockSaveWithIdRetry as unknown as SaveWithIdRetryType,
     );
   });
@@ -64,20 +89,49 @@ describe('EntryFactory', () => {
   it('should create entries with operations', async () => {
     const mockAddOperations = vi.fn();
 
+    const account1 = {
+      accountId: Id.create().valueOf(),
+      currency: 'USD',
+    };
+
+    const account2 = {
+      accountId: Id.create().valueOf(),
+      currency: 'USD',
+    };
+
+    const account3 = {
+      accountId: Id.create().valueOf(),
+      currency: 'USD',
+    };
+
     const mockResult = {
       addOperations: mockAddOperations,
     } as unknown as Entry;
 
     vi.spyOn(Entry, 'create').mockReturnValue(mockResult);
 
-    const operations = [
-      { data: 'mocked operation 1' },
-      { data: 'mocked operation 2' },
-    ] as unknown as Operation[];
-
     const rawEntries: CreateEntryRequestDTO[] = [
-      { operations } as unknown as CreateEntryRequestDTO,
+      [
+        {
+          accountId: account1.accountId,
+          amount: Amount.create('100').valueOf(),
+          description: 'Operation 1',
+        },
+        {
+          accountId: account2.accountId,
+          amount: Amount.create('-100').valueOf(),
+          description: 'Operation 2',
+        },
+      ],
     ];
+
+    mockAccountRepository.getByIds.mockResolvedValueOnce([account1, account2]);
+    accountFactory.findOrCreateSystemAccount.mockResolvedValue(account3);
+
+    vi.spyOn(Account, 'restore')
+      .mockResolvedValueOnce(account1 as unknown as Account)
+      .mockResolvedValueOnce(account2 as unknown as Account)
+      .mockResolvedValueOnce(account3 as unknown as Account);
 
     const result = await entryFactory.createEntriesWithOperations(
       user,
@@ -91,26 +145,55 @@ describe('EntryFactory', () => {
     expect(mockAddOperations).toHaveBeenCalledWith(mockOperations);
 
     expect(result).toEqual([mockResult]);
+
+    expect(mockAccountRepository.getByIds).toHaveBeenCalledWith(
+      user.getId().valueOf(),
+      [account1.accountId, account2.accountId],
+    );
   });
 
   it('should save entry using saveWithIdRetry', async () => {
-    const operations = [
-      { data: 'mocked operation 1' },
-      { data: 'mocked operation 2' },
-    ] as unknown as Operation[];
+    const account1 = {
+      accountId: Id.create().valueOf(),
+      currency: 'USD',
+    };
+
+    const account2 = {
+      accountId: Id.create().valueOf(),
+      currency: 'USD',
+    };
+
+    const account3 = {
+      accountId: Id.create().valueOf(),
+      currency: 'USD',
+    };
 
     const rawEntries: CreateEntryRequestDTO[] = [
-      { operations } as unknown as CreateEntryRequestDTO,
-      { operations } as unknown as CreateEntryRequestDTO,
+      [
+        {
+          accountId: account1.accountId,
+          amount: Amount.create('100').valueOf(),
+          description: 'Operation 1',
+        },
+        {
+          accountId: account2.accountId,
+          amount: Amount.create('-100').valueOf(),
+          description: 'Operation 2',
+        },
+      ],
     ];
 
-    const mockedEntries = [
-      { addOperations: vi.fn() },
-      { addOperations: vi.fn() },
-    ] as unknown as Entry[];
+    mockAccountRepository.getByIds.mockResolvedValueOnce([account1, account2]);
+    accountFactory.findOrCreateSystemAccount.mockResolvedValue(account3);
+
+    vi.spyOn(Account, 'restore')
+      .mockResolvedValueOnce(account1 as unknown as Account)
+      .mockResolvedValueOnce(account2 as unknown as Account)
+      .mockResolvedValueOnce(account3 as unknown as Account);
+
+    const mockedEntries = [{ addOperations: vi.fn() }] as unknown as Entry[];
 
     vi.spyOn(Entry, 'create').mockReturnValueOnce(mockedEntries[0]);
-    vi.spyOn(Entry, 'create').mockReturnValueOnce(mockedEntries[1]);
 
     await entryFactory.createEntriesWithOperations(
       user,
@@ -120,29 +203,14 @@ describe('EntryFactory', () => {
 
     expect(mockSaveWithIdRetry).toHaveBeenCalledTimes(rawEntries.length);
 
-    const testData = (
-      mockSaveWithIdRetry as unknown as { mock: { calls: unknown[] } }
-    ).mock.calls as unknown as [
-      Entry,
-      (entry: Entry) => Promise<Entry>,
-      () => Entry,
-    ][];
+    const [[entry, repoMethod, entityFactory]] = (
+      mockSaveWithIdRetry as ReturnType<typeof vi.fn>
+    ).mock.calls;
 
-    testData.forEach(
-      (
-        [entry, repoArg, createFn]: [
-          Entry,
-          (entry: Entry) => Promise<Entry>,
-          () => Entry,
-        ],
-        index: number,
-      ) => {
-        expect(entry).toBe(mockedEntries[index]);
-        expect(typeof repoArg).toBe('function');
-        expect(typeof createFn).toBe('function');
-        const createdEntry = createFn();
-        expect(createdEntry).toBeInstanceOf(Entry);
-      },
-    );
+    expect(entry).toBe(mockedEntries[0]);
+
+    expect(typeof repoMethod).toBe('function');
+
+    expect(typeof entityFactory).toBe('function');
   });
 });

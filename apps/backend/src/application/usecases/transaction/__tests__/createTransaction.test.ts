@@ -6,7 +6,7 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { EntryFactory, OperationFactory } from 'src/application/services';
+import { EntryFactory } from 'src/application/services';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { createUser } from 'src/db/createTestUser';
 import { Account, Entry } from 'src/domain';
@@ -29,10 +29,6 @@ describe('CreateTransactionUseCase', async () => {
 
   let entryFactory: {
     createEntriesWithOperations: ReturnType<typeof vi.fn>;
-  };
-
-  let operationFactory: {
-    createOperationsForEntry: ReturnType<typeof vi.fn>;
   };
 
   let transactionManager: { run: ReturnType<typeof vi.fn> };
@@ -117,10 +113,6 @@ describe('CreateTransactionUseCase', async () => {
       createEntriesWithOperations: vi.fn().mockReturnValue(mockedEntries),
     };
 
-    operationFactory = {
-      createOperationsForEntry: vi.fn(),
-    };
-
     transactionManager = {
       run: vi.fn((cb: () => unknown) => {
         return cb();
@@ -131,7 +123,6 @@ describe('CreateTransactionUseCase', async () => {
       transactionManager as unknown as TransactionManagerInterface,
       mockTransactionRepository as unknown as TransactionRepositoryInterface,
       entryFactory as unknown as EntryFactory,
-      operationFactory as unknown as OperationFactory,
       mockedSaveWithIdRetry as unknown as SaveWithIdRetryType,
     );
   });

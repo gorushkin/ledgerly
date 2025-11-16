@@ -7,7 +7,7 @@ import {
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import { TransactionMapper } from 'src/application/mappers';
-import { EntryFactory, OperationFactory } from 'src/application/services';
+import { EntryFactory } from 'src/application/services';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { TransactionDbRow, TransactionRepoInsert } from 'src/db/schema';
 import { User } from 'src/domain';
@@ -19,7 +19,6 @@ export class CreateTransactionUseCase {
     protected readonly transactionManager: TransactionManagerInterface,
     protected readonly transactionRepository: TransactionRepositoryInterface,
     protected readonly entryFactory: EntryFactory,
-    protected readonly operationFactory: OperationFactory,
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
   ) {}
 

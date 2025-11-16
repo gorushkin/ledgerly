@@ -66,6 +66,8 @@ export const createContainer = (db: DataBase): AppContainer => {
   const entryFactory = new EntryFactory(
     operationFactory,
     entryRepository,
+    accountRepository,
+    accountFactory,
     saveWithIdRetry,
   );
 
@@ -87,7 +89,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionManager,
     transactionRepository,
     entryFactory,
-    operationFactory,
     saveWithIdRetry,
   );
 

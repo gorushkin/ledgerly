@@ -229,12 +229,14 @@ export class TestDB {
       type?: AccountTypeValue;
       initialBalance?: MoneyString;
       description?: string;
+      isSystem?: boolean;
     },
   ) => {
     const accountData = {
       currency: 'USD' as unknown as CurrencyCode,
       description: '',
       initialBalance: Amount.create('0').valueOf(),
+      isSystem: false,
       name: 'Test Account',
       type: ACCOUNT_TYPES[0],
       ...params,
@@ -254,7 +256,7 @@ export class TestDB {
         userId: accountData.userId,
         ...TestDB.createTimestamps,
         ...TestDB.uuid,
-        isSystem: false,
+        isSystem: accountData.isSystem,
       })
       .returning()
       .get();

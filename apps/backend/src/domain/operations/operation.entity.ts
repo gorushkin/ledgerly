@@ -232,4 +232,8 @@ export class Operation {
   get isSystem(): boolean {
     return this.account.isSystem;
   }
+
+  get currency() {
+    return this.account.currency;
+  }
 }

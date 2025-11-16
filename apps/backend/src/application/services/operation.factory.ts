@@ -1,3 +1,4 @@
+import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { OperationRepoInsert } from 'src/db/schema';
 import { Account, Entry, Operation, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
@@ -23,89 +24,71 @@ export class OperationFactory {
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
   ) {}
 
-  private async getSystemAccountForCurrency(
-    user: User,
-    account: Account,
-  ): Promise<Account> {
-    const currency = account.currency.valueOf();
-
-    const systemAccount = await this.accountRepository.findSystemAccount(
-      user.getId().valueOf(),
-      currency,
-    );
-
-    if (systemAccount) {
-      return Account.restore(systemAccount);
-    }
-
-    return await this.accountFactory.createAccount(user, {
-      currency: currency,
-      description: 'System account for internal operations',
-      initialBalance: Amount.create('0').valueOf(),
-      name: `System Account (${currency})`,
-      type: 'currencyTrading',
-    });
-  }
-
   private getSystemAccountDescription({
-    account,
     amount,
+    currency,
     direction,
   }: {
-    account: Account;
     amount: Amount;
+    currency: CurrencyCode;
     direction: 'from' | 'to';
   }) {
-    return `Currency exchange ${direction} ${account.currency.valueOf()} account: ${amount.valueOf()}`;
+    return `Currency exchange ${direction} ${currency} account: ${amount.valueOf()}`;
   }
 
-  private async addTradingOperations(
+  private addTradingOperations(
     user: User,
-    [from, to]: CreateEntryRequestDTO,
-    fromAccount: Account,
-    toAccount: Account,
-  ): Promise<CreateEntryRequestDTO | null> {
-    if (fromAccount.isCurrencySame(toAccount.currency)) {
+    entry: Entry,
+    [fromOperationDTO, toOperationDTO]: CreateEntryRequestDTO,
+    [fromCurrency, toCurrency]: [CurrencyCode, CurrencyCode],
+    systemAccountsMap: Map<CurrencyCode, Account>,
+  ): [Operation, Operation] | null {
+    // TODO: compare currencies by id, not by string value
+    if (fromCurrency === toCurrency) {
       return null;
     }
 
-    const oppositeFrom = Amount.create(from.amount).negate();
-    const oppositeTo = Amount.create(to.amount).negate();
+    const oppositeFrom = Amount.create(fromOperationDTO.amount).negate();
+    const oppositeTo = Amount.create(toOperationDTO.amount).negate();
 
-    const fromSystemAccount = await this.getSystemAccountForCurrency(
-      user,
-      fromAccount,
+    const fromSystemAccount = this.getSystemAccountFromMap(
+      fromCurrency,
+      systemAccountsMap,
     );
 
-    const toSystemAccount = await this.getSystemAccountForCurrency(
-      user,
-      toAccount,
+    const toSystemAccount = this.getSystemAccountFromMap(
+      toCurrency,
+      systemAccountsMap,
     );
 
-    const balancedFromOperationDTO: CreateOperationRequestDTO = {
-      accountId: fromSystemAccount.getId().valueOf(),
-      amount: oppositeFrom.valueOf(),
-      description: this.getSystemAccountDescription({
-        account: fromAccount,
+    const balancedFromOperation = Operation.create(
+      user,
+      fromSystemAccount,
+      entry,
+      oppositeFrom,
+      this.getSystemAccountDescription({
         amount: oppositeFrom,
+        currency: fromCurrency,
         direction: 'from',
       }),
-    };
+    );
 
-    const balancedToOperationDTO: CreateOperationRequestDTO = {
-      accountId: toSystemAccount.getId().valueOf(),
-      amount: oppositeTo.valueOf(),
-      description: this.getSystemAccountDescription({
-        account: toAccount,
+    const balancedToOperation = Operation.create(
+      user,
+      toSystemAccount,
+      entry,
+      oppositeTo,
+      this.getSystemAccountDescription({
         amount: oppositeTo,
+        currency: toCurrency,
         direction: 'to',
       }),
-    };
+    );
 
-    return [balancedFromOperationDTO, balancedToOperationDTO];
+    return [balancedFromOperation, balancedToOperation];
   }
 
-  validateInputOperationsAmounts({
+  private validateInputOperationsAmounts({
     from,
     system,
     to,
@@ -144,75 +127,79 @@ export class OperationFactory {
   async createOperationsForEntry(
     user: User,
     entry: Entry,
-    operations: CreateEntryRequestDTO,
+    [fromOperationDTO, toOperationDTO]: CreateEntryRequestDTO,
+    accountsByIdMap: Map<UUID, Account>,
+    currencySystemAccountsMap: Map<CurrencyCode, Account>,
   ) {
-    // TODO: maybe we do not need to fetch accounts for both operations upfront
-    const fromAccount = await this.getOperationAccount(user, operations[0]);
-    const toAccount = await this.getOperationAccount(user, operations[1]);
+    const fromAccount = this.getAccountFromMap(
+      fromOperationDTO.accountId,
+      accountsByIdMap,
+    );
 
-    const tradingOperationsDTO = await this.addTradingOperations(
+    const toAccount = this.getAccountFromMap(
+      toOperationDTO.accountId,
+      accountsByIdMap,
+    );
+
+    const tradingOperations = this.addTradingOperations(
       user,
-      operations,
-      fromAccount,
-      toAccount,
+      entry,
+      [fromOperationDTO, toOperationDTO],
+      [fromAccount.currency.valueOf(), toAccount.currency.valueOf()],
+      currencySystemAccountsMap,
     );
 
     const fromOperation = await this.createOperation(
       user,
       entry,
-      operations[0],
+      fromOperationDTO,
       fromAccount,
     );
 
     const toOperation = await this.createOperation(
       user,
       entry,
-      operations[1],
+      toOperationDTO,
       toAccount,
     );
 
-    const systemOperations = tradingOperationsDTO
-      ? await Promise.all([
-          this.createOperation(
-            user,
-            entry,
-            tradingOperationsDTO[0],
-            await this.getOperationAccount(user, tradingOperationsDTO[0]),
-          ),
-          this.createOperation(
-            user,
-            entry,
-            tradingOperationsDTO[1],
-            await this.getOperationAccount(user, tradingOperationsDTO[1]),
-          ),
-        ])
-      : null;
-
     this.validateInputOperationsAmounts({
       from: fromOperation,
-      ...(systemOperations
-        ? { system: { from: systemOperations[0], to: systemOperations[1] } }
+      ...(tradingOperations
+        ? { system: { from: tradingOperations[0], to: tradingOperations[1] } }
         : { system: null }),
       to: toOperation,
     });
 
-    return [fromOperation, toOperation, ...(systemOperations ?? [])];
+    return [fromOperation, toOperation, ...(tradingOperations ?? [])];
   }
 
-  private async getOperationAccount(
-    user: User,
-    opData: CreateOperationRequestDTO,
-  ) {
-    const rawAccount = await this.accountRepository.getById(
-      user.getId().valueOf(),
-      opData.accountId,
-    );
+  private getAccountFromMap(
+    accountId: UUID,
+    accountsMap: Map<UUID, Account>,
+  ): Account {
+    const account = accountsMap.get(accountId);
 
-    if (!rawAccount) {
-      throw new Error(`Account not found: ${opData.accountId}`);
+    if (!account) {
+      throw new Error(`Account not found in map: ${accountId}`);
     }
 
-    return Account.restore(rawAccount);
+    return account;
+  }
+
+  private getSystemAccountFromMap(
+    currencyCode: CurrencyCode,
+    currencySystemAccountsMap: Map<CurrencyCode, Account>,
+  ): Account {
+    const systemAccount = currencySystemAccountsMap.get(currencyCode);
+
+    if (!systemAccount) {
+      throw new Error(
+        `System account not found in map for currency: ${currencyCode}`,
+      );
+    }
+
+    return systemAccount;
   }
 
   private async createOperation(

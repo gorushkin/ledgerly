@@ -1,5 +1,5 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
 import {
   AccountDbRow,
@@ -132,11 +132,32 @@ export class AccountRepository
     }, `Failed to delete account with ID ${id}`);
   }
 
-  findSystemAccount(
-    _userId: UUID,
-    _currency: CurrencyCode,
+  async findSystemAccount(
+    userId: UUID,
+    currency: CurrencyCode,
   ): Promise<AccountDbRow> {
-    throw new Error('Method not implemented.');
+    return this.executeDatabaseOperation<AccountDbRow>(async () => {
+      const account = await this.db
+        .select()
+        .from(accountsTable)
+        .where(
+          and(
+            eq(accountsTable.userId, userId),
+            eq(accountsTable.currency, currency),
+            eq(accountsTable.isSystem, true),
+            eq(accountsTable.isTombstone, false),
+          ),
+        )
+        .get();
+
+      if (!account) {
+        throw new NotFoundError(
+          `System account not found for currency: ${currency}`,
+        );
+      }
+
+      return account;
+    }, 'Failed to fetch system account');
   }
 
   async ensureUserOwnsAccount(userId: UUID, accountId: UUID) {
@@ -164,5 +185,32 @@ export class AccountRepository
 
       return account;
     }, 'Failed to verify account ownership');
+  }
+
+  async getByIds(userId: UUID, accountIds: UUID[]): Promise<AccountDbRow[]> {
+    return this.executeDatabaseOperation<AccountDbRow[]>(async () => {
+      const accounts = await this.db
+        .select()
+        .from(accountsTable)
+        .where(
+          and(
+            inArray(accountsTable.id, accountIds),
+            eq(accountsTable.userId, userId),
+            eq(accountsTable.isTombstone, false),
+          ),
+        )
+        .all();
+
+      // Validate that all requested accounts were found
+      const foundIds = new Set(accounts.map((acc) => acc.id));
+      const missingAccounts = accountIds.filter((id) => !foundIds.has(id));
+      if (missingAccounts.length > 0) {
+        throw new NotFoundError(
+          `Accounts not found: ${missingAccounts.join(', ')}`,
+        );
+      }
+
+      return accounts;
+    }, 'Failed to fetch accounts by IDs');
   }
 }

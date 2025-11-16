@@ -503,4 +503,38 @@ describe('AccountRepository', () => {
       expect(originalUpdatedAt.unix()).toBeLessThanOrEqual(newUpdatedAt.unix());
     });
   });
+
+  describe('findSystemAccount', () => {
+    it('should retrieve system account by currency for a user', async () => {
+      const systemAccountData = getAccountData({
+        currency: USD,
+        name: 'System Account for USD',
+        type: 'asset',
+        userId: user.id,
+      });
+
+      const systemAccount = await testDB.createAccount(user.id, {
+        ...systemAccountData,
+        isSystem: true,
+      });
+
+      const retrievedAccount = await accountRepository.findSystemAccount(
+        user.id,
+        USD,
+      );
+
+      expect(retrievedAccount).toBeDefined();
+      expect(retrievedAccount.id).toBe(systemAccount.id);
+      expect(retrievedAccount.currency).toBe(USD);
+      expect(retrievedAccount.isSystem).toBe(true);
+    });
+
+    it('should throw NotFoundError if system account does not exist for user and currency', async () => {
+      await expect(
+        accountRepository.findSystemAccount(user.id, USD),
+      ).rejects.toThrowError(
+        new NotFoundError(`System account not found for currency: ${USD}`),
+      );
+    });
+  });
 });
