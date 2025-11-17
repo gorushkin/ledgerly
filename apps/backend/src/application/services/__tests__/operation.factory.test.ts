@@ -1,8 +1,5 @@
 import { CreateEntryRequestDTO } from 'src/application/dto';
-import {
-  AccountRepositoryInterface,
-  OperationRepositoryInterface,
-} from 'src/application/interfaces';
+import { OperationRepositoryInterface } from 'src/application/interfaces';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import {
   createEntry,
@@ -12,9 +9,10 @@ import {
 import { Account, Entry, Operation, User } from 'src/domain';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
+import { UnbalancedOperationsError } from 'src/presentation/errors/businessLogic.error';
 import { describe, it, vi, beforeEach, expect, beforeAll } from 'vitest';
 
-import { AccountFactory, OperationFactory } from '../';
+import { OperationFactory } from '../';
 
 describe('OperationFactory', () => {
   let user: User;
@@ -25,15 +23,6 @@ describe('OperationFactory', () => {
 
   let mockOperationRepository: {
     create: ReturnType<typeof vi.fn>;
-  };
-
-  let accountFactory: {
-    createAccount: ReturnType<typeof vi.fn>;
-  };
-
-  let mockAccountRepository: {
-    getById: ReturnType<typeof vi.fn>;
-    findSystemAccount: ReturnType<typeof vi.fn>;
   };
 
   let mockedSaveWithIdRetry: SaveWithIdRetryType;
@@ -102,28 +91,17 @@ describe('OperationFactory', () => {
       create: vi.fn(),
     };
 
-    mockAccountRepository = {
-      findSystemAccount: vi.fn(),
-      getById: vi.fn(),
-    };
-
-    accountFactory = {
-      createAccount: vi.fn(),
-    };
-
     mockedSaveWithIdRetry = vi
       .fn()
       .mockResolvedValue({ name: 'mocked account' }) as SaveWithIdRetryType;
 
     operationFactory = new OperationFactory(
       mockOperationRepository as unknown as OperationRepositoryInterface,
-      accountFactory as unknown as AccountFactory,
-      mockAccountRepository as unknown as AccountRepositoryInterface,
       mockedSaveWithIdRetry,
     );
   });
 
-  it.skip('should create operations for entry', async () => {
+  it('should create operations for entry', async () => {
     const fromAmount = Amount.create('-100');
 
     const from = {
@@ -141,11 +119,6 @@ describe('OperationFactory', () => {
     };
 
     const operationsRaw: CreateEntryRequestDTO = [from, to];
-
-    mockAccountRepository.getById = vi
-      .fn()
-      .mockResolvedValueOnce(usdAccount1.toPersistence())
-      .mockResolvedValueOnce(usdAccount2.toPersistence());
 
     const mockedOperationFrom = Operation.create(
       user,
@@ -168,26 +141,23 @@ describe('OperationFactory', () => {
     vi.spyOn(Operation, 'create').mockReturnValueOnce(mockedOperations[0]);
     vi.spyOn(Operation, 'create').mockReturnValueOnce(mockedOperations[1]);
 
+    // Create accountsMap for the new signature
+    const accountsByIdMap = new Map([
+      [usdAccount1.getId().valueOf(), usdAccount1],
+      [usdAccount2.getId().valueOf(), usdAccount2],
+    ]);
+
+    const currencySystemAccountsMap = new Map([
+      [Currency.create('USD').valueOf(), usdSystemAccount],
+      [Currency.create('USD').valueOf(), eurSystemAccount],
+    ]);
+
     const operations = await operationFactory.createOperationsForEntry(
       user,
       entry,
       operationsRaw,
-    );
-
-    expect(mockAccountRepository.getById).toHaveBeenCalledTimes(
-      Object.keys(operationsRaw).length,
-    );
-
-    expect(mockAccountRepository.getById).toHaveBeenNthCalledWith(
-      1,
-      user.getId().valueOf(),
-      operationsRaw[0].accountId,
-    );
-
-    expect(mockAccountRepository.getById).toHaveBeenNthCalledWith(
-      2,
-      user.getId().valueOf(),
-      operationsRaw[1].accountId,
+      accountsByIdMap,
+      currencySystemAccountsMap,
     );
 
     expect(mockedSaveWithIdRetry).toHaveBeenCalledTimes(
@@ -254,9 +224,7 @@ describe('OperationFactory', () => {
     });
   });
 
-  it.skip('should throw an error if account not found', async () => {
-    mockAccountRepository.getById = vi.fn().mockResolvedValue(null);
-
+  it('should throw an error if account not found', async () => {
     const operationsRaw: CreateEntryRequestDTO = [
       {
         accountId: usdAccount1.getId().valueOf(),
@@ -270,14 +238,35 @@ describe('OperationFactory', () => {
       },
     ];
 
+    // Create accountsMap with missing account
+    const accountsMap = new Map([
+      // Only add usdAccount2, usdAccount1 is missing
+      [usdAccount2.getId().valueOf(), usdAccount2],
+    ]);
+
+    const currencySystemAccountsMap = new Map([
+      [Currency.create('USD').valueOf(), usdSystemAccount],
+      [Currency.create('USD').valueOf(), eurSystemAccount],
+    ]);
+
     await expect(
-      operationFactory.createOperationsForEntry(user, entry, operationsRaw),
-    ).rejects.toThrowError(`Account not found: ${operationsRaw[0].accountId}`);
+      operationFactory.createOperationsForEntry(
+        user,
+        entry,
+        operationsRaw,
+        accountsMap,
+        currencySystemAccountsMap,
+      ),
+    ).rejects.toThrowError(
+      `Account not found in map: ${operationsRaw[0].accountId}`,
+    );
   });
 
-  it.skip('should create trading operations if accounts have different currencies', async () => {
+  it('should create trading operations if accounts have different currencies', async () => {
     const fromAmount = Amount.create('-50');
+    const fromCurrency = eurAccount.currency;
     const toAmount = Amount.create('100');
+    const toCurrency = usdAccount1.currency;
 
     const testData = {
       from: {
@@ -313,27 +302,58 @@ describe('OperationFactory', () => {
       },
     ];
 
-    accountFactory.createAccount = vi
-      .fn()
+    vi.spyOn(Account, 'restore')
       .mockReturnValueOnce(testData.from.systemAccount)
       .mockReturnValueOnce(testData.to.systemAccount);
 
-    mockAccountRepository.getById = vi
-      .fn()
-      .mockResolvedValueOnce(testData.from.account.toPersistence())
-      .mockResolvedValueOnce(testData.to.account.toPersistence())
-      .mockResolvedValueOnce(testData.from.systemAccount.toPersistence())
-      .mockResolvedValueOnce(testData.to.systemAccount.toPersistence());
+    // Create accountsMap for the new signature (only user accounts, system accounts will be fetched separately)
+    const accountsMap = new Map([
+      [testData.from.account.getId().valueOf(), testData.from.account],
+      [testData.to.account.getId().valueOf(), testData.to.account],
+    ]);
 
-    vi.spyOn(Account, 'restore')
-      .mockReturnValueOnce(testData.from.account)
-      .mockReturnValueOnce(testData.to.account);
+    const currencySystemAccountsMap = new Map([
+      [Currency.create('USD').valueOf(), usdSystemAccount],
+      [Currency.create('EUR').valueOf(), eurSystemAccount],
+    ]);
 
     const operations = await operationFactory.createOperationsForEntry(
       user,
       entry,
       operationsRaw,
+      accountsMap,
+      currencySystemAccountsMap,
     );
+
+    const expectedResultsDTO: { currency: Currency; amount: Amount }[] = [
+      { amount: testData.from.amount, currency: fromCurrency },
+      { amount: testData.from.amount.negate(), currency: fromCurrency },
+      { amount: testData.to.amount, currency: toCurrency },
+      { amount: testData.to.amount.negate(), currency: toCurrency },
+    ];
+
+    const getKey = (currency: Currency, amount: Amount) =>
+      `${amount.valueOf()}_${currency.valueOf()}`;
+
+    const expectedResultsMap = expectedResultsDTO.reduce((map, item) => {
+      const key = getKey(item.currency, item.amount);
+      map.set(key, item);
+      return map;
+    }, new Map<string, { currency: Currency; amount: Amount }>());
+
+    operations.forEach((operation) => {
+      const key = getKey(operation.currency, operation.amount);
+      const expectedResult = expectedResultsMap.get(key);
+
+      expect(expectedResult).toBeDefined();
+      expect(operation.amount.valueOf()).toBe(expectedResult!.amount.valueOf());
+      expect(operation.currency.valueOf()).toBe(
+        expectedResult!.currency.valueOf(),
+      );
+      expectedResultsMap.delete(key);
+    });
+
+    expect(expectedResultsMap.size).toBe(0);
 
     expect(operations).toHaveLength(4);
 
@@ -365,24 +385,6 @@ describe('OperationFactory', () => {
   });
 
   it('should throw an error if the balances of operations do not equal zero', async () => {
-    mockAccountRepository.getById = vi
-      .fn()
-      .mockResolvedValueOnce(usdAccount1.toPersistence())
-      .mockResolvedValueOnce(usdAccount2.toPersistence());
-
-    // const operationsRaw: CreateEntryRequestDTO = {
-    //   from: {
-    //     accountId: usdAccount1.getId().valueOf(),
-    //     amount: Amount.create('100').valueOf(),
-    //     description: 'Operation 1',
-    //   },
-    //   to: {
-    //     accountId: usdAccount2.getId().valueOf(),
-    //     amount: Amount.create('100').valueOf(),
-    //     description: 'Operation 1',
-    //   },
-    // };
-
     const operationsRaw: CreateEntryRequestDTO = [
       {
         accountId: usdAccount1.getId().valueOf(),
@@ -396,10 +398,24 @@ describe('OperationFactory', () => {
       },
     ];
 
+    // Create accountsMap for the new signature
+    const accountsMap = new Map([
+      [usdAccount1.getId().valueOf(), usdAccount1],
+      [usdAccount2.getId().valueOf(), usdAccount2],
+    ]);
+
+    const currencySystemAccountsMap = new Map([
+      [Currency.create('USD').valueOf(), eurSystemAccount],
+    ]);
+
     await expect(
-      operationFactory.createOperationsForEntry(user, entry, operationsRaw),
-    ).rejects.toThrowError(
-      `Operations amounts are not balanced: from=${operationsRaw[0].amount.valueOf()}, to=${operationsRaw[1].amount.valueOf()}`,
-    );
+      operationFactory.createOperationsForEntry(
+        user,
+        entry,
+        operationsRaw,
+        accountsMap,
+        currencySystemAccountsMap,
+      ),
+    ).rejects.toThrowError(UnbalancedOperationsError);
   });
 });

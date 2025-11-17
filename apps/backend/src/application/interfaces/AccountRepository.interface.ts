@@ -4,6 +4,7 @@ import {
   AccountDbUpdate,
   AccountRepoInsert,
 } from 'src/db/schema';
+
 export type AccountRepositoryInterface = {
   getAll(userId: UUID): Promise<AccountDbRow[]>;
   create(data: AccountRepoInsert): Promise<AccountDbRow>;
@@ -15,4 +16,5 @@ export type AccountRepositoryInterface = {
     currency: CurrencyCode,
   ): Promise<AccountDbRow>;
   ensureUserOwnsAccount(userId: UUID, accountId: UUID): Promise<AccountDbRow>;
+  getByIds(userId: UUID, accountIds: UUID[]): Promise<AccountDbRow[]>;
 };

@@ -11,6 +11,7 @@ export class OperationMapper {
       description: operation.description,
       entryId: operation.id.valueOf(),
       id: operation.id.valueOf(),
+      isSystem: operation.isSystem,
       updatedAt: operation.getUpdatedAt().valueOf(),
       userId: operation.getUserId().valueOf(),
     };

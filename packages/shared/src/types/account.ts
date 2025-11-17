@@ -27,12 +27,16 @@ export type AccountCreateDTO = {
   currency: CurrencyCode;
   description: string;
   initialBalance: MoneyString;
+  isSystem?: boolean;
   name: string;
   type: AccountTypeValue;
 };
 
 export type AccountUpdateDTO = Partial<
-  Pick<AccountCreateDTO, "name" | "description" | "type" | "currency">
+  Pick<
+    AccountCreateDTO,
+    "name" | "description" | "type" | "currency" | "isSystem"
+  >
 >;
 
 export type AccountResponseDTO = AccountDomain;

@@ -13,7 +13,8 @@ export type ErrorType =
   | 'UserNotFoundError'
   | 'UserExistsError'
   | 'InvalidPasswordError'
-  | 'EmailAlreadyExistsError';
+  | 'EmailAlreadyExistsError'
+  | 'UnbalancedOperationsError';
 
 export class AppError extends Error {
   constructor(

@@ -1,10 +1,15 @@
-import { AccountCreateDTO, AccountResponseDTO } from '@ledgerly/shared/types';
+import {
+  AccountCreateDTO,
+  AccountResponseDTO,
+  CurrencyCode,
+} from '@ledgerly/shared/types';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { AccountRepoInsert } from 'src/db/schema';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Account } from 'src/domain/accounts/account.entity';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
+import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 
 import { AccountRepositoryInterface } from '../interfaces';
 
@@ -36,5 +41,29 @@ export class AccountFactory {
     );
 
     return account;
+  }
+
+  async findOrCreateSystemAccount(
+    user: User,
+    currency: CurrencyCode,
+  ): Promise<Account> {
+    try {
+      const systemAccount = await this.accountRepository.findSystemAccount(
+        user.getId().valueOf(),
+        currency,
+      );
+      return Account.restore(systemAccount);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        return await this.createAccount(user, {
+          currency,
+          description: `System account for ${currency} currency trading`,
+          initialBalance: Amount.create('0').valueOf(),
+          name: `Trading System Account (${currency})`,
+          type: 'currencyTrading',
+        });
+      }
+      throw error;
+    }
   }
 }

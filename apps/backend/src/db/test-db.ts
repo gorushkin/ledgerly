@@ -16,7 +16,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
-import { Amount, DateValue } from 'src/domain/domain-core';
+import { Amount, Currency, DateValue } from 'src/domain/domain-core';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 
 import {
@@ -117,13 +117,24 @@ export class TestDB {
   }
 
   async cleanupTestDb() {
+    console.info('Cleaning up test database...');
     await this.db.run(sql`PRAGMA foreign_keys = OFF;`);
 
-    const tables = Object.keys(schema);
+    const tables = [
+      'entries',
+      'operations',
+      'transactions',
+      'settings',
+      'accounts',
+      'currencies',
+      'users',
+    ];
 
     for (const table of tables) {
-      await this.db.run(sql.raw(`DROP TABLE IF EXISTS ${table};`));
+      await this.db.run(sql.raw(`DELETE FROM ${table};`));
     }
+
+    await this.db.run(sql`PRAGMA foreign_keys = ON;`);
   }
 
   createUser = async (params?: {
@@ -229,12 +240,14 @@ export class TestDB {
       type?: AccountTypeValue;
       initialBalance?: MoneyString;
       description?: string;
+      isSystem?: boolean;
     },
   ) => {
     const accountData = {
       currency: 'USD' as unknown as CurrencyCode,
       description: '',
       initialBalance: Amount.create('0').valueOf(),
+      isSystem: false,
       name: 'Test Account',
       type: ACCOUNT_TYPES[0],
       ...params,
@@ -254,7 +267,7 @@ export class TestDB {
         userId: accountData.userId,
         ...TestDB.createTimestamps,
         ...TestDB.uuid,
-        isSystem: false,
+        isSystem: accountData.isSystem,
       })
       .returning()
       .get();
@@ -316,19 +329,24 @@ export class TestDB {
         password: 'hashed_password',
       }));
 
-    const account1 = await this.createAccount(user.id, {
-      name: 'Savings Account',
-    });
-    const account2 = await this.createAccount(user.id, {
-      name: 'Checking Account',
+    const accountUSD1 = await this.createAccount(user.id, {
+      currency: Currency.create('USD').valueOf(),
+      name: 'Savings Account USD',
     });
 
-    const account3 = await this.createAccount(user.id, {
-      name: 'Credit Card',
+    const accountUSD2 = await this.createAccount(user.id, {
+      currency: Currency.create('USD').valueOf(),
+      name: 'Checking Account USD',
+    });
+
+    const accountEUR = await this.createAccount(user.id, {
+      currency: Currency.create('EUR').valueOf(),
+      name: 'Credit Card EUR',
     });
 
     const transaction1 = await this.createTransaction(user.id);
     const transaction2 = await this.createTransaction(user.id);
+
     const entry1Transaction1 = await this.createEntry(user.id, {
       transactionId: transaction1.id,
     });
@@ -342,47 +360,54 @@ export class TestDB {
     });
 
     await this.createOperation(user.id, {
-      accountId: account1.id,
+      accountId: accountUSD1.id,
       amount: Amount.create('10000').valueOf(),
       description: 'Initial Deposit',
       entryId: entry1Transaction1.id,
     });
 
     await this.createOperation(user.id, {
-      accountId: account2.id,
+      accountId: accountUSD2.id,
       amount: Amount.create('-5000').valueOf(),
       description: 'Grocery Shopping',
       entryId: entry1Transaction1.id,
     });
 
     await this.createOperation(user.id, {
-      accountId: account3.id,
+      accountId: accountEUR.id,
       amount: Amount.create('2000').valueOf(),
       description: 'Credit Card Payment',
       entryId: entry2Transaction1.id,
     });
 
     await this.createOperation(user.id, {
-      accountId: account1.id,
+      accountId: accountUSD1.id,
       amount: Amount.create('-2000').valueOf(),
       description: 'Utility Bill',
       entryId: entry2Transaction1.id,
     });
 
     await this.createOperation(user.id, {
-      accountId: account1.id,
+      accountId: accountUSD1.id,
       amount: Amount.create('15000').valueOf(),
       description: 'Salary',
       entryId: entry1Transaction2.id,
     });
 
     await this.createOperation(user.id, {
-      accountId: account2.id,
+      accountId: accountUSD2.id,
       amount: Amount.create('-15000').valueOf(),
       description: 'Rent Payment',
       entryId: entry1Transaction2.id,
     });
 
-    return { account1, account2, account3, transaction1, transaction2, user };
+    return {
+      account1: accountUSD1,
+      account2: accountUSD2,
+      account3: accountEUR,
+      transaction1,
+      transaction2,
+      user,
+    };
   };
 }

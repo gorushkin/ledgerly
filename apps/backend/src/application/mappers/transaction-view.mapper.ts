@@ -70,6 +70,7 @@ export class TransactionViewMapper {
       description: op.description,
       entryId: op.entryId,
       id: op.id,
+      isSystem: op.isSystem,
       updatedAt: op.updatedAt,
       userId: op.userId,
     };
