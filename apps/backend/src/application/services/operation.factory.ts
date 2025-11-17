@@ -1,7 +1,7 @@
 import { CurrencyCode, MoneyString, UUID } from '@ledgerly/shared/types';
 import { OperationRepoInsert } from 'src/db/schema';
 import { Account, Entry, Operation, User } from 'src/domain';
-import { Amount } from 'src/domain/domain-core';
+import { Amount, Currency } from 'src/domain/domain-core';
 import { UnbalancedOperationsError } from 'src/presentation/errors/businessLogic.error';
 
 import { CreateEntryRequestDTO, OperationResponseDTO } from '../dto';
@@ -38,24 +38,23 @@ export class OperationFactory {
     user: User,
     entry: Entry,
     [fromOperationDTO, toOperationDTO]: CreateEntryRequestDTO,
-    [fromCurrency, toCurrency]: [CurrencyCode, CurrencyCode],
+    [fromCurrency, toCurrency]: [Currency, Currency],
     systemAccountsMap: Map<CurrencyCode, Account>,
-  ): [TradingOperationDTO, TradingOperationDTO] | null {
-    // TODO: compare currencies by id, not by string value
-    if (fromCurrency === toCurrency) {
-      return null;
+  ): [TradingOperationDTO, TradingOperationDTO] | [] {
+    if (fromCurrency.isEqualTo(toCurrency)) {
+      return [];
     }
 
     const oppositeFromAmount = Amount.create(fromOperationDTO.amount).negate();
     const oppositeToAmount = Amount.create(toOperationDTO.amount).negate();
 
     const fromSystemAccount = this.getSystemAccountFromMap(
-      fromCurrency,
+      fromCurrency.valueOf(),
       systemAccountsMap,
     );
 
     const toSystemAccount = this.getSystemAccountFromMap(
-      toCurrency,
+      toCurrency.valueOf(),
       systemAccountsMap,
     );
 
@@ -120,15 +119,13 @@ export class OperationFactory {
       accountsByIdMap,
     );
 
-    const tradingOperationsDTO =
-      this.addTradingOperations(
-        user,
-        entry,
-        [fromOperationDTO, toOperationDTO],
-        [fromAccount.currency.valueOf(), toAccount.currency.valueOf()],
-        currencySystemAccountsMap,
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      ) || [];
+    const tradingOperationsDTO = this.addTradingOperations(
+      user,
+      entry,
+      [fromOperationDTO, toOperationDTO],
+      [fromAccount.currency, toAccount.currency],
+      currencySystemAccountsMap,
+    );
 
     const dtos: TradingOperationDTO[] = [
       {
