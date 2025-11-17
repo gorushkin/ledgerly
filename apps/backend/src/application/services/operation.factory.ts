@@ -1,26 +1,24 @@
-import { CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { CurrencyCode, MoneyString, UUID } from '@ledgerly/shared/types';
 import { OperationRepoInsert } from 'src/db/schema';
 import { Account, Entry, Operation, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
+import { UnbalancedOperationsError } from 'src/presentation/errors/businessLogic.error';
 
-import {
-  CreateOperationRequestDTO,
-  CreateEntryRequestDTO,
-  OperationResponseDTO,
-} from '../dto';
-import {
-  AccountRepositoryInterface,
-  OperationRepositoryInterface,
-} from '../interfaces';
+import { CreateEntryRequestDTO, OperationResponseDTO } from '../dto';
+import { OperationRepositoryInterface } from '../interfaces';
 import { SaveWithIdRetryType } from '../shared/saveWithIdRetry';
 
-import { AccountFactory } from './account.factory';
+type TradingOperationDTO = {
+  user: User;
+  entry: Entry;
+  rawAmount: MoneyString;
+  description: string;
+  account: Account;
+};
 
 export class OperationFactory {
   constructor(
     protected readonly operationRepository: OperationRepositoryInterface,
-    protected readonly accountFactory: AccountFactory,
-    protected readonly accountRepository: AccountRepositoryInterface,
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
   ) {}
 
@@ -42,14 +40,14 @@ export class OperationFactory {
     [fromOperationDTO, toOperationDTO]: CreateEntryRequestDTO,
     [fromCurrency, toCurrency]: [CurrencyCode, CurrencyCode],
     systemAccountsMap: Map<CurrencyCode, Account>,
-  ): [Operation, Operation] | null {
+  ): [TradingOperationDTO, TradingOperationDTO] | null {
     // TODO: compare currencies by id, not by string value
     if (fromCurrency === toCurrency) {
       return null;
     }
 
-    const oppositeFrom = Amount.create(fromOperationDTO.amount).negate();
-    const oppositeTo = Amount.create(toOperationDTO.amount).negate();
+    const oppositeFromAmount = Amount.create(fromOperationDTO.amount).negate();
+    const oppositeToAmount = Amount.create(toOperationDTO.amount).negate();
 
     const fromSystemAccount = this.getSystemAccountFromMap(
       fromCurrency,
@@ -61,65 +59,46 @@ export class OperationFactory {
       systemAccountsMap,
     );
 
-    const balancedFromOperation = Operation.create(
-      user,
-      fromSystemAccount,
-      entry,
-      oppositeFrom,
-      this.getSystemAccountDescription({
-        amount: oppositeFrom,
-        currency: fromCurrency,
+    const balancedFromOperationDTO: TradingOperationDTO = {
+      account: fromSystemAccount,
+      description: this.getSystemAccountDescription({
+        amount: oppositeFromAmount,
+        currency: fromSystemAccount.currency.valueOf(),
         direction: 'from',
       }),
-    );
-
-    const balancedToOperation = Operation.create(
-      user,
-      toSystemAccount,
       entry,
-      oppositeTo,
-      this.getSystemAccountDescription({
-        amount: oppositeTo,
-        currency: toCurrency,
+      rawAmount: oppositeFromAmount.valueOf(),
+      user,
+    };
+
+    const balancedToOperationDTO: TradingOperationDTO = {
+      account: toSystemAccount,
+      description: this.getSystemAccountDescription({
+        amount: oppositeToAmount,
+        currency: toSystemAccount.currency.valueOf(),
         direction: 'to',
       }),
-    );
+      entry,
+      rawAmount: oppositeToAmount.valueOf(),
+      user,
+    };
 
-    return [balancedFromOperation, balancedToOperation];
+    return [balancedFromOperationDTO, balancedToOperationDTO];
   }
 
-  private validateInputOperationsAmounts({
-    from,
-    system,
-    to,
-  }: {
-    from: Operation;
-    to: Operation;
-    system: { from: Operation; to: Operation } | null;
-  }) {
-    if (!system) {
-      const balance = from.amount.add(to.amount);
-
-      if (!balance.isZero()) {
-        throw new Error(
-          `Operations amounts are not balanced: from=${from.amount.valueOf()}, to=${to.amount.valueOf()}`,
-        );
-      }
-      return;
-    }
-
-    const balance = [
-      from.amount,
-      system.from.amount,
-      system.to.amount,
-      to.amount,
-    ].reduce((balance, amount) => {
+  private validateInputOperationsAmounts(
+    data: TradingOperationDTO[],
+    entry: Entry,
+  ) {
+    const balancedAmount = data.reduce((balance, dto) => {
+      const amount = Amount.create(dto.rawAmount);
       return balance.add(amount);
     }, Amount.create('0'));
 
-    if (!balance.isZero()) {
-      throw new Error(
-        `Operations amounts are not balanced: (including system operations)from=${from.amount.valueOf()}, to=${to.amount.valueOf()}`,
+    if (!balancedAmount.isZero()) {
+      throw new UnbalancedOperationsError(
+        entry.getId().valueOf(),
+        Number(balancedAmount.valueOf()),
       );
     }
   }
@@ -141,37 +120,49 @@ export class OperationFactory {
       accountsByIdMap,
     );
 
-    const tradingOperations = this.addTradingOperations(
-      user,
-      entry,
-      [fromOperationDTO, toOperationDTO],
-      [fromAccount.currency.valueOf(), toAccount.currency.valueOf()],
-      currencySystemAccountsMap,
+    const tradingOperationsDTO =
+      this.addTradingOperations(
+        user,
+        entry,
+        [fromOperationDTO, toOperationDTO],
+        [fromAccount.currency.valueOf(), toAccount.currency.valueOf()],
+        currencySystemAccountsMap,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+      ) || [];
+
+    const dtos: TradingOperationDTO[] = [
+      {
+        account: fromAccount,
+        description: fromOperationDTO.description,
+        entry,
+        rawAmount: fromOperationDTO.amount,
+        user,
+      },
+      {
+        account: toAccount,
+        description: toOperationDTO.description,
+        entry,
+        rawAmount: toOperationDTO.amount,
+        user,
+      },
+      ...tradingOperationsDTO,
+    ];
+
+    this.validateInputOperationsAmounts(dtos, entry);
+
+    const operations = await Promise.all(
+      dtos.map((opDTO) => {
+        return this.createOperation(
+          user,
+          entry,
+          opDTO.rawAmount,
+          opDTO.description,
+          opDTO.account,
+        );
+      }),
     );
 
-    const fromOperation = await this.createOperation(
-      user,
-      entry,
-      fromOperationDTO,
-      fromAccount,
-    );
-
-    const toOperation = await this.createOperation(
-      user,
-      entry,
-      toOperationDTO,
-      toAccount,
-    );
-
-    this.validateInputOperationsAmounts({
-      from: fromOperation,
-      ...(tradingOperations
-        ? { system: { from: tradingOperations[0], to: tradingOperations[1] } }
-        : { system: null }),
-      to: toOperation,
-    });
-
-    return [fromOperation, toOperation, ...(tradingOperations ?? [])];
+    return operations;
   }
 
   private getAccountFromMap(
@@ -205,13 +196,14 @@ export class OperationFactory {
   private async createOperation(
     user: User,
     entry: Entry,
-    opData: CreateOperationRequestDTO,
+    rawAmount: MoneyString,
+    description: string,
     account: Account,
   ) {
-    const amount = Amount.create(opData.amount);
+    const amount = Amount.create(rawAmount);
 
     const createOperation = () =>
-      Operation.create(user, account, entry, amount, opData.description);
+      Operation.create(user, account, entry, amount, description);
 
     const operation = createOperation();
 

@@ -1,9 +1,5 @@
-import { CurrencyCode, MoneyString } from '@ledgerly/shared/types';
 import { CreateEntryRequestDTO } from 'src/application/dto';
-import {
-  AccountRepositoryInterface,
-  OperationRepositoryInterface,
-} from 'src/application/interfaces';
+import { OperationRepositoryInterface } from 'src/application/interfaces';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import {
   createEntry,
@@ -13,9 +9,10 @@ import {
 import { Account, Entry, Operation, User } from 'src/domain';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
+import { UnbalancedOperationsError } from 'src/presentation/errors/businessLogic.error';
 import { describe, it, vi, beforeEach, expect, beforeAll } from 'vitest';
 
-import { AccountFactory, OperationFactory } from '../';
+import { OperationFactory } from '../';
 
 describe('OperationFactory', () => {
   let user: User;
@@ -26,14 +23,6 @@ describe('OperationFactory', () => {
 
   let mockOperationRepository: {
     create: ReturnType<typeof vi.fn>;
-  };
-
-  let accountFactory: {
-    createAccount: ReturnType<typeof vi.fn>;
-  };
-
-  let mockAccountRepository: {
-    findSystemAccount: ReturnType<typeof vi.fn>;
   };
 
   let mockedSaveWithIdRetry: SaveWithIdRetryType;
@@ -102,22 +91,12 @@ describe('OperationFactory', () => {
       create: vi.fn(),
     };
 
-    mockAccountRepository = {
-      findSystemAccount: vi.fn(),
-    };
-
-    accountFactory = {
-      createAccount: vi.fn(),
-    };
-
     mockedSaveWithIdRetry = vi
       .fn()
       .mockResolvedValue({ name: 'mocked account' }) as SaveWithIdRetryType;
 
     operationFactory = new OperationFactory(
       mockOperationRepository as unknown as OperationRepositoryInterface,
-      accountFactory as unknown as AccountFactory,
-      mockAccountRepository as unknown as AccountRepositoryInterface,
       mockedSaveWithIdRetry,
     );
   });
@@ -323,11 +302,6 @@ describe('OperationFactory', () => {
       },
     ];
 
-    accountFactory.createAccount = vi
-      .fn()
-      .mockReturnValueOnce(testData.from.systemAccount)
-      .mockReturnValueOnce(testData.to.systemAccount);
-
     vi.spyOn(Account, 'restore')
       .mockReturnValueOnce(testData.from.systemAccount)
       .mockReturnValueOnce(testData.to.systemAccount);
@@ -358,17 +332,25 @@ describe('OperationFactory', () => {
       { amount: testData.to.amount.negate(), currency: toCurrency },
     ];
 
+    const getKey = (currency: Currency, amount: Amount) =>
+      `${amount.valueOf()}_${currency.valueOf()}`;
+
     const expectedResultsMap = expectedResultsDTO.reduce((map, item) => {
-      map.set(item.amount.valueOf(), item.currency.valueOf());
+      const key = getKey(item.currency, item.amount);
+      map.set(key, item);
       return map;
-    }, new Map<MoneyString, CurrencyCode>());
+    }, new Map<string, { currency: Currency; amount: Amount }>());
 
     operations.forEach((operation) => {
-      const currencyPair = expectedResultsMap.get(operation.amount.valueOf());
+      const key = getKey(operation.currency, operation.amount);
+      const expectedResult = expectedResultsMap.get(key);
 
-      expect(currencyPair).toBeDefined();
-      expect(operation.currency.valueOf()).toBe(currencyPair);
-      expectedResultsMap.delete(operation.amount.valueOf());
+      expect(expectedResult).toBeDefined();
+      expect(operation.amount.valueOf()).toBe(expectedResult!.amount.valueOf());
+      expect(operation.currency.valueOf()).toBe(
+        expectedResult!.currency.valueOf(),
+      );
+      expectedResultsMap.delete(key);
     });
 
     expect(expectedResultsMap.size).toBe(0);
@@ -434,8 +416,6 @@ describe('OperationFactory', () => {
         accountsMap,
         currencySystemAccountsMap,
       ),
-    ).rejects.toThrowError(
-      `Operations amounts are not balanced: from=${operationsRaw[0].amount.valueOf()}, to=${operationsRaw[1].amount.valueOf()}`,
-    );
+    ).rejects.toThrowError(UnbalancedOperationsError);
   });
 });

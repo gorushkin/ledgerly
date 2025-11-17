@@ -21,6 +21,16 @@ export class UnbalancedTransactionError extends BusinessLogicError {
   }
 }
 
+export class UnbalancedOperationsError extends BusinessLogicError {
+  constructor(entryId: string, diff: number) {
+    super(
+      `Entry with id ${entryId} has unbalanced operations. Difference: ${diff}`,
+      400,
+      'UnbalancedOperationsError',
+    );
+  }
+}
+
 export class NotFoundError extends BusinessLogicError {
   constructor(message: string) {
     super(message, 404, 'NotFoundError');

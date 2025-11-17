@@ -8,7 +8,7 @@ import {
   UserDbRow,
 } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
-import { Amount, Id } from 'src/domain/domain-core';
+import { Amount, Currency, Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/server';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -268,11 +268,13 @@ describe('Transactions Integration Tests', () => {
   });
 
   describe('GET /api/transactions/:id', () => {
-    let transaction: TransactionDbRow;
-    let entries: EntryDbRow[];
+    let singleCurrencyTransaction: TransactionDbRow;
+    let multiCurrencyTransaction: TransactionDbRow;
+    let singleCurrencyEntries: EntryDbRow[];
+    let multiCurrencyEntry: EntryDbRow;
     const entryOperationsMap: Record<UUID, OperationDbRow[]> = {};
 
-    const entry1operationData = [
+    const singleCurrencyEntry1operationData = [
       {
         amount: Amount.create('-100').valueOf(),
         description: 'Transfer from checking',
@@ -285,7 +287,7 @@ describe('Transactions Integration Tests', () => {
       },
     ];
 
-    const entry2operationData = [
+    const singleCurrencyEntry2operationData = [
       {
         amount: Amount.create('50').valueOf(),
         description: 'Deposit to checking',
@@ -301,50 +303,107 @@ describe('Transactions Integration Tests', () => {
     beforeEach(async () => {
       const accounts = await Promise.all([
         testDB.createAccount(userId, {
-          name: 'Checking',
+          currency: Currency.create('USD').valueOf(),
+          name: 'Checking USD',
         }),
         testDB.createAccount(userId, {
-          name: 'Savings',
+          currency: Currency.create('USD').valueOf(),
+          name: 'Savings USD',
+        }),
+        testDB.createAccount(userId, {
+          currency: Currency.create('EUR').valueOf(),
+          name: 'Savings EUR',
+        }),
+        testDB.createAccount(userId, {
+          currency: Currency.create('EUR').valueOf(),
+          isSystem: true,
+          name: 'System account USD',
+        }),
+        testDB.createAccount(userId, {
+          currency: Currency.create('USD').valueOf(),
+          isSystem: true,
+          name: 'System account EUR',
         }),
       ]);
 
-      transaction = await testDB.createTransaction(userId);
+      singleCurrencyTransaction = await testDB.createTransaction(userId);
+      multiCurrencyTransaction = await testDB.createTransaction(userId);
 
-      entries = await Promise.all([
+      singleCurrencyEntries = await Promise.all([
         testDB.createEntry(userId, {
-          transactionId: transaction.id,
+          transactionId: singleCurrencyTransaction.id,
         }),
         testDB.createEntry(userId, {
-          transactionId: transaction.id,
+          transactionId: singleCurrencyTransaction.id,
         }),
       ]);
 
-      const entry1ps = await Promise.all(
-        entry1operationData.map((opData) => {
+      multiCurrencyEntry = await testDB.createEntry(userId, {
+        transactionId: multiCurrencyTransaction.id,
+      });
+
+      const singleCurrencyEntry1ops = await Promise.all(
+        singleCurrencyEntry1operationData.map((opData) => {
           return testDB.createOperation(userId, {
             accountId: opData.amount.startsWith('-')
               ? accounts[0].id
               : accounts[1].id,
-            entryId: entries[0].id,
+            entryId: singleCurrencyEntries[0].id,
             ...opData,
           });
         }),
       );
 
-      const entry2ps = await Promise.all(
-        entry2operationData.map((opData) => {
+      const singleCurrencyEntry2ops = await Promise.all(
+        singleCurrencyEntry2operationData.map((opData) => {
           return testDB.createOperation(userId, {
             accountId: opData.amount.startsWith('-')
               ? accounts[1].id
               : accounts[0].id,
-            entryId: entries[1].id,
+            entryId: singleCurrencyEntries[1].id,
             ...opData,
           });
         }),
       );
 
-      entryOperationsMap[entries[0].id] = entry1ps;
-      entryOperationsMap[entries[1].id] = entry2ps;
+      const multiCurrencyEntryOperationData = [
+        {
+          accountId: accounts[0].id,
+          amount: Amount.create('50').valueOf(),
+          description: 'Deposit to checking',
+          isSystem: false,
+        },
+        {
+          accountId: accounts[1].id,
+          amount: Amount.create('-100').valueOf(),
+          description: 'Withdrawal from savings',
+          isSystem: false,
+        },
+        {
+          accountId: accounts[3].id,
+          amount: Amount.create('100').valueOf(),
+          description: 'Deposit to checking',
+          isSystem: true,
+        },
+        {
+          accountId: accounts[4].id,
+          amount: Amount.create('-50').valueOf(),
+          description: 'Withdrawal from savings',
+          isSystem: true,
+        },
+      ];
+
+      await Promise.all(
+        multiCurrencyEntryOperationData.map((opData) => {
+          return testDB.createOperation(userId, {
+            entryId: multiCurrencyEntry.id,
+            ...opData,
+          });
+        }),
+      );
+
+      entryOperationsMap[singleCurrencyEntries[0].id] = singleCurrencyEntry1ops;
+      entryOperationsMap[singleCurrencyEntries[1].id] = singleCurrencyEntry2ops;
     });
 
     it('should retrieve a transaction by ID', async () => {
@@ -353,7 +412,7 @@ describe('Transactions Integration Tests', () => {
           Authorization: `Bearer ${authToken}`,
         },
         method: 'GET',
-        url: `${url}/${transaction.id}`,
+        url: `${url}/${singleCurrencyTransaction.id}`,
       });
 
       const transactionResponse = JSON.parse(
@@ -361,16 +420,20 @@ describe('Transactions Integration Tests', () => {
       ) as TransactionResponseDTO;
 
       expect(response.statusCode).toBe(200);
-      expect(transactionResponse.id).toBe(transaction.id);
+      expect(transactionResponse.id).toBe(singleCurrencyTransaction.id);
       expect(transactionResponse.userId).toBe(userId);
-      expect(transactionResponse.entries.length).toBe(entries.length);
+      expect(transactionResponse.entries.length).toBe(
+        singleCurrencyEntries.length,
+      );
 
       transactionResponse.entries.forEach((entry) => {
         expect(entry.userId).toBe(userId);
-        const originalEntry = entries.find((e) => e.id === entry.id);
+        const originalEntry = singleCurrencyEntries.find(
+          (e) => e.id === entry.id,
+        );
         expect(originalEntry).toBeDefined();
         expect(entry.operations.length).toBe(2);
-        expect(entry.transactionId).toBe(transaction.id);
+        expect(entry.transactionId).toBe(singleCurrencyTransaction.id);
         expect(entry.id).toBe(originalEntry?.id);
         expect(entry.createdAt).toBe(originalEntry?.createdAt);
         expect(entry.updatedAt).toBe(originalEntry?.updatedAt);
@@ -387,6 +450,37 @@ describe('Transactions Integration Tests', () => {
           expect(op.updatedAt).toBe(originalOp.updatedAt);
         });
       });
+    });
+
+    it('should retrieve system operations as well', async () => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${multiCurrencyTransaction.id}`,
+      });
+
+      const transactionResponse = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO;
+
+      transactionResponse.entries.forEach((entry) => {
+        expect(entry.userId).toBe(userId);
+        expect(entry.transactionId).toBe(multiCurrencyTransaction.id);
+      });
+
+      expect(transactionResponse.entries.length).toBe(1);
+      const entry = transactionResponse.entries[0];
+      expect(entry.operations.length).toBe(4);
+
+      const operations = entry.operations;
+
+      const userOperations = operations.filter((op) => !op.isSystem);
+      const systemOperations = operations.filter((op) => op.isSystem);
+
+      expect(userOperations).toHaveLength(2);
+      expect(systemOperations).toHaveLength(2);
     });
   });
 

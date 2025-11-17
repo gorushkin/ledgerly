@@ -1,10 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
-import {
-  TransactionRepositoryInterface,
-  TransactionResponseDTO,
-} from 'src/application';
-
-import { TransactionViewMapper } from '../../mappers';
+import { TransactionRepositoryInterface } from 'src/application';
+import { TransactionWithRelations } from 'src/db/schema';
 
 export class GetTransactionByIdUseCase {
   constructor(
@@ -13,7 +9,7 @@ export class GetTransactionByIdUseCase {
   async execute(
     userId: UUID,
     transactionId: UUID,
-  ): Promise<TransactionResponseDTO> {
+  ): Promise<TransactionWithRelations> {
     const transactionRecord = await this.transactionRepository.getById(
       userId,
       transactionId,
@@ -23,8 +19,6 @@ export class GetTransactionByIdUseCase {
       throw new Error('Transaction not found');
     }
 
-    // Transform database model to response DTO using mapper
-    // This handles the conversion from OperationDbRow[] to tuple [OperationResponseDTO, OperationResponseDTO]
-    return TransactionViewMapper.toView(transactionRecord);
+    return transactionRecord;
   }
 }
