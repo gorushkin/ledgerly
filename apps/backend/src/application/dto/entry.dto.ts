@@ -47,3 +47,4 @@ export type GetEntriesQueryDTO = {
 export type TEST = string;
 export type TEST2 = string;
 export type TEST3 = string;
+export type TEST4 = string;
