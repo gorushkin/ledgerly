@@ -42,3 +42,6 @@ export type EntryResponseDTO = {
 export type GetEntriesQueryDTO = {
   transactionId: UUID;
 };
+
+// TODO: remove after testing git
+export type TEST = string;
