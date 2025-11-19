@@ -102,6 +102,3 @@ pnpm --filter backend db:migrate
 - Follows clean architecture principles in backend
 - Frontend uses feature-sliced design methodology
 - Shared package prevents code duplication between frontend and backend
-
-
-test user name
