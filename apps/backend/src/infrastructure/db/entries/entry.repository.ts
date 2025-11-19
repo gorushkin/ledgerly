@@ -34,4 +34,8 @@ export class EntryRepository
       { field: 'transactionId', tableName: 'entries', value: transactionId },
     );
   }
+
+  deleteByTransactionId(_userId: UUID, _transactionId: UUID): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
 }

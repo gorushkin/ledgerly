@@ -4,6 +4,7 @@ import { TransactionRepositoryInterface } from 'src/application';
 import {
   TransactionDbInsert,
   TransactionDbRow,
+  TransactionDbUpdate,
   TransactionWithRelations,
   entriesTable,
   operationsTable,
@@ -16,6 +17,9 @@ export class TransactionRepository
   extends BaseRepository
   implements TransactionRepositoryInterface
 {
+  delete(_userId: UUID, _transactionId: UUID): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
   create(transaction: TransactionDbInsert): Promise<TransactionDbRow> {
     return this.executeDatabaseOperation(
       async () =>
@@ -102,5 +106,13 @@ export class TransactionRepository
         value: JSON.stringify(query),
       },
     );
+  }
+
+  update(
+    _userId: UUID,
+    _transactionId: UUID,
+    _transaction: TransactionDbUpdate,
+  ): Promise<TransactionDbRow> {
+    throw new Error('Method not implemented.');
   }
 }

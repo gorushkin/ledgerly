@@ -55,6 +55,7 @@ export class TransactionViewMapper {
     return {
       createdAt: entry.createdAt,
       id: entry.id,
+      isTombstone: entry.isTombstone,
       operations,
       transactionId: entry.transactionId,
       updatedAt: entry.updatedAt,

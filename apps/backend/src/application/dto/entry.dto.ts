@@ -3,6 +3,7 @@ import { IsoDatetimeString, UUID } from '@ledgerly/shared/types';
 import {
   CreateOperationRequestDTO,
   OperationResponseDTO,
+  UpdateOperationRequestDTO,
 } from './operation.dto';
 
 // Request DTOs for creation
@@ -19,6 +20,11 @@ export type EntryOperationsResponseDTO = [
 
 // Request DTOs for updating
 
+export type UpdateEntryRequestDTO = {
+  id: UUID;
+  operations: [UpdateOperationRequestDTO, UpdateOperationRequestDTO];
+};
+
 // Response DTOs
 
 export type EntryResponseDTO = {
@@ -27,6 +33,7 @@ export type EntryResponseDTO = {
   createdAt: IsoDatetimeString;
   updatedAt: IsoDatetimeString;
   operations: EntryOperationsResponseDTO;
+  isTombstone: boolean;
   userId: UUID;
 };
 

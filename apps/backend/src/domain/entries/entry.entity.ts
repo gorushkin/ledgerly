@@ -104,6 +104,7 @@ export class Entry {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       id: this.identity.getId().valueOf(),
+      isTombstone: this.isDeleted(),
       transactionId: this.getTransactionId().valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),

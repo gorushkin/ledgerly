@@ -69,3 +69,13 @@ export const createEntry = (
 ) => {
   return Entry.create(user, transaction, operations);
 };
+
+export const createOperation = (
+  user: User,
+  account: Account,
+  entry: Entry,
+  amount: Amount,
+  description: string,
+) => {
+  return Operation.create(user, account, entry, amount, description);
+};

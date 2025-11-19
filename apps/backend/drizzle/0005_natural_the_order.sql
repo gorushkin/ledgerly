@@ -1,0 +1,1 @@
+ALTER TABLE `entries` ADD `is_tombstone` integer NOT NULL;

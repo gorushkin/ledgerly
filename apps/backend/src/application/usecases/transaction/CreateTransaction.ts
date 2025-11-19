@@ -6,7 +6,7 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { TransactionMapper } from 'src/application/mappers';
+import { TransactionMapperInterface } from 'src/application/mappers';
 import { EntryFactory } from 'src/application/services';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { TransactionDbRow, TransactionRepoInsert } from 'src/db/schema';
@@ -20,6 +20,7 @@ export class CreateTransactionUseCase {
     protected readonly transactionRepository: TransactionRepositoryInterface,
     protected readonly entryFactory: EntryFactory,
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
+    protected readonly transactionMapper: TransactionMapperInterface,
   ) {}
 
   async execute(
@@ -27,7 +28,7 @@ export class CreateTransactionUseCase {
     data: CreateTransactionRequestDTO,
   ): Promise<TransactionResponseDTO> {
     return await this.transactionManager.run(async () => {
-      const createTransaction = () => this.createTransaction(user, data);
+      const createTransaction = this.createTransaction(user, data);
 
       const transaction = createTransaction();
 
@@ -45,7 +46,7 @@ export class CreateTransactionUseCase {
 
       transaction.validateBalance();
 
-      return TransactionMapper.toResponseDTO(transaction);
+      return this.transactionMapper.toResponseDTO(transaction);
     });
   }
 
@@ -77,6 +78,6 @@ export class CreateTransactionUseCase {
         postingDateVO,
         transactionDateVO,
       );
-    return createTransaction();
+    return createTransaction;
   }
 }

@@ -190,6 +190,7 @@ export class TestDB {
       date: params?.date ?? TestDB.isoDateString,
       userId,
       ...params,
+      isTombstone: false,
       transactionId,
     };
 
