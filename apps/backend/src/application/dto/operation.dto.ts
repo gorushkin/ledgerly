@@ -32,4 +32,4 @@ export type OperationResponseDTO = {
   isSystem: boolean;
 };
 
-// Query DTOs
+export type Test = OperationResponseDTO;
