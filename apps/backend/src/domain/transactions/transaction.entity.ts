@@ -196,8 +196,6 @@ export class Transaction {
     if (updateData.transactionDate) {
       this.updateTransactionDate(DateValue.restore(updateData.transactionDate));
     }
-
-    this.updateUpdatedAt();
   }
 
   getPostingDate(): DateValue {

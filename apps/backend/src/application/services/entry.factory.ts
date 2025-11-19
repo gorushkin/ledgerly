@@ -106,9 +106,7 @@ export class EntryFactory {
   ): Promise<Entry> {
     const createEntry = () => Entry.create(user, transaction);
 
-    const entry = createEntry();
-
-    await this.saveEntry(entry, createEntry);
+    const entry = await this.saveEntry(createEntry);
 
     const operations = await this.operationFactory.createOperationsForEntry(
       user,
@@ -123,9 +121,8 @@ export class EntryFactory {
     return entry;
   }
 
-  private saveEntry(entry: Entry, createEntry: () => Entry) {
+  private saveEntry(createEntry: () => Entry) {
     return this.saveWithIdRetry<EntryRepoInsert, Entry, EntryDbRow>(
-      entry,
       this.entryRepository.create.bind(this.entryRepository),
       createEntry,
     );

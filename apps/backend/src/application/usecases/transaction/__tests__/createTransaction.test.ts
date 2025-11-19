@@ -15,7 +15,7 @@ import type { TransactionMapperInterface } from 'src/application/mappers';
 import { EntryFactory } from 'src/application/services';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { createUser } from 'src/db/createTestUser';
-import { Account, Entry, User } from 'src/domain';
+import { Account, Entry, Transaction, User } from 'src/domain';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -50,9 +50,7 @@ describe('CreateTransactionUseCase', () => {
     toResponseDTO: vi.fn(),
   };
 
-  const mockedSaveWithIdRetry = vi
-    .fn()
-    .mockResolvedValue({ name: 'mocked account' });
+  const mockedSaveWithIdRetry = vi.fn();
 
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager as unknown as TransactionManagerInterface,
@@ -93,10 +91,6 @@ describe('CreateTransactionUseCase', () => {
 
   describe('execute', () => {
     it('should create a new transaction with entries successfully', async () => {
-      const mockedSaveWithIdRetryResult = {
-        data: 'mockedSaveWithIdRetryResult',
-      };
-
       const mockedResult: TransactionResponseDTO = {
         createdAt: '2024-01-01T00:00:00.000Z' as unknown as IsoDatetimeString,
         description,
@@ -110,7 +104,14 @@ describe('CreateTransactionUseCase', () => {
 
       transactionMapper.toResponseDTO.mockResolvedValue(mockedResult);
 
-      mockedSaveWithIdRetry.mockResolvedValue(mockedSaveWithIdRetryResult);
+      const transaction = Transaction.create(
+        user.getId(),
+        description,
+        DateValue.restore(postingDate),
+        DateValue.restore(transactionDate),
+      );
+
+      mockedSaveWithIdRetry.mockResolvedValue(transaction);
 
       const entries: CreateEntryRequestDTO[] = [
         [
@@ -163,10 +164,6 @@ describe('CreateTransactionUseCase', () => {
 
       expect(mockedSaveWithIdRetry).toHaveBeenCalled();
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
-        expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          getId: expect.any(Function),
-        }),
         expect.any(Function),
         expect.any(Function),
       );

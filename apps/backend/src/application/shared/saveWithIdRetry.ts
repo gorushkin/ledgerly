@@ -7,33 +7,27 @@ export type SaveWithIdRetryType = <
   Entity extends { toPersistence(): InsertDto },
   ResponseDto,
 >(
-  entity: Entity,
-  promise: (dto: InsertDto) => Promise<ResponseDto>,
+  repoInsert: (dto: InsertDto) => Promise<ResponseDto>,
   entityFactory: () => Entity,
   retries?: number,
-) => Promise<ResponseDto>;
+) => Promise<Entity>;
 
 export const saveWithIdRetry: SaveWithIdRetryType = async <
   T,
   E extends { toPersistence: () => T },
   K,
 >(
-  entity: E,
   promise: (data: T) => Promise<K>,
   entityFactory: () => E,
   retries: number = DEFAULT_MAX_RETRIES,
-): Promise<K> => {
+): Promise<E> => {
   try {
-    return await promise(entity.toPersistence());
+    const newEntity = entityFactory();
+    await promise(newEntity.toPersistence());
+    return newEntity;
   } catch (error) {
     if (error instanceof RecordAlreadyExistsError && retries > 0) {
-      const newEntity = entityFactory();
-      return await saveWithIdRetry(
-        newEntity,
-        promise,
-        entityFactory,
-        retries - 1,
-      );
+      return await saveWithIdRetry(promise, entityFactory, retries - 1);
     }
     throw new Error('Failed to create entity');
   }

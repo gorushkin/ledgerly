@@ -111,7 +111,7 @@ describe('UpdateTransactionUseCase', () => {
     };
   });
 
-  it('should update transaction correctly without updating entries entries', async () => {
+  it('should update transaction correctly without updating entries', async () => {
     const updateData: UpdateTransactionRequestDTO = {
       description: 'Updated Transaction Description',
       postingDate: transactionDBRow.postingDate,

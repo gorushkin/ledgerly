@@ -202,27 +202,17 @@ export class OperationFactory {
     const createOperation = () =>
       Operation.create(user, account, entry, amount, description);
 
-    const operation = createOperation();
-
-    await this.saveOperation(operation, createOperation);
-
-    return operation;
+    return this.saveOperation(createOperation);
   }
 
-  private async saveOperation(
-    entry: Operation,
-    createOperation: () => Operation,
-  ) {
-    const result = await this.saveWithIdRetry<
+  private async saveOperation(createOperation: () => Operation) {
+    return this.saveWithIdRetry<
       OperationRepoInsert,
       Operation,
       OperationResponseDTO
     >(
-      entry,
       this.operationRepository.create.bind(this.operationRepository),
       createOperation,
     );
-
-    return result;
   }
 }

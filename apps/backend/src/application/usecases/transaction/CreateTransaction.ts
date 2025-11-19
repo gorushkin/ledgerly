@@ -30,9 +30,7 @@ export class CreateTransactionUseCase {
     return await this.transactionManager.run(async () => {
       const createTransaction = this.createTransaction(user, data);
 
-      const transaction = createTransaction();
-
-      await this.saveTransaction(transaction, createTransaction);
+      const transaction = await this.saveTransaction(createTransaction);
 
       const entries = await this.entryFactory.createEntriesWithOperations(
         user,
@@ -50,16 +48,12 @@ export class CreateTransactionUseCase {
     });
   }
 
-  private async saveTransaction(
-    transaction: Transaction,
-    createTransaction: () => Transaction,
-  ) {
+  private async saveTransaction(createTransaction: () => Transaction) {
     const result = await this.saveWithIdRetry<
       TransactionRepoInsert,
       Transaction,
       TransactionDbRow
     >(
-      transaction,
       this.transactionRepository.create.bind(this.transactionRepository),
       createTransaction,
     );
@@ -71,13 +65,12 @@ export class CreateTransactionUseCase {
     const postingDateVO = DateValue.restore(data.postingDate);
     const transactionDateVO = DateValue.restore(data.transactionDate);
 
-    const createTransaction = () =>
+    return () =>
       Transaction.create(
         user.getId(),
         data.description,
         postingDateVO,
         transactionDateVO,
       );
-    return createTransaction;
   }
 }
