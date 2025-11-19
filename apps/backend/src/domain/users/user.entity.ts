@@ -94,6 +94,7 @@ export class User {
     return this._password.compare(password);
   }
 
+  // TODO: move this method to userMapper if it needed
   toResponseDTO(): UserResponseDTO {
     return {
       email: this.email.valueOf(),

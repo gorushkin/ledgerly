@@ -6,7 +6,7 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { TransactionMapper } from 'src/application/mappers';
+import { TransactionMapperInterface } from 'src/application/mappers';
 import { EntryFactory } from 'src/application/services';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { TransactionDbRow, TransactionRepoInsert } from 'src/db/schema';
@@ -20,6 +20,7 @@ export class CreateTransactionUseCase {
     protected readonly transactionRepository: TransactionRepositoryInterface,
     protected readonly entryFactory: EntryFactory,
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
+    protected readonly transactionMapper: TransactionMapperInterface,
   ) {}
 
   async execute(
@@ -27,11 +28,9 @@ export class CreateTransactionUseCase {
     data: CreateTransactionRequestDTO,
   ): Promise<TransactionResponseDTO> {
     return await this.transactionManager.run(async () => {
-      const createTransaction = () => this.createTransaction(user, data);
+      const transactionFactory = this.createTransaction(user, data);
 
-      const transaction = createTransaction();
-
-      await this.saveTransaction(transaction, createTransaction);
+      const transaction = await this.saveTransaction(transactionFactory);
 
       const entries = await this.entryFactory.createEntriesWithOperations(
         user,
@@ -45,20 +44,16 @@ export class CreateTransactionUseCase {
 
       transaction.validateBalance();
 
-      return TransactionMapper.toResponseDTO(transaction);
+      return this.transactionMapper.toResponseDTO(transaction);
     });
   }
 
-  private async saveTransaction(
-    transaction: Transaction,
-    createTransaction: () => Transaction,
-  ) {
+  private async saveTransaction(createTransaction: () => Transaction) {
     const result = await this.saveWithIdRetry<
       TransactionRepoInsert,
       Transaction,
       TransactionDbRow
     >(
-      transaction,
       this.transactionRepository.create.bind(this.transactionRepository),
       createTransaction,
     );
@@ -70,13 +65,12 @@ export class CreateTransactionUseCase {
     const postingDateVO = DateValue.restore(data.postingDate);
     const transactionDateVO = DateValue.restore(data.transactionDate);
 
-    const createTransaction = () =>
+    return () =>
       Transaction.create(
         user.getId(),
         data.description,
         postingDateVO,
         transactionDateVO,
       );
-    return createTransaction();
   }
 }

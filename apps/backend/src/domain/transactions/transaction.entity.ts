@@ -1,3 +1,4 @@
+import { UpdateTransactionRequestDTO } from 'src/application/dto/transaction.dto';
 import { TransactionDbRow } from 'src/db/schema';
 
 import {
@@ -72,7 +73,9 @@ export class Transaction {
       userId,
     } = data;
 
-    const identity = new EntityIdentity(Id.fromPersistence(id));
+    const idVO = Id.fromPersistence(id);
+
+    const identity = EntityIdentity.fromPersistence(idVO);
     const timestamps = EntityTimestamps.fromPersistence(
       Timestamp.restore(updatedAt),
       Timestamp.restore(createdAt),
@@ -138,7 +141,7 @@ export class Transaction {
     return !this.isDeleted();
   }
 
-  updateUpdatedAt(): void {
+  private updateUpdatedAt(): void {
     this.touch();
   }
 
@@ -159,6 +162,7 @@ export class Transaction {
     this.softDelete.validateUpdateIsAllowed();
   }
 
+  // TODO: make it private
   updatePostingDate(date: DateValue): void {
     this.validateUpdateIsAllowed();
 
@@ -166,6 +170,7 @@ export class Transaction {
     this.touch();
   }
 
+  // TODO: make it private
   updateTransactionDate(date: DateValue): void {
     this.validateUpdateIsAllowed();
 
@@ -173,11 +178,26 @@ export class Transaction {
     this.touch();
   }
 
+  // TODO: make it private
   updateDescription(description: string): void {
     this.validateUpdateIsAllowed();
 
     this.description = description;
     this.touch();
+  }
+
+  update(updateData: UpdateTransactionRequestDTO): void {
+    if (updateData.description) {
+      this.updateDescription(updateData.description);
+    }
+
+    if (updateData.postingDate) {
+      this.updatePostingDate(DateValue.restore(updateData.postingDate));
+    }
+
+    if (updateData.transactionDate) {
+      this.updateTransactionDate(DateValue.restore(updateData.transactionDate));
+    }
   }
 
   getPostingDate(): DateValue {

@@ -32,15 +32,10 @@ export class AccountFactory {
         AccountType.create(type),
       );
 
-    const account = createAccount();
-
-    await this.saveWithIdRetry<AccountRepoInsert, Account, AccountResponseDTO>(
-      account,
+    return this.saveWithIdRetry<AccountRepoInsert, Account, AccountResponseDTO>(
       this.accountRepository.create.bind(this.accountRepository),
       createAccount,
     );
-
-    return account;
   }
 
   async findOrCreateSystemAccount(
