@@ -66,3 +66,17 @@ export class CustomErrorName extends BusinessLogicError {
     super(message, 400, 'CustomErrorName');
   }
 }
+
+export class EntityNotFoundError extends BusinessLogicError {
+  constructor(entityName: string) {
+    super(`${entityName} not found`);
+    this.name = 'EntityNotFoundError';
+  }
+}
+
+export class UnauthorizedAccessError extends BusinessLogicError {
+  constructor(entityName: string) {
+    super(`${entityName} does not belong to the user`);
+    this.name = 'UnauthorizedAccessError';
+  }
+}

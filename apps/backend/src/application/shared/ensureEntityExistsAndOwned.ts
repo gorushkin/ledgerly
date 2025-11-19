@@ -1,5 +1,9 @@
 import { UUID } from '@ledgerly/shared/types';
 import { User } from 'src/domain';
+import {
+  EntityNotFoundError,
+  UnauthorizedAccessError,
+} from 'src/presentation/errors/businessLogic.error';
 
 export type EnsureEntityExistsAndOwnedFn = <T extends { userId: UUID }>(
   user: User,
@@ -18,11 +22,11 @@ export const ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn = async <
 ): Promise<T> => {
   const entity = await promise(user.getId().valueOf(), entityId);
   if (!entity) {
-    throw new Error(`${entityName} not found`);
+    throw new EntityNotFoundError(entityName);
   }
 
   if (!user.verifyOwnership(entity.userId)) {
-    throw new Error(`${entityName} does not belong to the user`);
+    throw new UnauthorizedAccessError(entityName);
   }
 
   return entity;

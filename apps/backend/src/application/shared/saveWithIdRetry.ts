@@ -1,4 +1,7 @@
-import { RecordAlreadyExistsError } from 'src/presentation/errors';
+import {
+  DatabaseError,
+  RecordAlreadyExistsError,
+} from 'src/presentation/errors';
 
 const DEFAULT_MAX_RETRIES = 3;
 
@@ -29,6 +32,8 @@ export const saveWithIdRetry: SaveWithIdRetryType = async <
     if (error instanceof RecordAlreadyExistsError && retries > 0) {
       return await saveWithIdRetry(promise, entityFactory, retries - 1);
     }
-    throw new Error('Failed to create entity');
+    throw new DatabaseError({
+      message: `Failed to create entity: ${error instanceof Error ? error.message : String(error)}`,
+    });
   }
 };

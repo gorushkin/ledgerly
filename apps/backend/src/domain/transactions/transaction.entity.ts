@@ -73,7 +73,9 @@ export class Transaction {
       userId,
     } = data;
 
-    const identity = EntityIdentity.fromPersistence(Id.fromPersistence(id));
+    const idVO = Id.fromPersistence(id);
+
+    const identity = EntityIdentity.fromPersistence(idVO);
     const timestamps = EntityTimestamps.fromPersistence(
       Timestamp.restore(updatedAt),
       Timestamp.restore(createdAt),

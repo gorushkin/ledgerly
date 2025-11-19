@@ -28,9 +28,9 @@ export class CreateTransactionUseCase {
     data: CreateTransactionRequestDTO,
   ): Promise<TransactionResponseDTO> {
     return await this.transactionManager.run(async () => {
-      const createTransaction = this.createTransaction(user, data);
+      const transactionFactory = this.createTransaction(user, data);
 
-      const transaction = await this.saveTransaction(createTransaction);
+      const transaction = await this.saveTransaction(transactionFactory);
 
       const entries = await this.entryFactory.createEntriesWithOperations(
         user,

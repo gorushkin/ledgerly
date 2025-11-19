@@ -45,7 +45,7 @@ export class UpdateTransactionUseCase {
         transaction.toPersistence(),
       );
 
-      if (!data.entries) {
+      if (!data.entries || data.entries.length === 0) {
         return this.transactionMapper.toResponseDTO(
           transaction,
           transactionDbRow.entries,
