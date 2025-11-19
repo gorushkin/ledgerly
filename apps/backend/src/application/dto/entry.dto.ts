@@ -45,3 +45,6 @@ export type GetEntriesQueryDTO = {
 
 // TODO: remove after testing git
 export type TEST = string;
+export type TEST2 = string;
+export type TEST3 = string;
+export type TEST4 = string;
