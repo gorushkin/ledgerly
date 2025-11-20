@@ -171,7 +171,7 @@ describe('UpdateTransactionUseCase', () => {
       user,
       account,
       newEntry,
-      Amount.create('200'),
+      Amount.create('-200'),
       'Updated To Operation',
     );
 

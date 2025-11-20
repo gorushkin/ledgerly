@@ -240,19 +240,10 @@ export class Transaction {
     return [...this.entries];
   }
 
-  isBalanced(): boolean {
-    // All entries must sum to zero for a balanced transaction
-    // const total = this.entries.reduce(
-    //   (sum, entry) => sum + entry.getAmount().valueOf(),
-    //   0,
-    // );
-    // return total === 0;
-    return true; // Placeholder implementation
-  }
-
   validateBalance(): void {
-    if (!this.isBalanced()) {
-      throw new Error('Transaction is not balanced');
+    // Validate each entry individually
+    for (const entry of this.entries) {
+      entry.validateBalance();
     }
   }
 }

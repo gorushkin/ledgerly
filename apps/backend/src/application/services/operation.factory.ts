@@ -95,10 +95,7 @@ export class OperationFactory {
     }, Amount.create('0'));
 
     if (!balancedAmount.isZero()) {
-      throw new UnbalancedOperationsError(
-        entry.getId().valueOf(),
-        Number(balancedAmount.valueOf()),
-      );
+      throw new UnbalancedOperationsError(entry, balancedAmount);
     }
   }
 

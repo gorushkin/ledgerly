@@ -1,4 +1,5 @@
 import { EntryDbRow } from 'src/db/schemas/entries';
+import { UnbalancedOperationsError } from 'src/presentation/errors/businessLogic.error';
 
 import {
   EntityIdentity,
@@ -7,6 +8,7 @@ import {
   SoftDelete,
   ParentChildRelation,
   Timestamp,
+  Amount,
 } from '../domain-core';
 import { Operation } from '../operations';
 import { Transaction } from '../transactions';
@@ -117,5 +119,15 @@ export class Entry {
 
   getOperations(): Operation[] {
     return this.operations;
+  }
+
+  validateBalance(): void {
+    const total = this.operations.reduce((sum, operation) => {
+      return sum.add(operation.amount);
+    }, Amount.create('0'));
+
+    if (!total.isZero()) {
+      throw new UnbalancedOperationsError(this, total);
+    }
   }
 }

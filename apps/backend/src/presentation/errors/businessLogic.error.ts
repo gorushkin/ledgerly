@@ -1,3 +1,6 @@
+import { Entry } from 'src/domain';
+import { Amount } from 'src/domain/domain-core';
+
 import { AppError, ErrorType } from './AppError';
 
 export class BusinessLogicError extends AppError {
@@ -22,9 +25,9 @@ export class UnbalancedTransactionError extends BusinessLogicError {
 }
 
 export class UnbalancedOperationsError extends BusinessLogicError {
-  constructor(entryId: string, diff: number) {
+  constructor(entry: Entry, diff: Amount) {
     super(
-      `Entry with id ${entryId} has unbalanced operations. Difference: ${diff}`,
+      `Entry with id ${entry.getId().valueOf()} has unbalanced operations. Difference: ${diff.valueOf()}`,
       400,
       'UnbalancedOperationsError',
     );
