@@ -1,6 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
-import { InfrastructureError } from 'src/infrastructure/infrastructure.errors';
+import {
+  ForbiddenAccessError,
+  InfrastructureError,
+  RepositoryNotFoundError,
+} from 'src/infrastructure/infrastructure.errors';
 import {
   DBErrorContext,
   DatabaseError,
@@ -118,6 +122,37 @@ export class BaseRepository {
       if (key in data) result[key] = data[key];
     }
     return result;
+  }
+
+  /**
+   * Ensures an entity exists, throwing RepositoryNotFoundError if not.
+   * Use this to avoid if (!entity) throw error boilerplate.
+   *
+   * @param entity - The entity to check
+   * @param message - Error message if entity doesn't exist
+   * @returns The entity (guaranteed to be non-null)
+   */
+  protected ensureEntityExists<T>(
+    entity: T | undefined | null,
+    message: string,
+  ): T {
+    if (!entity) {
+      throw new RepositoryNotFoundError(message);
+    }
+    return entity;
+  }
+
+  /**
+   * Ensures a user has access to an entity, throwing ForbiddenAccessError if not.
+   * Use this to check entity ownership.
+   *
+   * @param condition - The condition to check (e.g., entity.userId === userId)
+   * @param message - Error message if access is denied
+   */
+  protected ensureAccess(condition: boolean, message: string): void {
+    if (!condition) {
+      throw new ForbiddenAccessError(message);
+    }
   }
 
   async writeNewEntryToDatabase<T, E extends { toPersistence: () => T }, K>(
