@@ -5,7 +5,7 @@ import { User } from 'src/domain';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Account } from 'src/domain/accounts/account.entity';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
-import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AccountFactory } from '../account.factory';
@@ -79,7 +79,7 @@ describe('CreateAccountUseCase', () => {
   describe('findOrCreateSystemAccount', () => {
     it('should create a system account if not found', async () => {
       mockAccountRepository.findSystemAccount.mockRejectedValueOnce(
-        new NotFoundError('Not found'),
+        new RepositoryNotFoundError('Not found'),
       );
 
       const mockAccount = Account.create(

@@ -8,9 +8,9 @@ import {
   accountsTable,
 } from 'src/db/schemas/accounts';
 import {
-  ForbiddenError,
-  NotFoundError,
-} from 'src/presentation/errors/businessLogic.error';
+  ForbiddenAccessError,
+  RepositoryNotFoundError,
+} from 'src/infrastructure/infrastructure.errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -70,7 +70,7 @@ export class AccountRepository
         .get();
 
       if (!account) {
-        throw new NotFoundError(`Account with ID ${id} not found`);
+        throw new RepositoryNotFoundError(`Account with ID ${id} not found`);
       }
 
       return account;
@@ -101,7 +101,7 @@ export class AccountRepository
           .get();
 
         if (!updatedAccount) {
-          throw new NotFoundError(`Account with ID ${id} not found`);
+          throw new RepositoryNotFoundError(`Account with ID ${id} not found`);
         }
 
         return updatedAccount;
@@ -125,7 +125,7 @@ export class AccountRepository
         .get();
 
       if (!updatedAccount) {
-        throw new NotFoundError(`Account with ID ${id} not found`);
+        throw new RepositoryNotFoundError(`Account with ID ${id} not found`);
       }
 
       return updatedAccount;
@@ -151,7 +151,7 @@ export class AccountRepository
         .get();
 
       if (!account) {
-        throw new NotFoundError(
+        throw new RepositoryNotFoundError(
           `System account not found for currency: ${currency}`,
         );
       }
@@ -174,11 +174,13 @@ export class AccountRepository
         .get();
 
       if (!account) {
-        throw new NotFoundError(`Account with ID ${accountId} not found`);
+        throw new RepositoryNotFoundError(
+          `Account with ID ${accountId} not found`,
+        );
       }
 
       if (account.userId !== userId) {
-        throw new ForbiddenError(
+        throw new ForbiddenAccessError(
           'You do not have permission to access this account',
         );
       }
@@ -205,7 +207,7 @@ export class AccountRepository
       const foundIds = new Set(accounts.map((acc) => acc.id));
       const missingAccounts = accountIds.filter((id) => !foundIds.has(id));
       if (missingAccounts.length > 0) {
-        throw new NotFoundError(
+        throw new RepositoryNotFoundError(
           `Accounts not found: ${missingAccounts.join(', ')}`,
         );
       }

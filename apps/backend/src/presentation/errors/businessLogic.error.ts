@@ -6,12 +6,6 @@ export class BusinessLogicError extends HttpApiError {
   }
 }
 
-export class UnbalancedTransactionError extends BusinessLogicError {
-  constructor(diff: number) {
-    super(`Transaction operations are not balanced. Difference: ${diff}`, 400);
-  }
-}
-
 export class NotFoundError extends BusinessLogicError {
   constructor(message: string) {
     super(message, 404);
@@ -21,29 +15,5 @@ export class NotFoundError extends BusinessLogicError {
 export class ForbiddenError extends BusinessLogicError {
   constructor(message = 'Access denied') {
     super(message, 403);
-  }
-}
-
-export class AlreadyExistsError extends BusinessLogicError {
-  constructor(message: string) {
-    super(message, 409);
-  }
-}
-
-export class ConflictError extends BusinessLogicError {
-  constructor(message: string) {
-    super(message, 409);
-  }
-}
-
-export class ValidationError extends BusinessLogicError {
-  constructor(message: string) {
-    super(message, 400);
-  }
-}
-
-export class CustomErrorName extends BusinessLogicError {
-  constructor(message: string) {
-    super(message, 400);
   }
 }

@@ -9,7 +9,7 @@ import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Account } from 'src/domain/accounts/account.entity';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
-import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 
 import { AccountRepositoryInterface } from '../interfaces';
 
@@ -49,7 +49,7 @@ export class AccountFactory {
       );
       return Account.restore(systemAccount);
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (error instanceof RepositoryNotFoundError) {
         return await this.createAccount(user, {
           currency,
           description: `System account for ${currency} currency trading`,

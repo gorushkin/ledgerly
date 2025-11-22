@@ -18,3 +18,13 @@ export class RepositoryNotFoundError extends InfrastructureError {
     super(message);
   }
 }
+
+/**
+ * Thrown when a repository operation fails due to access/authorization issues.
+ * Typically when a user tries to access a resource they don't own.
+ */
+export class ForbiddenAccessError extends InfrastructureError {
+  constructor(message: string) {
+    super(message);
+  }
+}
