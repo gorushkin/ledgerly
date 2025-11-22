@@ -1,7 +1,10 @@
+import {
+  InvalidPasswordError,
+  UserNotFoundError,
+} from 'src/application/application.errors';
 import { UserResponseDTO } from 'src/application/dto';
 import { UserRepositoryInterface } from 'src/application/interfaces';
 import { User } from 'src/domain/users/user.entity';
-import { AuthErrors } from 'src/presentation/errors/auth.errors';
 
 export class LoginUserUseCase {
   constructor(private readonly userRepository: UserRepositoryInterface) {}
@@ -11,7 +14,7 @@ export class LoginUserUseCase {
       await this.userRepository.getByEmailWithPassword(email);
 
     if (!userWithPassword) {
-      throw new AuthErrors.UserNotFoundError();
+      throw new UserNotFoundError();
     }
 
     const user = User.fromPersistence(userWithPassword);
@@ -19,7 +22,7 @@ export class LoginUserUseCase {
     const isPasswordValid = await user.validatePassword(password);
 
     if (!isPasswordValid) {
-      throw new AuthErrors.InvalidPasswordError();
+      throw new InvalidPasswordError();
     }
 
     return user.toResponseDTO();

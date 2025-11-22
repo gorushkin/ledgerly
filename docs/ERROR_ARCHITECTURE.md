@@ -10,16 +10,17 @@ BaseError (shared/errors)
 │   └── UnbalancedEntryError
 ├── ApplicationError (application)
 │   ├── EntityNotFoundError
-│   └── UnauthorizedAccessError
+│   ├── UnauthorizedAccessError
+│   ├── UserNotFoundError
+│   ├── InvalidPasswordError
+│   └── UserAlreadyExistsError
 ├── InfrastructureError (infrastructure)
 │   ├── RepositoryNotFoundError
 │   ├── ForbiddenAccessError
 │   └── DatabaseError
 └── HttpApiError (presentation)
     └── AuthErrors
-        ├── UnauthorizedError
-        ├── UserNotFoundError
-        └── EmailAlreadyExistsError
+        └── UnauthorizedError
 ```
 
 ## Layer Responsibilities
@@ -40,13 +41,17 @@ BaseError (shared/errors)
   - No HTTP details
 
 ### ApplicationError (`application/application.errors.ts`)
-- **Purpose**: Use case failures
+- **Purpose**: Use case failures and authentication/authorization
 - **Examples**:
   - `EntityNotFoundError` - Entity doesn't exist
   - `UnauthorizedAccessError` - User doesn't own entity
+  - `UserNotFoundError` - User not found during login (401)
+  - `InvalidPasswordError` - Invalid password during login (401)
+  - `UserAlreadyExistsError` - Duplicate user registration (409)
 - **Characteristics**:
   - Orchestration failures
   - Cross-entity rules
+  - Authentication/authorization business logic
   - No infrastructure details
 
 ### InfrastructureError (`infrastructure/infrastructure.errors.ts`)
@@ -63,17 +68,16 @@ BaseError (shared/errors)
   - Access control at data layer
 
 ### HttpApiError (`presentation/errors/HttpError.ts`)
-- **Purpose**: HTTP-specific errors for REST API
+- **Purpose**: HTTP-specific errors for REST API and middleware
 - **Contains**: statusCode, message
 - **Examples**:
-  - `AuthErrors` - authentication/authorization errors
-    - `UnauthorizedError` (401)
-    - `UserNotFoundError` (404)
-    - `EmailAlreadyExistsError` (409)
+  - `AuthErrors` - middleware authentication errors
+    - `UnauthorizedError` (401) - Missing/invalid token
 - **Characteristics**:
   - HTTP status codes
   - REST API specific
   - Presentation layer only
+  - Used by middleware for HTTP-level auth
   - Maps domain/application/infrastructure errors to HTTP responses
 
 ## Error Flow
@@ -87,9 +91,17 @@ BaseError (shared/errors)
                     ↓
 4. Maps to appropriate HTTP response
    - DomainError → 400 (Bad Request)
-   - ApplicationError → 404/403 (Not Found/Forbidden)
-   - InfrastructureError → 500/404 (Server Error/Not Found)
-   - AppError → Uses error.statusCode
+   - ApplicationError → 401/403/404/409
+     * UserNotFoundError → 401
+     * InvalidPasswordError → 401
+     * UserAlreadyExistsError → 409
+     * EntityNotFoundError → 404
+     * UnauthorizedAccessError → 403
+   - InfrastructureError → 404/403/500
+     * RepositoryNotFoundError → 404
+     * ForbiddenAccessError → 403
+     * DatabaseError → 500
+   - HttpApiError → Uses error.statusCode
 ```
 
 ## Usage Examples
@@ -107,6 +119,28 @@ validateBalance(): void {
 ```
 
 ### Application Layer
+```typescript
+// application/usecases/auth/loginUser.ts
+import { UserNotFoundError, InvalidPasswordError } from 'src/application/application.errors';
+
+if (!userWithPassword) {
+  throw new UserNotFoundError();
+}
+
+if (!isPasswordValid) {
+  throw new InvalidPasswordError();
+}
+```
+
+```typescript
+// application/usecases/auth/registerUser.ts
+import { UserAlreadyExistsError } from 'src/application/application.errors';
+
+if (existingUser) {
+  throw new UserAlreadyExistsError();
+}
+```
+
 ```typescript
 // application/shared/ensureEntityExistsAndOwned.ts
 import { EntityNotFoundError, UnauthorizedAccessError } from '../application.errors';
@@ -137,20 +171,32 @@ if (account.userId !== userId) {
 ### Presentation Layer
 ```typescript
 // libs/errorHandler.ts
-import { DomainError } from 'src/domain/domain.errors';
-import { ApplicationError } from 'src/application/application.errors';
-import { InfrastructureError, RepositoryNotFoundError, ForbiddenAccessError } from 'src/infrastructure/infrastructure.errors';
+import { 
+  UserNotFoundError, 
+  InvalidPasswordError, 
+  UserAlreadyExistsError,
+  EntityNotFoundError,
+  UnauthorizedAccessError 
+} from 'src/application/application.errors';
+import { 
+  RepositoryNotFoundError, 
+  ForbiddenAccessError 
+} from 'src/infrastructure/infrastructure.errors';
 
-// Map infrastructure errors to HTTP responses
-if (error instanceof RepositoryNotFoundError) {
-  return reply.status(404).send({ error: true, message: error.message });
+// Map application auth errors
+if (error instanceof UserNotFoundError || error.constructor.name === 'UserNotFoundError') {
+  return reply.status(401).send({ error: true, message: error.message });
 }
 
-if (error instanceof ForbiddenAccessError) {
-  return reply.status(403).send({ error: true, message: error.message });
+if (error instanceof InvalidPasswordError || error.constructor.name === 'InvalidPasswordError') {
+  return reply.status(401).send({ error: true, message: error.message });
 }
 
-// Map application errors
+if (error instanceof UserAlreadyExistsError || error.constructor.name === 'UserAlreadyExistsError') {
+  return reply.status(409).send({ error: true, message: error.message });
+}
+
+// Map application entity errors
 if (error instanceof EntityNotFoundError) {
   return reply.status(404).send({ error: true, message: error.message });
 }
@@ -158,7 +204,18 @@ if (error instanceof EntityNotFoundError) {
 if (error instanceof UnauthorizedAccessError) {
   return reply.status(403).send({ error: true, message: error.message });
 }
+
+// Map infrastructure errors
+if (error instanceof RepositoryNotFoundError) {
+  return reply.status(404).send({ error: true, message: error.message });
+}
+
+if (error instanceof ForbiddenAccessError) {
+  return reply.status(403).send({ error: true, message: error.message });
+}
 ```
+
+**Note**: Error handler uses `error.constructor.name` fallback for auth errors to handle prototype chain issues with `instanceof` across async boundaries.
 
 ## Benefits
 
@@ -204,16 +261,33 @@ export class ForbiddenAccessError extends InfrastructureError {
 ### Presentation Error (HTTP-specific)
 ```typescript
 // presentation/errors/auth.errors.ts
-export class UserNotFoundError extends HttpApiError {
-  constructor(message: string = 'User not found') {
-    super(message, 404);
+// Only for middleware HTTP-level authentication
+class UnauthorizedError extends HttpApiError {
+  constructor(message = 'Unauthorized') {
+    super(message, 401);
   }
 }
+
+export const AuthErrors = {
+  UnauthorizedError,
+};
 ```
+
+**Note**: Auth business logic errors (UserNotFoundError, InvalidPasswordError, UserAlreadyExistsError) are in Application layer, not Presentation.
 
 ## Important Notes
 
 ### Clean Architecture Compliance
+
+**✅ CORRECT: Application throws application errors**
+```typescript
+// application/usecases/auth/loginUser.ts
+import { UserNotFoundError } from 'src/application/application.errors';
+
+if (!user) {
+  throw new UserNotFoundError();
+}
+```
 
 **✅ CORRECT: Infrastructure throws infrastructure errors**
 ```typescript
@@ -222,6 +296,16 @@ import { RepositoryNotFoundError } from '../infrastructure.errors';
 
 if (!account) {
   throw new RepositoryNotFoundError(`Account not found`);
+}
+```
+
+**❌ WRONG: Application throwing presentation errors**
+```typescript
+// application/usecases/auth/loginUser.ts
+import { AuthErrors } from 'src/presentation/errors/auth.errors';
+
+if (!user) {
+  throw new AuthErrors.UserNotFoundError(); // VIOLATES ARCHITECTURE!
 }
 ```
 
@@ -238,6 +322,25 @@ if (!account) {
 ### Layer Dependencies
 
 - **Domain**: No dependencies on other layers
-- **Application**: Can use Domain errors
-- **Infrastructure**: Should only throw Infrastructure errors
+- **Application**: Can use Domain errors only (never Infrastructure or Presentation)
+- **Infrastructure**: Should only throw Infrastructure errors (never Presentation)
 - **Presentation**: Can catch and transform any error type to HTTP response
+
+### instanceof vs constructor.name
+
+Due to TypeScript prototype chain issues across async boundaries, the error handler uses a hybrid approach:
+
+```typescript
+// Use both instanceof AND constructor.name for reliability
+if (
+  error instanceof UserNotFoundError ||
+  error.constructor.name === 'UserNotFoundError'
+) {
+  return reply.status(401).send({ error: true, message: error.message });
+}
+```
+
+This ensures errors are caught correctly even when `instanceof` fails due to:
+- Different module instances
+- Transpilation issues
+- Async/await boundary crossing

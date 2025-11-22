@@ -96,6 +96,18 @@ export class BaseRepository {
         }
       }
 
+      // Re-throw infrastructure errors (like RepositoryNotFoundError, ForbiddenAccessError)
+      // Check by name as well as instanceof to handle prototype chain issues
+      // if (
+      //   error instanceof InfrastructureError ||
+      //   (error instanceof Error &&
+      //     (error.constructor.name === 'RepositoryNotFoundError' ||
+      //       error.constructor.name === 'ForbiddenAccessError' ||
+      //       error.constructor.name === 'InfrastructureError'))
+      // ) {
+      //   throw error;
+      // }
+
       if (error instanceof InvalidDataError) throw error;
       if (error instanceof InfrastructureError) throw error;
 

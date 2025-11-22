@@ -23,3 +23,30 @@ export class UnauthorizedAccessError extends ApplicationError {
     super(`${entityName} does not belong to the user`);
   }
 }
+
+/**
+ * Thrown when a user is not found during authentication.
+ */
+export class UserNotFoundError extends ApplicationError {
+  constructor(message = 'User not found') {
+    super(message);
+  }
+}
+
+/**
+ * Thrown when a password is invalid during authentication.
+ */
+export class InvalidPasswordError extends ApplicationError {
+  constructor(message = 'Invalid password') {
+    super(message);
+  }
+}
+
+/**
+ * Thrown when trying to register a user that already exists.
+ */
+export class UserAlreadyExistsError extends ApplicationError {
+  constructor(message = 'User already exists') {
+    super(message);
+  }
+}

@@ -1,10 +1,13 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
-import { ZodError } from 'zod';
-
 import {
   EntityNotFoundError,
+  InvalidPasswordError,
   UnauthorizedAccessError,
-} from '../application/application.errors';
+  UserAlreadyExistsError,
+  UserNotFoundError,
+} from 'src/application/application.errors';
+import { ZodError } from 'zod';
+
 import { RepositoryNotFoundError } from '../infrastructure/infrastructure.errors';
 import { DatabaseError, HttpApiError } from '../presentation/errors';
 
@@ -16,7 +19,10 @@ export function errorHandler(
     | DatabaseError
     | EntityNotFoundError
     | UnauthorizedAccessError
-    | RepositoryNotFoundError,
+    | RepositoryNotFoundError
+    | UserNotFoundError
+    | InvalidPasswordError
+    | UserAlreadyExistsError,
   _request: FastifyRequest,
   reply: FastifyReply,
 ) {
@@ -32,7 +38,29 @@ export function errorHandler(
     });
   }
 
-  // Application layer errors
+  // Application layer errors - authentication/authorization
+  if (error instanceof UserNotFoundError) {
+    return reply.status(401).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  if (error instanceof InvalidPasswordError) {
+    return reply.status(401).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  if (error instanceof UserAlreadyExistsError) {
+    return reply.status(409).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  // Application layer errors - entity operations
   if (error instanceof EntityNotFoundError) {
     return reply.status(404).send({
       error: true,
