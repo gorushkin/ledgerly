@@ -60,16 +60,16 @@ describe('AccountRepository', () => {
     }),
   };
 
-  let accountRepository: AccountRepository;
+  const accountRepository = new AccountRepository(
+    transactionManager as unknown as TransactionManager,
+  );
+
   let user: UserDbRow;
 
   beforeEach(async () => {
     testDB = new TestDB();
     await testDB.setupTestDb();
 
-    accountRepository = new AccountRepository(
-      transactionManager as unknown as TransactionManager,
-    );
     user = await testDB.createUser();
   });
 
@@ -532,9 +532,7 @@ describe('AccountRepository', () => {
     it('should throw NotFoundError if system account does not exist for user and currency', async () => {
       await expect(
         accountRepository.findSystemAccount(user.id, USD),
-      ).rejects.toThrowError(
-        new NotFoundError(`System account not found for currency: ${USD}`),
-      );
+      ).rejects.toThrowError(NotFoundError);
     });
   });
 });

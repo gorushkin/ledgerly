@@ -1,11 +1,12 @@
 import { UserRepositoryInterface } from 'src/application';
 import { Id, Password } from 'src/domain/domain-core';
 import { TransactionManager } from 'src/infrastructure/db';
-import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 
-import { TestDB } from '../../db/test-db';
-import { UserRepository } from '../../infrastructure/db/UsersRepository';
+import { TestDB } from '../../../db/test-db';
+
+import { UserRepository } from './user.repository';
 
 describe('UsersRepository', () => {
   let testDB: TestDB;
@@ -47,7 +48,7 @@ describe('UsersRepository', () => {
     it('should return undefined for non-existent user', async () => {
       const foundUser = userRepository.getById(Id.create().valueOf());
 
-      await expect(foundUser).rejects.toThrowError(NotFoundError);
+      await expect(foundUser).rejects.toThrowError(RepositoryNotFoundError);
     });
   });
 
@@ -135,7 +136,7 @@ describe('UsersRepository', () => {
       );
 
       expect(updatedUser.name).toBe(updateData.name);
-      expect(updatedUser.email).toBe(email); // Оригинальный email должен остаться
+      expect(updatedUser.email).toBe(email);
     });
   });
 
@@ -146,13 +147,13 @@ describe('UsersRepository', () => {
       await userRepository.delete(user.id);
 
       const foundUser = userRepository.getById(user.id);
-      await expect(foundUser).rejects.toThrowError(NotFoundError);
+      await expect(foundUser).rejects.toThrowError(RepositoryNotFoundError);
     });
 
     it('should return undefined when trying to delete non-existent user', async () => {
       const result = userRepository.delete(Id.create().valueOf());
 
-      await expect(result).rejects.toThrowError(NotFoundError);
+      await expect(result).rejects.toThrowError(RepositoryNotFoundError);
     });
   });
 

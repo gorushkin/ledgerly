@@ -1,85 +1,49 @@
-import { Entry } from 'src/domain';
-import { Amount } from 'src/domain/domain-core';
+import { HttpApiError } from './HttpError';
 
-import { AppError, ErrorType } from './AppError';
-
-export class BusinessLogicError extends AppError {
-  constructor(
-    message: string,
-    statusCode = 400,
-    type: ErrorType = 'BusinessLogicError',
-    cause?: Error,
-  ) {
-    super(message, statusCode, type, cause);
+export class BusinessLogicError extends HttpApiError {
+  constructor(message: string, statusCode = 400, cause?: Error) {
+    super(message, statusCode, cause);
   }
 }
 
 export class UnbalancedTransactionError extends BusinessLogicError {
   constructor(diff: number) {
-    super(
-      `Transaction operations are not balanced. Difference: ${diff}`,
-      400,
-      'UnbalancedTransactionError',
-    );
-  }
-}
-
-export class UnbalancedOperationsError extends BusinessLogicError {
-  constructor(entry: Entry, diff: Amount) {
-    super(
-      `Entry with id ${entry.getId().valueOf()} has unbalanced operations. Difference: ${diff.valueOf()}`,
-      400,
-      'UnbalancedOperationsError',
-    );
+    super(`Transaction operations are not balanced. Difference: ${diff}`, 400);
   }
 }
 
 export class NotFoundError extends BusinessLogicError {
   constructor(message: string) {
-    super(message, 404, 'NotFoundError');
+    super(message, 404);
   }
 }
 
 export class ForbiddenError extends BusinessLogicError {
   constructor(message = 'Access denied') {
-    super(message, 403, 'ForbiddenError');
+    super(message, 403);
   }
 }
 
 export class AlreadyExistsError extends BusinessLogicError {
   constructor(message: string) {
-    super(message, 409, 'AlreadyExistsError');
+    super(message, 409);
   }
 }
 
 export class ConflictError extends BusinessLogicError {
   constructor(message: string) {
-    super(message, 409, 'ConflictError');
+    super(message, 409);
   }
 }
 
 export class ValidationError extends BusinessLogicError {
   constructor(message: string) {
-    super(message, 400, 'ValidationError');
+    super(message, 400);
   }
 }
 
 export class CustomErrorName extends BusinessLogicError {
   constructor(message: string) {
-    super(message, 400, 'CustomErrorName');
-  }
-}
-
-export class EntityNotFoundError extends BusinessLogicError {
-  constructor(entityName: string) {
-    super(`${entityName} not found`);
-    this.name = 'EntityNotFoundError';
-  }
-}
-
-export class UnauthorizedAccessError extends BusinessLogicError {
-  constructor(entityName: string) {
-    super(`${entityName} does not belong to the user`);
-    this.name = 'UnauthorizedAccessError';
+    super(message, 400);
   }
 }

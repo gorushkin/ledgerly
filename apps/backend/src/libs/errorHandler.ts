@@ -1,10 +1,22 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 
-import { AppError, DatabaseError } from '../presentation/errors';
+import {
+  EntityNotFoundError,
+  UnauthorizedAccessError,
+} from '../application/application.errors';
+import { RepositoryNotFoundError } from '../infrastructure/infrastructure.errors';
+import { DatabaseError, HttpApiError } from '../presentation/errors';
 
 export function errorHandler(
-  error: FastifyError | AppError | ZodError | DatabaseError,
+  error:
+    | FastifyError
+    | HttpApiError
+    | ZodError
+    | DatabaseError
+    | EntityNotFoundError
+    | UnauthorizedAccessError
+    | RepositoryNotFoundError,
   _request: FastifyRequest,
   reply: FastifyReply,
 ) {
@@ -20,7 +32,30 @@ export function errorHandler(
     });
   }
 
-  if (error instanceof AppError) {
+  // Application layer errors
+  if (error instanceof EntityNotFoundError) {
+    return reply.status(404).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  if (error instanceof UnauthorizedAccessError) {
+    return reply.status(403).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  // Infrastructure layer errors
+  if (error instanceof RepositoryNotFoundError) {
+    return reply.status(404).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  if (error instanceof HttpApiError) {
     return reply.status(error.statusCode).send({
       error: true,
       message: error.message,

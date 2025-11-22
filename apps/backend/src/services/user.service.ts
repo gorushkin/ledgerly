@@ -4,7 +4,7 @@ import {
   UUID,
 } from '@ledgerly/shared/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { UserRepository } from 'src/infrastructure/db/UsersRepository';
+import { UserRepository } from 'src/infrastructure/db/user/user.repository';
 import { AuthErrors } from 'src/presentation/errors/auth.errors';
 
 export class UserService {

@@ -1,5 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
+import { InfrastructureError } from 'src/infrastructure/infrastructure.errors';
 import {
   DBErrorContext,
   DatabaseError,
@@ -94,6 +95,7 @@ export class BaseRepository {
 
       if (error instanceof InvalidDataError) throw error;
       if (error instanceof BusinessLogicError) throw error;
+      if (error instanceof InfrastructureError) throw error;
 
       if (process.env.NODE_ENV !== 'test') {
         console.error(`Database error: ${errorMessage}`, error);

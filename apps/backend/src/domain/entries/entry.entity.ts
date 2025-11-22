@@ -1,5 +1,4 @@
 import { EntryDbRow } from 'src/db/schemas/entries';
-import { UnbalancedOperationsError } from 'src/presentation/errors/businessLogic.error';
 
 import {
   EntityIdentity,
@@ -10,6 +9,7 @@ import {
   Timestamp,
   Amount,
 } from '../domain-core';
+import { UnbalancedEntryError } from '../domain.errors';
 import { Operation } from '../operations';
 import { Transaction } from '../transactions';
 import { User } from '../users/user.entity';
@@ -127,7 +127,7 @@ export class Entry {
     }, Amount.create('0'));
 
     if (!total.isZero()) {
-      throw new UnbalancedOperationsError(this, total);
+      throw new UnbalancedEntryError(this, total);
     }
   }
 }

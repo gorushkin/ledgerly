@@ -1,32 +1,32 @@
-import { AppError } from './AppError';
+import { HttpApiError } from './HttpError';
 
-class UserNotFoundError extends AppError {
+class UserNotFoundError extends HttpApiError {
   constructor(message = 'User not found') {
-    super(message, 401, 'UserNotFoundError');
+    super(message, 401);
   }
 }
 
-class InvalidPasswordError extends AppError {
+class InvalidPasswordError extends HttpApiError {
   constructor(message = 'Invalid password') {
-    super(message, 401, 'InvalidPasswordError');
+    super(message, 401);
   }
 }
 
-class UserExistsError extends AppError {
+class UserExistsError extends HttpApiError {
   constructor(message = 'User already exists') {
-    super(message, 409, 'UserExistsError');
+    super(message, 409);
   }
 }
 
-class UnauthorizedError extends AppError {
+class UnauthorizedError extends HttpApiError {
   constructor(message = 'Unauthorized') {
-    super(message, 401, 'UnauthorizedError');
+    super(message, 401);
   }
 }
 
-class EmailAlreadyExistsError extends AppError {
+class EmailAlreadyExistsError extends HttpApiError {
   constructor(message = 'Email already exists') {
-    super(message, 409, 'EmailAlreadyExistsError');
+    super(message, 409);
   }
 }
 

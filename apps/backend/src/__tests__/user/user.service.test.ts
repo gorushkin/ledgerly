@@ -1,6 +1,6 @@
 import { Id } from 'src/domain/domain-core';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { UserRepository } from 'src/infrastructure/db/UsersRepository';
+import { UserRepository } from 'src/infrastructure/db/user/user.repository';
 import { AuthErrors } from 'src/presentation/errors/auth.errors';
 import { UserService } from 'src/services/user.service';
 import { describe, vi, beforeEach, expect, it } from 'vitest';

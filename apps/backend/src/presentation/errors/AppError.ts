@@ -1,3 +1,5 @@
+import { BaseError } from 'src/shared/errors/BaseError';
+
 export type ErrorType =
   | 'AppError'
   | 'BusinessLogicError'
@@ -16,16 +18,19 @@ export type ErrorType =
   | 'EmailAlreadyExistsError'
   | 'UnbalancedOperationsError';
 
-export class AppError extends Error {
+/**
+ * Presentation layer error with HTTP status code.
+ * Use this for errors that need to be translated to HTTP responses.
+ */
+export class AppError extends BaseError {
   constructor(
     message: string,
     public statusCode = 500,
     public type: ErrorType = 'AppError',
-    public readonly cause?: Error,
+    cause?: Error,
   ) {
-    super(message);
-    this.name = this.constructor.name;
-    Object.setPrototypeOf(this, new.target.prototype);
-    Error.captureStackTrace(this, this.constructor);
+    super(message, cause);
+    this.statusCode = statusCode;
+    this.type = type;
   }
 }

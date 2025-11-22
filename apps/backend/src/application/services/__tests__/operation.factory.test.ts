@@ -8,7 +8,7 @@ import {
 import { Account, Operation, User } from 'src/domain';
 import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
-import { UnbalancedOperationsError } from 'src/presentation/errors/businessLogic.error';
+import { UnbalancedEntryError } from 'src/domain/domain.errors';
 import { describe, it, vi, expect, beforeAll } from 'vitest';
 
 import { OperationFactory } from '../';
@@ -390,6 +390,6 @@ describe('OperationFactory', () => {
         accountsMap,
         currencySystemAccountsMap,
       ),
-    ).rejects.toThrowError(UnbalancedOperationsError);
+    ).rejects.toThrowError(UnbalancedEntryError);
   });
 });

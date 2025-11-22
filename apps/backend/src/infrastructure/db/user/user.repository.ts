@@ -7,9 +7,9 @@ import {
 } from 'src/application';
 import { UserDbRow } from 'src/db/schema';
 import { usersTable } from 'src/db/schemas';
-import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 
-import { BaseRepository } from './BaseRepository';
+import { BaseRepository } from '../BaseRepository';
 
 const userSelect = {
   email: usersTable.email,
@@ -58,7 +58,7 @@ export class UserRepository
         .get();
 
       if (!user) {
-        throw new NotFoundError(`User with ID ${id} not found`);
+        throw new RepositoryNotFoundError(`User with ID ${id} not found`);
       }
 
       return user;
@@ -97,7 +97,7 @@ export class UserRepository
         .get();
 
       if (!updatedUserProfile) {
-        throw new NotFoundError(`User with ID ${id} not found`);
+        throw new RepositoryNotFoundError(`User with ID ${id} not found`);
       }
 
       return updatedUserProfile;
@@ -113,7 +113,7 @@ export class UserRepository
         .run();
 
       if (rowsAffected === 0) {
-        throw new NotFoundError(`User with ID ${id} not found`);
+        throw new RepositoryNotFoundError(`User with ID ${id} not found`);
       }
     }, `Failed to update password for user with ID ${id}`);
   }
@@ -138,7 +138,7 @@ export class UserRepository
         .run();
 
       if (rowsAffected === 0) {
-        throw new NotFoundError(`User with ID ${id} not found`);
+        throw new RepositoryNotFoundError(`User with ID ${id} not found`);
       }
     }, `Failed to delete user with ID ${id}`);
   }

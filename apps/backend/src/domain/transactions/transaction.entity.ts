@@ -241,7 +241,6 @@ export class Transaction {
   }
 
   validateBalance(): void {
-    // Validate each entry individually
     for (const entry of this.entries) {
       entry.validateBalance();
     }
