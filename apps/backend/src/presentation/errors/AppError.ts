@@ -2,21 +2,12 @@ import { BaseError } from 'src/shared/errors/BaseError';
 
 export type ErrorType =
   | 'AppError'
-  | 'BusinessLogicError'
-  | 'NotFoundError'
-  | 'UnbalancedTransactionError'
-  | 'ForbiddenError'
-  | 'AlreadyExistsError'
-  | 'ConflictError'
-  | 'ValidationError'
-  | 'CustomErrorName'
   | 'DatabaseError'
   | 'UnauthorizedError'
   | 'UserNotFoundError'
   | 'UserExistsError'
   | 'InvalidPasswordError'
-  | 'EmailAlreadyExistsError'
-  | 'UnbalancedOperationsError';
+  | 'EmailAlreadyExistsError';
 
 /**
  * Presentation layer error with HTTP status code.

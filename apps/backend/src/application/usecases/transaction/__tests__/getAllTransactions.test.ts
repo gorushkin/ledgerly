@@ -4,7 +4,7 @@ import {
 } from 'src/application/interfaces';
 import { TransactionWithRelations } from 'src/db/schema';
 import { Id } from 'src/domain/domain-core';
-import { ForbiddenError } from 'src/presentation/errors/businessLogic.error';
+import { ForbiddenAccessError } from 'src/infrastructure/infrastructure.errors';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAllTransactionsUseCase } from '../GetAllTransactions';
@@ -63,7 +63,9 @@ describe('GetAllTransactionsUseCase', () => {
 
   it('should throw an error if user does not own the account', async () => {
     accountRepository.ensureUserOwnsAccount.mockRejectedValue(
-      new ForbiddenError('You do not have permission to access this account'),
+      new ForbiddenAccessError(
+        'You do not have permission to access this account',
+      ),
     );
 
     await expect(

@@ -16,11 +16,9 @@ BaseError (shared/errors)
 │   ├── ForbiddenAccessError
 │   └── DatabaseError
 └── HttpApiError (presentation)
-    ├── BusinessLogicError
-    │   ├── NotFoundError
-    │   └── ForbiddenError
     └── AuthErrors
         ├── UnauthorizedError
+        ├── UserNotFoundError
         └── EmailAlreadyExistsError
 ```
 
@@ -68,15 +66,15 @@ BaseError (shared/errors)
 - **Purpose**: HTTP-specific errors for REST API
 - **Contains**: statusCode, message
 - **Examples**:
-  - `BusinessLogicError` (400) - base for business logic HTTP errors
-    - `NotFoundError` (404) - resource not found in HTTP context
-    - `ForbiddenError` (403) - access denied in HTTP context
   - `AuthErrors` - authentication/authorization errors
+    - `UnauthorizedError` (401)
+    - `UserNotFoundError` (404)
+    - `EmailAlreadyExistsError` (409)
 - **Characteristics**:
   - HTTP status codes
   - REST API specific
   - Presentation layer only
-  - Used by legacy services layer for backward compatibility
+  - Maps domain/application/infrastructure errors to HTTP responses
 
 ## Error Flow
 
@@ -205,9 +203,9 @@ export class ForbiddenAccessError extends InfrastructureError {
 
 ### Presentation Error (HTTP-specific)
 ```typescript
-// presentation/errors/businessLogic.error.ts
-export class NotFoundError extends BusinessLogicError {
-  constructor(message: string) {
+// presentation/errors/auth.errors.ts
+export class UserNotFoundError extends HttpApiError {
+  constructor(message: string = 'User not found') {
     super(message, 404);
   }
 }
@@ -243,7 +241,3 @@ if (!account) {
 - **Application**: Can use Domain errors
 - **Infrastructure**: Should only throw Infrastructure errors
 - **Presentation**: Can catch and transform any error type to HTTP response
-
-### Backward Compatibility
-
-`NotFoundError` and `ForbiddenError` in presentation layer are kept for backward compatibility with the legacy `services/` layer. New code should use infrastructure layer errors (`RepositoryNotFoundError`, `ForbiddenAccessError`) in repositories.

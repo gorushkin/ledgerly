@@ -12,7 +12,6 @@ import {
   InvalidDataError,
   RecordAlreadyExistsError,
 } from 'src/presentation/errors';
-import { BusinessLogicError } from 'src/presentation/errors/businessLogic.error';
 import { adaptLibsqlError } from 'src/presentation/errors/database/libsql-adapter';
 
 import { TransactionManager } from './TransactionManager';
@@ -98,7 +97,6 @@ export class BaseRepository {
       }
 
       if (error instanceof InvalidDataError) throw error;
-      if (error instanceof BusinessLogicError) throw error;
       if (error instanceof InfrastructureError) throw error;
 
       if (process.env.NODE_ENV !== 'test') {
