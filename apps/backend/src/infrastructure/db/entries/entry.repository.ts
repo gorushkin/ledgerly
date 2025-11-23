@@ -40,8 +40,8 @@ export class EntryRepository
     transactionId: UUID,
   ): Promise<EntryDbRow[]> {
     return this.executeDatabaseOperation<EntryDbRow[]>(
-      async () => {
-        const result: EntryDbRow[] = await this.db
+      () => {
+        return this.db
           .update(entriesTable)
           .set({ isTombstone: true })
           .where(
@@ -52,8 +52,6 @@ export class EntryRepository
           )
           .returning()
           .all();
-
-        return result;
       },
       'EntryRepository.softDeleteByTransactionId',
       {

@@ -124,7 +124,25 @@ describe('EntryRepository', () => {
         }),
       ]);
 
-      await entryRepository.softDeleteByTransactionId(user.id, transaction.id);
+      const softDeletedEntries =
+        await entryRepository.softDeleteByTransactionId(
+          user.id,
+          transaction.id,
+        );
+
+      expect(softDeletedEntries).toHaveLength(createdEntries.length);
+      expect(softDeletedEntries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: createdEntries[0].id,
+            isTombstone: true,
+          }),
+          expect.objectContaining({
+            id: createdEntries[1].id,
+            isTombstone: true,
+          }),
+        ]),
+      );
 
       const entries = await entryRepository.getByTransactionId(
         user.id,
@@ -153,7 +171,7 @@ describe('EntryRepository', () => {
         anotherTransaction.id,
       );
 
-      expect(entries).toHaveLength(0);
+      expect(entries).toEqual([]);
     });
   });
 });
