@@ -113,6 +113,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionRepository,
     entryFactory,
     entryRepository,
+    operationRepository,
     ensureEntityExistsAndOwned,
     transactionMapper,
   );

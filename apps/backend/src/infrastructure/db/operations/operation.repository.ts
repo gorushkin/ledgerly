@@ -42,4 +42,31 @@ export class OperationRepository
       { field: 'entryId', tableName: 'operations', value: entryId },
     );
   }
+
+  async softDeleteByEntryId(
+    userId: UUID,
+    entryId: UUID,
+  ): Promise<OperationDbRow[]> {
+    return this.executeDatabaseOperation<OperationDbRow[]>(
+      () => {
+        return this.db
+          .update(operationsTable)
+          .set({ isTombstone: true })
+          .where(
+            and(
+              eq(operationsTable.entryId, entryId),
+              eq(operationsTable.userId, userId),
+            ),
+          )
+          .returning()
+          .all();
+      },
+      'OperationRepository.softDeleteByEntryId',
+      {
+        field: 'entryId',
+        tableName: 'operations',
+        value: entryId,
+      },
+    );
+  }
 }

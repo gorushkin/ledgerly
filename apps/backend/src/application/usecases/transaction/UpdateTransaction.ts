@@ -5,6 +5,7 @@ import {
 } from 'src/application/dto';
 import {
   EntryRepositoryInterface,
+  OperationRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -19,6 +20,7 @@ export class UpdateTransactionUseCase {
     protected readonly transactionRepository: TransactionRepositoryInterface,
     protected readonly entryFactory: EntryFactory,
     protected readonly entryRepository: EntryRepositoryInterface,
+    protected readonly operationRepository: OperationRepositoryInterface,
     protected readonly ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn,
     protected readonly transactionMapper: TransactionMapperInterface,
   ) {}
@@ -59,9 +61,19 @@ export class UpdateTransactionUseCase {
         );
       }
 
-      await this.entryRepository.softDeleteByTransactionId(
-        user.getId().valueOf(),
-        transactionId,
+      const softDeletedEntries =
+        await this.entryRepository.softDeleteByTransactionId(
+          user.getId().valueOf(),
+          transactionId,
+        );
+
+      await Promise.all(
+        softDeletedEntries.map((entry) =>
+          this.operationRepository.softDeleteByEntryId(
+            user.getId().valueOf(),
+            entry.id,
+          ),
+        ),
       );
 
       const entries = await this.entryFactory.createEntriesWithOperations(
