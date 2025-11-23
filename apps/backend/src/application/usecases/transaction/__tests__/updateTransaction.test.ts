@@ -53,7 +53,7 @@ describe('UpdateTransactionUseCase', () => {
   };
 
   const mockEntryRepository = {
-    deleteByTransactionId: vi.fn(),
+    softDeleteByTransactionId: vi.fn(),
   };
 
   const mockEnsureEntityExistsAndOwned = vi.fn();
@@ -277,7 +277,7 @@ describe('UpdateTransactionUseCase', () => {
       }),
     );
 
-    expect(mockEntryRepository.deleteByTransactionId).toHaveBeenCalledWith(
+    expect(mockEntryRepository.softDeleteByTransactionId).toHaveBeenCalledWith(
       user.getId().valueOf(),
       transactionDBRow.id,
     );

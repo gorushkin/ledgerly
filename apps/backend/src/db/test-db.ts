@@ -203,6 +203,16 @@ export class TestDB {
     return entry;
   };
 
+  getEntryById = async (entryId: UUID): Promise<EntryDbRow | null> => {
+    const entry = await this.db
+      .select()
+      .from(schema.entriesTable)
+      .where(sql`${schema.entriesTable.id} = ${entryId}`)
+      .get();
+
+    return entry ?? null;
+  };
+
   createTransaction = async (
     userId: UUID,
     params?: {

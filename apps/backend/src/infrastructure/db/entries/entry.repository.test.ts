@@ -112,4 +112,48 @@ describe('EntryRepository', () => {
       expect(entries).toHaveLength(0);
     });
   });
+
+  describe('softDeleteByTransactionId', () => {
+    it('should mark entries as tombstone by transaction ID', async () => {
+      const createdEntries = await Promise.all([
+        testDB.createEntry(user.id, {
+          transactionId: transaction.id,
+        }),
+        testDB.createEntry(user.id, {
+          transactionId: transaction.id,
+        }),
+      ]);
+
+      await entryRepository.softDeleteByTransactionId(user.id, transaction.id);
+
+      const entries = await entryRepository.getByTransactionId(
+        user.id,
+        transaction.id,
+      );
+
+      expect(entries).toHaveLength(createdEntries.length);
+
+      const deletedEntry1 = await testDB.getEntryById(createdEntries[0].id);
+      const deletedEntry2 = await testDB.getEntryById(createdEntries[1].id);
+
+      expect(deletedEntry1?.isTombstone).toBe(true);
+      expect(deletedEntry2?.isTombstone).toBe(true);
+    });
+
+    it('should do nothing if no entries exist for the given transaction ID', async () => {
+      const anotherTransaction = await testDB.createTransaction(user.id);
+
+      await entryRepository.softDeleteByTransactionId(
+        user.id,
+        anotherTransaction.id,
+      );
+
+      const entries = await entryRepository.getByTransactionId(
+        user.id,
+        anotherTransaction.id,
+      );
+
+      expect(entries).toHaveLength(0);
+    });
+  });
 });
