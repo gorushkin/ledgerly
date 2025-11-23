@@ -1,4 +1,4 @@
-import { UpdateTransactionRequestDTO } from 'src/application/dto/transaction.dto';
+import { IsoDateString } from '@ledgerly/shared/types';
 import { TransactionDbRow } from 'src/db/schema';
 
 import {
@@ -11,6 +11,12 @@ import {
   DateValue,
 } from '../domain-core';
 import { Entry } from '../entries';
+
+export type TransactionUpdateData = {
+  description?: string;
+  postingDate?: IsoDateString;
+  transactionDate?: IsoDateString;
+};
 
 export class Transaction {
   private readonly identity: EntityIdentity;
@@ -162,31 +168,25 @@ export class Transaction {
     this.softDelete.validateUpdateIsAllowed();
   }
 
-  // TODO: make it private
-  updatePostingDate(date: DateValue): void {
+  private updatePostingDate(date: DateValue): void {
     this.validateUpdateIsAllowed();
 
     this.postingDate = date;
-    this.touch();
   }
 
-  // TODO: make it private
-  updateTransactionDate(date: DateValue): void {
+  private updateTransactionDate(date: DateValue): void {
     this.validateUpdateIsAllowed();
 
     this.transactionDate = date;
-    this.touch();
   }
 
-  // TODO: make it private
-  updateDescription(description: string): void {
+  private updateDescription(description: string): void {
     this.validateUpdateIsAllowed();
 
     this.description = description;
-    this.touch();
   }
 
-  update(updateData: UpdateTransactionRequestDTO): void {
+  update(updateData: TransactionUpdateData): void {
     if (updateData.description) {
       this.updateDescription(updateData.description);
     }
@@ -198,6 +198,7 @@ export class Transaction {
     if (updateData.transactionDate) {
       this.updateTransactionDate(DateValue.restore(updateData.transactionDate));
     }
+    this.touch();
   }
 
   getPostingDate(): DateValue {
@@ -240,7 +241,7 @@ export class Transaction {
     return [...this.entries];
   }
 
-  validateBalance(): void {
+  validateEntriesBalance(): void {
     for (const entry of this.entries) {
       entry.validateBalance();
     }

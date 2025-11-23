@@ -1,3 +1,4 @@
+import { REQUIRED_USER_OPERATIONS_PER_ENTRY } from '@ledgerly/shared/constants';
 import { Entry } from 'src/domain/entries';
 
 import { EntryResponseDTO, OperationResponseDTO } from '../dto';
@@ -33,7 +34,7 @@ export class EntryMapper {
         return acc;
       }, []);
 
-    if (operations.length !== 2) {
+    if (operations.length !== REQUIRED_USER_OPERATIONS_PER_ENTRY) {
       throw new Error(
         `Entry ${entry.getId().valueOf()} must have exactly two non-system operations for response DTO, found ${operations.length}`,
       );

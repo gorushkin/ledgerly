@@ -184,15 +184,15 @@ import {
 } from 'src/infrastructure/infrastructure.errors';
 
 // Map application auth errors
-if (error instanceof UserNotFoundError || error.constructor.name === 'UserNotFoundError') {
+if (error instanceof UserNotFoundError) {
   return reply.status(401).send({ error: true, message: error.message });
 }
 
-if (error instanceof InvalidPasswordError || error.constructor.name === 'InvalidPasswordError') {
+if (error instanceof InvalidPasswordError) {
   return reply.status(401).send({ error: true, message: error.message });
 }
 
-if (error instanceof UserAlreadyExistsError || error.constructor.name === 'UserAlreadyExistsError') {
+if (error instanceof UserAlreadyExistsError) {
   return reply.status(409).send({ error: true, message: error.message });
 }
 
@@ -214,8 +214,6 @@ if (error instanceof ForbiddenAccessError) {
   return reply.status(403).send({ error: true, message: error.message });
 }
 ```
-
-**Note**: Error handler uses `error.constructor.name` fallback for auth errors to handle prototype chain issues with `instanceof` across async boundaries.
 
 ## Benefits
 
@@ -326,21 +324,4 @@ if (!account) {
 - **Infrastructure**: Should only throw Infrastructure errors (never Presentation)
 - **Presentation**: Can catch and transform any error type to HTTP response
 
-### instanceof vs constructor.name
-
-Due to TypeScript prototype chain issues across async boundaries, the error handler uses a hybrid approach:
-
-```typescript
-// Use both instanceof AND constructor.name for reliability
-if (
-  error instanceof UserNotFoundError ||
-  error.constructor.name === 'UserNotFoundError'
-) {
-  return reply.status(401).send({ error: true, message: error.message });
-}
-```
-
-This ensures errors are caught correctly even when `instanceof` fails due to:
-- Different module instances
-- Transpilation issues
-- Async/await boundary crossing
+## Benefits

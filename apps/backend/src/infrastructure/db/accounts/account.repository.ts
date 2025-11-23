@@ -195,7 +195,7 @@ export class AccountRepository
       const missingAccounts = accountIds.filter((id) => !foundIds.has(id));
 
       this.ensureEntityExists(
-        missingAccounts.length === 0 ? accounts : null,
+        missingAccounts.length === 0 ? true : null,
         `Accounts not found: ${missingAccounts.join(', ')}`,
       );
 

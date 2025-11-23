@@ -37,14 +37,21 @@ export class UpdateTransactionUseCase {
 
       const transaction = Transaction.restore(transactionDbRow);
 
-      transaction.update(data);
+      transaction.update({
+        description: data.description,
+        postingDate: data.postingDate,
+        transactionDate: data.transactionDate,
+      });
 
       await this.transactionRepository.update(
         user.getId().valueOf(),
         transactionId,
         transaction.toPersistence(),
       );
-
+      // TODO: this part is a bit tricky, because we need to handle entries update properly
+      // For now, we will just delete all existing entries and create new ones
+      // let's think about a better approach later
+      // If entries are undefined or an empty array, treat as 'no update to entries'
       if (!data.entries || data.entries.length === 0) {
         return this.transactionMapper.toResponseDTO(
           transaction,
@@ -67,7 +74,7 @@ export class UpdateTransactionUseCase {
         transaction.addEntry(entry);
       }
 
-      transaction.validateBalance();
+      transaction.validateEntriesBalance();
 
       return this.transactionMapper.toResponseDTO(transaction);
     });

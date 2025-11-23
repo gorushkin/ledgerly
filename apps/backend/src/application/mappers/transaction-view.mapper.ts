@@ -1,3 +1,4 @@
+import { REQUIRED_USER_OPERATIONS_PER_ENTRY } from '@ledgerly/shared/constants';
 import {
   EntryWithOperations,
   OperationDbRow,
@@ -29,9 +30,9 @@ export class TransactionViewMapper {
    * Type guard to ensure array has exactly 2 elements and convert to tuple
    */
   private static ensureTwoOperations<T>(array: T[], entryId: string): [T, T] {
-    if (array.length !== 2) {
+    if (array.length !== REQUIRED_USER_OPERATIONS_PER_ENTRY) {
       throw new Error(
-        `Entry with id ${entryId} must have exactly 2 non-system operations, but got ${array.length}.`,
+        `Entry with id ${entryId} must have exactly ${REQUIRED_USER_OPERATIONS_PER_ENTRY} non-system operations, but got ${array.length}.`,
       );
     }
     if (!array[0] || !array[1]) {
