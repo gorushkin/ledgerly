@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { OperationRepositoryInterface } from 'src/application';
 import {
   OperationDbInsert,
@@ -43,9 +43,9 @@ export class OperationRepository
     );
   }
 
-  async softDeleteByEntryId(
+  async softDeleteByEntryIds(
     userId: UUID,
-    entryId: UUID,
+    entryIds: UUID[],
   ): Promise<OperationDbRow[]> {
     return this.executeDatabaseOperation<OperationDbRow[]>(
       () => {
@@ -54,18 +54,18 @@ export class OperationRepository
           .set({ isTombstone: true })
           .where(
             and(
-              eq(operationsTable.entryId, entryId),
+              inArray(operationsTable.entryId, entryIds),
               eq(operationsTable.userId, userId),
             ),
           )
           .returning()
           .all();
       },
-      'OperationRepository.softDeleteByEntryId',
+      'OperationRepository.softDeleteByEntryIds',
       {
         field: 'entryId',
         tableName: 'operations',
-        value: entryId,
+        value: entryIds.join(', '),
       },
     );
   }

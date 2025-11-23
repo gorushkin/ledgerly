@@ -58,7 +58,7 @@ describe('UpdateTransactionUseCase', () => {
   };
 
   const mockOperationRepository = {
-    softDeleteByEntryId: vi.fn(),
+    softDeleteByEntryIds: vi.fn(),
   };
 
   const mockEnsureEntityExistsAndOwned = vi.fn();
@@ -294,13 +294,13 @@ describe('UpdateTransactionUseCase', () => {
       transactionDBRow.id,
     );
 
-    expect(mockOperationRepository.softDeleteByEntryId).toHaveBeenCalledTimes(
+    expect(mockOperationRepository.softDeleteByEntryIds).toHaveBeenCalledTimes(
       entries.length,
     );
 
-    expect(mockOperationRepository.softDeleteByEntryId).toHaveBeenCalledWith(
-      user.id,
-      softDeletedEntries[0].id,
+    expect(mockOperationRepository.softDeleteByEntryIds).toHaveBeenCalledWith(
+      user.getId().valueOf(),
+      [softDeletedEntries[0].id],
     );
 
     expect(entryFactory.createEntriesWithOperations).toHaveBeenCalledWith(

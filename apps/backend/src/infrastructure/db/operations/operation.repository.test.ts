@@ -164,7 +164,7 @@ describe('OperationRepository', () => {
       });
 
       const softDeletedOperations =
-        await operationRepository.softDeleteByEntryId(user.id, entry.id);
+        await operationRepository.softDeleteByEntryIds(user.id, [entry.id]);
 
       expect(softDeletedOperations).toHaveLength(1);
 
@@ -188,7 +188,9 @@ describe('OperationRepository', () => {
       const anotherEntry = await testDB.createEntry(user.id);
 
       const softDeletedOperations =
-        await operationRepository.softDeleteByEntryId(user.id, anotherEntry.id);
+        await operationRepository.softDeleteByEntryIds(user.id, [
+          anotherEntry.id,
+        ]);
 
       expect(softDeletedOperations).toHaveLength(0);
     });

@@ -67,13 +67,10 @@ export class UpdateTransactionUseCase {
           transactionId,
         );
 
-      await Promise.all(
-        softDeletedEntries.map((entry) =>
-          this.operationRepository.softDeleteByEntryId(
-            user.getId().valueOf(),
-            entry.id,
-          ),
-        ),
+      const entryIds = softDeletedEntries.map((entry) => entry.id);
+      await this.operationRepository.softDeleteByEntryIds(
+        user.getId().valueOf(),
+        entryIds,
       );
 
       const entries = await this.entryFactory.createEntriesWithOperations(
