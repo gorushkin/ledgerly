@@ -5,11 +5,11 @@ import { Amount } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import {
   ForeignKeyConstraintError,
   RecordAlreadyExistsError,
 } from 'src/presentation/errors';
-import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
@@ -60,16 +60,16 @@ describe('AccountRepository', () => {
     }),
   };
 
-  let accountRepository: AccountRepository;
+  const accountRepository = new AccountRepository(
+    transactionManager as unknown as TransactionManager,
+  );
+
   let user: UserDbRow;
 
   beforeEach(async () => {
     testDB = new TestDB();
     await testDB.setupTestDb();
 
-    accountRepository = new AccountRepository(
-      transactionManager as unknown as TransactionManager,
-    );
     user = await testDB.createUser();
   });
 
@@ -258,7 +258,9 @@ describe('AccountRepository', () => {
         user.id,
       );
 
-      await expect(retrievedAccount).rejects.toThrowError(NotFoundError);
+      await expect(retrievedAccount).rejects.toThrowError(
+        RepositoryNotFoundError,
+      );
     });
 
     it('should return undefined if user does not own the account', async () => {
@@ -272,7 +274,9 @@ describe('AccountRepository', () => {
         secondUser.id,
       );
 
-      await expect(retrievedAccount).rejects.toThrowError(NotFoundError);
+      await expect(retrievedAccount).rejects.toThrowError(
+        RepositoryNotFoundError,
+      );
     });
   });
 
@@ -321,7 +325,9 @@ describe('AccountRepository', () => {
         updatedAccountData,
       );
 
-      await expect(updatedAccount).rejects.toThrowError(NotFoundError);
+      await expect(updatedAccount).rejects.toThrowError(
+        RepositoryNotFoundError,
+      );
     });
 
     it('should not allow updating to duplicate name within same user', async () => {
@@ -422,7 +428,9 @@ describe('AccountRepository', () => {
 
       const userAccounts = await accountRepository.getAll(user.id);
 
-      await expect(retrievedAccount).rejects.toThrowError(NotFoundError);
+      await expect(retrievedAccount).rejects.toThrowError(
+        RepositoryNotFoundError,
+      );
 
       expect(userAccounts.length).toBe(0);
     });
@@ -441,7 +449,7 @@ describe('AccountRepository', () => {
       });
 
       const deleted = accountRepository.delete(account.id, secondUser.id);
-      await expect(deleted).rejects.toThrowError(NotFoundError);
+      await expect(deleted).rejects.toThrowError(RepositoryNotFoundError);
 
       const secondUserAccounts = await accountRepository.getAll(secondUser.id);
 
@@ -450,7 +458,7 @@ describe('AccountRepository', () => {
 
     it('should return undefined when account does not exist', async () => {
       const result = accountRepository.delete(Id.create().valueOf(), user.id);
-      await expect(result).rejects.toThrowError(NotFoundError);
+      await expect(result).rejects.toThrowError(RepositoryNotFoundError);
     });
   });
 
@@ -529,12 +537,10 @@ describe('AccountRepository', () => {
       expect(retrievedAccount.isSystem).toBe(true);
     });
 
-    it('should throw NotFoundError if system account does not exist for user and currency', async () => {
+    it('should throw RepositoryNotFoundError if system account does not exist for user and currency', async () => {
       await expect(
         accountRepository.findSystemAccount(user.id, USD),
-      ).rejects.toThrowError(
-        new NotFoundError(`System account not found for currency: ${USD}`),
-      );
+      ).rejects.toThrowError(RepositoryNotFoundError);
     });
   });
 });

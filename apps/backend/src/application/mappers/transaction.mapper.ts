@@ -1,3 +1,4 @@
+import { REQUIRED_USER_OPERATIONS_PER_ENTRY } from '@ledgerly/shared/constants';
 import { EntryWithOperations } from 'src/db/schema';
 import { Entry } from 'src/domain/entries/entry.entity';
 
@@ -55,9 +56,9 @@ export class TransactionMapper implements TransactionMapperInterface {
         };
       });
 
-    if (userOperations.length !== 2) {
+    if (userOperations.length !== REQUIRED_USER_OPERATIONS_PER_ENTRY) {
       throw new Error(
-        `Entry ${entryData.id} must have exactly two user operations for response DTO, found ${userOperations.length}`,
+        `Entry ${entryData.id} must have exactly ${REQUIRED_USER_OPERATIONS_PER_ENTRY} user operations for response DTO, found ${userOperations.length}`,
       );
     }
 

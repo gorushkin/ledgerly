@@ -7,10 +7,6 @@ import {
   AccountRepoInsert,
   accountsTable,
 } from 'src/db/schemas/accounts';
-import {
-  ForbiddenError,
-  NotFoundError,
-} from 'src/presentation/errors/businessLogic.error';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -69,11 +65,10 @@ export class AccountRepository
         )
         .get();
 
-      if (!account) {
-        throw new NotFoundError(`Account with ID ${id} not found`);
-      }
-
-      return account;
+      return this.ensureEntityExists(
+        account,
+        `Account with ID ${id} not found`,
+      );
     }, 'Failed to fetch account by ID');
   }
 
@@ -100,11 +95,10 @@ export class AccountRepository
           .returning()
           .get();
 
-        if (!updatedAccount) {
-          throw new NotFoundError(`Account with ID ${id} not found`);
-        }
-
-        return updatedAccount;
+        return this.ensureEntityExists(
+          updatedAccount,
+          `Account with ID ${id} not found`,
+        );
       },
       `Failed to update account with ID ${id}`,
       {
@@ -124,11 +118,10 @@ export class AccountRepository
         .returning()
         .get();
 
-      if (!updatedAccount) {
-        throw new NotFoundError(`Account with ID ${id} not found`);
-      }
-
-      return updatedAccount;
+      return this.ensureEntityExists(
+        updatedAccount,
+        `Account with ID ${id} not found`,
+      );
     }, `Failed to delete account with ID ${id}`);
   }
 
@@ -150,13 +143,10 @@ export class AccountRepository
         )
         .get();
 
-      if (!account) {
-        throw new NotFoundError(
-          `System account not found for currency: ${currency}`,
-        );
-      }
-
-      return account;
+      return this.ensureEntityExists(
+        account,
+        `System account not found for currency: ${currency}`,
+      );
     }, 'Failed to fetch system account');
   }
 
@@ -173,17 +163,16 @@ export class AccountRepository
         )
         .get();
 
-      if (!account) {
-        throw new NotFoundError(`Account with ID ${accountId} not found`);
-      }
+      const existingAccount = this.ensureEntityExists(
+        account,
+        `Account with ID ${accountId} not found`,
+      );
+      this.ensureAccess(
+        existingAccount.userId === userId,
+        'You do not have permission to access this account',
+      );
 
-      if (account.userId !== userId) {
-        throw new ForbiddenError(
-          'You do not have permission to access this account',
-        );
-      }
-
-      return account;
+      return existingAccount;
     }, 'Failed to verify account ownership');
   }
 
@@ -204,11 +193,11 @@ export class AccountRepository
       // Validate that all requested accounts were found
       const foundIds = new Set(accounts.map((acc) => acc.id));
       const missingAccounts = accountIds.filter((id) => !foundIds.has(id));
-      if (missingAccounts.length > 0) {
-        throw new NotFoundError(
-          `Accounts not found: ${missingAccounts.join(', ')}`,
-        );
-      }
+
+      this.ensureEntityExists(
+        missingAccounts.length === 0 ? true : null,
+        `Accounts not found: ${missingAccounts.join(', ')}`,
+      );
 
       return accounts;
     }, 'Failed to fetch accounts by IDs');

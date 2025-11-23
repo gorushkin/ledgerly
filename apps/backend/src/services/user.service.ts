@@ -3,9 +3,9 @@ import {
   UserChangePasswordDTO,
   UUID,
 } from '@ledgerly/shared/types';
+import { UserAlreadyExistsError } from 'src/application/application.errors';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { UserRepository } from 'src/infrastructure/db/UsersRepository';
-import { AuthErrors } from 'src/presentation/errors/auth.errors';
+import { UserRepository } from 'src/infrastructure/db/user/user.repository';
 
 export class UserService {
   constructor(
@@ -21,7 +21,7 @@ export class UserService {
     // const existingUser = await this.usersRepository.getUserById(id);
 
     // if (!existingUser) {
-    //   throw new AuthErrors.UserNotFoundError();
+    //   throw new UserNotFoundError();
     // }
 
     // return existingUser;
@@ -37,7 +37,7 @@ export class UserService {
       );
 
       if (existingUser && existingUser.id !== id) {
-        throw new AuthErrors.EmailAlreadyExistsError();
+        throw new UserAlreadyExistsError('Email already exists');
       }
     }
 
@@ -49,7 +49,7 @@ export class UserService {
     //   await this.usersRepository.getUserByIdWithPassword(id);
 
     // if (!userWithPassword) {
-    //   throw new AuthErrors.UserNotFoundError();
+    //   throw new UserNotFoundError();
     // }
 
     // const isCurrentPasswordValid = await this.passwordManager.compare(
@@ -58,7 +58,7 @@ export class UserService {
     // );
 
     // if (!isCurrentPasswordValid) {
-    //   throw new AuthErrors.InvalidPasswordError();
+    //   throw new InvalidPasswordError();
     // }
 
     // const hashedNewPassword = await this.passwordManager.hash(

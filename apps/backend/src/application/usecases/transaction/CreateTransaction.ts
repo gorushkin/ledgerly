@@ -42,7 +42,7 @@ export class CreateTransactionUseCase {
         transaction.addEntry(entry);
       }
 
-      transaction.validateBalance();
+      transaction.validateEntriesBalance();
 
       return this.transactionMapper.toResponseDTO(transaction);
     });

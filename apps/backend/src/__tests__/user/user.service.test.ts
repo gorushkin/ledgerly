@@ -1,7 +1,11 @@
+import {
+  InvalidPasswordError,
+  UserAlreadyExistsError,
+  UserNotFoundError,
+} from 'src/application/application.errors';
 import { Id } from 'src/domain/domain-core';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { UserRepository } from 'src/infrastructure/db/UsersRepository';
-import { AuthErrors } from 'src/presentation/errors/auth.errors';
+import { UserRepository } from 'src/infrastructure/db/user/user.repository';
 import { UserService } from 'src/services/user.service';
 import { describe, vi, beforeEach, expect, it } from 'vitest';
 
@@ -52,9 +56,7 @@ describe.skip('UserService', () => {
     it('should throw error UserNotFoundError if user not found', async () => {
       mockUsersRepository.getUserById.mockResolvedValue(null);
 
-      await expect(service.getById(id)).rejects.toThrowError(
-        AuthErrors.UserNotFoundError,
-      );
+      await expect(service.getById(id)).rejects.toThrowError(UserNotFoundError);
     });
 
     it.todo('should call validateUser method internally');
@@ -98,7 +100,7 @@ describe.skip('UserService', () => {
       mockUsersRepository.updateUser.mockResolvedValue(null);
 
       await expect(service.update(nextId, userData)).rejects.toThrowError(
-        AuthErrors.UserNotFoundError,
+        UserNotFoundError,
       );
     });
 
@@ -112,7 +114,7 @@ describe.skip('UserService', () => {
       mockUsersRepository.findByEmail.mockResolvedValue({ id: '1' });
 
       await expect(service.update(nextId, userData)).rejects.toThrowError(
-        AuthErrors.EmailAlreadyExistsError,
+        UserAlreadyExistsError,
       );
     });
 
@@ -137,9 +139,7 @@ describe.skip('UserService', () => {
     it('should throw error UserNotFoundError if user not found', async () => {
       mockUsersRepository.getUserById.mockResolvedValue(null);
 
-      await expect(service.delete(id)).rejects.toThrowError(
-        AuthErrors.UserNotFoundError,
-      );
+      await expect(service.delete(id)).rejects.toThrowError(UserNotFoundError);
     });
 
     it.todo('should call validateUser before deleting');
@@ -179,7 +179,7 @@ describe.skip('UserService', () => {
 
       await expect(
         service.changePassword(id, passwordData),
-      ).rejects.toThrowError(AuthErrors.UserNotFoundError);
+      ).rejects.toThrowError(UserNotFoundError);
     });
 
     it('should throw InvalidPasswordError when current password is wrong', async () => {
@@ -197,7 +197,7 @@ describe.skip('UserService', () => {
       mockPasswordManager.compare.mockResolvedValue(false);
 
       await expect(service.changePassword(id, passwordData)).rejects.toThrow(
-        AuthErrors.InvalidPasswordError,
+        InvalidPasswordError,
       );
     });
 

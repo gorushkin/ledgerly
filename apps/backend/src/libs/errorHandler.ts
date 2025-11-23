@@ -1,10 +1,28 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
+import {
+  EntityNotFoundError,
+  InvalidPasswordError,
+  UnauthorizedAccessError,
+  UserAlreadyExistsError,
+  UserNotFoundError,
+} from 'src/application/application.errors';
 import { ZodError } from 'zod';
 
-import { AppError, DatabaseError } from '../presentation/errors';
+import { RepositoryNotFoundError } from '../infrastructure/infrastructure.errors';
+import { DatabaseError, HttpApiError } from '../presentation/errors';
 
 export function errorHandler(
-  error: FastifyError | AppError | ZodError | DatabaseError,
+  error:
+    | FastifyError
+    | HttpApiError
+    | ZodError
+    | DatabaseError
+    | EntityNotFoundError
+    | UnauthorizedAccessError
+    | RepositoryNotFoundError
+    | UserNotFoundError
+    | InvalidPasswordError
+    | UserAlreadyExistsError,
   _request: FastifyRequest,
   reply: FastifyReply,
 ) {
@@ -20,7 +38,52 @@ export function errorHandler(
     });
   }
 
-  if (error instanceof AppError) {
+  // Application layer errors - authentication/authorization
+  if (error instanceof UserNotFoundError) {
+    return reply.status(401).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  if (error instanceof InvalidPasswordError) {
+    return reply.status(401).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  if (error instanceof UserAlreadyExistsError) {
+    return reply.status(409).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  // Application layer errors - entity operations
+  if (error instanceof EntityNotFoundError) {
+    return reply.status(404).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  if (error instanceof UnauthorizedAccessError) {
+    return reply.status(403).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  // Infrastructure layer errors
+  if (error instanceof RepositoryNotFoundError) {
+    return reply.status(404).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  if (error instanceof HttpApiError) {
     return reply.status(error.statusCode).send({
       error: true,
       message: error.message,

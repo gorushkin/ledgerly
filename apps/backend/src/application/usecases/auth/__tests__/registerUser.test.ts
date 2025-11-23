@@ -1,8 +1,8 @@
+import { UserAlreadyExistsError } from 'src/application/application.errors';
 import { CreateUserRequestDTO } from 'src/application/dto';
 import { UserRepositoryInterface } from 'src/application/interfaces';
 import { Email, Name, Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
-import { AuthErrors } from 'src/presentation/errors/auth.errors';
 import { describe, it, vi, expect } from 'vitest';
 
 import { RegisterUserUseCase } from '../registerUser';
@@ -64,7 +64,7 @@ describe('RegisterUserUseCase', () => {
 
       // Act & Assert
       await expect(registerUserUseCase.execute(validRequest)).rejects.toThrow(
-        AuthErrors.UserExistsError,
+        UserAlreadyExistsError,
       );
 
       expect(mockUserRepository.create).not.toHaveBeenCalled();

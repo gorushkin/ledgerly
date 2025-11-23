@@ -1,4 +1,4 @@
-import { AppError } from '../AppError';
+import { HttpApiError } from '../HttpError';
 
 type DB_ERROR_CODES =
   | 'ALREADY_EXISTS'
@@ -15,13 +15,13 @@ export const DB_ERROR_CODES: Record<DB_ERROR_CODES, string> = {
   PRIMARYKEY: 'primaryKey',
 };
 
-export class DatabaseError extends AppError {
+export class DatabaseError extends HttpApiError {
   constructor(params: {
     message: string;
     context?: DBErrorContext;
     cause?: Error;
   }) {
-    super(params.message, 500, 'DatabaseError', params.cause);
+    super(params.message, 500, params.cause);
   }
 }
 

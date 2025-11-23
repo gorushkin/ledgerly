@@ -35,6 +35,15 @@ describe('CreateTransactionUseCase', () => {
   const mockedEntries = [
     {
       belongsToTransaction: () => true,
+      getOperations: () => [
+        {
+          amount: Amount.create('100'),
+        },
+        {
+          amount: Amount.create('-100'),
+        },
+      ],
+      validateBalance: vi.fn(),
     },
   ] as unknown as Entry[];
 

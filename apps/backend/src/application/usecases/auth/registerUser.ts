@@ -1,10 +1,10 @@
+import { UserAlreadyExistsError } from 'src/application/application.errors';
 import { CreateUserRequestDTO, UserResponseDTO } from 'src/application/dto';
 import { UserRepositoryInterface } from 'src/application/interfaces';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { UserDbInsert } from 'src/db/schema';
 import { Email, Name, Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
-import { AuthErrors } from 'src/presentation/errors/auth.errors';
 
 export class RegisterUserUseCase {
   constructor(
@@ -18,7 +18,7 @@ export class RegisterUserUseCase {
     const existingUser = await this.userRepository.getByEmail(email);
 
     if (existingUser) {
-      throw new AuthErrors.UserExistsError();
+      throw new UserAlreadyExistsError();
     }
 
     const nameVO = Name.create(name);

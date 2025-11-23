@@ -7,9 +7,8 @@ import {
 } from 'src/application';
 import { UserDbRow } from 'src/db/schema';
 import { usersTable } from 'src/db/schemas';
-import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
 
-import { BaseRepository } from './BaseRepository';
+import { BaseRepository } from '../BaseRepository';
 
 const userSelect = {
   email: usersTable.email,
@@ -57,11 +56,7 @@ export class UserRepository
         .where(eq(usersTable.id, id))
         .get();
 
-      if (!user) {
-        throw new NotFoundError(`User with ID ${id} not found`);
-      }
-
-      return user;
+      return this.ensureEntityExists(user, `User with ID ${id} not found`);
     }, `Failed to fetch user with ID ${id}`);
   }
 
@@ -96,11 +91,10 @@ export class UserRepository
         .returning(userSelect)
         .get();
 
-      if (!updatedUserProfile) {
-        throw new NotFoundError(`User with ID ${id} not found`);
-      }
-
-      return updatedUserProfile;
+      return this.ensureEntityExists(
+        updatedUserProfile,
+        `User with ID ${id} not found`,
+      );
     }, `Failed to update user profile with ID ${id}`);
   }
 
@@ -112,9 +106,10 @@ export class UserRepository
         .where(eq(usersTable.id, id))
         .run();
 
-      if (rowsAffected === 0) {
-        throw new NotFoundError(`User with ID ${id} not found`);
-      }
+      this.ensureEntityExists(
+        rowsAffected > 0 ? true : null,
+        `User with ID ${id} not found`,
+      );
     }, `Failed to update password for user with ID ${id}`);
   }
 
@@ -137,9 +132,10 @@ export class UserRepository
         .where(eq(usersTable.id, id))
         .run();
 
-      if (rowsAffected === 0) {
-        throw new NotFoundError(`User with ID ${id} not found`);
-      }
+      this.ensureEntityExists(
+        rowsAffected > 0 ? true : null,
+        `User with ID ${id} not found`,
+      );
     }, `Failed to delete user with ID ${id}`);
   }
 
