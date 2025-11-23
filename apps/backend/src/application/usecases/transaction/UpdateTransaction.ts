@@ -5,6 +5,7 @@ import {
 } from 'src/application/dto';
 import {
   EntryRepositoryInterface,
+  OperationRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -19,6 +20,7 @@ export class UpdateTransactionUseCase {
     protected readonly transactionRepository: TransactionRepositoryInterface,
     protected readonly entryFactory: EntryFactory,
     protected readonly entryRepository: EntryRepositoryInterface,
+    protected readonly operationRepository: OperationRepositoryInterface,
     protected readonly ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn,
     protected readonly transactionMapper: TransactionMapperInterface,
   ) {}
@@ -51,15 +53,15 @@ export class UpdateTransactionUseCase {
       // TODO: this part is a bit tricky, because we need to handle entries update properly
       // For now, we will just delete all existing entries and create new ones
       // let's think about a better approach later
-      // If entries are undefined or an empty array, treat as 'no update to entries'
-      if (!data.entries || data.entries.length === 0) {
+      // If entries are undefined, treat as 'no update to entries'
+      if (!data.entries) {
         return this.transactionMapper.toResponseDTO(
           transaction,
           transactionDbRow.entries,
         );
       }
 
-      await this.entryRepository.softDeleteByTransactionId(
+      await this.softDeleteEntriesByTransactionId(
         user.getId().valueOf(),
         transactionId,
       );
@@ -78,5 +80,24 @@ export class UpdateTransactionUseCase {
 
       return this.transactionMapper.toResponseDTO(transaction);
     });
+  }
+
+  private async softDeleteEntriesByTransactionId(
+    userId: UUID,
+    transactionId: UUID,
+  ): Promise<void> {
+    const softDeletedEntries =
+      await this.entryRepository.softDeleteByTransactionId(
+        userId,
+        transactionId,
+      );
+
+    const entryIds = softDeletedEntries.map((entry) => entry.id);
+
+    if (entryIds.length === 0) {
+      return;
+    }
+
+    await this.operationRepository.softDeleteByEntryIds(userId, entryIds);
   }
 }

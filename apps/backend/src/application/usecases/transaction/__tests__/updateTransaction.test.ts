@@ -6,6 +6,7 @@ import {
 } from 'src/application/dto';
 import {
   EntryRepositoryInterface,
+  OperationRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -56,6 +57,10 @@ describe('UpdateTransactionUseCase', () => {
     softDeleteByTransactionId: vi.fn(),
   };
 
+  const mockOperationRepository = {
+    softDeleteByEntryIds: vi.fn(),
+  };
+
   const mockEnsureEntityExistsAndOwned = vi.fn();
 
   const transactionMapper = {
@@ -67,6 +72,7 @@ describe('UpdateTransactionUseCase', () => {
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
     entryFactory as unknown as EntryFactory,
     mockEntryRepository as unknown as EntryRepositoryInterface,
+    mockOperationRepository as unknown as OperationRepositoryInterface,
     mockEnsureEntityExistsAndOwned,
     transactionMapper as unknown as TransactionMapperInterface,
   );
@@ -256,6 +262,12 @@ describe('UpdateTransactionUseCase', () => {
       description: updateData.description,
     });
 
+    const softDeletedEntries = entries.map((e) => e.toPersistence());
+
+    mockEntryRepository.softDeleteByTransactionId.mockResolvedValue(
+      softDeletedEntries,
+    );
+
     const updatedTransaction = await updateTransactionUseCase.execute(
       user,
       transactionDBRow.id,
@@ -280,6 +292,15 @@ describe('UpdateTransactionUseCase', () => {
     expect(mockEntryRepository.softDeleteByTransactionId).toHaveBeenCalledWith(
       user.getId().valueOf(),
       transactionDBRow.id,
+    );
+
+    expect(mockOperationRepository.softDeleteByEntryIds).toHaveBeenCalledTimes(
+      1,
+    );
+
+    expect(mockOperationRepository.softDeleteByEntryIds).toHaveBeenCalledWith(
+      user.getId().valueOf(),
+      softDeletedEntries.map((e) => e.id),
     );
 
     expect(entryFactory.createEntriesWithOperations).toHaveBeenCalledWith(
