@@ -35,7 +35,30 @@ export class EntryRepository
     );
   }
 
-  deleteByTransactionId(_userId: UUID, _transactionId: UUID): Promise<void> {
-    throw new Error('Method not implemented.');
+  async softDeleteByTransactionId(
+    userId: UUID,
+    transactionId: UUID,
+  ): Promise<EntryDbRow[]> {
+    return this.executeDatabaseOperation<EntryDbRow[]>(
+      () => {
+        return this.db
+          .update(entriesTable)
+          .set({ isTombstone: true })
+          .where(
+            and(
+              eq(entriesTable.transactionId, transactionId),
+              eq(entriesTable.userId, userId),
+            ),
+          )
+          .returning()
+          .all();
+      },
+      'EntryRepository.softDeleteByTransactionId',
+      {
+        field: 'transactionId',
+        tableName: 'entries',
+        value: transactionId,
+      },
+    );
   }
 }

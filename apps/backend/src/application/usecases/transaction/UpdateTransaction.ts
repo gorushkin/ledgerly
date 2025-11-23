@@ -59,7 +59,7 @@ export class UpdateTransactionUseCase {
         );
       }
 
-      await this.entryRepository.deleteByTransactionId(
+      await this.entryRepository.softDeleteByTransactionId(
         user.getId().valueOf(),
         transactionId,
       );
