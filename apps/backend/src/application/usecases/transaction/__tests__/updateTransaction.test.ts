@@ -295,12 +295,12 @@ describe('UpdateTransactionUseCase', () => {
     );
 
     expect(mockOperationRepository.softDeleteByEntryIds).toHaveBeenCalledTimes(
-      entries.length,
+      1,
     );
 
     expect(mockOperationRepository.softDeleteByEntryIds).toHaveBeenCalledWith(
       user.getId().valueOf(),
-      [softDeletedEntries[0].id],
+      softDeletedEntries.map((e) => e.id),
     );
 
     expect(entryFactory.createEntriesWithOperations).toHaveBeenCalledWith(

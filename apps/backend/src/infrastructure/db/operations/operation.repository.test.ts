@@ -154,7 +154,7 @@ describe('OperationRepository', () => {
     });
   });
 
-  describe('softDeleteByEntryId', () => {
+  describe('softDeleteByEntryIds', () => {
     it('should soft delete operations by entry ID', async () => {
       const operation = await testDB.createOperation(user.id, {
         accountId: account1.id,

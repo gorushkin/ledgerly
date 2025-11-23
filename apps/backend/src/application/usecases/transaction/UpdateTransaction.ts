@@ -61,16 +61,9 @@ export class UpdateTransactionUseCase {
         );
       }
 
-      const softDeletedEntries =
-        await this.entryRepository.softDeleteByTransactionId(
-          user.getId().valueOf(),
-          transactionId,
-        );
-
-      const entryIds = softDeletedEntries.map((entry) => entry.id);
-      await this.operationRepository.softDeleteByEntryIds(
+      await this.softDeleteEntriesByTransactionId(
         user.getId().valueOf(),
-        entryIds,
+        transactionId,
       );
 
       const entries = await this.entryFactory.createEntriesWithOperations(
@@ -87,5 +80,24 @@ export class UpdateTransactionUseCase {
 
       return this.transactionMapper.toResponseDTO(transaction);
     });
+  }
+
+  private async softDeleteEntriesByTransactionId(
+    userId: UUID,
+    transactionId: UUID,
+  ): Promise<void> {
+    const softDeletedEntries =
+      await this.entryRepository.softDeleteByTransactionId(
+        userId,
+        transactionId,
+      );
+
+    const entryIds = softDeletedEntries.map((entry) => entry.id);
+
+    if (entryIds.length === 0) {
+      return;
+    }
+
+    await this.operationRepository.softDeleteByEntryIds(userId, entryIds);
   }
 }
