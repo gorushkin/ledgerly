@@ -8,6 +8,7 @@ import { TestDB } from 'src/db/test-db';
 import { Amount, DateValue } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { Timestamp } from 'src/domain/domain-core/value-objects/Timestamp';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TransactionManager } from '../TransactionManager';
@@ -251,7 +252,27 @@ describe('TransactionRepository', () => {
           Id.create().valueOf(),
           updatedData,
         ),
-      ).rejects.toThrowError('Transaction with ID');
+      ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('should not update a transaction belonging to another user', async () => {
+      const otherUser = await testDB.createUser();
+
+      const transaction = await testDB.createTransaction(otherUser.id, {
+        description: 'Other User Transaction',
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-02').valueOf(),
+      });
+
+      const updatedData = {
+        description: 'Hacked Description',
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      await expect(
+        transactionRepository.update(user.id, transaction.id, updatedData),
+      ).rejects.toThrowError(RepositoryNotFoundError);
     });
   });
 });

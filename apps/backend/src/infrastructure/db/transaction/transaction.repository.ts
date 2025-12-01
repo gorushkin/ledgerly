@@ -26,7 +26,7 @@ export class TransactionRepository
         this.db.insert(transactionsTable).values(transaction).returning().get(),
       'TransactionRepository.create',
       {
-        field: 'transaction',
+        field: 'transactionId',
         tableName: 'transactions',
         value: transaction.id,
       },
@@ -53,7 +53,11 @@ export class TransactionRepository
         return result ?? null;
       },
       'TransactionRepository.getById',
-      { field: 'transaction', tableName: 'transactions', value: transactionId },
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transactionId,
+      },
     );
   }
 
@@ -134,7 +138,7 @@ export class TransactionRepository
       },
       'TransactionRepository.update',
       {
-        field: 'transaction',
+        field: 'transactionId',
         tableName: 'transactions',
         value: transactionId,
       },
