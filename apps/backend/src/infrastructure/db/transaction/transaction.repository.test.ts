@@ -307,5 +307,35 @@ describe('TransactionRepository', () => {
       expect(updatedTransaction.userId).toBe(transaction.userId);
       expect(updatedTransaction.createdAt).toBe(transaction.createdAt);
     });
+
+    it('should not allow updating isTombstone from true to false or vice versa', async () => {
+      const transaction = await testDB.createTransaction(user.id, {
+        description: 'Tombstone Transaction',
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-02').valueOf(),
+      });
+
+      await testDB.softDeleteTransaction(transaction.id);
+
+      const updatedData = {
+        description: 'Attempted Change',
+        isTombstone: false, // Should not be updated
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      const updatedTransaction = await transactionRepository.update(
+        user.id,
+        transaction.id,
+        updatedData,
+      );
+
+      expect(updatedTransaction.isTombstone).toBe(true);
+      expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.postingDate).toBe(updatedData.postingDate);
+      expect(updatedTransaction.transactionDate).toBe(
+        updatedData.transactionDate,
+      );
+    });
   });
 });
