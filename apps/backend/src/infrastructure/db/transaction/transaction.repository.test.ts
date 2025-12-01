@@ -187,27 +187,55 @@ describe('TransactionRepository', () => {
 
       expect(transactions.length).toBe(2);
     });
+
+    it('should return empty array if no transactions found for account ID', async () => {
+      const transactions = await transactionRepository.getAll(user.id, {
+        accountId: Id.create().valueOf(),
+      });
+
+      expect(transactions).toEqual([]);
+    });
+
+    it('should not return transactions for other users', async () => {
+      const otherUser = await testDB.createUser();
+
+      const account = await testDB.createAccount(otherUser.id, {
+        name: 'Other User Account',
+      });
+
+      const transactions = await transactionRepository.getAll(user.id, {
+        accountId: account.id,
+      });
+
+      expect(transactions).toEqual([]);
+    });
   });
 
-  it('should return empty array if no transactions found for account ID', async () => {
-    const transactions = await transactionRepository.getAll(user.id, {
-      accountId: Id.create().valueOf(),
+  describe('update', () => {
+    it('should update a transaction successfully', async () => {
+      const transaction = await testDB.createTransaction(user.id, {
+        description: 'Old Description',
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-02').valueOf(),
+      });
+
+      const updatedData = {
+        description: 'New Description',
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      const updatedTransaction = await transactionRepository.update(
+        user.id,
+        transaction.id,
+        updatedData,
+      );
+
+      expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.postingDate).toBe(updatedData.postingDate);
+      expect(updatedTransaction.transactionDate).toBe(
+        updatedData.transactionDate,
+      );
     });
-
-    expect(transactions).toEqual([]);
-  });
-
-  it('should not return transactions for other users', async () => {
-    const otherUser = await testDB.createUser();
-
-    const account = await testDB.createAccount(otherUser.id, {
-      name: 'Other User Account',
-    });
-
-    const transactions = await transactionRepository.getAll(user.id, {
-      accountId: account.id,
-    });
-
-    expect(transactions).toEqual([]);
   });
 });

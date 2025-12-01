@@ -109,10 +109,30 @@ export class TransactionRepository
   }
 
   update(
-    _userId: UUID,
-    _transactionId: UUID,
-    _transaction: TransactionDbUpdate,
+    userId: UUID,
+    transactionId: UUID,
+    transaction: TransactionDbUpdate,
   ): Promise<TransactionDbRow> {
-    throw new Error('Method not implemented.');
+    return this.executeDatabaseOperation(
+      () => {
+        return this.db
+          .update(transactionsTable)
+          .set(transaction)
+          .where(
+            and(
+              eq(transactionsTable.id, transactionId),
+              eq(transactionsTable.userId, userId),
+            ),
+          )
+          .returning()
+          .get();
+      },
+      'TransactionRepository.update',
+      {
+        field: 'transaction',
+        tableName: 'transactions',
+        value: transactionId,
+      },
+    );
   }
 }
