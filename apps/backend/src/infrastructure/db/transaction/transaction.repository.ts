@@ -114,8 +114,8 @@ export class TransactionRepository
     transaction: TransactionDbUpdate,
   ): Promise<TransactionDbRow> {
     return this.executeDatabaseOperation(
-      () => {
-        return this.db
+      async () => {
+        const updated = await this.db
           .update(transactionsTable)
           .set(transaction)
           .where(
@@ -126,6 +126,11 @@ export class TransactionRepository
           )
           .returning()
           .get();
+
+        return this.ensureEntityExists(
+          updated,
+          `Transaction with ID ${transactionId} not found`,
+        );
       },
       'TransactionRepository.update',
       {

@@ -237,5 +237,21 @@ describe('TransactionRepository', () => {
         updatedData.transactionDate,
       );
     });
+
+    it('should throw an error when updating a non-existent transaction', async () => {
+      const updatedData = {
+        description: 'Non-existent',
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      await expect(
+        transactionRepository.update(
+          user.id,
+          Id.create().valueOf(),
+          updatedData,
+        ),
+      ).rejects.toThrowError('Transaction with ID');
+    });
   });
 });
