@@ -243,6 +243,15 @@ export class TestDB {
     return transaction;
   };
 
+  softDeleteTransaction = async (transactionId: UUID) => {
+    return await this.db
+      .update(schema.transactionsTable)
+      .set({ isTombstone: true })
+      .where(sql`${schema.transactionsTable.id} = ${transactionId}`)
+      .returning()
+      .get();
+  };
+
   createAccount = async (
     userId: UUID,
     params?: {

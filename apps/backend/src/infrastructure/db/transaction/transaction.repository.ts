@@ -26,7 +26,7 @@ export class TransactionRepository
         this.db.insert(transactionsTable).values(transaction).returning().get(),
       'TransactionRepository.create',
       {
-        field: 'transaction',
+        field: 'transactionId',
         tableName: 'transactions',
         value: transaction.id,
       },
@@ -53,7 +53,11 @@ export class TransactionRepository
         return result ?? null;
       },
       'TransactionRepository.getById',
-      { field: 'transaction', tableName: 'transactions', value: transactionId },
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transactionId,
+      },
     );
   }
 
@@ -109,10 +113,41 @@ export class TransactionRepository
   }
 
   update(
-    _userId: UUID,
-    _transactionId: UUID,
-    _transaction: TransactionDbUpdate,
+    userId: UUID,
+    transactionId: UUID,
+    transaction: TransactionDbUpdate,
   ): Promise<TransactionDbRow> {
-    throw new Error('Method not implemented.');
+    return this.executeDatabaseOperation(
+      async () => {
+        const safeData = this.getSafeUpdate(transaction, [
+          'description',
+          'postingDate',
+          'transactionDate',
+        ]);
+
+        const updated = await this.db
+          .update(transactionsTable)
+          .set(safeData)
+          .where(
+            and(
+              eq(transactionsTable.id, transactionId),
+              eq(transactionsTable.userId, userId),
+            ),
+          )
+          .returning()
+          .get();
+
+        return this.ensureEntityExists(
+          updated,
+          `Transaction with ID ${transactionId} not found`,
+        );
+      },
+      'TransactionRepository.update',
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transactionId,
+      },
+    );
   }
 }
