@@ -265,7 +265,7 @@ describe('TransactionRepository', () => {
       });
 
       const updatedData = {
-        description: 'Hacked Description',
+        description: 'Updated Description',
         postingDate: DateValue.restore('2024-01-01').valueOf(),
         transactionDate: DateValue.restore('2024-01-02').valueOf(),
       };
@@ -273,6 +273,39 @@ describe('TransactionRepository', () => {
       await expect(
         transactionRepository.update(user.id, transaction.id, updatedData),
       ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('should only update allowed fields', async () => {
+      const transaction = await testDB.createTransaction(user.id, {
+        description: 'Initial Description',
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-02').valueOf(),
+      });
+
+      const updatedData = {
+        description: 'Changed Description',
+        id: Id.create().valueOf(), // This field should not be updated
+        isTombstone: true, // This field should not be updated
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+        userId: Id.create().valueOf(), // This field should not be updated
+      };
+
+      const updatedTransaction = await transactionRepository.update(
+        user.id,
+        transaction.id,
+        updatedData,
+      );
+
+      expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.postingDate).toBe(updatedData.postingDate);
+      expect(updatedTransaction.transactionDate).toBe(
+        updatedData.transactionDate,
+      );
+      expect(updatedTransaction.isTombstone).toBe(false);
+      expect(updatedTransaction.id).toBe(transaction.id);
+      expect(updatedTransaction.userId).toBe(transaction.userId);
+      expect(updatedTransaction.createdAt).toBe(transaction.createdAt);
     });
   });
 });

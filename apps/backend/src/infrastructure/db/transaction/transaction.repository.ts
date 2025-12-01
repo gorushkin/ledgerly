@@ -119,9 +119,15 @@ export class TransactionRepository
   ): Promise<TransactionDbRow> {
     return this.executeDatabaseOperation(
       async () => {
+        const safeData = this.getSafeUpdate(transaction, [
+          'description',
+          'postingDate',
+          'transactionDate',
+        ]);
+
         const updated = await this.db
           .update(transactionsTable)
-          .set(transaction)
+          .set(safeData)
           .where(
             and(
               eq(transactionsTable.id, transactionId),
