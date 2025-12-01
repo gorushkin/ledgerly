@@ -213,6 +213,30 @@ describe('TransactionRepository', () => {
   });
 
   describe('update', () => {
+    it('should update only the description if only description is provided', async () => {
+      const transaction = await testDB.createTransaction(user.id, {
+        description: 'Initial Description',
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-02').valueOf(),
+      });
+
+      const updatedData = {
+        description: 'Updated Only Description',
+      };
+
+      const updatedTransaction = await transactionRepository.update(
+        user.id,
+        transaction.id,
+        updatedData,
+      );
+
+      expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.postingDate).toBe(transaction.postingDate);
+      expect(updatedTransaction.transactionDate).toBe(
+        transaction.transactionDate,
+      );
+    });
+
     it('should update a transaction successfully', async () => {
       const transaction = await testDB.createTransaction(user.id, {
         description: 'Old Description',
