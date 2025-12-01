@@ -156,6 +156,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     createTransactionUseCase,
     getTransactionByIdUseCase,
     getAllTransactionsUseCase,
+    updateTransactionUseCase,
   );
 
   const controllers: AppContainer['controllers'] = {
