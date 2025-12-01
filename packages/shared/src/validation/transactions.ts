@@ -28,7 +28,7 @@ export const transactionCreateSchema = z.object({
 
 export const transactionUpdateSchema = z.object({
   description: requiredText,
-  id: uuid,
+  entries: z.array(entryCreateSchema),
   postingDate: isoDate,
   transactionDate: isoDate,
 });
