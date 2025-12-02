@@ -11,7 +11,6 @@ CREATE TABLE `accounts` (
 	`type` text NOT NULL,
 	`updated_at` text NOT NULL,
 	`user_id` text NOT NULL,
-	FOREIGN KEY (`currency`) REFERENCES `currencies`(`code`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -28,6 +27,7 @@ CREATE TABLE `transactions` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `idx_transactions_user_date` ON `transactions` (`user_id`,`transaction_date`);--> statement-breakpoint
 CREATE TABLE `currencies` (
 	`code` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -41,6 +41,7 @@ CREATE TABLE `operations` (
 	`description` text NOT NULL,
 	`entry_id` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
+	`is_system` integer NOT NULL,
 	`is_tombstone` integer NOT NULL,
 	`updated_at` text NOT NULL,
 	`user_id` text NOT NULL,
@@ -74,6 +75,7 @@ CREATE TABLE `settings` (
 CREATE TABLE `entries` (
 	`created_at` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
+	`is_tombstone` integer NOT NULL,
 	`transaction_id` text NOT NULL,
 	`updated_at` text NOT NULL,
 	`user_id` text NOT NULL,
@@ -81,4 +83,5 @@ CREATE TABLE `entries` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `idx_entries_tx` ON `entries` (`transaction_id`);
+CREATE INDEX `idx_entries_tx` ON `entries` (`transaction_id`);--> statement-breakpoint
+CREATE INDEX `idx_entries_user` ON `entries` (`user_id`);
