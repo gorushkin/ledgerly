@@ -1,11 +1,8 @@
 import { createUser } from 'src/db/createTestUser';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
-import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { Timestamp } from 'src/domain/domain-core/value-objects/Timestamp';
+import { AccountType } from 'src/domain/';
+import { Amount, Name, Currency, Id, Timestamp } from 'src/domain/domain-core/';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { Amount, Name } from '../domain-core';
-import { Currency } from '../domain-core/value-objects/Currency';
 import { User } from '../users/user.entity';
 
 import { Account } from './account.entity';

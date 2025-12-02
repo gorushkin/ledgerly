@@ -1,4 +1,4 @@
-export type AccountTypeValue =
+type AccountTypeValue =
   | 'asset'
   | 'liability'
   | 'equity'
@@ -6,7 +6,7 @@ export type AccountTypeValue =
   | 'expense'
   | 'currencyTrading';
 
-export const ACCOUNT_TYPES: AccountTypeValue[] = [
+const ACCOUNT_TYPES: AccountTypeValue[] = [
   'asset',
   'liability',
   'equity',
@@ -15,14 +15,14 @@ export const ACCOUNT_TYPES: AccountTypeValue[] = [
   'currencyTrading',
 ];
 
-export const SYSTEM_ACCOUNT_TYPES: AccountTypeValue[] = ['currencyTrading'];
+const SYSTEM_ACCOUNT_TYPES: AccountTypeValue[] = ['currencyTrading'];
 
-export const ACCOUNT_TYPE_VALUES = ACCOUNT_TYPES as [
+const ACCOUNT_TYPE_VALUES = ACCOUNT_TYPES as [
   AccountTypeValue,
   ...AccountTypeValue[],
 ];
 
-export const SYSTEM_ACCOUNT_TYPE_VALUES = SYSTEM_ACCOUNT_TYPES as [
+const SYSTEM_ACCOUNT_TYPE_VALUES = SYSTEM_ACCOUNT_TYPES as [
   AccountTypeValue,
   ...AccountTypeValue[],
 ];

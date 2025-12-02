@@ -1,5 +1,10 @@
-import { Account, Entry, Operation, Transaction } from 'src/domain';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
+import {
+  Account,
+  Entry,
+  Operation,
+  Transaction,
+  AccountType,
+} from 'src/domain';
 import {
   Name,
   Email,

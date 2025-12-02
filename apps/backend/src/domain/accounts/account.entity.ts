@@ -1,5 +1,6 @@
 import { AccountResponseDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
 import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
+import { AccountType, User } from 'src/domain';
 
 import {
   Amount,
@@ -12,9 +13,6 @@ import {
   EntityTimestamps,
   SoftDelete,
 } from '../domain-core';
-import { User } from '../users/user.entity';
-
-import { AccountType } from './account-type.enum.ts';
 
 export class Account {
   private readonly identity: EntityIdentity;

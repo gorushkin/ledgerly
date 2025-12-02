@@ -6,7 +6,7 @@ import {
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { createTransaction, createUser } from 'src/db/createTestUser';
 import { Account, Entry, Operation } from 'src/domain';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
+import { AccountType } from 'src/domain/';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 

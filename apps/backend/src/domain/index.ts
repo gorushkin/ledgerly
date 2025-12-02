@@ -1,10 +1,7 @@
 export { User } from './users/user.entity';
-export { Account } from './accounts/account.entity';
-export { Entry } from './entries/entry.entity';
-export {
-  Transaction,
-  TransactionUpdateData,
-} from './transactions/transaction.entity';
-export { Operation } from './operations/operation.entity';
+export { Account, AccountType } from './accounts/';
+export { Entry } from './entries';
+export { Transaction } from './transactions/';
+export { Operation } from './operations';
 
 export * from './domain.errors';

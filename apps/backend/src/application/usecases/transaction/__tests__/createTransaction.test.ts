@@ -15,8 +15,7 @@ import type { TransactionMapperInterface } from 'src/application/mappers';
 import { EntryFactory } from 'src/application/services';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { createUser } from 'src/db/createTestUser';
-import { Account, Entry, Transaction, User } from 'src/domain';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
+import { Account, Entry, Transaction, User, AccountType } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

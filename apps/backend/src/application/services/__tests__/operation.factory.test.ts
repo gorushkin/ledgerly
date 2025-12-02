@@ -5,8 +5,7 @@ import {
   createTransaction,
   createUser,
 } from 'src/db/createTestUser';
-import { Account, Operation, User } from 'src/domain';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
+import { Account, Operation, User, AccountType } from 'src/domain';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { UnbalancedEntryError } from 'src/domain/domain.errors';
 import { describe, it, vi, expect, beforeAll } from 'vitest';

@@ -5,8 +5,7 @@ import {
 } from '@ledgerly/shared/types';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { AccountRepoInsert } from 'src/db/schema';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
-import { Account } from 'src/domain/accounts/account.entity';
+import { AccountType, Account } from 'src/domain/';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';

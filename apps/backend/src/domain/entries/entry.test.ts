@@ -1,9 +1,8 @@
 import { createUser } from 'src/db/createTestUser';
+import { Account, AccountType, Operation, Transaction } from 'src/domain/';
+import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core/';
 import { describe, expect, it } from 'vitest';
 
-import { AccountType } from '../accounts/account-type.enum.ts';
-import { Account } from '../accounts/account.entity';
-import { Amount, Currency, DateValue, Name } from '../domain-core';
 import {
   EmptyOperationsError,
   DeletedEntityOperationError,
@@ -11,8 +10,6 @@ import {
   MissingOperationsError,
   UnbalancedEntryError,
 } from '../domain.errors';
-import { Operation } from '../operations/operation.entity';
-import { Transaction } from '../transactions';
 
 import { Entry } from './entry.entity';
 
