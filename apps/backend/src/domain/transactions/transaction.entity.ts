@@ -187,7 +187,7 @@ export class Transaction {
   }
 
   update(updateData: TransactionUpdateData): void {
-    if (updateData.description) {
+    if (updateData.description !== undefined) {
       this.updateDescription(updateData.description);
     }
 

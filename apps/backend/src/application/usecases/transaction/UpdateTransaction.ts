@@ -54,7 +54,7 @@ export class UpdateTransactionUseCase {
       // For now, we will just delete all existing entries and create new ones
       // let's think about a better approach later
       // If entries are undefined, treat as 'no update to entries'
-      if (!data.entries) {
+      if (data.entries === undefined) {
         return this.transactionMapper.toResponseDTO(
           transaction,
           transactionDbRow.entries,

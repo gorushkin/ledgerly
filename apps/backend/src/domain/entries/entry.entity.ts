@@ -125,7 +125,7 @@ export class Entry {
     };
   }
 
-  addOperations(operations: Operation[]): void {
+  private validateCanAddOperations(operations: Operation[]): void {
     if (this.isDeleted()) {
       throw new DeletedEntityOperationError('entry', 'add operations');
     }
@@ -139,6 +139,10 @@ export class Entry {
         throw new OperationOwnershipError();
       }
     }
+  }
+
+  addOperations(operations: Operation[]): void {
+    this.validateCanAddOperations(operations);
 
     this.operations.push(...operations);
     this.touch();
