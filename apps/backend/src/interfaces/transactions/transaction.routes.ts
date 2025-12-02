@@ -1,6 +1,7 @@
 import { TransactionQueryParams } from '@ledgerly/shared/types';
 import {
   getTransactionsQuerySchema,
+  TransactionUpdateInput,
   uniqueIdSchema,
   type TransactionCreateInput,
 } from '@ledgerly/shared/validation';
@@ -34,6 +35,22 @@ export const transactionsRoutes = (app: FastifyInstance) => {
       const transactions = await transactionController.getAll(user, query);
 
       response.send(transactions);
+    },
+  );
+
+  app.put<{ Body: TransactionUpdateInput; Params: { id: string } }>(
+    '/:id',
+    async (request, response) => {
+      const { id } = uniqueIdSchema.parse(request.params);
+      const user = request.user;
+
+      const transaction = await transactionController.update(
+        user,
+        id,
+        request.body,
+      );
+
+      response.send(transaction);
     },
   );
 };

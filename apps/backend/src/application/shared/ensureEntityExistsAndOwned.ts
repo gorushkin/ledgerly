@@ -1,10 +1,9 @@
 import { UUID } from '@ledgerly/shared/types';
-import { User } from 'src/domain';
-
 import {
   EntityNotFoundError,
   UnauthorizedAccessError,
-} from '../application.errors';
+} from 'src/application/application.errors';
+import { User } from 'src/domain';
 
 export type EnsureEntityExistsAndOwnedFn = <T extends { userId: UUID }>(
   user: User,
