@@ -8,7 +8,7 @@ import {
   UserDbRow,
 } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
-import { Amount, Currency, Id } from 'src/domain/domain-core';
+import { Amount, Currency, DateValue, Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/server';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -579,6 +579,85 @@ describe('Transactions Integration Tests', () => {
       ) as TransactionResponseDTO[];
 
       expect(transactions).toHaveLength(0);
+    });
+  });
+
+  describe('PUT /api/transactions/:id', () => {
+    it('should update an existing transaction', async () => {
+      const transaction = await testDB.createTransaction(userId, {
+        description: 'Initial description',
+        postingDate: DateValue.restore('2025-11-01').valueOf(),
+        transactionDate: DateValue.restore('2025-11-01').valueOf(),
+      });
+
+      const payload = {
+        description: 'Updated description',
+        entries: [],
+        postingDate: '2025-11-10',
+        transactionDate: '2025-11-10',
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload,
+        url: `${url}/${transaction.id}`,
+      });
+
+      const updatedTransaction = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(updatedTransaction.description).toBe(payload.description);
+      expect(updatedTransaction.postingDate).toBe(payload.postingDate);
+      expect(updatedTransaction.transactionDate).toBe(payload.transactionDate);
+    });
+
+    it('should return 404 when updating non-existent transaction', async () => {
+      const payload = {
+        description: 'Updated description',
+        entries: [],
+        postingDate: '2025-11-10',
+        transactionDate: '2025-11-10',
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload,
+        url: `${url}/${Id.create().valueOf()}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 for invalid update payload', async () => {
+      const transaction = await testDB.createTransaction(userId, {
+        description: 'Initial description',
+        postingDate: DateValue.restore('2025-11-01').valueOf(),
+        transactionDate: DateValue.restore('2025-11-01').valueOf(),
+      });
+
+      const payload = {
+        // missing required fields
+        description: '',
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload,
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(400);
     });
   });
 });
