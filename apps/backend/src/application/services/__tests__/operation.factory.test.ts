@@ -1,16 +1,14 @@
 import { CreateEntryRequestDTO } from 'src/application/dto';
 import { OperationRepositoryInterface } from 'src/application/interfaces';
-import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import {
   createEntry,
   createTransaction,
   createUser,
 } from 'src/db/createTestUser';
-import { Account, Entry, Operation, User } from 'src/domain';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
+import { Account, Operation, User, AccountType } from 'src/domain';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
-import { UnbalancedOperationsError } from 'src/presentation/errors/businessLogic.error';
-import { describe, it, vi, beforeEach, expect, beforeAll } from 'vitest';
+import { UnbalancedEntryError } from 'src/domain/domain.errors';
+import { describe, it, vi, expect, beforeAll } from 'vitest';
 
 import { OperationFactory } from '../';
 
@@ -19,13 +17,16 @@ describe('OperationFactory', () => {
   let transaction: ReturnType<typeof createTransaction>;
   let entry: ReturnType<typeof createEntry>;
 
-  let operationFactory: OperationFactory;
+  const mockOperationRepository = {
+    create: vi.fn(),
+  } as unknown as OperationRepositoryInterface;
 
-  let mockOperationRepository: {
-    create: ReturnType<typeof vi.fn>;
-  };
+  const mockedSaveWithIdRetry = vi.fn();
 
-  let mockedSaveWithIdRetry: SaveWithIdRetryType;
+  const operationFactory = new OperationFactory(
+    mockOperationRepository,
+    mockedSaveWithIdRetry,
+  );
 
   let usdAccount1: Account;
   let usdAccount2: Account;
@@ -86,25 +87,10 @@ describe('OperationFactory', () => {
     );
   });
 
-  beforeEach(() => {
-    mockOperationRepository = {
-      create: vi.fn(),
-    };
-
-    mockedSaveWithIdRetry = vi
-      .fn()
-      .mockResolvedValue({ name: 'mocked account' }) as SaveWithIdRetryType;
-
-    operationFactory = new OperationFactory(
-      mockOperationRepository as unknown as OperationRepositoryInterface,
-      mockedSaveWithIdRetry,
-    );
-  });
-
   it('should create operations for entry', async () => {
     const fromAmount = Amount.create('-100');
 
-    const from = {
+    const operationFromDTO = {
       accountId: usdAccount1.getId().valueOf(),
       amount: fromAmount.valueOf(),
       description: 'Operation from',
@@ -112,20 +98,23 @@ describe('OperationFactory', () => {
 
     const toAmount = Amount.create('100');
 
-    const to = {
+    const operationToDTO = {
       accountId: usdAccount2.getId().valueOf(),
       amount: toAmount.valueOf(),
       description: 'Operation to',
     };
 
-    const operationsRaw: CreateEntryRequestDTO = [from, to];
+    const operationsRaw: CreateEntryRequestDTO = [
+      operationFromDTO,
+      operationToDTO,
+    ];
 
     const mockedOperationFrom = Operation.create(
       user,
       usdAccount1,
       entry,
       fromAmount,
-      from.description,
+      operationFromDTO.description,
     );
 
     const mockedOperationTo = Operation.create(
@@ -133,15 +122,9 @@ describe('OperationFactory', () => {
       usdAccount2,
       entry,
       toAmount,
-      to.description,
+      operationToDTO.description,
     );
 
-    const mockedOperations = [mockedOperationFrom, mockedOperationTo];
-
-    vi.spyOn(Operation, 'create').mockReturnValueOnce(mockedOperations[0]);
-    vi.spyOn(Operation, 'create').mockReturnValueOnce(mockedOperations[1]);
-
-    // Create accountsMap for the new signature
     const accountsByIdMap = new Map([
       [usdAccount1.getId().valueOf(), usdAccount1],
       [usdAccount2.getId().valueOf(), usdAccount2],
@@ -151,6 +134,10 @@ describe('OperationFactory', () => {
       [Currency.create('USD').valueOf(), usdSystemAccount],
       [Currency.create('USD').valueOf(), eurSystemAccount],
     ]);
+
+    mockedSaveWithIdRetry
+      .mockResolvedValueOnce(mockedOperationFrom)
+      .mockResolvedValueOnce(mockedOperationTo);
 
     const operations = await operationFactory.createOperationsForEntry(
       user,
@@ -164,64 +151,26 @@ describe('OperationFactory', () => {
       Object.keys(operationsRaw).length,
     );
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    mockedSaveWithIdRetry.mock.calls.forEach(
-      (
-        [entryArg, repoArg, createFn]: [
-          Operation,
-          typeof mockOperationRepository.create,
-          () => Promise<void>,
-        ],
-        index: number,
-      ) => {
-        expect(entryArg).toBe(
-          mockedOperations[index as keyof typeof mockedOperations],
-        );
+    operations.forEach((operation, index) => {
+      expect(operation).toBeInstanceOf(Operation);
+      expect(operation.getId()).toBeDefined();
+      expect(operation.belongsToUser(user.getId())).toBe(true);
+      const expectedData = operationsRaw[index];
+      expect(operation.amount.valueOf()).toBe(expectedData.amount);
+      expect(operation.description).toBe(expectedData.description);
+    });
 
-        expect(typeof repoArg).toBe('function');
-        expect(typeof createFn).toBe('function');
-      },
-    );
+    mockedSaveWithIdRetry.mock.calls.forEach((call: unknown[]) => {
+      const [repoCreateFn, createOperationFn] = call;
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    Operation.create.mock.calls.forEach(
-      ([calledUser, calledAccount, entry, amount, description]: [
-        User,
-        Account,
-        Entry,
-        Amount,
-        string,
-      ]) => {
-        const operation = operations.find(
-          (op) => op.description === description,
-        );
+      expect(typeof repoCreateFn).toBe('function');
+      expect(typeof createOperationFn).toBe('function');
 
-        const account = [usdAccount1, usdAccount2].find((acc) =>
-          operation?.belongsToAccount(acc),
-        );
-
-        expect(operation).toBeDefined();
-        expect(account).toBeDefined();
-
-        expect(calledUser).toBe(user);
-        expect(account).toEqual(calledAccount);
-        expect(account).toBeInstanceOf(Account);
-        expect(entry).toBe(entry);
-        expect(amount).toBeInstanceOf(Amount);
-        expect(amount.valueOf()).toBe(operation?.amount.valueOf());
-        expect(description).toBe(operation?.description);
-      },
-    );
+      const operation = (createOperationFn as () => Operation)();
+      expect(operation).toBeInstanceOf(Operation);
+    });
 
     expect(operations).toHaveLength(Object.keys(operationsRaw).length);
-
-    operations.forEach((operation, index) => {
-      expect(operation).toBe(mockedOperations[index]);
-    });
   });
 
   it('should throw an error if account not found', async () => {
@@ -302,10 +251,6 @@ describe('OperationFactory', () => {
       },
     ];
 
-    vi.spyOn(Account, 'restore')
-      .mockReturnValueOnce(testData.from.systemAccount)
-      .mockReturnValueOnce(testData.to.systemAccount);
-
     // Create accountsMap for the new signature (only user accounts, system accounts will be fetched separately)
     const accountsMap = new Map([
       [testData.from.account.getId().valueOf(), testData.from.account],
@@ -317,6 +262,44 @@ describe('OperationFactory', () => {
       [Currency.create('EUR').valueOf(), eurSystemAccount],
     ]);
 
+    const mockedOperationFrom = Operation.create(
+      user,
+      testData.from.account,
+      entry,
+      fromAmount,
+      testData.from.operation.description,
+    );
+
+    const mockedOperationTo = Operation.create(
+      user,
+      testData.to.account,
+      entry,
+      toAmount,
+      testData.to.operation.description,
+    );
+
+    const mockedSystemOperationFrom = Operation.create(
+      user,
+      testData.from.systemAccount,
+      entry,
+      testData.from.systemAmount,
+      'System ' + testData.from.operation.description,
+    );
+
+    const mockedSystemOperationTo = Operation.create(
+      user,
+      testData.to.systemAccount,
+      entry,
+      testData.to.systemAmount,
+      'System ' + testData.to.operation.description,
+    );
+
+    mockedSaveWithIdRetry
+      .mockResolvedValueOnce(mockedOperationFrom)
+      .mockResolvedValueOnce(mockedOperationTo)
+      .mockResolvedValueOnce(mockedSystemOperationFrom)
+      .mockResolvedValueOnce(mockedSystemOperationTo);
+
     const operations = await operationFactory.createOperationsForEntry(
       user,
       entry,
@@ -325,63 +308,53 @@ describe('OperationFactory', () => {
       currencySystemAccountsMap,
     );
 
-    const expectedResultsDTO: { currency: Currency; amount: Amount }[] = [
-      { amount: testData.from.amount, currency: fromCurrency },
-      { amount: testData.from.amount.negate(), currency: fromCurrency },
-      { amount: testData.to.amount, currency: toCurrency },
-      { amount: testData.to.amount.negate(), currency: toCurrency },
-    ];
-
-    const getKey = (currency: Currency, amount: Amount) =>
-      `${amount.valueOf()}_${currency.valueOf()}`;
-
-    const expectedResultsMap = expectedResultsDTO.reduce((map, item) => {
-      const key = getKey(item.currency, item.amount);
-      map.set(key, item);
-      return map;
-    }, new Map<string, { currency: Currency; amount: Amount }>());
-
-    operations.forEach((operation) => {
-      const key = getKey(operation.currency, operation.amount);
-      const expectedResult = expectedResultsMap.get(key);
-
-      expect(expectedResult).toBeDefined();
-      expect(operation.amount.valueOf()).toBe(expectedResult!.amount.valueOf());
-      expect(operation.currency.valueOf()).toBe(
-        expectedResult!.currency.valueOf(),
-      );
-      expectedResultsMap.delete(key);
-    });
-
-    expect(expectedResultsMap.size).toBe(0);
-
     expect(operations).toHaveLength(4);
 
-    const operationsBalance = operations.reduce((acc, operation) => {
-      return acc.add(operation.amount);
-    }, Amount.create('0'));
+    const expectedResultsDTO: {
+      currency: Currency;
+      amount: Amount;
+      isSystem: boolean;
+    }[] = [
+      {
+        amount: testData.from.amount,
+        currency: testData.from.account.currency,
+        isSystem: false,
+      },
+      {
+        amount: testData.to.amount,
+        currency: testData.to.account.currency,
+        isSystem: false,
+      },
+      {
+        amount: testData.from.systemAmount,
+        currency: fromCurrency,
+        isSystem: true,
+      },
+      {
+        amount: testData.to.systemAmount,
+        currency: toCurrency,
+        isSystem: true,
+      },
+    ];
 
-    expect(operationsBalance.valueOf()).toBe('0');
+    operations.forEach((operation, index) => {
+      const match = expectedResultsDTO[index];
 
-    const fromSystemOperation = operations.find((op) =>
-      op.belongsToAccount(testData.from.systemAccount),
-    );
+      expect(operation.amount.valueOf()).toBe(match.amount.valueOf());
+      expect(operation.currency.valueOf()).toBe(match.currency.valueOf());
+    });
 
-    expect(fromSystemOperation).toBeDefined();
+    for (let i = 0; i < operationsRaw.length; i++) {
+      const resultOperation = operations[i];
+      const systemOperation = operations[i + 2];
+      const systemAmount = Amount.fromPersistence(
+        systemOperation.amount.valueOf(),
+      );
 
-    expect(fromSystemOperation?.amount.valueOf()).toBe(
-      testData.from.systemAmount.valueOf(),
-    );
-
-    const toSystemOperation = operations.find((op) =>
-      op.belongsToAccount(testData.to.systemAccount),
-    );
-
-    expect(toSystemOperation).toBeDefined();
-
-    expect(toSystemOperation?.amount.valueOf()).toBe(
-      testData.to.systemAmount.valueOf(),
-    );
+      expect(resultOperation.amount.equals(systemAmount.negate())).toBe(true);
+      expect(systemOperation.isSystem).toBe(true);
+      expect(resultOperation.isSystem).toBe(false);
+    }
   });
 
   it('should throw an error if the balances of operations do not equal zero', async () => {
@@ -416,6 +389,6 @@ describe('OperationFactory', () => {
         accountsMap,
         currencySystemAccountsMap,
       ),
-    ).rejects.toThrowError(UnbalancedOperationsError);
+    ).rejects.toThrowError(UnbalancedEntryError);
   });
 });

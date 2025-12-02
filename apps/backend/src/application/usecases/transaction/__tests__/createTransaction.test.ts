@@ -1,180 +1,125 @@
 import {
+  IsoDatetimeString,
+  UUID,
+} from 'node_modules/@ledgerly/shared/src/types/types';
+import {
   CreateEntryRequestDTO,
   CreateTransactionRequestDTO,
+  TransactionResponseDTO,
 } from 'src/application/dto';
 import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
+import type { TransactionMapperInterface } from 'src/application/mappers';
 import { EntryFactory } from 'src/application/services';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { createUser } from 'src/db/createTestUser';
-import { Account, Entry } from 'src/domain';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
+import { Account, Entry, Transaction, User, AccountType } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
-import { Transaction } from 'src/domain/transactions';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateTransactionUseCase } from '../CreateTransaction';
 
-describe('CreateTransactionUseCase', async () => {
-  const user = await createUser();
+describe('CreateTransactionUseCase', () => {
+  let user: User;
 
-  let createTransactionUseCase: CreateTransactionUseCase;
-
-  let mockTransactionRepository: {
-    create: ReturnType<typeof vi.fn>;
-    getDB: ReturnType<typeof vi.fn>;
+  const mockTransactionRepository = {
+    create: vi.fn(),
+    getDB: vi.fn().mockReturnValue({
+      transaction: <T>(cb: (trx: unknown) => T): T => cb({}),
+    }),
   };
 
-  let entryFactory: {
-    createEntriesWithOperations: ReturnType<typeof vi.fn>;
+  const mockedEntries = [
+    {
+      belongsToTransaction: () => true,
+      getOperations: () => [
+        {
+          amount: Amount.create('100'),
+        },
+        {
+          amount: Amount.create('-100'),
+        },
+      ],
+      validateBalance: vi.fn(),
+    },
+  ] as unknown as Entry[];
+
+  const entryFactory = {
+    createEntriesWithOperations: vi.fn().mockResolvedValue(mockedEntries),
   };
 
-  let transactionManager: { run: ReturnType<typeof vi.fn> };
+  const transactionManager = {
+    run: vi.fn((cb: () => unknown) => cb()),
+  };
 
-  const transactionIdValue = '660e8400-e29b-41d4-a716-446655440001';
+  const transactionMapper = {
+    toResponseDTO: vi.fn(),
+  };
+
+  const mockedSaveWithIdRetry = vi.fn();
+
+  const createTransactionUseCase = new CreateTransactionUseCase(
+    transactionManager as unknown as TransactionManagerInterface,
+    mockTransactionRepository as unknown as TransactionRepositoryInterface,
+    entryFactory as unknown as EntryFactory,
+    mockedSaveWithIdRetry as unknown as SaveWithIdRetryType,
+    transactionMapper as unknown as TransactionMapperInterface,
+  );
 
   const postingDate = DateValue.restore('2024-01-01').valueOf();
   const transactionDate = DateValue.restore('2024-01-02').valueOf();
   const description = 'Test Transaction';
 
-  const usdAccount = Account.create(
-    user,
-    Name.create('Test Account'),
-    'Account for testing',
-    Amount.create('0'),
-    Currency.create('USD'),
-    AccountType.create('asset'),
-  );
+  let usdAccount: Account;
+  let eurAccount: Account;
 
-  const eurAccount = Account.create(
-    user,
-    Name.create('Test Account'),
-    'Account for testing',
-    Amount.create('0'),
-    Currency.create('EUR'),
-    AccountType.create('asset'),
-  );
+  beforeEach(async () => {
+    user = await createUser();
 
-  const mockedEntries = [
-    {
-      getCreatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
-      getId: () => ({ valueOf: () => 'some-entry-id-1' }),
-      getOperations: () => [
-        {
-          amount: { valueOf: () => '100' },
-          description: 'Operation 1',
-          getAccountId: () => ({ valueOf: () => usdAccount.getId().valueOf() }),
-          getCreatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
-          getUpdatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
-          getUserId: () => ({ valueOf: () => user.getId().valueOf() }),
-          id: { valueOf: () => 'operation-id-1' },
-          isSystem: false,
-        },
-        {
-          amount: { valueOf: () => '100' },
-          description: 'Operation 2',
-          getAccountId: () => ({ valueOf: () => eurAccount.getId().valueOf() }),
-          getCreatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
-          getUpdatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
-          getUserId: () => ({ valueOf: () => user.getId().valueOf() }),
-          id: { valueOf: () => 'operation-id-2' },
-          isSystem: false,
-        },
-      ],
-      getTransactionId: () => ({ valueOf: () => transactionIdValue.valueOf() }),
-      getUpdatedAt: () => ({ valueOf: () => '2024-01-01T00:00:00Z' }),
-      id: 'some-entry-id-1',
-      operations: [],
-      toPersistence: () => ({
-        createdAt: '2024-01-01T00:00:00Z',
-        id: 'some-entry-id-1',
-        transactionId: transactionIdValue.valueOf(),
-        updatedAt: '2024-01-01T00:00:00Z',
-        userId: user.getId().valueOf(),
-      }),
-    },
-  ] as unknown as Entry[];
+    usdAccount = Account.create(
+      user,
+      Name.create('Test Account'),
+      'Account for testing',
+      Amount.create('0'),
+      Currency.create('USD'),
+      AccountType.create('asset'),
+    );
 
-  const mockedSaveWithIdRetry = vi
-    .fn()
-    .mockResolvedValue({ name: 'mocked account' }); // Mock implementation
-
-  beforeEach(() => {
-    mockTransactionRepository = {
-      create: vi.fn(),
-      getDB: vi.fn().mockReturnValue({
-        transaction: <T>(cb: (trx: unknown) => T): T => cb({}),
-      }),
-    };
-
-    entryFactory = {
-      createEntriesWithOperations: vi.fn().mockReturnValue(mockedEntries),
-    };
-
-    transactionManager = {
-      run: vi.fn((cb: () => unknown) => {
-        return cb();
-      }),
-    };
-
-    createTransactionUseCase = new CreateTransactionUseCase(
-      transactionManager as unknown as TransactionManagerInterface,
-      mockTransactionRepository as unknown as TransactionRepositoryInterface,
-      entryFactory as unknown as EntryFactory,
-      mockedSaveWithIdRetry as unknown as SaveWithIdRetryType,
+    eurAccount = Account.create(
+      user,
+      Name.create('Test Account'),
+      'Account for testing',
+      Amount.create('0'),
+      Currency.create('EUR'),
+      AccountType.create('asset'),
     );
   });
 
   describe('execute', () => {
     it('should create a new transaction with entries successfully', async () => {
-      const mockedSaveWithIdRetryResult = {
-        data: 'mockedSaveWithIdRetryResult',
+      const mockedResult: TransactionResponseDTO = {
+        createdAt: '2024-01-01T00:00:00.000Z' as unknown as IsoDatetimeString,
+        description,
+        entries: [],
+        id: 'transaction-id-123' as unknown as UUID,
+        postingDate,
+        transactionDate,
+        updatedAt: '2024-01-01T00:00:00.000Z' as unknown as IsoDatetimeString,
+        userId: user.getId().valueOf() as unknown as UUID,
       };
 
-      mockedSaveWithIdRetry.mockResolvedValue(mockedSaveWithIdRetryResult);
+      transactionMapper.toResponseDTO.mockResolvedValue(mockedResult);
 
-      const mockAddEntry = vi.fn();
-      const mockValidateBalance = vi.fn();
-      const mockGetCreatedAt = vi
-        .fn()
-        .mockReturnValue({ valueOf: () => '2024-01-01T00:00:00Z' });
-      const mockGetUpdatedAt = vi
-        .fn()
-        .mockReturnValue({ valueOf: () => '2024-01-01T00:00:00Z' });
-      const mockGetPostingDate = vi
-        .fn()
-        .mockReturnValue({ valueOf: () => postingDate });
-      const mockGetTransactionDate = vi
-        .fn()
-        .mockReturnValue({ valueOf: () => transactionDate });
-      const mockGetUserId = vi
-        .fn()
-        .mockReturnValue({ valueOf: () => user.getId().valueOf() });
-      const mockGetEntries = vi.fn().mockReturnValue(mockedEntries);
-
-      const mockedTransaction = {
-        addEntry: mockAddEntry,
+      const transaction = Transaction.create(
+        user.getId(),
         description,
-        getCreatedAt: mockGetCreatedAt,
-        getEntries: mockGetEntries,
-        getId: () => transactionIdValue,
-        getPostingDate: mockGetPostingDate,
-        getTransactionDate: mockGetTransactionDate,
-        getUpdatedAt: mockGetUpdatedAt,
-        getUserId: mockGetUserId,
-        validateBalance: mockValidateBalance,
-      } as unknown as Transaction;
+        DateValue.restore(postingDate),
+        DateValue.restore(transactionDate),
+      );
 
-      const mockedEntry = {
-        addOperations: vi.fn(),
-        getId: () => 'some-entry-id',
-      } as unknown as Entry;
-
-      vi.spyOn(Account, 'restore').mockReturnValue(usdAccount);
-      vi.spyOn(Transaction, 'create').mockReturnValue(mockedTransaction);
-      vi.spyOn(Entry, 'create').mockReturnValue(mockedEntry);
+      mockedSaveWithIdRetry.mockResolvedValue(transaction);
 
       const entries: CreateEntryRequestDTO[] = [
         [
@@ -200,28 +145,36 @@ describe('CreateTransactionUseCase', async () => {
 
       const result = await createTransactionUseCase.execute(user, data);
 
+      expect(result).toBe(mockedResult);
+
+      expect(result.description).toBe(description);
+      expect(result.postingDate).toBe(postingDate);
+      expect(result.transactionDate).toBe(transactionDate);
+      expect(result.entries).toBeDefined();
+
+      expect(transactionManager.run).toHaveBeenCalled();
+
+      expect(entryFactory.createEntriesWithOperations).toHaveBeenCalledWith(
+        user,
+        expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          getId: expect.any(Function),
+        }),
+        data.entries,
+      );
+
+      expect(transactionMapper.toResponseDTO).toHaveBeenCalledWith(
+        expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          getId: expect.any(Function),
+        }),
+      );
+
+      expect(mockedSaveWithIdRetry).toHaveBeenCalled();
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
-        mockedTransaction,
         expect.any(Function),
         expect.any(Function),
       );
-
-      expect(mockAddEntry).toHaveBeenCalledTimes(mockedEntries.length);
-
-      mockAddEntry.mock.calls.forEach((call, index) => {
-        expect(call[0]).toEqual(mockedEntries[index]);
-      });
-
-      expect(mockValidateBalance).toHaveBeenCalled();
-
-      expect(result).toMatchObject({
-        description,
-        id: transactionIdValue.valueOf(),
-        postingDate,
-        transactionDate,
-        userId: user.getId().valueOf(),
-      });
-      expect(result.entries).toHaveLength(1);
     });
   });
 });

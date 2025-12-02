@@ -1,9 +1,14 @@
-import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
+import {
+  LoginUserUseCase,
+  RegisterUserUseCase,
+  TransactionMapper,
+} from 'src/application';
 import {
   AccountFactory,
   EntryFactory,
   OperationFactory,
 } from 'src/application/services';
+import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { saveWithIdRetry } from 'src/application/shared/saveWithIdRetry';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
 import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
@@ -13,6 +18,7 @@ import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAc
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
 import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction/GetAllTransactions';
 import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
+import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { TransactionManager } from 'src/infrastructure/db';
@@ -21,7 +27,7 @@ import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { EntryRepository } from 'src/infrastructure/db/entries/entry.repository';
 import { OperationRepository } from 'src/infrastructure/db/operations/operation.repository';
 import { TransactionRepository } from 'src/infrastructure/db/transaction/transaction.repository';
-import { UserRepository } from 'src/infrastructure/db/UsersRepository';
+import { UserRepository } from 'src/infrastructure/db/user/user.repository';
 import {
   AuthController,
   AccountController,
@@ -39,6 +45,8 @@ export const createContainer = (db: DataBase): AppContainer => {
   const userRepository = new UserRepository(transactionManager);
   const operationRepository = new OperationRepository(transactionManager);
   const entryRepository = new EntryRepository(transactionManager);
+
+  const transactionMapper = new TransactionMapper();
 
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
@@ -88,6 +96,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionRepository,
     entryFactory,
     saveWithIdRetry,
+    transactionMapper,
   );
 
   const getTransactionByIdUseCase = new GetTransactionByIdUseCase(
@@ -97,6 +106,16 @@ export const createContainer = (db: DataBase): AppContainer => {
   const getAllTransactionsUseCase = new GetAllTransactionsUseCase(
     transactionRepository,
     accountRepository,
+  );
+
+  const updateTransactionUseCase = new UpdateTransactionUseCase(
+    transactionManager,
+    transactionRepository,
+    entryFactory,
+    entryRepository,
+    operationRepository,
+    ensureEntityExistsAndOwned,
+    transactionMapper,
   );
 
   const useCases: AppContainer['useCases'] = {
@@ -115,6 +134,7 @@ export const createContainer = (db: DataBase): AppContainer => {
       createTransaction: createTransactionUseCase,
       getAllTransactions: getAllTransactionsUseCase,
       getTransactionById: getTransactionByIdUseCase,
+      updateTransaction: updateTransactionUseCase,
     },
   };
 
@@ -136,6 +156,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     createTransactionUseCase,
     getTransactionByIdUseCase,
     getAllTransactionsUseCase,
+    updateTransactionUseCase,
   );
 
   const controllers: AppContainer['controllers'] = {

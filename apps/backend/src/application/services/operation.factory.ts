@@ -2,7 +2,7 @@ import { CurrencyCode, MoneyString, UUID } from '@ledgerly/shared/types';
 import { OperationRepoInsert } from 'src/db/schema';
 import { Account, Entry, Operation, User } from 'src/domain';
 import { Amount, Currency } from 'src/domain/domain-core';
-import { UnbalancedOperationsError } from 'src/presentation/errors/businessLogic.error';
+import { UnbalancedEntryError } from 'src/domain/domain.errors';
 
 import { CreateEntryRequestDTO, OperationResponseDTO } from '../dto';
 import { OperationRepositoryInterface } from '../interfaces';
@@ -95,10 +95,7 @@ export class OperationFactory {
     }, Amount.create('0'));
 
     if (!balancedAmount.isZero()) {
-      throw new UnbalancedOperationsError(
-        entry.getId().valueOf(),
-        Number(balancedAmount.valueOf()),
-      );
+      throw new UnbalancedEntryError(entry, balancedAmount);
     }
   }
 
@@ -202,27 +199,17 @@ export class OperationFactory {
     const createOperation = () =>
       Operation.create(user, account, entry, amount, description);
 
-    const operation = createOperation();
-
-    await this.saveOperation(operation, createOperation);
-
-    return operation;
+    return this.saveOperation(createOperation);
   }
 
-  private async saveOperation(
-    entry: Operation,
-    createOperation: () => Operation,
-  ) {
-    const result = await this.saveWithIdRetry<
+  private async saveOperation(createOperation: () => Operation) {
+    return this.saveWithIdRetry<
       OperationRepoInsert,
       Operation,
       OperationResponseDTO
     >(
-      entry,
       this.operationRepository.create.bind(this.operationRepository),
       createOperation,
     );
-
-    return result;
   }
 }

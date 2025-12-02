@@ -7,7 +7,15 @@ import {
   SoftDelete,
   ParentChildRelation,
   Timestamp,
+  Amount,
 } from '../domain-core';
+import {
+  UnbalancedEntryError,
+  EmptyOperationsError,
+  DeletedEntityOperationError,
+  OperationOwnershipError,
+  MissingOperationsError,
+} from '../domain.errors';
 import { Operation } from '../operations';
 import { Transaction } from '../transactions';
 import { User } from '../users/user.entity';
@@ -54,7 +62,7 @@ export class Entry {
       identity.getId(),
     );
 
-    return new Entry(
+    const entry = new Entry(
       identity,
       timestamps,
       softDelete,
@@ -62,6 +70,12 @@ export class Entry {
       transactionRelation,
       operations,
     );
+
+    if (entry.canBeValidated()) {
+      entry.validateBalance();
+    }
+
+    return entry;
   }
 
   getId(): Id {
@@ -104,17 +118,63 @@ export class Entry {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       id: this.identity.getId().valueOf(),
+      isTombstone: this.isDeleted(),
       transactionId: this.getTransactionId().valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),
     };
   }
 
+  private validateCanAddOperations(operations: Operation[]): void {
+    if (this.isDeleted()) {
+      throw new DeletedEntityOperationError('entry', 'add operations');
+    }
+
+    if (operations.length === 0) {
+      throw new EmptyOperationsError();
+    }
+
+    for (const operation of operations) {
+      if (!operation.belongsToEntry(this)) {
+        throw new OperationOwnershipError();
+      }
+    }
+  }
+
   addOperations(operations: Operation[]): void {
+    this.validateCanAddOperations(operations);
+
     this.operations.push(...operations);
+    this.touch();
+  }
+
+  hasOperations(): boolean {
+    return this.operations.length > 0;
+  }
+
+  canBeValidated(): boolean {
+    return this.hasOperations() && !this.isDeleted();
   }
 
   getOperations(): Operation[] {
-    return this.operations;
+    return [...this.operations];
+  }
+
+  validateBalance(): void {
+    if (!this.hasOperations()) {
+      throw new MissingOperationsError();
+    }
+
+    if (this.isDeleted()) {
+      throw new DeletedEntityOperationError('entry', 'validate');
+    }
+
+    const total = this.operations.reduce((sum, operation) => {
+      return sum.add(operation.amount);
+    }, Amount.create('0'));
+
+    if (!total.isZero()) {
+      throw new UnbalancedEntryError(this, total);
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { AppError } from '../AppError';
+import { HttpApiError } from '../HttpError';
 
 export type ErrorMeta = {
   entity?: string;
@@ -8,10 +8,8 @@ export type ErrorMeta = {
   [key: string]: unknown;
 };
 
-export class BadRequestError extends AppError {
+export class BadRequestError extends HttpApiError {
   constructor(message = 'Bad request') {
     super(message, 400);
   }
 }
-
-// TODO: move this to a more appropriate place

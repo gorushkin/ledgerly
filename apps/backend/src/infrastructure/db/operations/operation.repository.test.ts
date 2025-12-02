@@ -153,4 +153,46 @@ describe('OperationRepository', () => {
       expect(operations).toHaveLength(0);
     });
   });
+
+  describe('softDeleteByEntryIds', () => {
+    it('should soft delete operations by entry ID', async () => {
+      const operation = await testDB.createOperation(user.id, {
+        accountId: account1.id,
+        amount: Amount.create('700').valueOf(),
+        description: 'Operation to be soft deleted',
+        entryId: entry.id,
+      });
+
+      const softDeletedOperations =
+        await operationRepository.softDeleteByEntryIds(user.id, [entry.id]);
+
+      expect(softDeletedOperations).toHaveLength(1);
+
+      expect(softDeletedOperations[0]).toEqual(
+        expect.objectContaining({
+          id: operation.id,
+          isTombstone: true,
+        }),
+      );
+
+      const fetchedOperations = await operationRepository.getByEntryId(
+        user.id,
+        entry.id,
+      );
+
+      expect(fetchedOperations).toHaveLength(1);
+      expect(fetchedOperations[0].isTombstone).toBe(true);
+    });
+
+    it('should return an empty array if no operations to soft delete for the entry ID', async () => {
+      const anotherEntry = await testDB.createEntry(user.id);
+
+      const softDeletedOperations =
+        await operationRepository.softDeleteByEntryIds(user.id, [
+          anotherEntry.id,
+        ]);
+
+      expect(softDeletedOperations).toHaveLength(0);
+    });
+  });
 });

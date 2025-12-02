@@ -4,6 +4,7 @@ import { TransactionRepositoryInterface } from 'src/application';
 import {
   TransactionDbInsert,
   TransactionDbRow,
+  TransactionDbUpdate,
   TransactionWithRelations,
   entriesTable,
   operationsTable,
@@ -16,13 +17,16 @@ export class TransactionRepository
   extends BaseRepository
   implements TransactionRepositoryInterface
 {
+  delete(_userId: UUID, _transactionId: UUID): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
   create(transaction: TransactionDbInsert): Promise<TransactionDbRow> {
     return this.executeDatabaseOperation(
       async () =>
         this.db.insert(transactionsTable).values(transaction).returning().get(),
       'TransactionRepository.create',
       {
-        field: 'transaction',
+        field: 'transactionId',
         tableName: 'transactions',
         value: transaction.id,
       },
@@ -49,7 +53,11 @@ export class TransactionRepository
         return result ?? null;
       },
       'TransactionRepository.getById',
-      { field: 'transaction', tableName: 'transactions', value: transactionId },
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transactionId,
+      },
     );
   }
 
@@ -100,6 +108,45 @@ export class TransactionRepository
         field: 'transactions',
         tableName: 'transactions',
         value: JSON.stringify(query),
+      },
+    );
+  }
+
+  update(
+    userId: UUID,
+    transactionId: UUID,
+    transaction: TransactionDbUpdate,
+  ): Promise<TransactionDbRow> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const safeData = this.getSafeUpdate(transaction, [
+          'description',
+          'postingDate',
+          'transactionDate',
+        ]);
+
+        const updated = await this.db
+          .update(transactionsTable)
+          .set(safeData)
+          .where(
+            and(
+              eq(transactionsTable.id, transactionId),
+              eq(transactionsTable.userId, userId),
+            ),
+          )
+          .returning()
+          .get();
+
+        return this.ensureEntityExists(
+          updated,
+          `Transaction with ID ${transactionId} not found`,
+        );
+      },
+      'TransactionRepository.update',
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transactionId,
       },
     );
   }

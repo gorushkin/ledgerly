@@ -2,10 +2,9 @@ import { CurrencyCode } from '@ledgerly/shared/types';
 import { AccountRepositoryInterface } from 'src/application/interfaces';
 import { createUser } from 'src/db/createTestUser';
 import { User } from 'src/domain';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
-import { Account } from 'src/domain/accounts/account.entity';
-import { Amount, Currency } from 'src/domain/domain-core';
-import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
+import { Account, AccountType } from 'src/domain/';
+import { Amount, Currency, Name } from 'src/domain/domain-core';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AccountFactory } from '../account.factory';
@@ -13,14 +12,17 @@ import { AccountFactory } from '../account.factory';
 describe('CreateAccountUseCase', () => {
   let user: User;
 
-  let accountFactory: AccountFactory;
-
-  let mockAccountRepository: {
-    create: ReturnType<typeof vi.fn>;
-    findSystemAccount: ReturnType<typeof vi.fn>;
+  const mockAccountRepository = {
+    create: vi.fn(),
+    findSystemAccount: vi.fn(),
   };
 
-  let mockedSaveWithIdRetry: ReturnType<typeof vi.fn>;
+  const mockedSaveWithIdRetry = vi.fn();
+
+  const accountFactory = new AccountFactory(
+    mockAccountRepository as unknown as AccountRepositoryInterface,
+    mockedSaveWithIdRetry,
+  );
 
   const accountName = 'Test Account';
   const description = 'Test account description';
@@ -30,53 +32,22 @@ describe('CreateAccountUseCase', () => {
 
   beforeEach(async () => {
     user = await createUser();
-
-    mockAccountRepository = {
-      create: vi.fn(),
-      findSystemAccount: vi.fn(),
-    };
-
-    mockedSaveWithIdRetry = vi
-      .fn()
-      .mockResolvedValue({ name: 'mocked account' }); // Mock implementation
-
-    accountFactory = new AccountFactory(
-      mockAccountRepository as unknown as AccountRepositoryInterface,
-      mockedSaveWithIdRetry,
-    );
   });
 
   describe('createAccount', () => {
     it('should create an account with correct properties', async () => {
-      const mockedAccount = {} as unknown as Account;
-
-      vi.spyOn(Account, 'create').mockReturnValue(mockedAccount);
-
-      await accountFactory.createAccount(user, {
-        currency,
-        description,
-        initialBalance,
-        name: accountName,
-        type: accountType,
-      });
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(Account.create).toHaveBeenCalledWith(
+      const mockAccount = Account.create(
         user,
-        expect.objectContaining({ value: accountName }),
+        Name.create(accountName),
         description,
         Amount.create(initialBalance),
         Currency.create(currency),
         AccountType.create(accountType),
       );
-    });
 
-    it.skip('should call saveWithIdRetry with correct parameters', async () => {
-      const mockedAccount = {} as unknown as Account;
+      mockedSaveWithIdRetry.mockResolvedValue(mockAccount);
 
-      vi.spyOn(Account, 'create').mockReturnValue(mockedAccount);
-
-      await accountFactory.createAccount(user, {
+      const account = await accountFactory.createAccount(user, {
         currency,
         description,
         initialBalance,
@@ -84,9 +55,21 @@ describe('CreateAccountUseCase', () => {
         type: accountType,
       });
 
+      expect(account).toBe(mockAccount);
+
+      expect(account).toBeInstanceOf(Account);
+
+      const accountPersistenceDTO = account.toPersistence();
+
+      expect(accountPersistenceDTO.name).toBe(accountName);
+      expect(accountPersistenceDTO.description).toBe(description);
+      expect(accountPersistenceDTO.initialBalance).toBe(initialBalance);
+      expect(accountPersistenceDTO.currency).toBe(currency);
+      expect(accountPersistenceDTO.type).toBe(accountType);
+      expect(accountPersistenceDTO.isSystem).toBe(false);
+
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
-        mockedAccount,
-        mockAccountRepository.create.bind(mockAccountRepository),
+        expect.any(Function),
         expect.any(Function),
       );
     });
@@ -94,24 +77,46 @@ describe('CreateAccountUseCase', () => {
 
   describe('findOrCreateSystemAccount', () => {
     it('should create a system account if not found', async () => {
-      vi.spyOn(
-        mockAccountRepository,
-        'findSystemAccount',
-      ).mockRejectedValueOnce(new NotFoundError('Not found'));
+      mockAccountRepository.findSystemAccount.mockRejectedValueOnce(
+        new RepositoryNotFoundError('Not found'),
+      );
 
-      const createAccountSpy = vi
-        .spyOn(accountFactory, 'createAccount')
-        .mockResolvedValueOnce({} as unknown as Account);
+      const mockAccount = Account.create(
+        user,
+        Name.create(`Trading System Account (${currency})`),
+        `System account for ${currency} currency trading`,
+        Amount.create('0'),
+        Currency.create(currency),
+        AccountType.create('currencyTrading'),
+      );
 
-      await accountFactory.findOrCreateSystemAccount(user, currency);
+      mockedSaveWithIdRetry.mockResolvedValue(mockAccount);
 
-      expect(createAccountSpy).toHaveBeenCalledWith(user, {
+      const account = await accountFactory.findOrCreateSystemAccount(
+        user,
         currency,
-        description: `System account for ${currency} currency trading`,
-        initialBalance: Amount.create('0').valueOf(),
-        name: `Trading System Account (${currency})`,
-        type: 'currencyTrading',
-      });
+      );
+
+      expect(account).toBeDefined();
+      expect(account).toBeInstanceOf(Account);
+
+      const accountPersistenceDTO = account.toPersistence();
+
+      expect(accountPersistenceDTO.name).toBe(
+        `Trading System Account (${currency})`,
+      );
+
+      expect(accountPersistenceDTO.description).toBe(
+        `System account for ${currency} currency trading`,
+      );
+
+      expect(accountPersistenceDTO.initialBalance).toBe(
+        Amount.create('0').valueOf(),
+      );
+
+      expect(accountPersistenceDTO.currency).toBe(currency);
+      expect(accountPersistenceDTO.type).toBe('currencyTrading');
+      expect(accountPersistenceDTO.isSystem).toBe(true);
     });
   });
 });

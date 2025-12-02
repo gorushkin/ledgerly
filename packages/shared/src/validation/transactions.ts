@@ -28,7 +28,9 @@ export const transactionCreateSchema = z.object({
 
 export const transactionUpdateSchema = z.object({
   description: requiredText,
-  id: uuid,
+  // Note: Including the `entries` field here allows for complete replacement of all entries during an update.
+  // When updating, old entries are soft-deleted and new ones are created based on the provided array.
+  entries: z.array(entryCreateSchema),
   postingDate: isoDate,
   transactionDate: isoDate,
 });

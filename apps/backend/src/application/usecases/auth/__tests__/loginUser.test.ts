@@ -1,7 +1,10 @@
+import {
+  InvalidPasswordError,
+  UserNotFoundError,
+} from 'src/application/application.errors';
 import { UserRepositoryInterface } from 'src/application/interfaces';
 import { Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
-import { AuthErrors } from 'src/presentation/errors/auth.errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoginUserUseCase } from '../loginUser';
@@ -64,7 +67,7 @@ describe('LoginUserUseCase', () => {
 
       await expect(
         loginUserUseCase.execute(email, password.valueOf()),
-      ).rejects.toThrow(AuthErrors.UserNotFoundError);
+      ).rejects.toThrow(UserNotFoundError);
     });
 
     it('should throw InvalidPasswordError if password is invalid', async () => {
@@ -82,7 +85,7 @@ describe('LoginUserUseCase', () => {
 
       await expect(
         loginUserUseCase.execute(email, password.valueOf()),
-      ).rejects.toThrowError(AuthErrors.InvalidPasswordError);
+      ).rejects.toThrowError(InvalidPasswordError);
     });
   });
 

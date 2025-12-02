@@ -44,6 +44,7 @@ describe('EntryRepository', () => {
       const entryInput: EntryDbRow = {
         createdAt,
         id,
+        isTombstone: false,
         transactionId,
         updatedAt,
         userId,
@@ -109,6 +110,68 @@ describe('EntryRepository', () => {
       );
 
       expect(entries).toHaveLength(0);
+    });
+  });
+
+  describe('softDeleteByTransactionId', () => {
+    it('should mark entries as tombstone by transaction ID', async () => {
+      const createdEntries = await Promise.all([
+        testDB.createEntry(user.id, {
+          transactionId: transaction.id,
+        }),
+        testDB.createEntry(user.id, {
+          transactionId: transaction.id,
+        }),
+      ]);
+
+      const softDeletedEntries =
+        await entryRepository.softDeleteByTransactionId(
+          user.id,
+          transaction.id,
+        );
+
+      expect(softDeletedEntries).toHaveLength(createdEntries.length);
+      expect(softDeletedEntries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: createdEntries[0].id,
+            isTombstone: true,
+          }),
+          expect.objectContaining({
+            id: createdEntries[1].id,
+            isTombstone: true,
+          }),
+        ]),
+      );
+
+      const entries = await entryRepository.getByTransactionId(
+        user.id,
+        transaction.id,
+      );
+
+      expect(entries).toHaveLength(createdEntries.length);
+
+      const deletedEntry1 = await testDB.getEntryById(createdEntries[0].id);
+      const deletedEntry2 = await testDB.getEntryById(createdEntries[1].id);
+
+      expect(deletedEntry1?.isTombstone).toBe(true);
+      expect(deletedEntry2?.isTombstone).toBe(true);
+    });
+
+    it('should do nothing if no entries exist for the given transaction ID', async () => {
+      const anotherTransaction = await testDB.createTransaction(user.id);
+
+      await entryRepository.softDeleteByTransactionId(
+        user.id,
+        anotherTransaction.id,
+      );
+
+      const entries = await entryRepository.getByTransactionId(
+        user.id,
+        anotherTransaction.id,
+      );
+
+      expect(entries).toEqual([]);
     });
   });
 });

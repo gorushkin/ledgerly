@@ -1,3 +1,4 @@
+import { IsoDateString } from '@ledgerly/shared/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Id } from '../domain-core';
@@ -68,7 +69,7 @@ describe('Transaction Domain Entity', () => {
     );
   });
 
-  it('should update description and touch updatedAt', () => {
+  it('should update description via update method and touch updatedAt', () => {
     const transaction = Transaction.create(
       userId,
       transactionData.description,
@@ -80,7 +81,7 @@ describe('Transaction Domain Entity', () => {
 
     vi.advanceTimersByTime(5);
 
-    transaction.updateDescription('Updated description');
+    transaction.update({ description: 'Updated description' });
 
     expect(transaction.description).toBe('Updated description');
 
@@ -91,7 +92,7 @@ describe('Transaction Domain Entity', () => {
     expect(originalUpdatedAt).not.toEqual(transaction.getUpdatedAt());
   });
 
-  it('should update postingDate and touch updatedAt', () => {
+  it('should update postingDate via update method and touch updatedAt', () => {
     const transaction = Transaction.create(
       userId,
       transactionData.description,
@@ -100,19 +101,20 @@ describe('Transaction Domain Entity', () => {
     );
 
     const originalUpdatedAt = transaction.getUpdatedAt();
+    const newPostingDate = '2024-01-15' as IsoDateString;
 
     vi.advanceTimersByTime(5);
 
-    transaction.updatePostingDate(DateValue.create());
+    transaction.update({ postingDate: newPostingDate });
 
-    expect(transaction.getPostingDate()).not.toEqual(postingDate);
+    expect(transaction.getPostingDate().valueOf()).toBe(newPostingDate);
     expect(originalUpdatedAt).not.toEqual(transaction.getUpdatedAt());
     expect(transaction.getUpdatedAt().toDate().getTime()).toBeGreaterThan(
       originalUpdatedAt.toDate().getTime(),
     );
   });
 
-  it('should update transactionDate and touch updatedAt', () => {
+  it('should update transactionDate via update method and touch updatedAt', () => {
     const transaction = Transaction.create(
       userId,
       transactionData.description,
@@ -121,16 +123,40 @@ describe('Transaction Domain Entity', () => {
     );
 
     const originalUpdatedAt = transaction.getUpdatedAt();
+    const newTransactionDate = '2024-01-20' as IsoDateString;
 
     vi.advanceTimersByTime(5);
 
-    transaction.updateTransactionDate(DateValue.create());
+    transaction.update({ transactionDate: newTransactionDate });
 
-    expect(transaction.getTransactionDate()).not.toEqual(transactionDate);
+    expect(transaction.getTransactionDate().valueOf()).toBe(newTransactionDate);
     expect(originalUpdatedAt).not.toEqual(transaction.getUpdatedAt());
     expect(transaction.getUpdatedAt().toDate().getTime()).toBeGreaterThan(
       originalUpdatedAt.toDate().getTime(),
     );
+  });
+
+  it('should update multiple fields at once via update method', () => {
+    const transaction = Transaction.create(
+      userId,
+      transactionData.description,
+      postingDate,
+      transactionDate,
+    );
+
+    const newDescription = 'New description';
+    const newPostingDate = '2024-02-01' as IsoDateString;
+    const newTransactionDate = '2024-02-05' as IsoDateString;
+
+    transaction.update({
+      description: newDescription,
+      postingDate: newPostingDate,
+      transactionDate: newTransactionDate,
+    });
+
+    expect(transaction.description).toBe(newDescription);
+    expect(transaction.getPostingDate().valueOf()).toBe(newPostingDate);
+    expect(transaction.getTransactionDate().valueOf()).toBe(newTransactionDate);
   });
 
   describe('Entry Management', () => {

@@ -1,3 +1,4 @@
+import { IsoDateString } from '@ledgerly/shared/types';
 import { TransactionDbRow } from 'src/db/schema';
 
 import {
@@ -10,6 +11,12 @@ import {
   DateValue,
 } from '../domain-core';
 import { Entry } from '../entries';
+
+export type TransactionUpdateData = {
+  description?: string;
+  postingDate?: IsoDateString;
+  transactionDate?: IsoDateString;
+};
 
 export class Transaction {
   private readonly identity: EntityIdentity;
@@ -72,7 +79,9 @@ export class Transaction {
       userId,
     } = data;
 
-    const identity = new EntityIdentity(Id.fromPersistence(id));
+    const idVO = Id.fromPersistence(id);
+
+    const identity = EntityIdentity.fromPersistence(idVO);
     const timestamps = EntityTimestamps.fromPersistence(
       Timestamp.restore(updatedAt),
       Timestamp.restore(createdAt),
@@ -138,7 +147,7 @@ export class Transaction {
     return !this.isDeleted();
   }
 
-  updateUpdatedAt(): void {
+  private updateUpdatedAt(): void {
     this.touch();
   }
 
@@ -159,24 +168,36 @@ export class Transaction {
     this.softDelete.validateUpdateIsAllowed();
   }
 
-  updatePostingDate(date: DateValue): void {
+  private updatePostingDate(date: DateValue): void {
     this.validateUpdateIsAllowed();
 
     this.postingDate = date;
-    this.touch();
   }
 
-  updateTransactionDate(date: DateValue): void {
+  private updateTransactionDate(date: DateValue): void {
     this.validateUpdateIsAllowed();
 
     this.transactionDate = date;
-    this.touch();
   }
 
-  updateDescription(description: string): void {
+  private updateDescription(description: string): void {
     this.validateUpdateIsAllowed();
 
     this.description = description;
+  }
+
+  update(updateData: TransactionUpdateData): void {
+    if (updateData.description !== undefined) {
+      this.updateDescription(updateData.description);
+    }
+
+    if (updateData.postingDate) {
+      this.updatePostingDate(DateValue.restore(updateData.postingDate));
+    }
+
+    if (updateData.transactionDate) {
+      this.updateTransactionDate(DateValue.restore(updateData.transactionDate));
+    }
     this.touch();
   }
 
@@ -220,19 +241,9 @@ export class Transaction {
     return [...this.entries];
   }
 
-  isBalanced(): boolean {
-    // All entries must sum to zero for a balanced transaction
-    // const total = this.entries.reduce(
-    //   (sum, entry) => sum + entry.getAmount().valueOf(),
-    //   0,
-    // );
-    // return total === 0;
-    return true; // Placeholder implementation
-  }
-
-  validateBalance(): void {
-    if (!this.isBalanced()) {
-      throw new Error('Transaction is not balanced');
+  validateEntriesBalance(): void {
+    for (const entry of this.entries) {
+      entry.validateBalance();
     }
   }
 }

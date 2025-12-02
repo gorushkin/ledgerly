@@ -8,6 +8,7 @@ import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAc
 import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction';
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
 import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
+import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
@@ -15,7 +16,7 @@ import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { EntryRepository } from 'src/infrastructure/db/entries/entry.repository';
 import { OperationRepository } from 'src/infrastructure/db/operations/operation.repository';
 import { TransactionRepository } from 'src/infrastructure/db/transaction/transaction.repository';
-import { UserRepository } from 'src/infrastructure/db/UsersRepository';
+import { UserRepository } from 'src/infrastructure/db/user/user.repository';
 import {
   AuthController,
   AccountController,
@@ -53,6 +54,7 @@ type TransactionUseCases = {
   createTransaction: CreateTransactionUseCase;
   getTransactionById: GetTransactionByIdUseCase;
   getAllTransactions: GetAllTransactionsUseCase;
+  updateTransaction: UpdateTransactionUseCase;
 };
 
 type Controllers = {

@@ -1,5 +1,10 @@
-import { Account, Entry, Operation, Transaction } from 'src/domain';
-import { AccountType } from 'src/domain/accounts/account-type.enum.ts';
+import {
+  Account,
+  Entry,
+  Operation,
+  Transaction,
+  AccountType,
+} from 'src/domain';
 import {
   Name,
   Email,
@@ -68,4 +73,14 @@ export const createEntry = (
   operations: Operation[],
 ) => {
   return Entry.create(user, transaction, operations);
+};
+
+export const createOperation = (
+  user: User,
+  account: Account,
+  entry: Entry,
+  amount: Amount,
+  description: string,
+) => {
+  return Operation.create(user, account, entry, amount, description);
 };

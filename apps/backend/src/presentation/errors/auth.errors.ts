@@ -1,39 +1,15 @@
-import { AppError } from './AppError';
+import { HttpApiError } from './HttpError';
 
-class UserNotFoundError extends AppError {
-  constructor(message = 'User not found') {
-    super(message, 401, 'UserNotFoundError');
-  }
-}
-
-class InvalidPasswordError extends AppError {
-  constructor(message = 'Invalid password') {
-    super(message, 401, 'InvalidPasswordError');
-  }
-}
-
-class UserExistsError extends AppError {
-  constructor(message = 'User already exists') {
-    super(message, 409, 'UserExistsError');
-  }
-}
-
-class UnauthorizedError extends AppError {
+/**
+ * Thrown when authentication is required or token is invalid.
+ * Used in middleware to return HTTP 401.
+ */
+class UnauthorizedError extends HttpApiError {
   constructor(message = 'Unauthorized') {
-    super(message, 401, 'UnauthorizedError');
-  }
-}
-
-class EmailAlreadyExistsError extends AppError {
-  constructor(message = 'Email already exists') {
-    super(message, 409, 'EmailAlreadyExistsError');
+    super(message, 401);
   }
 }
 
 export const AuthErrors = {
-  EmailAlreadyExistsError,
-  InvalidPasswordError,
   UnauthorizedError,
-  UserExistsError,
-  UserNotFoundError,
 };

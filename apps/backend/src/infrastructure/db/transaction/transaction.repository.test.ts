@@ -8,6 +8,7 @@ import { TestDB } from 'src/db/test-db';
 import { Amount, DateValue } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { Timestamp } from 'src/domain/domain-core/value-objects/Timestamp';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TransactionManager } from '../TransactionManager';
@@ -187,27 +188,178 @@ describe('TransactionRepository', () => {
 
       expect(transactions.length).toBe(2);
     });
+
+    it('should return empty array if no transactions found for account ID', async () => {
+      const transactions = await transactionRepository.getAll(user.id, {
+        accountId: Id.create().valueOf(),
+      });
+
+      expect(transactions).toEqual([]);
+    });
+
+    it('should not return transactions for other users', async () => {
+      const otherUser = await testDB.createUser();
+
+      const account = await testDB.createAccount(otherUser.id, {
+        name: 'Other User Account',
+      });
+
+      const transactions = await transactionRepository.getAll(user.id, {
+        accountId: account.id,
+      });
+
+      expect(transactions).toEqual([]);
+    });
   });
 
-  it('should return empty array if no transactions found for account ID', async () => {
-    const transactions = await transactionRepository.getAll(user.id, {
-      accountId: Id.create().valueOf(),
+  describe('update', () => {
+    it('should update only the description if only description is provided', async () => {
+      const transaction = await testDB.createTransaction(user.id, {
+        description: 'Initial Description',
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-02').valueOf(),
+      });
+
+      const updatedData = {
+        description: 'Updated Only Description',
+      };
+
+      const updatedTransaction = await transactionRepository.update(
+        user.id,
+        transaction.id,
+        updatedData,
+      );
+
+      expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.postingDate).toBe(transaction.postingDate);
+      expect(updatedTransaction.transactionDate).toBe(
+        transaction.transactionDate,
+      );
     });
 
-    expect(transactions).toEqual([]);
-  });
+    it('should update a transaction successfully', async () => {
+      const transaction = await testDB.createTransaction(user.id, {
+        description: 'Old Description',
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-02').valueOf(),
+      });
 
-  it('should not return transactions for other users', async () => {
-    const otherUser = await testDB.createUser();
+      const updatedData = {
+        description: 'New Description',
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
 
-    const account = await testDB.createAccount(otherUser.id, {
-      name: 'Other User Account',
+      const updatedTransaction = await transactionRepository.update(
+        user.id,
+        transaction.id,
+        updatedData,
+      );
+
+      expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.postingDate).toBe(updatedData.postingDate);
+      expect(updatedTransaction.transactionDate).toBe(
+        updatedData.transactionDate,
+      );
     });
 
-    const transactions = await transactionRepository.getAll(user.id, {
-      accountId: account.id,
+    it('should throw an error when updating a non-existent transaction', async () => {
+      const updatedData = {
+        description: 'Non-existent',
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      await expect(
+        transactionRepository.update(
+          user.id,
+          Id.create().valueOf(),
+          updatedData,
+        ),
+      ).rejects.toThrowError(RepositoryNotFoundError);
     });
 
-    expect(transactions).toEqual([]);
+    it('should not update a transaction belonging to another user', async () => {
+      const otherUser = await testDB.createUser();
+
+      const transaction = await testDB.createTransaction(otherUser.id, {
+        description: 'Other User Transaction',
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-02').valueOf(),
+      });
+
+      const updatedData = {
+        description: 'Updated Description',
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      await expect(
+        transactionRepository.update(user.id, transaction.id, updatedData),
+      ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('should only update allowed fields', async () => {
+      const transaction = await testDB.createTransaction(user.id, {
+        description: 'Initial Description',
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-02').valueOf(),
+      });
+
+      const updatedData = {
+        description: 'Changed Description',
+        id: Id.create().valueOf(), // This field should not be updated
+        isTombstone: true, // This field should not be updated
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+        userId: Id.create().valueOf(), // This field should not be updated
+      };
+
+      const updatedTransaction = await transactionRepository.update(
+        user.id,
+        transaction.id,
+        updatedData,
+      );
+
+      expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.postingDate).toBe(updatedData.postingDate);
+      expect(updatedTransaction.transactionDate).toBe(
+        updatedData.transactionDate,
+      );
+      expect(updatedTransaction.isTombstone).toBe(false);
+      expect(updatedTransaction.id).toBe(transaction.id);
+      expect(updatedTransaction.userId).toBe(transaction.userId);
+      expect(updatedTransaction.createdAt).toBe(transaction.createdAt);
+    });
+
+    it('should not allow updating isTombstone from true to false or vice versa', async () => {
+      const transaction = await testDB.createTransaction(user.id, {
+        description: 'Tombstone Transaction',
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-02').valueOf(),
+      });
+
+      await testDB.softDeleteTransaction(transaction.id);
+
+      const updatedData = {
+        description: 'Attempted Change',
+        isTombstone: false, // Should not be updated
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      const updatedTransaction = await transactionRepository.update(
+        user.id,
+        transaction.id,
+        updatedData,
+      );
+
+      expect(updatedTransaction.isTombstone).toBe(true);
+      expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.postingDate).toBe(updatedData.postingDate);
+      expect(updatedTransaction.transactionDate).toBe(
+        updatedData.transactionDate,
+      );
+    });
   });
 });

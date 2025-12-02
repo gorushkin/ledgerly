@@ -1,11 +1,15 @@
 import { createUser } from 'src/db/createTestUser';
+import { Account, AccountType, Operation, Transaction } from 'src/domain/';
+import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core/';
 import { describe, expect, it } from 'vitest';
 
-import { AccountType } from '../accounts/account-type.enum.ts';
-import { Account } from '../accounts/account.entity';
-import { Amount, Currency, DateValue, Name } from '../domain-core';
-import { Operation } from '../operations/operation.entity';
-import { Transaction } from '../transactions';
+import {
+  EmptyOperationsError,
+  DeletedEntityOperationError,
+  OperationOwnershipError,
+  MissingOperationsError,
+  UnbalancedEntryError,
+} from '../domain.errors';
 
 import { Entry } from './entry.entity';
 
@@ -156,5 +160,133 @@ describe('Entry Domain Entity', async () => {
 
     expect(entryOperations).toContain(fromUsdOperation);
     expect(entryOperations).toContain(toEurOperation);
+  });
+
+  it('should throw EmptyOperationsError when adding empty operations array', () => {
+    const entry = Entry.create(user, transaction);
+
+    expect(() => entry.addOperations([])).toThrow(EmptyOperationsError);
+    expect(() => entry.addOperations([])).toThrow(
+      'Cannot add empty operations array',
+    );
+  });
+
+  it('should throw DeletedEntityOperationError when adding operations to deleted entry', () => {
+    const entry = Entry.create(user, transaction);
+    entry.markAsDeleted();
+
+    const operation = Operation.create(
+      user,
+      usdAccount,
+      entry,
+      Amount.create('100'),
+      'Test',
+    );
+
+    expect(() => entry.addOperations([operation])).toThrow(
+      DeletedEntityOperationError,
+    );
+    expect(() => entry.addOperations([operation])).toThrow(
+      'Cannot add operations on deleted entry',
+    );
+  });
+
+  it('should throw OperationOwnershipError when operation does not belong to entry', () => {
+    const entry1 = Entry.create(user, transaction);
+    const entry2 = Entry.create(user, transaction);
+
+    const operationForEntry2 = Operation.create(
+      user,
+      usdAccount,
+      entry2,
+      Amount.create('100'),
+      'Test',
+    );
+
+    expect(() => entry1.addOperations([operationForEntry2])).toThrow(
+      OperationOwnershipError,
+    );
+    expect(() => entry1.addOperations([operationForEntry2])).toThrow(
+      'Operation does not belong to this entry',
+    );
+  });
+
+  it('should throw MissingOperationsError when validating entry without operations', () => {
+    const entry = Entry.create(user, transaction);
+
+    expect(() => entry.validateBalance()).toThrow(MissingOperationsError);
+    expect(() => entry.validateBalance()).toThrow(
+      'Cannot validate entry without operations',
+    );
+  });
+
+  it('should throw DeletedEntityOperationError when validating deleted entry', () => {
+    const entry = Entry.create(user, transaction);
+
+    const operation1 = Operation.create(
+      user,
+      usdAccount,
+      entry,
+      Amount.create('100'),
+      'Test 1',
+    );
+    const operation2 = Operation.create(
+      user,
+      eurAccount,
+      entry,
+      Amount.create('-100'),
+      'Test 2',
+    );
+
+    entry.addOperations([operation1, operation2]);
+    entry.markAsDeleted();
+
+    expect(() => entry.validateBalance()).toThrow(DeletedEntityOperationError);
+    expect(() => entry.validateBalance()).toThrow(
+      'Cannot validate on deleted entry',
+    );
+  });
+
+  it('should throw UnbalancedEntryError when operations do not balance', () => {
+    const entry = Entry.create(user, transaction);
+
+    const operation1 = Operation.create(
+      user,
+      usdAccount,
+      entry,
+      Amount.create('100'),
+      'Test 1',
+    );
+    const operation2 = Operation.create(
+      user,
+      eurAccount,
+      entry,
+      Amount.create('-50'),
+      'Test 2',
+    );
+
+    entry.addOperations([operation1, operation2]);
+
+    expect(() => entry.validateBalance()).toThrow(UnbalancedEntryError);
+  });
+
+  it('should return a copy of operations array (immutability)', () => {
+    const entry = Entry.create(user, transaction);
+
+    const operation = Operation.create(
+      user,
+      usdAccount,
+      entry,
+      Amount.create('100'),
+      'Test',
+    );
+
+    entry.addOperations([operation]);
+
+    const operations1 = entry.getOperations();
+    const operations2 = entry.getOperations();
+
+    expect(operations1).not.toBe(operations2); // Different references
+    expect(operations1).toEqual(operations2); // Same content
   });
 });

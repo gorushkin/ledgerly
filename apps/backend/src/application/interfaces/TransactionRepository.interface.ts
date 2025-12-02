@@ -3,6 +3,7 @@ import {
   TransactionRepoInsert,
   TransactionDbRow,
   TransactionWithRelations,
+  TransactionDbUpdate,
 } from 'src/db/schema';
 
 export type TransactionRepositoryInterface = {
@@ -15,4 +16,10 @@ export type TransactionRepositoryInterface = {
     userId: UUID,
     query?: TransactionQueryParams,
   ): Promise<TransactionWithRelations[]>;
+  update(
+    userId: UUID,
+    transactionId: UUID,
+    data: TransactionDbUpdate,
+  ): Promise<TransactionDbRow>;
+  delete(userId: UUID, transactionId: UUID): Promise<void>;
 };

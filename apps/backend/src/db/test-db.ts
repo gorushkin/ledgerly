@@ -190,6 +190,7 @@ export class TestDB {
       date: params?.date ?? TestDB.isoDateString,
       userId,
       ...params,
+      isTombstone: false,
       transactionId,
     };
 
@@ -200,6 +201,16 @@ export class TestDB {
       .get();
 
     return entry;
+  };
+
+  getEntryById = async (entryId: UUID): Promise<EntryDbRow | null> => {
+    const entry = await this.db
+      .select()
+      .from(schema.entriesTable)
+      .where(sql`${schema.entriesTable.id} = ${entryId}`)
+      .get();
+
+    return entry ?? null;
   };
 
   createTransaction = async (
@@ -230,6 +241,15 @@ export class TestDB {
       .get();
 
     return transaction;
+  };
+
+  softDeleteTransaction = async (transactionId: UUID) => {
+    return await this.db
+      .update(schema.transactionsTable)
+      .set({ isTombstone: true })
+      .where(sql`${schema.transactionsTable.id} = ${transactionId}`)
+      .returning()
+      .get();
   };
 
   createAccount = async (

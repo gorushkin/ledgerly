@@ -54,6 +54,7 @@ describe('GetTransactionByIdUseCase', () => {
     const mockEntry1: EntryWithOperations = {
       createdAt: Timestamp.create().valueOf(),
       id: entryId,
+      isTombstone: false,
       operations: [mockOperation1, mockOperation2],
       transactionId,
       updatedAt: Timestamp.create().valueOf(),

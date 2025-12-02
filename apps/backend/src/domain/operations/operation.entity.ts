@@ -210,6 +210,10 @@ export class Operation {
     return this.accountRelation.belongsToParent(account.getId());
   }
 
+  belongsToEntry(entry: Entry): boolean {
+    return this.entryRelation.belongsToParent(entry.getId());
+  }
+
   toPersistence(): OperationDbInsert {
     return {
       accountId: this.accountRelation.getParentId().valueOf(),

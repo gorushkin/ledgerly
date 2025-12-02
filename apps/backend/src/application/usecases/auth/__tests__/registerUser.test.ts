@@ -1,9 +1,9 @@
-import { CreateUserRequestDTO, UserResponseDTO } from 'src/application/dto';
+import { UserAlreadyExistsError } from 'src/application/application.errors';
+import { CreateUserRequestDTO } from 'src/application/dto';
 import { UserRepositoryInterface } from 'src/application/interfaces';
-import { Id } from 'src/domain/domain-core';
+import { Email, Name, Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
-import { AuthErrors } from 'src/presentation/errors/auth.errors';
-import { describe, it, beforeEach, vi, expect } from 'vitest';
+import { describe, it, vi, expect } from 'vitest';
 
 import { RegisterUserUseCase } from '../registerUser';
 
@@ -11,32 +11,18 @@ describe('RegisterUserUseCase', () => {
   const email = 'test@example.com';
   const name = 'Test User';
   const password = 'Password123!';
-  const id = Id.create().valueOf();
 
-  const mockUser = { name: 'mocked user' };
+  const mockedSaveWithIdRetry = vi.fn();
 
-  let registerUserUseCase: RegisterUserUseCase;
-
-  let mockedSaveWithIdRetry: ReturnType<typeof vi.fn>;
-
-  let mockUserRepository: {
-    create: ReturnType<typeof vi.fn>;
-    getByEmail: ReturnType<typeof vi.fn>;
+  const mockUserRepository = {
+    create: vi.fn(),
+    getByEmail: vi.fn(),
   };
 
-  beforeEach(() => {
-    mockUserRepository = {
-      create: vi.fn(),
-      getByEmail: vi.fn(),
-    };
-
-    mockedSaveWithIdRetry = vi.fn().mockResolvedValue(mockUser);
-
-    registerUserUseCase = new RegisterUserUseCase(
-      mockUserRepository as unknown as UserRepositoryInterface,
-      mockedSaveWithIdRetry,
-    );
-  });
+  const registerUserUseCase = new RegisterUserUseCase(
+    mockUserRepository as unknown as UserRepositoryInterface,
+    mockedSaveWithIdRetry,
+  );
 
   describe('execute', () => {
     const validRequest: CreateUserRequestDTO = {
@@ -46,36 +32,27 @@ describe('RegisterUserUseCase', () => {
     };
 
     it('should create a user successfully', async () => {
-      // Arrange
+      const hashedPassword = await Password.create(password);
+
+      const user = User.create(
+        Name.create(name),
+        Email.create(email),
+        hashedPassword,
+      );
+
       mockUserRepository.getByEmail.mockResolvedValue(null);
+      mockedSaveWithIdRetry.mockResolvedValue(user);
 
-      const expectedResult: UserResponseDTO = {
-        email,
-        id,
-        name,
-      };
-
-      // Mock saveWithIdRetry to return the expected result
-      mockedSaveWithIdRetry.mockResolvedValue(expectedResult);
-
-      // Act
       const result = await registerUserUseCase.execute(validRequest);
 
-      // Assert
-      expect(result).toEqual(expectedResult);
+      expect(result).toEqual(user.toResponseDTO());
 
       expect(mockUserRepository.getByEmail).toHaveBeenCalledWith(email);
 
-      // Verify saveWithIdRetry was called with correct arguments
       expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
-        expect.any(Object), // User instance
-        expect.any(Function), // bound create method
-        expect.any(Function), // entityFactory function
+        expect.any(Function),
+        expect.any(Function),
       );
-
-      // Optionally verify the User instance passed to saveWithIdRetry
-      const userInstance = mockedSaveWithIdRetry.mock.calls[0][0] as User;
-      expect(userInstance).toBeInstanceOf(User);
     });
 
     it('should throw error if user with email already exists', async () => {
@@ -87,7 +64,7 @@ describe('RegisterUserUseCase', () => {
 
       // Act & Assert
       await expect(registerUserUseCase.execute(validRequest)).rejects.toThrow(
-        AuthErrors.UserExistsError,
+        UserAlreadyExistsError,
       );
 
       expect(mockUserRepository.create).not.toHaveBeenCalled();

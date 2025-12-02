@@ -13,6 +13,9 @@ export type CreateTransactionRequestDTO = {
 // Request DTOs for updating
 export type UpdateTransactionRequestDTO = {
   description?: string;
+  postingDate?: IsoDateString;
+  transactionDate?: IsoDateString;
+  entries?: CreateEntryRequestDTO[];
 };
 
 export type TransactionResponseDTO = {
@@ -24,13 +27,4 @@ export type TransactionResponseDTO = {
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
   entries: EntryResponseDTO[];
-};
-
-export type GetTransactionsQueryDTO = {
-  userId: UUID;
-  limit?: number;
-  offset?: number;
-  fromDate?: Date;
-  toDate?: Date;
-  accountId?: UUID;
 };
