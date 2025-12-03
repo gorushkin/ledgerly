@@ -8,12 +8,13 @@ import { CreateEntryRequestDTO, OperationResponseDTO } from '../dto';
 import { OperationRepositoryInterface } from '../interfaces';
 import { SaveWithIdRetryType } from '../shared/saveWithIdRetry';
 
-type TradingOperationDTO = {
+type OperationDTO = {
   user: User;
   entry: Entry;
   rawAmount: MoneyString;
   description: string;
   account: Account;
+  isSystem: boolean;
 };
 
 export class OperationFactory {
@@ -40,7 +41,7 @@ export class OperationFactory {
     [fromOperationDTO, toOperationDTO]: CreateEntryRequestDTO,
     [fromCurrency, toCurrency]: [Currency, Currency],
     systemAccountsMap: Map<CurrencyCode, Account>,
-  ): [TradingOperationDTO, TradingOperationDTO] | [] {
+  ): [OperationDTO, OperationDTO] | [] {
     if (fromCurrency.isEqualTo(toCurrency)) {
       return [];
     }
@@ -58,7 +59,7 @@ export class OperationFactory {
       systemAccountsMap,
     );
 
-    const balancedFromOperationDTO: TradingOperationDTO = {
+    const balancedFromOperationDTO: OperationDTO = {
       account: fromSystemAccount,
       description: this.getSystemAccountDescription({
         amount: oppositeFromAmount,
@@ -66,11 +67,12 @@ export class OperationFactory {
         direction: 'from',
       }),
       entry,
+      isSystem: true,
       rawAmount: oppositeFromAmount.valueOf(),
       user,
     };
 
-    const balancedToOperationDTO: TradingOperationDTO = {
+    const balancedToOperationDTO: OperationDTO = {
       account: toSystemAccount,
       description: this.getSystemAccountDescription({
         amount: oppositeToAmount,
@@ -78,6 +80,7 @@ export class OperationFactory {
         direction: 'to',
       }),
       entry,
+      isSystem: true,
       rawAmount: oppositeToAmount.valueOf(),
       user,
     };
@@ -85,10 +88,7 @@ export class OperationFactory {
     return [balancedFromOperationDTO, balancedToOperationDTO];
   }
 
-  private validateInputOperationsAmounts(
-    data: TradingOperationDTO[],
-    entry: Entry,
-  ) {
+  private validateInputOperationsAmounts(data: OperationDTO[], entry: Entry) {
     const balancedAmount = data.reduce((balance, dto) => {
       const amount = Amount.create(dto.rawAmount);
       return balance.add(amount);
@@ -124,11 +124,12 @@ export class OperationFactory {
       currencySystemAccountsMap,
     );
 
-    const dtos: TradingOperationDTO[] = [
+    const dtos: OperationDTO[] = [
       {
         account: fromAccount,
         description: fromOperationDTO.description,
         entry,
+        isSystem: false,
         rawAmount: fromOperationDTO.amount,
         user,
       },
@@ -136,6 +137,7 @@ export class OperationFactory {
         account: toAccount,
         description: toOperationDTO.description,
         entry,
+        isSystem: false,
         rawAmount: toOperationDTO.amount,
         user,
       },
@@ -152,6 +154,7 @@ export class OperationFactory {
           opDTO.rawAmount,
           opDTO.description,
           opDTO.account,
+          opDTO.isSystem,
         );
       }),
     );
@@ -193,11 +196,19 @@ export class OperationFactory {
     rawAmount: MoneyString,
     description: string,
     account: Account,
+    isSystem: boolean,
   ) {
     const amount = Amount.create(rawAmount);
 
     const createOperation = () =>
-      Operation.create(user, account.getId(), entry, amount, description);
+      Operation.create(
+        user,
+        account.getId(),
+        entry,
+        amount,
+        description,
+        isSystem,
+      );
 
     return this.saveOperation(createOperation);
   }

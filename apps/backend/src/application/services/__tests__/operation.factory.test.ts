@@ -268,6 +268,7 @@ describe('OperationFactory', () => {
       entry,
       fromAmount,
       testData.from.operation.description,
+      false,
     );
 
     const mockedOperationTo = Operation.create(
@@ -276,6 +277,7 @@ describe('OperationFactory', () => {
       entry,
       toAmount,
       testData.to.operation.description,
+      false,
     );
 
     const mockedSystemOperationFrom = Operation.create(
@@ -284,6 +286,7 @@ describe('OperationFactory', () => {
       entry,
       testData.from.systemAmount,
       'System ' + testData.from.operation.description,
+      true,
     );
 
     const mockedSystemOperationTo = Operation.create(
@@ -292,6 +295,7 @@ describe('OperationFactory', () => {
       entry,
       testData.to.systemAmount,
       'System ' + testData.to.operation.description,
+      true,
     );
 
     mockedSaveWithIdRetry

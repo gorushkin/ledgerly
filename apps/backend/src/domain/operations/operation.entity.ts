@@ -27,6 +27,7 @@ export class Operation {
     accountRelation: ParentChildRelation,
     public amount: Amount,
     public description: string,
+    public isSystem = false,
   ) {
     this.timestamps = timestamps;
     this.softDelete = softDelete;
@@ -41,6 +42,7 @@ export class Operation {
     entry: Entry,
     amount: Amount,
     description: string,
+    isSystem = false,
   ): Operation {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
@@ -70,6 +72,7 @@ export class Operation {
       accountRelation,
       amount,
       description,
+      isSystem,
     );
   }
 
@@ -225,9 +228,5 @@ export class Operation {
 
   get id(): Id {
     return this.identity.getId();
-  }
-
-  get isSystem(): boolean {
-    return this.isSystem;
   }
 }
