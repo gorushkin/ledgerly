@@ -197,7 +197,7 @@ export class OperationFactory {
     const amount = Amount.create(rawAmount);
 
     const createOperation = () =>
-      Operation.create(user, account, entry, amount, description);
+      Operation.create(user, account.getId(), entry, amount, description);
 
     return this.saveOperation(createOperation);
   }

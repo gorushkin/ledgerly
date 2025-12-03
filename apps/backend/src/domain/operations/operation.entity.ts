@@ -20,7 +20,6 @@ export class Operation {
 
   private constructor(
     private readonly identity: EntityIdentity,
-    private readonly account: Account,
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
@@ -38,7 +37,7 @@ export class Operation {
 
   static create(
     user: User,
-    account: Account,
+    accountId: Id,
     entry: Entry,
     amount: Amount,
     description: string,
@@ -58,13 +57,12 @@ export class Operation {
     );
 
     const accountRelation = ParentChildRelation.create(
-      account.getId(),
+      accountId,
       identity.getId(),
     );
 
     return new Operation(
       identity,
-      account,
       timestamps,
       softDelete,
       ownership,
@@ -75,11 +73,8 @@ export class Operation {
     );
   }
 
-  static fromPersistence(
-    data: OperationDbRow & { account: Account },
-  ): Operation {
+  static fromPersistence(data: OperationDbRow): Operation {
     const {
-      account,
       accountId,
       amount,
       createdAt,
@@ -116,7 +111,6 @@ export class Operation {
 
     return new Operation(
       identity,
-      account,
       timestamps,
       softDelete,
       ownership,
@@ -234,10 +228,6 @@ export class Operation {
   }
 
   get isSystem(): boolean {
-    return this.account.isSystem;
-  }
-
-  get currency() {
-    return this.account.currency;
+    return this.isSystem;
   }
 }

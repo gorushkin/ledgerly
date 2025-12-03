@@ -82,5 +82,5 @@ export const createOperation = (
   amount: Amount,
   description: string,
 ) => {
-  return Operation.create(user, account, entry, amount, description);
+  return Operation.create(user, account.getId(), entry, amount, description);
 };

@@ -136,7 +136,7 @@ describe('Entry Domain Entity', async () => {
 
     const fromUsdOperation = Operation.create(
       user,
-      usdAccount,
+      usdAccount.getId(),
       entry,
       Amount.create('100'),
       'From USD',
@@ -144,7 +144,7 @@ describe('Entry Domain Entity', async () => {
 
     const toEurOperation = Operation.create(
       user,
-      eurAccount,
+      eurAccount.getId(),
       entry,
       Amount.create('100'),
       'To EUR',
@@ -177,7 +177,7 @@ describe('Entry Domain Entity', async () => {
 
     const operation = Operation.create(
       user,
-      usdAccount,
+      usdAccount.getId(),
       entry,
       Amount.create('100'),
       'Test',
@@ -197,7 +197,7 @@ describe('Entry Domain Entity', async () => {
 
     const operationForEntry2 = Operation.create(
       user,
-      usdAccount,
+      usdAccount.getId(),
       entry2,
       Amount.create('100'),
       'Test',
@@ -225,14 +225,14 @@ describe('Entry Domain Entity', async () => {
 
     const operation1 = Operation.create(
       user,
-      usdAccount,
+      usdAccount.getId(),
       entry,
       Amount.create('100'),
       'Test 1',
     );
     const operation2 = Operation.create(
       user,
-      eurAccount,
+      eurAccount.getId(),
       entry,
       Amount.create('-100'),
       'Test 2',
@@ -252,14 +252,14 @@ describe('Entry Domain Entity', async () => {
 
     const operation1 = Operation.create(
       user,
-      usdAccount,
+      usdAccount.getId(),
       entry,
       Amount.create('100'),
       'Test 1',
     );
     const operation2 = Operation.create(
       user,
-      eurAccount,
+      eurAccount.getId(),
       entry,
       Amount.create('-50'),
       'Test 2',
@@ -275,7 +275,7 @@ describe('Entry Domain Entity', async () => {
 
     const operation = Operation.create(
       user,
-      usdAccount,
+      usdAccount.getId(),
       entry,
       Amount.create('100'),
       'Test',

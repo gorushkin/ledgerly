@@ -26,7 +26,7 @@ describe('Operation Domain Entity', async () => {
   it('should create a valid operation', () => {
     const operation = Operation.create(
       user,
-      account,
+      account.getId(),
       entry,
       Amount.create('100'),
       'Test operation',
@@ -46,7 +46,7 @@ describe('Operation Domain Entity', async () => {
   it('should serialize and deserialize correctly', () => {
     const operation = Operation.create(
       user,
-      account,
+      account.getId(),
       entry,
       Amount.create('100'),
       'Test operation',
@@ -56,7 +56,7 @@ describe('Operation Domain Entity', async () => {
 
     const restoredOperation = Operation.fromPersistence({
       ...persistenceData,
-      account,
+      accountId: account.getId().valueOf(),
       userId: user.getId().valueOf(),
     });
 
@@ -68,7 +68,7 @@ describe('Operation Domain Entity', async () => {
   it('should allow zero amount operations', () => {
     const operation = Operation.create(
       user,
-      account,
+      account.getId(),
       entry,
       Amount.create('0'),
       'Zero amount operation',
@@ -80,7 +80,7 @@ describe('Operation Domain Entity', async () => {
   it('should handle negative amounts correctly', () => {
     const operation = Operation.create(
       user,
-      account,
+      account.getId(),
       entry,
       Amount.create('-50'),
       'Negative amount operation',
@@ -93,7 +93,7 @@ describe('Operation Domain Entity', async () => {
     it('should add amounts correctly', () => {
       const operation1 = Operation.create(
         user,
-        account,
+        account.getId(),
         entry,
         Amount.create('100'),
         'Test operation 1',
@@ -101,7 +101,7 @@ describe('Operation Domain Entity', async () => {
 
       const operation2 = Operation.create(
         user,
-        account,
+        account.getId(),
         entry,
         Amount.create('50'),
         'Test operation 2',
@@ -114,7 +114,7 @@ describe('Operation Domain Entity', async () => {
     it('should subtract amounts correctly', () => {
       const operation1 = Operation.create(
         user,
-        account,
+        account.getId(),
         entry,
         Amount.create('100'),
         'Test operation 1',
@@ -122,7 +122,7 @@ describe('Operation Domain Entity', async () => {
 
       const operation2 = Operation.create(
         user,
-        account,
+        account.getId(),
         entry,
         Amount.create('50'),
         'Test operation 2',

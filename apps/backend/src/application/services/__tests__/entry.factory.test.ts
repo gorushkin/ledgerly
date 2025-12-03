@@ -88,7 +88,7 @@ describe('EntryFactory', () => {
 
     operationFrom = Operation.create(
       user,
-      account1,
+      account1.getId(),
       mockEntry,
       Amount.create('-100'),
       'Operation 1 description',
@@ -96,7 +96,7 @@ describe('EntryFactory', () => {
 
     operationTo = Operation.create(
       user,
-      account2,
+      account2.getId(),
       mockEntry,
       Amount.create('100'),
       'Operation 2 description',

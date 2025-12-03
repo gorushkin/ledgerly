@@ -111,7 +111,7 @@ describe('OperationFactory', () => {
 
     const mockedOperationFrom = Operation.create(
       user,
-      usdAccount1,
+      usdAccount1.getId(),
       entry,
       fromAmount,
       operationFromDTO.description,
@@ -119,7 +119,7 @@ describe('OperationFactory', () => {
 
     const mockedOperationTo = Operation.create(
       user,
-      usdAccount2,
+      usdAccount2.getId(),
       entry,
       toAmount,
       operationToDTO.description,
@@ -264,7 +264,7 @@ describe('OperationFactory', () => {
 
     const mockedOperationFrom = Operation.create(
       user,
-      testData.from.account,
+      testData.from.account.getId(),
       entry,
       fromAmount,
       testData.from.operation.description,
@@ -272,7 +272,7 @@ describe('OperationFactory', () => {
 
     const mockedOperationTo = Operation.create(
       user,
-      testData.to.account,
+      testData.to.account.getId(),
       entry,
       toAmount,
       testData.to.operation.description,
@@ -280,7 +280,7 @@ describe('OperationFactory', () => {
 
     const mockedSystemOperationFrom = Operation.create(
       user,
-      testData.from.systemAccount,
+      testData.from.systemAccount.getId(),
       entry,
       testData.from.systemAmount,
       'System ' + testData.from.operation.description,
@@ -288,7 +288,7 @@ describe('OperationFactory', () => {
 
     const mockedSystemOperationTo = Operation.create(
       user,
-      testData.to.systemAccount,
+      testData.to.systemAccount.getId(),
       entry,
       testData.to.systemAmount,
       'System ' + testData.to.operation.description,
@@ -341,7 +341,6 @@ describe('OperationFactory', () => {
       const match = expectedResultsDTO[index];
 
       expect(operation.amount.valueOf()).toBe(match.amount.valueOf());
-      expect(operation.currency.valueOf()).toBe(match.currency.valueOf());
     });
 
     for (let i = 0; i < operationsRaw.length; i++) {
