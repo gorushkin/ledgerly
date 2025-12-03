@@ -1,14 +1,15 @@
 # 📊 Database Schema - Ledgerly
 
-Документация по схеме базы данных финансового трекера Ledgerly.
+Database schema documentation for Ledgerly financial tracker.
 
-## 🎯 Общий обзор
+## 🎯 Overview
 
-Ledgerly использует SQLite с Drizzle ORM для управления персональными финансами. Архитектура построена на принципах:
-- **Изоляция данных по пользователям** - все данные привязаны к userId
-- **Двойная запись** - операции группируются в транзакции
-- **Мультивалютность** - поддержка разных валют
-- **Каскадные удаления** - целостность данных
+Ledgerly uses SQLite with Drizzle ORM for personal finance management. The architecture is built on these principles:
+- **User data isolation** - all data is tied to userId
+- **Double-entry bookkeeping** - operations are grouped within entries and transactions
+- **Multi-currency support** - different currencies with trading accounts
+- **Cascade deletions** - data integrity
+- **Soft deletes** - using `isTombstone` flag
 
 ## 📋 Entity Relationship Diagram
 
@@ -32,17 +33,13 @@ erDiagram
     ACCOUNTS {
         uuid id PK
         string name
-        string type "cash|debit|credit|savings|investment"
-        string originalCurrency FK
+        string type "Asset|Liability|Income|Expense"
+        string currency FK
         string description
-        uuid userId FK
-        timestamp createdAt
-        timestamp updatedAt
-    }
-    
-    CATEGORIES {
-        uuid id PK
-        string name
+        integer initialBalance
+        integer currentClearedBalanceLocal
+        boolean isSystem
+        boolean isTombstone
         uuid userId FK
         timestamp createdAt
         timestamp updatedAt
@@ -53,6 +50,16 @@ erDiagram
         string description
         date transactionDate
         date postingDate
+        boolean isTombstone
+        uuid userId FK
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    
+    ENTRIES {
+        uuid id PK
+        uuid transactionId FK
+        boolean isTombstone
         uuid userId FK
         timestamp createdAt
         timestamp updatedAt
@@ -60,12 +67,13 @@ erDiagram
     
     OPERATIONS {
         uuid id PK
-        uuid transactionId FK
+        uuid entryId FK
         uuid accountId FK
-        uuid categoryId FK
-        decimal localAmount
-        decimal originalAmount
+        integer amount
         string description
+        boolean isSystem
+        boolean isTombstone
+        uuid userId FK
         timestamp createdAt
         timestamp updatedAt
     }
@@ -77,272 +85,260 @@ erDiagram
         timestamp updatedAt
     }
 
-    %% Основные связи
+    %% Main relations
     USERS ||--o{ ACCOUNTS : "owns"
-    USERS ||--o{ CATEGORIES : "creates"
     USERS ||--o{ TRANSACTIONS : "makes"
+    USERS ||--o{ ENTRIES : "creates"
+    USERS ||--o{ OPERATIONS : "performs"
     USERS ||--|| SETTINGS : "has"
     
     CURRENCIES ||--o{ ACCOUNTS : "denominated_in"
     CURRENCIES ||--o{ SETTINGS : "base_currency"
     
-    TRANSACTIONS ||--o{ OPERATIONS : "contains"
+    TRANSACTIONS ||--o{ ENTRIES : "contains"
+    ENTRIES ||--o{ OPERATIONS : "groups"
     ACCOUNTS ||--o{ OPERATIONS : "affects"
-    CATEGORIES ||--o{ OPERATIONS : "classified_as"
     
-    %% Уникальные ограничения
+    %% Unique constraints
     ACCOUNTS }|--|| USERS : "unique(userId, name)"
-    CATEGORIES }|--|| USERS : "unique(userId, name)"
 ```
 
-## 🏗️ Сущности
+## 🏗️ Entities
 
-### 🏦 **Users** - Пользователи
-Базовая сущность для аутентификации и авторизации.
+### 🏦 **Users**
+Base entity for authentication and authorization.
 
-| Поле | Тип | Описание | Ограничения |
+| Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
-| `id` | UUID | Первичный ключ | PK, NOT NULL |
-| `email` | String | Email пользователя | UNIQUE, NOT NULL |
-| `name` | String | Имя пользователя | NOT NULL |
-| `password` | String | Хешированный пароль | NOT NULL |
-| `createdAt` | Timestamp | Дата создания | NOT NULL |
-| `updatedAt` | Timestamp | Дата изменения | NOT NULL |
+| `id` | UUID | Primary key | PK, NOT NULL |
+| `email` | String | User email | UNIQUE, NOT NULL |
+| `name` | String | User name | NOT NULL |
+| `password` | String | Hashed password | NOT NULL |
+| `createdAt` | Timestamp | Creation date | NOT NULL |
+| `updatedAt` | Timestamp | Last update date | NOT NULL |
 
-**Связи:**
-- `1:N` с `accounts` (каскадное удаление)
-- `1:N` с `categories` (каскадное удаление)
-- `1:N` с `transactions` (каскадное удаление)
-- `1:1` с `settings`
+**Relations:**
+- `1:N` with `accounts` (cascade delete)
+- `1:N` with `transactions` (cascade delete)
+- `1:N` with `entries` (cascade delete)
+- `1:N` with `operations` (cascade delete)
+- `1:1` with `settings`
 
 ---
 
-### 💰 **Accounts** - Счета
-Финансовые счета пользователя для учета средств.
+### 💰 **Accounts**
+User's financial accounts for tracking funds.
 
-| Поле | Тип | Описание | Ограничения |
+| Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
-| `id` | UUID | Первичный ключ | PK, NOT NULL |
-| `name` | String | Название счета | NOT NULL |
-| `type` | Enum | Тип счета | `cash|debit|credit|savings|investment` |
-| `originalCurrency` | String | Валюта счета | FK → `currencies.code` |
-| `description` | String | Описание счета | NULLABLE |
-| `userId` | UUID | Владелец счета | FK → `users.id` |
-| `createdAt` | Timestamp | Дата создания | NOT NULL |
-| `updatedAt` | Timestamp | Дата изменения | NOT NULL |
+| `id` | UUID | Primary key | PK, NOT NULL |
+| `name` | String | Account name | NOT NULL |
+| `type` | Enum | Account type | `Asset\|Liability\|Income\|Expense` |
+| `currency` | String | Account currency | NOT NULL (CurrencyCode) |
+| `description` | String | Account description | NULLABLE |
+| `initialBalance` | Integer | Initial balance (in cents) | NOT NULL, default: 0 |
+| `currentClearedBalanceLocal` | Integer | Current balance (in cents) | NOT NULL, default: 0 |
+| `isSystem` | Boolean | System account flag (for trading accounts) | NOT NULL, default: false |
+| `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
+| `userId` | UUID | Account owner | FK → `users.id` |
+| `createdAt` | Timestamp | Creation date | NOT NULL |
+| `updatedAt` | Timestamp | Last update date | NOT NULL |
 
-**Ограничения:**
-- `UNIQUE(userId, name)` - уникальность названия в рамках пользователя
+**Constraints:**
+- `UNIQUE(userId, name)` - unique name per user
 
-**Связи:**
-- `N:1` с `users`
-- `N:1` с `currencies`
-- `1:N` с `operations`
+**Relations:**
+- `N:1` with `users`
+- `1:N` with `operations`
+
+**Notes:**
+- Currency constraint to `currencies` table is removed for test performance
+- Application-level validation should ensure valid currency codes
+- Money amounts stored as integers (cents) to avoid floating-point issues
+- System accounts (trading accounts) have `isSystem = true`
 
 ---
 
-### 📊 **Categories** - Категории
-Категории для классификации финансовых операций.
+### 💱 **Currencies**
+Dictionary of supported currencies.
 
-| Поле | Тип | Описание | Ограничения |
+| Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
-| `id` | UUID | Первичный ключ | PK, NOT NULL |
-| `name` | String | Название категории | NOT NULL |
-| `userId` | UUID | Владелец категории | FK → `users.id` |
-| `createdAt` | Timestamp | Дата создания | NOT NULL |
-| `updatedAt` | Timestamp | Дата изменения | NOT NULL |
+| `code` | String | Currency code (ISO 4217) | PK, NOT NULL |
+| `name` | String | Full name | NOT NULL |
+| `symbol` | String | Currency symbol | NOT NULL |
 
-**Ограничения:**
-- `UNIQUE(userId, name)` - уникальность названия в рамках пользователя
-
-**Связи:**
-- `N:1` с `users`
-- `1:N` с `operations`
-
----
-
-### 💱 **Currencies** - Валюты
-Справочник поддерживаемых валют.
-
-| Поле | Тип | Описание | Ограничения |
-|------|-----|----------|-------------|
-| `code` | String | Код валюты (ISO 4217) | PK, NOT NULL |
-| `name` | String | Полное название | NOT NULL |
-| `symbol` | String | Символ валюты | NOT NULL |
-
-**Примеры:**
+**Examples:**
 - `USD` - United States Dollar - `$`
 - `EUR` - Euro - `€`
 - `RUB` - Russian Ruble - `₽`
 
-**Связи:**
-- `1:N` с `accounts`
-- `1:N` с `settings`
+**Relations:**
+- `1:N` with `accounts`
+- `1:N` with `settings`
 
 ---
 
-### 📝 **Transactions** - Транзакции
-Группировка связанных финансовых операций.
+### 📝 **Transactions**
+Top-level grouping of related financial events.
 
-| Поле | Тип | Описание | Ограничения |
+| Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
-| `id` | UUID | Первичный ключ | PK, NOT NULL |
-| `description` | String | Описание транзакции | NOT NULL |
-| `transactionDate` | Date | Дата совершения | NOT NULL |
-| `postingDate` | Date | Дата проводки | NOT NULL |
-| `userId` | UUID | Владелец транзакции | FK → `users.id` |
-| `createdAt` | Timestamp | Дата создания | NOT NULL |
-| `updatedAt` | Timestamp | Дата изменения | NOT NULL |
+| `id` | UUID | Primary key | PK, NOT NULL |
+| `description` | String | Transaction description | NOT NULL |
+| `transactionDate` | Date | Transaction date | NOT NULL |
+| `postingDate` | Date | Posting date | NOT NULL |
+| `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
+| `userId` | UUID | Transaction owner | FK → `users.id` |
+| `createdAt` | Timestamp | Creation date | NOT NULL |
+| `updatedAt` | Timestamp | Last update date | NOT NULL |
 
-**Связи:**
-- `N:1` с `users`
-- `1:N` с `operations` (каскадное удаление)
+**Relations:**
+- `N:1` with `users`
+- `1:N` with `entries` (cascade delete)
+
+**Indexes:**
+- `idx_transactions_user_date` on `(userId, transactionDate)`
 
 ---
 
-### 🔄 **Operations** - Операции
-Отдельные финансовые записи в рамках транзакции.
+### 📦 **Entries**
+Groups operations within a transaction to maintain per-currency balance.
 
-| Поле | Тип | Описание | Ограничения |
+| Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
-| `id` | UUID | Первичный ключ | PK, NOT NULL |
-| `transactionId` | UUID | Родительская транзакция | FK → `transactions.id` |
-| `accountId` | UUID | Затрагиваемый счет | FK → `accounts.id` |
-| `categoryId` | UUID | Категория операции | FK → `categories.id` |
-| `localAmount` | Decimal | Сумма в валюте счета | NOT NULL |
-| `originalAmount` | Decimal | Оригинальная сумма | NOT NULL |
-| `description` | String | Описание операции | NULLABLE |
-| `createdAt` | Timestamp | Дата создания | NOT NULL |
-| `updatedAt` | Timestamp | Дата изменения | NOT NULL |
+| `id` | UUID | Primary key | PK, NOT NULL |
+| `transactionId` | UUID | Parent transaction | FK → `transactions.id` |
+| `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
+| `userId` | UUID | Entry owner | FK → `users.id` |
+| `createdAt` | Timestamp | Creation date | NOT NULL |
+| `updatedAt` | Timestamp | Last update date | NOT NULL |
 
-**Связи:**
-- `N:1` с `transactions`
-- `N:1` с `accounts`
-- `N:1` с `categories`
+**Relations:**
+- `N:1` with `transactions`
+- `N:1` with `users`
+- `1:N` with `operations` (cascade delete)
+
+**Business Rules:**
+- Each entry must contain at least 2 operations
+- Sum of all operations within an entry must equal zero (per-currency balance)
+- For multi-currency transactions, trading operations are added automatically
+
+**Indexes:**
+- `idx_entries_tx` on `transactionId`
+- `idx_entries_user` on `userId`
 
 ---
 
-### ⚙️ **Settings** - Настройки
-Пользовательские настройки приложения.
+### 🔄 **Operations**
+Individual financial postings affecting accounts.
 
-| Поле | Тип | Описание | Ограничения |
+| Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
-| `userId` | UUID | Пользователь | PK, FK → `users.id` |
-| `baseCurrency` | String | Базовая валюта | FK → `currencies.code` |
-| `createdAt` | Timestamp | Дата создания | NOT NULL |
-| `updatedAt` | Timestamp | Дата изменения | NOT NULL |
+| `id` | UUID | Primary key | PK, NOT NULL |
+| `entryId` | UUID | Parent entry | FK → `entries.id` |
+| `accountId` | UUID | Affected account | FK → `accounts.id` |
+| `amount` | Integer | Amount in account's currency (cents) | NOT NULL |
+| `description` | String | Operation description | NULLABLE |
+| `isSystem` | Boolean | System operation flag (for trading ops) | NOT NULL, default: false |
+| `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
+| `userId` | UUID | Operation owner | FK → `users.id` |
+| `createdAt` | Timestamp | Creation date | NOT NULL |
+| `updatedAt` | Timestamp | Last update date | NOT NULL |
 
-**Связи:**
-- `1:1` с `users`
-- `N:1` с `currencies`
+**Relations:**
+- `N:1` with `entries`
+- `N:1` with `accounts` (restrict delete)
+- `N:1` with `users`
 
-## 🔗 Типы связей
+**Business Rules:**
+- Amount is always in the account's currency
+- Positive amount = debit (increases Asset/Expense, decreases Liability/Income)
+- Negative amount = credit (decreases Asset/Expense, increases Liability/Income)
+- System operations (trading operations) have `isSystem = true`
 
-### Иерархия данных
+**Indexes:**
+- `idx_operations_entry` on `entryId`
+- `idx_operations_account` on `accountId`
+- `idx_operations_user` on `userId`
+
+---
+
+### ⚙️ **Settings**
+User application settings.
+
+| Field | Type | Description | Constraints |
+|------|-----|----------|-------------|
+| `userId` | UUID | User | PK, FK → `users.id` |
+| `baseCurrency` | String | Base currency for reporting | FK → `currencies.code`, default: 'RUB' |
+| `createdAt` | Timestamp | Creation date | NOT NULL |
+| `updatedAt` | Timestamp | Last update date | NOT NULL |
+
+**Relations:**
+- `1:1` with `users`
+- `N:1` with `currencies`
+
+---
+
+## 🔗 Relationships
+
+### Data Hierarchy
 ```
-USERS (корневая сущность)
-├── ACCOUNTS (финансовые счета)
-├── CATEGORIES (категории операций)
-├── TRANSACTIONS (группы операций)
-│   └── OPERATIONS (отдельные проводки)
-└── SETTINGS (пользовательские настройки)
+USERS (root entity)
+├── ACCOUNTS (financial accounts)
+├── TRANSACTIONS (financial events)
+│   └── ENTRIES (operation groupings)
+│       └── OPERATIONS (individual postings)
+└── SETTINGS (user preferences)
 ```
 
-### Связи между сущностями
-- **Users ↔ Accounts**: `1:N` с каскадным удалением
-- **Users ↔ Categories**: `1:N` с каскадным удалением  
-- **Users ↔ Transactions**: `1:N` с каскадным удалением
+### Entity Relations
+- **Users ↔ Accounts**: `1:N` with cascade delete
+- **Users ↔ Transactions**: `1:N` with cascade delete
+- **Users ↔ Entries**: `1:N` with cascade delete
+- **Users ↔ Operations**: `1:N` with cascade delete
 - **Users ↔ Settings**: `1:1`
-- **Transactions ↔ Operations**: `1:N` с каскадным удалением
-- **Accounts ↔ Operations**: `1:N`
-- **Categories ↔ Operations**: `1:N`
+- **Transactions ↔ Entries**: `1:N` with cascade delete
+- **Entries ↔ Operations**: `1:N` with cascade delete
+- **Accounts ↔ Operations**: `1:N` (restrict delete)
 - **Currencies ↔ Accounts**: `1:N`
 - **Currencies ↔ Settings**: `1:N`
 
-## 💡 Бизнес-правила
+---
 
-### Уникальность
-1. **Email пользователя** должен быть уникальным в системе
-2. **Название счета** должно быть уникальным в рамках пользователя
-3. **Название категории** должно быть уникальным в рамках пользователя
+## 💡 Business Rules
 
-### Целостность данных
-1. **Каскадные удаления**: При удалении пользователя удаляются все его данные
-2. **Обязательные связи**: Каждая операция должна иметь счет, категорию и транзакцию
-3. **Валютные ограничения**: Все счета и настройки ссылаются на существующие валюты
+### Uniqueness
+1. **User email** must be unique system-wide
+2. **Account name** must be unique per user
 
-### Принципы учета
-1. **Двойная запись**: Операции группируются в транзакции для обеспечения баланса
-2. **Мультивалютность**: Поддержка операций в разных валютах
-3. **Временные метки**: Различие между датой операции и датой проводки
+### Data Integrity
+1. **Cascade deletions**: When a user is deleted, all their data is deleted
+2. **Required relations**: Each operation must have an entry and account
+3. **Currency constraints**: All accounts reference existing currencies (application-level)
+4. **Soft deletes**: Entities use `isTombstone` flag instead of hard deletes
 
-## 🚀 Примеры использования
-
-### Создание простой транзакции
-```typescript
-// 1. Создать транзакцию
-const transaction = await db.insert(transactions).values({
-  id: generateId(),
-  description: "Покупка продуктов",
-  transactionDate: new Date(),
-  postingDate: new Date(),
-  userId: user.id
-});
-
-// 2. Создать операцию расхода
-const operation = await db.insert(operations).values({
-  id: generateId(),
-  transactionId: transaction.id,
-  accountId: cashAccount.id,
-  categoryId: foodCategory.id,
-  localAmount: -500.00,
-  originalAmount: -500.00,
-  description: "Магазин 'Пятерочка'"
-});
-```
-
-### Перевод между счетами
-```typescript
-// Транзакция перевода между счетами
-const transferTransaction = await db.insert(transactions).values({
-  description: "Перевод с карты на наличные",
-  transactionDate: new Date(),
-  postingDate: new Date(),
-  userId: user.id
-});
-
-// Операция списания с карты
-await db.insert(operations).values({
-  transactionId: transferTransaction.id,
-  accountId: cardAccount.id,
-  categoryId: transferCategory.id,
-  localAmount: -1000.00,
-  originalAmount: -1000.00
-});
-
-// Операция пополнения наличных
-await db.insert(operations).values({
-  transactionId: transferTransaction.id,
-  accountId: cashAccount.id,
-  categoryId: transferCategory.id,
-  localAmount: 1000.00,
-  originalAmount: 1000.00
-});
-```
-
-## 📁 Файлы схем
-
-Схемы определены в следующих файлах:
-- `src/db/schemas/users.ts` - Пользователи
-- `src/db/schemas/accounts.ts` - Счета
-- `src/db/schemas/categories.ts` - Категории
-- `src/db/schemas/currencies.ts` - Валюты
-- `src/db/schemas/transactions.ts` - Транзакции
-- `src/db/schemas/operations.ts` - Операции
-- `src/db/schemas/settings.ts` - Настройки
-
-Все схемы экспортируются через `src/db/schema.ts`.
+### Accounting Principles
+1. **Double-entry bookkeeping**: Operations are grouped in entries to ensure balance
+2. **Per-currency balancing**: Each entry must balance to zero in its currency
+3. **Multi-currency support**: Handled through trading accounts and entries
+4. **Immutable operations**: Operations cannot be edited, only recreated
 
 ---
 
-*Последнее обновление: July 23, 2025*
+## 🚀 Schema Files
+
+Schemas are defined in the following files:
+- `apps/backend/src/db/schemas/users.ts` - Users
+- `apps/backend/src/db/schemas/accounts.ts` - Accounts
+- `apps/backend/src/db/schemas/currencies.ts` - Currencies
+- `apps/backend/src/db/schemas/transactions.ts` - Transactions
+- `apps/backend/src/db/schemas/entries.ts` - Entries
+- `apps/backend/src/db/schemas/operations.ts` - Operations
+- `apps/backend/src/db/schemas/settings.ts` - Settings
+
+All schemas are exported through `apps/backend/src/db/schema.ts`.
+
+---
+
+*Last updated: December 3, 2025*
