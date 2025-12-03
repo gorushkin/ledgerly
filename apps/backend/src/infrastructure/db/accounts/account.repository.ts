@@ -202,4 +202,47 @@ export class AccountRepository
       return accounts;
     }, 'Failed to fetch accounts by IDs');
   }
+
+  async ensureAllAccountsBelongToUser(
+    userId: UUID,
+    accountIds: UUID[],
+  ): Promise<void> {
+    if (accountIds.length === 0) {
+      return;
+    }
+
+    const uniqueAccountIds = Array.from(new Set(accountIds));
+
+    return this.executeDatabaseOperation<void>(async () => {
+      const accounts = await this.db
+        .select()
+        .from(accountsTable)
+        .where(
+          and(
+            inArray(accountsTable.id, uniqueAccountIds),
+            eq(accountsTable.isTombstone, false),
+          ),
+        )
+        .all();
+
+      const foundIds = new Set(accounts.map((acc) => acc.id));
+      const missingAccounts = uniqueAccountIds.filter(
+        (id) => !foundIds.has(id),
+      );
+
+      this.ensureEntityExists(
+        missingAccounts.length === 0 ? true : null,
+        `Accounts not found: ${missingAccounts.join(', ')}`,
+      );
+
+      const nonOwnedAccounts = accounts.filter((acc) => acc.userId !== userId);
+
+      this.ensureAccess(
+        nonOwnedAccounts.length === 0,
+        `You do not have permission to access accounts: ${nonOwnedAccounts
+          .map((acc) => acc.id)
+          .join(', ')}`,
+      );
+    }, 'Failed to verify account ownership');
+  }
 }

@@ -97,6 +97,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     entryFactory,
     saveWithIdRetry,
     transactionMapper,
+    accountRepository,
   );
 
   const getTransactionByIdUseCase = new GetTransactionByIdUseCase(

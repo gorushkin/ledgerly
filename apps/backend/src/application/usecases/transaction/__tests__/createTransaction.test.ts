@@ -8,6 +8,7 @@ import {
   TransactionResponseDTO,
 } from 'src/application/dto';
 import {
+  AccountRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -17,6 +18,7 @@ import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { createUser } from 'src/db/createTestUser';
 import { Account, Entry, Transaction, User, AccountType } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
+import { ForbiddenAccessError } from 'src/infrastructure/infrastructure.errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateTransactionUseCase } from '../CreateTransaction';
@@ -29,6 +31,10 @@ describe('CreateTransactionUseCase', () => {
     getDB: vi.fn().mockReturnValue({
       transaction: <T>(cb: (trx: unknown) => T): T => cb({}),
     }),
+  };
+
+  const mockAccountRepository = {
+    ensureAllAccountsBelongToUser: vi.fn(),
   };
 
   const mockedEntries = [
@@ -66,6 +72,7 @@ describe('CreateTransactionUseCase', () => {
     entryFactory as unknown as EntryFactory,
     mockedSaveWithIdRetry as unknown as SaveWithIdRetryType,
     transactionMapper as unknown as TransactionMapperInterface,
+    mockAccountRepository as unknown as AccountRepositoryInterface,
   );
 
   const postingDate = DateValue.restore('2024-01-01').valueOf();
@@ -120,6 +127,9 @@ describe('CreateTransactionUseCase', () => {
       );
 
       mockedSaveWithIdRetry.mockResolvedValue(transaction);
+      mockAccountRepository.ensureAllAccountsBelongToUser.mockResolvedValue(
+        undefined,
+      );
 
       const entries: CreateEntryRequestDTO[] = [
         [
@@ -175,6 +185,38 @@ describe('CreateTransactionUseCase', () => {
         expect.any(Function),
         expect.any(Function),
       );
+    });
+
+    it('should throw an error if accounts do not belong to the user', async () => {
+      mockAccountRepository.ensureAllAccountsBelongToUser.mockRejectedValue(
+        new ForbiddenAccessError('Some accounts do not belong to the user'),
+      );
+
+      const entries: CreateEntryRequestDTO[] = [
+        [
+          {
+            accountId: usdAccount.getId().valueOf(),
+            amount: Amount.create('100').valueOf(),
+            description: 'Operation 1',
+          },
+          {
+            accountId: eurAccount.getId().valueOf(),
+            amount: Amount.create('100').valueOf(),
+            description: 'Operation 1',
+          },
+        ],
+      ];
+
+      const data: CreateTransactionRequestDTO = {
+        description,
+        entries,
+        postingDate,
+        transactionDate,
+      };
+
+      await expect(
+        createTransactionUseCase.execute(user, data),
+      ).rejects.toThrowError(ForbiddenAccessError);
     });
   });
 });

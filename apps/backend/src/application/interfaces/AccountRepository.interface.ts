@@ -16,5 +16,9 @@ export type AccountRepositoryInterface = {
     currency: CurrencyCode,
   ): Promise<AccountDbRow>;
   ensureUserOwnsAccount(userId: UUID, accountId: UUID): Promise<AccountDbRow>;
+  ensureAllAccountsBelongToUser(
+    userId: UUID,
+    accountIds: UUID[],
+  ): Promise<void>;
   getByIds(userId: UUID, accountIds: UUID[]): Promise<AccountDbRow[]>;
 };

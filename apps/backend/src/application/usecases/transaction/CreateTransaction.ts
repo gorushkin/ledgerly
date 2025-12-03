@@ -3,6 +3,7 @@ import {
   TransactionResponseDTO,
 } from 'src/application/dto';
 import {
+  AccountRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -21,12 +22,30 @@ export class CreateTransactionUseCase {
     protected readonly entryFactory: EntryFactory,
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
     protected readonly transactionMapper: TransactionMapperInterface,
+    protected readonly accountRepository: AccountRepositoryInterface,
   ) {}
+
+  private async verifyAccountOwnership(
+    user: User,
+    data: CreateTransactionRequestDTO,
+  ) {
+    const accountIds = data.entries.flatMap(([from, to]) => [
+      from.accountId,
+      to.accountId,
+    ]);
+
+    await this.accountRepository.ensureAllAccountsBelongToUser(
+      user.getId().valueOf(),
+      accountIds,
+    );
+  }
 
   async execute(
     user: User,
     data: CreateTransactionRequestDTO,
   ): Promise<TransactionResponseDTO> {
+    await this.verifyAccountOwnership(user, data);
+
     return await this.transactionManager.run(async () => {
       const transactionFactory = this.createTransaction(user, data);
 
