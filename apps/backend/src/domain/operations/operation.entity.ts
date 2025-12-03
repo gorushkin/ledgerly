@@ -27,7 +27,7 @@ export class Operation {
     accountRelation: ParentChildRelation,
     public amount: Amount,
     public description: string,
-    public isSystem = false,
+    private _isSystem = false,
   ) {
     this.timestamps = timestamps;
     this.softDelete = softDelete;
@@ -84,6 +84,7 @@ export class Operation {
       description,
       entryId,
       id,
+      isSystem,
       isTombstone,
       updatedAt,
       userId,
@@ -121,6 +122,7 @@ export class Operation {
       accountRelation,
       Amount.fromPersistence(amount),
       description,
+      isSystem,
     );
   }
 
@@ -228,5 +230,9 @@ export class Operation {
 
   get id(): Id {
     return this.identity.getId();
+  }
+
+  get isSystem(): boolean {
+    return this._isSystem;
   }
 }
