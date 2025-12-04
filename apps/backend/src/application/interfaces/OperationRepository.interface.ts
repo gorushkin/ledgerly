@@ -8,4 +8,5 @@ export type OperationRepositoryInterface = {
     userId: UUID,
     entryIds: UUID[],
   ): Promise<OperationDbRow[]>;
+  deleteByEntryIds(userId: UUID, entryIds: UUID[]): Promise<void>;
 };

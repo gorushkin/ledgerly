@@ -54,6 +54,7 @@ export class UpdateTransactionUseCase {
       // For now, we will just delete all existing entries and create new ones
       // let's think about a better approach later
       // If entries are undefined, treat as 'no update to entries'
+      // we should compare with existing entries and update accordingly
       if (data.entries === undefined) {
         return this.transactionMapper.toResponseDTO(
           transaction,
@@ -98,6 +99,6 @@ export class UpdateTransactionUseCase {
       return;
     }
 
-    await this.operationRepository.softDeleteByEntryIds(userId, entryIds);
+    await this.operationRepository.deleteByEntryIds(userId, entryIds);
   }
 }
