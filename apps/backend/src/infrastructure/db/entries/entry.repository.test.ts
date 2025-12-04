@@ -174,4 +174,31 @@ describe('EntryRepository', () => {
       expect(entries).toEqual([]);
     });
   });
+
+  describe('deleteByTransactionId', () => {
+    it('should delete entries by transaction ID', async () => {
+      const createdEntries = await Promise.all([
+        testDB.createEntry(user.id, {
+          transactionId: transaction.id,
+        }),
+        testDB.createEntry(user.id, {
+          transactionId: transaction.id,
+        }),
+      ]);
+
+      await entryRepository.deleteByTransactionId(user.id, transaction.id);
+
+      const entries = await entryRepository.getByTransactionId(
+        user.id,
+        transaction.id,
+      );
+
+      expect(entries).toHaveLength(0);
+
+      for (const createdEntry of createdEntries) {
+        const deletedEntry = await testDB.getEntryById(createdEntry.id);
+        expect(deletedEntry).toBeNull();
+      }
+    });
+  });
 });

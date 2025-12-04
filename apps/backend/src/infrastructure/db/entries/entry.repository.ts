@@ -61,4 +61,29 @@ export class EntryRepository
       },
     );
   }
+
+  async deleteByTransactionId(
+    userId: UUID,
+    transactionId: UUID,
+  ): Promise<void> {
+    return this.executeDatabaseOperation<void>(
+      async () => {
+        await this.db
+          .delete(entriesTable)
+          .where(
+            and(
+              eq(entriesTable.transactionId, transactionId),
+              eq(entriesTable.userId, userId),
+            ),
+          )
+          .run();
+      },
+      'EntryRepository.deleteByTransactionId',
+      {
+        field: 'transactionId',
+        tableName: 'entries',
+        value: transactionId,
+      },
+    );
+  }
 }
