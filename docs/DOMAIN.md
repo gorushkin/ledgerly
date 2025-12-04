@@ -8,8 +8,8 @@ The main entity that represents a financial event. Transactions are built using 
 #### Hierarchy
 ```
 Transaction (financial event)
-  └── Entry (grouping of operations)
-      └── Operation (individual account change)
+  └── Entry (balancing wrapper, groups operations per currency)
+      └── Operation (individual account posting)
 ```
 
 #### Key Properties
@@ -20,43 +20,51 @@ Transaction (financial event)
 - Must be balanced overall according to double-entry bookkeeping
 
 ### Entry
-Groups related operations within a transaction to maintain balance.
+Groups related operations within a transaction to maintain per-currency balance.
 
 #### Key Properties
-- Belongs to a transaction
+- Belongs to a transaction (`transactionId`)
+- Belongs to a user (`userId`)
 - Contains minimum 2 operations (debit and credit sides)
 - Sum of all operations must equal zero
-- Handles multi-currency operations through trading operations
-- Can contain 2 operations (simple case) or 4+ (cross-currency transactions)
+- Handles multi-currency operations through multiple entries with trading operations
+- Can contain 2 operations (simple case) or more (multi-account transactions)
+- Has soft delete support (`isTombstone`)
 
 ### Operation
-Represents a single financial entry affecting an account.
+Represents a single financial posting affecting an account.
 
 #### Key Properties
-- Links to an entry and an account
-- Amount is always stored in the account's currency
+- Links to an entry (`entryId`) and an account (`accountId`)
+- Belongs to a user (`userId`)
+- Amount is always stored as integer (cents) in the account's currency
 - Positive amount = debit
   - Increases Asset and Expense accounts
-  - Decreases Liability, Income, and Equity accounts
+  - Decreases Liability and Income accounts
 - Negative amount = credit
   - Decreases Asset and Expense accounts
-  - Increases Liability, Income, and Equity accounts
-- Trading operations are created automatically for currency conversion
+  - Increases Liability and Income accounts
+- Trading operations are created automatically for currency conversion (`isSystem = true`)
+- Has soft delete support (`isTombstone`)
+- Has optional description field
 
 ### Account
 Represents different financial accounts with unified structure for all account types.
 
 #### Key Properties
-- **Type**: Asset, Liability, Income, Expense, (optional: Equity)
+- **Type**: Asset, Liability, Income, Expense
   - **Asset**: Real money (wallet, card, bank account)
   - **Liability**: Debts, loans, credit
   - **Income**: Revenue sources (salary, interest)
-  - For Income/Expense: reporting metric (sum of operations over a specified reporting period, not ‘real money’ or all-time cumulative sum)
-- Has a designated currency (for Asset/Liability)
+  - **Expense**: Spending categories
+- Has a designated currency
 - **Balance tracking**:
-  - For Asset/Liability: real balance, must match reality
-  - For Income/Expense: reporting metric (sum over period), not "real money"
+  - For Asset/Liability: real balance stored in `currentClearedBalanceLocal`, must match reality
+  - For Income/Expense: reporting metric (sum over period), calculated from operations
 - Balance is calculated from operations
+- Has initial balance (`initialBalance`)
+- System accounts have `isSystem = true` (for trading accounts)
+- Has soft delete support (`isTombstone`)
 
 ### Currency
 Represents different monetary units used in the system.
@@ -98,49 +106,64 @@ Represents different monetary units used in the system.
 
 ### Simple Transaction (Grocery Purchase)
 
-**Scenario**: Buy groceries for 100₽ in cash
+**Scenario**: Buy groceries for 10000 kopeks (100₽) in cash
 
 **Transaction**
-| id | description | date |
-|----|-------------|------|
-| T1 | Buy groceries | 2025-09-17 |
+| id | description | transactionDate | postingDate | userId |
+|----|-------------|-----------------|-------------|--------|
+| T1 | Buy groceries | 2025-09-17 | 2025-09-17 | U1 |
 
 **Entry**
-| id | transactionId | note |
-|----|---------------|------|
-| E1 | T1 | Groceries at store |
+| id | transactionId | userId |
+|----|---------------|--------|
+| E1 | T1 | U1 |
 
 **Operations**
-| id | entryId | account | type | amount |
-|----|---------|---------|------|--------|
-| O1 | E1 | Asset:Cash | Credit | -100₽ |
-| O2 | E1 | Expense:Food | Debit | +100₽ |
+| id | entryId | accountId | account | amount (kopeks) |
+|----|---------|-----------|---------|----------------|
+| O1 | E1 | A1 | Asset:Cash | -10000 |
+| O2 | E1 | A2 | Expense:Food | +10000 |
 
-Balance: `-100 + 100 = 0` ✓
+Balance: `-10000 + 10000 = 0` ✓
+
+**Note**: Amounts are stored as integers (kopeks/cents) to avoid floating-point precision issues.
 
 ### Multi-Currency Transaction with Trading Operations
 
-**Scenario**: Buy goods for 9 EUR, pay with cash in USD (10 USD)
+**Scenario**: Buy goods for 9 EUR, pay with cash in USD (10 USD = 1000 cents)
 
 **Transaction**
-| id | description | date |
-|----|-------------|------|
-| T2 | Buy goods (EUR) | 2025-09-18 |
+| id | description | transactionDate | postingDate | userId |
+|----|-------------|-----------------|-------------|--------|
+| T2 | Buy goods (EUR) | 2025-09-18 | 2025-09-18 | U1 |
 
-**Entry**
-| id | transactionId | note |
-|----|---------------|------|
-| E2 | T2 | Goods, payment in USD |
+**Entry E2 (USD currency pair)**
+| id | transactionId | userId |
+|----|---------------|--------|
+| E2 | T2 | U1 |
 
-**Operations** (including trading operations)
-| id | entryId | account | type | amount |
-|----|---------|---------|------|--------|
-| O3 | E2 | Asset:Cash USD | Credit | -10 USD |
-| O4 | E2 | Trading:USD | Debit | +10 USD |
-| O5 | E2 | Trading:EUR | Credit | -9 EUR |
-| O6 | E2 | Expense:Goods | Debit | +9 EUR |
+**Operations for Entry E2**
+| id | entryId | accountId | account | amount (cents) | isSystem |
+|----|---------|-----------|---------|----------------|----------|
+| O3 | E2 | A3 | Asset:Cash USD | -1000 | false |
+| O4 | E2 | A4 | System:Trading:USD | +1000 | true |
 
-Trading operations balance different currencies within the entry.
+Balance (USD): `-1000 + 1000 = 0` ✓
+
+**Entry E3 (EUR currency pair)**
+| id | transactionId | userId |
+|----|---------------|--------|
+| E3 | T2 | U1 |
+
+**Operations for Entry E3**
+| id | entryId | accountId | account | amount (cents) | isSystem |
+|----|---------|-----------|---------|----------------|----------|
+| O5 | E3 | A5 | System:Trading:EUR | -900 | true |
+| O6 | E3 | A6 | Expense:Goods | +900 | false |
+
+Balance (EUR): `-900 + 900 = 0` ✓
+
+Trading operations (`isSystem = true`) balance different currencies across separate entries.
 
 ## Technical Implementation
 
@@ -157,8 +180,9 @@ Trading operations balance different currencies within the entry.
 Transaction
 - id: UUID
 - description: string
-- transactionDate: date
-- postingDate: date
+- transactionDate: date (ISO string)
+- postingDate: date (ISO string)
+- isTombstone: boolean
 - userId: UUID (FK)
 - createdAt: timestamp
 - updatedAt: timestamp
@@ -166,7 +190,7 @@ Transaction
 Entry
 - id: UUID
 - transactionId: UUID (FK)
-- description: string
+- isTombstone: boolean
 - userId: UUID (FK)
 - createdAt: timestamp
 - updatedAt: timestamp
@@ -175,8 +199,10 @@ Operation
 - id: UUID
 - entryId: UUID (FK)
 - accountId: UUID (FK)
-- amount: integer (stored in account's currency)
-- description: string
+- amount: integer (stored in account's currency, in cents)
+- description: string (optional)
+- isSystem: boolean (for trading operations)
+- isTombstone: boolean
 - userId: UUID (FK)
 - createdAt: timestamp
 - updatedAt: timestamp
@@ -187,6 +213,10 @@ Account
 - type: enum (Asset, Liability, Income, Expense)
 - currency: string (FK)
 - description: string
+- initialBalance: integer (cents)
+- currentClearedBalanceLocal: integer (cents)
+- isSystem: boolean (for trading accounts)
+- isTombstone: boolean
 - userId: UUID (FK)
 - createdAt: timestamp
 - updatedAt: timestamp
@@ -195,8 +225,6 @@ Currency
 - code: string (PK)
 - name: string
 - symbol: string
-- createdAt: timestamp
-- updatedAt: timestamp
 
 Settings
 - userId: UUID (PK, FK)
@@ -206,10 +234,12 @@ Settings
 ```
 
 ### Data Types and Conventions
-- **Money amounts**: Stored as integers to avoid floating-point precision issues
-- **Dates**: ISO datetime strings with branded types (`IsoDatetimeString`)
+- **Money amounts**: Stored as integers (cents/kopeks) to avoid floating-point precision issues
+- **Dates**: ISO date strings for transactionDate and postingDate
+- **Timestamps**: ISO datetime strings with branded types (`IsoDatetimeString`)
 - **IDs**: UUIDs for all entities
 - **Soft deletion**: Uses `isTombstone` flag instead of hard deletes
+- **System entities**: System accounts and operations marked with `isSystem = true`
 
 ## Future Improvements
 
