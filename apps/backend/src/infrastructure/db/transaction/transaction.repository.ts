@@ -123,6 +123,7 @@ export class TransactionRepository
           'description',
           'postingDate',
           'transactionDate',
+          'updatedAt',
         ]);
 
         const updated = await this.db
