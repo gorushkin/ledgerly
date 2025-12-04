@@ -202,14 +202,14 @@ describe('OperationRepository', () => {
         testDB.createOperation(user.id, {
           accountId: account1.id,
           amount: Amount.create('700').valueOf(),
-          description: 'Operation to be soft deleted',
+          description: 'Operation to be deleted',
           entryId: entry.id,
         }),
 
         testDB.createOperation(user.id, {
           accountId: account2.id,
           amount: Amount.create('300').valueOf(),
-          description: 'Another operation to be soft deleted',
+          description: 'Another operation to be deleted',
           entryId: entry.id,
         }),
       ]);
