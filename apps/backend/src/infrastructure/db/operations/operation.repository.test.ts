@@ -195,4 +195,40 @@ describe('OperationRepository', () => {
       expect(softDeletedOperations).toHaveLength(0);
     });
   });
+
+  describe('deleteByEntryIds', () => {
+    it('should delete operations by entry IDs', async () => {
+      const operations = await Promise.all([
+        testDB.createOperation(user.id, {
+          accountId: account1.id,
+          amount: Amount.create('700').valueOf(),
+          description: 'Operation to be soft deleted',
+          entryId: entry.id,
+        }),
+
+        testDB.createOperation(user.id, {
+          accountId: account2.id,
+          amount: Amount.create('300').valueOf(),
+          description: 'Another operation to be soft deleted',
+          entryId: entry.id,
+        }),
+      ]);
+
+      const fetchedOperationsBefore = await operationRepository.getByEntryId(
+        user.id,
+        entry.id,
+      );
+
+      expect(fetchedOperationsBefore).toHaveLength(operations.length);
+
+      await operationRepository.deleteByEntryIds(user.id, [entry.id]);
+
+      const fetchedOperationsAfter = await operationRepository.getByEntryId(
+        user.id,
+        entry.id,
+      );
+
+      expect(fetchedOperationsAfter).toHaveLength(0);
+    });
+  });
 });

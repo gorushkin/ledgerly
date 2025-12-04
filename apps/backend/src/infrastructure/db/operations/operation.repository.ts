@@ -43,6 +43,27 @@ export class OperationRepository
     );
   }
 
+  async deleteByEntryIds(userId: UUID, entryIds: UUID[]): Promise<void> {
+    return this.executeDatabaseOperation<void>(
+      async () => {
+        await this.db
+          .delete(operationsTable)
+          .where(
+            and(
+              inArray(operationsTable.entryId, entryIds),
+              eq(operationsTable.userId, userId),
+            ),
+          );
+      },
+      'OperationRepository.deleteByEntryIds',
+      {
+        field: 'entryId',
+        tableName: 'operations',
+        value: entryIds.join(', '),
+      },
+    );
+  }
+
   async softDeleteByEntryIds(
     userId: UUID,
     entryIds: UUID[],
