@@ -62,7 +62,7 @@ export class UpdateTransactionUseCase {
         );
       }
 
-      await this.softDeleteEntriesByTransactionId(
+      await this.deleteEntriesByTransactionId(
         user.getId().valueOf(),
         transactionId,
       );
@@ -83,17 +83,16 @@ export class UpdateTransactionUseCase {
     });
   }
 
-  private async softDeleteEntriesByTransactionId(
+  private async deleteEntriesByTransactionId(
     userId: UUID,
     transactionId: UUID,
   ): Promise<void> {
-    const softDeletedEntries =
-      await this.entryRepository.softDeleteByTransactionId(
-        userId,
-        transactionId,
-      );
+    const deletedEntries = await this.entryRepository.deleteByTransactionId(
+      userId,
+      transactionId,
+    );
 
-    const entryIds = softDeletedEntries.map((entry) => entry.id);
+    const entryIds = deletedEntries.map((entry) => entry.id);
 
     if (entryIds.length === 0) {
       return;

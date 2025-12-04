@@ -65,10 +65,10 @@ export class EntryRepository
   async deleteByTransactionId(
     userId: UUID,
     transactionId: UUID,
-  ): Promise<void> {
-    return this.executeDatabaseOperation<void>(
-      async () => {
-        await this.db
+  ): Promise<EntryDbRow[]> {
+    return this.executeDatabaseOperation<EntryDbRow[]>(
+      () => {
+        return this.db
           .delete(entriesTable)
           .where(
             and(
@@ -76,7 +76,8 @@ export class EntryRepository
               eq(entriesTable.userId, userId),
             ),
           )
-          .run();
+          .returning()
+          .all();
       },
       'EntryRepository.deleteByTransactionId',
       {

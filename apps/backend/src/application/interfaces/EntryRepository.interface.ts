@@ -8,5 +8,8 @@ export type EntryRepositoryInterface = {
     userId: UUID,
     transactionId: UUID,
   ): Promise<EntryDbRow[]>;
-  deleteByTransactionId(userId: UUID, transactionId: UUID): Promise<void>;
+  deleteByTransactionId(
+    userId: UUID,
+    transactionId: UUID,
+  ): Promise<EntryDbRow[]>;
 };

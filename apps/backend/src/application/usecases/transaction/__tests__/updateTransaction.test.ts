@@ -54,7 +54,7 @@ describe('UpdateTransactionUseCase', () => {
   };
 
   const mockEntryRepository = {
-    softDeleteByTransactionId: vi.fn(),
+    deleteByTransactionId: vi.fn(),
   };
 
   const mockOperationRepository = {
@@ -264,7 +264,7 @@ describe('UpdateTransactionUseCase', () => {
 
     const softDeletedEntries = entries.map((e) => e.toPersistence());
 
-    mockEntryRepository.softDeleteByTransactionId.mockResolvedValue(
+    mockEntryRepository.deleteByTransactionId.mockResolvedValue(
       softDeletedEntries,
     );
 
@@ -289,7 +289,7 @@ describe('UpdateTransactionUseCase', () => {
       }),
     );
 
-    expect(mockEntryRepository.softDeleteByTransactionId).toHaveBeenCalledWith(
+    expect(mockEntryRepository.deleteByTransactionId).toHaveBeenCalledWith(
       user.getId().valueOf(),
       transactionDBRow.id,
     );
