@@ -159,7 +159,7 @@ Balance (USD): `-1000 + 1000 = 0` ✓
 | id | entryId | accountId | account | amount (cents) | isSystem |
 |----|---------|-----------|---------|----------------|----------|
 | O5 | E3 | A5 | System:Trading:EUR | -900 | true |
-| O6 | E3 | A6 | Expense:Goods | +900 | true |
+| O6 | E3 | A6 | Expense:Goods | +900 | false |
 
 Balance (EUR): `-900 + 900 = 0` ✓
 

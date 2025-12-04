@@ -50,8 +50,8 @@ System:Trading:EUR
 
 These accounts:
 
-- are **invisible to the user**,  
-- exist solely to maintain correct double-entry,  
+- are **invisible to the user**,
+- exist solely to maintain correct double-entry,
 - cannot be used manually.
 
 ### 2.5 Entry Wrapper
