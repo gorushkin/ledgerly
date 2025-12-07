@@ -1,14 +1,36 @@
 import { Amount } from '../../domain/domain-core/value-objects/Amount';
 
 export class AmountFormatter {
-  format(amount: Amount, locale = 'en-US'): string {
-    const minorUnits = BigInt(amount.valueOf());
-    const major = Number(minorUnits) / 100;
+  private minorToMajor(minorUnits: string): { major: string; minor: string } {
+    const isNegative = minorUnits.startsWith('-');
+    const absoluteValue = isNegative ? minorUnits.slice(1) : minorUnits;
 
-    return new Intl.NumberFormat(locale, {
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 2,
-    }).format(major);
+    const paddedValue = absoluteValue.padStart(3, '0');
+
+    const majorPart = paddedValue.slice(0, -2) || '0';
+    const minorPart = paddedValue.slice(-2);
+
+    return {
+      major: isNegative ? `-${majorPart}` : majorPart,
+      minor: minorPart,
+    };
+  }
+
+  format(amount: Amount, locale = 'en-US'): string {
+    const minorUnits = amount.valueOf();
+    const { major, minor } = this.minorToMajor(minorUnits);
+
+    const formattedMajor = new Intl.NumberFormat(locale, {
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    }).format(Number(major));
+
+    const decimalSeparator =
+      new Intl.NumberFormat(locale)
+        .formatToParts(1.1)
+        .find((part) => part.type === 'decimal')?.value ?? '.';
+
+    return `${formattedMajor}${decimalSeparator}${minor}`;
   }
 
   formatWithCurrency(
@@ -16,24 +38,26 @@ export class AmountFormatter {
     currencyCode: string,
     locale = 'en-US',
   ): string {
-    const minorUnits = BigInt(amount.valueOf());
-    const major = Number(minorUnits) / 100;
+    const minorUnits = amount.valueOf();
+    const { major, minor } = this.minorToMajor(minorUnits);
 
-    return new Intl.NumberFormat(locale, {
+    const formatted = new Intl.NumberFormat(locale, {
       currency: currencyCode,
       style: 'currency',
-    }).format(major);
+    }).format(Number(`${major}.${minor}`));
+
+    return formatted;
   }
 
   formatCompact(amount: Amount, locale = 'en-US'): string {
-    const minorUnits = BigInt(amount.valueOf());
-    const major = Number(minorUnits) / 100;
+    const minorUnits = amount.valueOf();
+    const { major, minor } = this.minorToMajor(minorUnits);
 
     return new Intl.NumberFormat(locale, {
       maximumFractionDigits: 1,
       minimumFractionDigits: 0,
       notation: 'compact',
-    }).format(major);
+    }).format(Number(`${major}.${minor}`));
   }
 
   formatForTable(amount: Amount, locale = 'en-US'): string {
@@ -43,7 +67,7 @@ export class AmountFormatter {
 
   formatWithSign(amount: Amount, locale = 'en-US'): string {
     const formatted = this.format(amount, locale);
-    const sign = amount.isPositive() ? ' ' : '';
+    const sign = amount.isPositive() ? '+' : '';
     return `${sign}${formatted}`;
   }
 }

@@ -692,11 +692,13 @@ describe('Transactions Integration Tests', () => {
       expect(updatedTransaction.postingDate).toBe(payload.postingDate);
       expect(updatedTransaction.transactionDate).toBe(payload.transactionDate);
 
-      operations.forEach((op) => {
-        void testDB.getOperationById(op.id).then((fetchedOp) => {
-          expect(fetchedOp).toBeNull();
-        });
-      });
+      await Promise.all(
+        operations.map((op) =>
+          testDB.getOperationById(op.id).then((fetchedOp) => {
+            expect(fetchedOp).toBeNull();
+          }),
+        ),
+      );
 
       expect(updatedTransaction.entries.length).toBe(payload.entries.length);
 

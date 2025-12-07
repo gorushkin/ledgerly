@@ -75,9 +75,10 @@ export class TestDB {
 
     this.testDbFile = `file:/tmp/test-${Date.now()}-${Math.random()}.db`;
 
+    // To use an in-memory database for faster, ephemeral tests, set url to 'file::memory:'.
+    // The default below uses a file-based database, which persists data across test runs and can aid debugging.
     this.client = createClient({
       url: this.testDbFile,
-      // url: 'file::memory:',
     });
 
     this.db = drizzle(this.client, { schema });
@@ -342,7 +343,7 @@ export class TestDB {
         const currency = operation.account.currency;
         const systemMarker = operation.isSystem ? ' [system]' : '';
 
-        output += `    ${accountName.padEnd(40)} ${userFriendlyAmount} ${currency}${systemMarker}\n`;
+        output += `    ${accountName.padEnd(40)} ${operation.description} ${userFriendlyAmount} ${currency}${systemMarker}\n`;
       }
     }
 
@@ -570,8 +571,6 @@ export class TestDB {
   };
 
   getAllOperations = async () => {
-    const operations = await this.db.select().from(schema.operationsTable);
-    // const operations = await this.db.select().from(schema.operationsTable);
-    return operations;
+    return this.db.select().from(schema.operationsTable);
   };
 }
