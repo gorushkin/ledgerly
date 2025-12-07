@@ -18,6 +18,7 @@ import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
 import { Amount, Currency, DateValue } from 'src/domain/domain-core';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
+import { AmountFormatter } from 'src/presentation/formatters';
 
 import {
   EntryDbRow,
@@ -27,6 +28,7 @@ import {
   accountsTable,
   usersTable,
   UserDbRow,
+  TransactionWithRelations,
 } from './schema';
 import * as schema from './schemas';
 
@@ -62,6 +64,8 @@ export class TestDB {
   transactionCounter = new Counter('transaction');
   operationCounter = new Counter('operation');
   userCounter = new Counter('user');
+  private testDbFile?: string;
+  private client?: ReturnType<typeof createClient>;
 
   constructor(db?: DataBase) {
     if (db) {
@@ -69,11 +73,14 @@ export class TestDB {
       return;
     }
 
-    const client = createClient({
-      url: 'file::memory:',
+    this.testDbFile = `file:/tmp/test-${Date.now()}-${Math.random()}.db`;
+
+    this.client = createClient({
+      url: this.testDbFile,
+      // url: 'file::memory:',
     });
 
-    this.db = drizzle(client, { schema });
+    this.db = drizzle(this.client, { schema });
   }
 
   static get createTimestamps() {
@@ -117,24 +124,23 @@ export class TestDB {
   }
 
   async cleanupTestDb() {
-    console.info('Cleaning up test database...');
-    await this.db.run(sql`PRAGMA foreign_keys = OFF;`);
-
-    const tables = [
-      'entries',
-      'operations',
-      'transactions',
-      'settings',
-      'accounts',
-      'currencies',
-      'users',
-    ];
-
-    for (const table of tables) {
-      await this.db.run(sql.raw(`DELETE FROM ${table};`));
+    if (this.client) {
+      try {
+        this.client.close();
+      } catch {
+        /* empty */
+      }
     }
 
-    await this.db.run(sql`PRAGMA foreign_keys = ON;`);
+    if (this.testDbFile?.startsWith('file:/tmp/test-')) {
+      try {
+        const fs = await import('fs/promises');
+        const filePath = this.testDbFile.replace('file:', '');
+        await fs.unlink(filePath);
+      } catch {
+        /* empty */
+      }
+    }
   }
 
   createUser = async (params?: {
@@ -243,6 +249,106 @@ export class TestDB {
     return transaction;
   };
 
+  getTransactionById = async (
+    transactionId: UUID,
+  ): Promise<TransactionDbRow | null> => {
+    const transaction = await this.db
+      .select()
+      .from(schema.transactionsTable)
+      .where(sql`${schema.transactionsTable.id} = ${transactionId}`)
+      .get();
+
+    return transaction ?? null;
+  };
+
+  getTransactionWithRelations = async (
+    transactionId: UUID,
+  ): Promise<TransactionWithRelations | null> => {
+    const transaction = await this.getTransactionById(transactionId);
+    if (!transaction) return null;
+
+    const entries = await this.db
+      .select()
+      .from(schema.entriesTable)
+      .where(sql`${schema.entriesTable.transactionId} = ${transactionId}`);
+
+    const entriesWithOperations = await Promise.all(
+      entries.map(async (entry) => {
+        const operations = await this.db
+          .select()
+          .from(schema.operationsTable)
+          .where(sql`${schema.operationsTable.entryId} = ${entry.id}`);
+
+        return {
+          ...entry,
+          operations,
+        };
+      }),
+    );
+
+    return { entries: entriesWithOperations, ...transaction };
+  };
+
+  getTransactionInPTAFormat = async (
+    transactionId: UUID,
+  ): Promise<string | null> => {
+    const transaction = await this.getTransactionById(transactionId);
+    if (!transaction) return null;
+
+    const entries = await this.db
+      .select()
+      .from(schema.entriesTable)
+      .where(sql`${schema.entriesTable.transactionId} = ${transactionId}`);
+
+    const entriesWithOperations = await Promise.all(
+      entries.map(async (entry) => {
+        const operations = await this.db
+          .select()
+          .from(schema.operationsTable)
+          .where(sql`${schema.operationsTable.entryId} = ${entry.id}`);
+
+        const operationsWithAccounts = await Promise.all(
+          operations.map(async (operation) => {
+            const account = await this.db
+              .select()
+              .from(schema.accountsTable)
+              .where(sql`${schema.accountsTable.id} = ${operation.accountId}`)
+              .get();
+
+            return { ...operation, account };
+          }),
+        );
+
+        return {
+          ...entry,
+          operations: operationsWithAccounts,
+        };
+      }),
+    );
+
+    // Format in PTA (Plain Text Accounting) style
+    let output = `${transaction.transactionDate} ${transaction.description}\n`;
+
+    for (const entry of entriesWithOperations) {
+      output += `    Entry ID: ${entry.id}\n`;
+      for (const operation of entry.operations) {
+        if (!operation.account) continue;
+
+        const formatter = new AmountFormatter();
+
+        const amount = Amount.fromPersistence(operation.amount);
+        const userFriendlyAmount = formatter.formatForTable(amount, 'en-US');
+        const accountName = operation.account.name;
+        const currency = operation.account.currency;
+        const systemMarker = operation.isSystem ? ' [system]' : '';
+
+        output += `    ${accountName.padEnd(40)} ${userFriendlyAmount} ${currency}${systemMarker}\n`;
+      }
+    }
+
+    return output;
+  };
+
   softDeleteTransaction = async (transactionId: UUID) => {
     return await this.db
       .update(schema.transactionsTable)
@@ -332,6 +438,16 @@ export class TestDB {
       );
 
     return operations;
+  };
+
+  getOperationById = async (operationId: UUID) => {
+    const operation = await this.db
+      .select()
+      .from(schema.operationsTable)
+      .where(sql`${schema.operationsTable.id} = ${operationId}`)
+      .get();
+
+    return operation ?? null;
   };
 
   deleteData = async () => {
@@ -429,5 +545,33 @@ export class TestDB {
       transaction2,
       user,
     };
+  };
+
+  getDatabaseInfo = async () => {
+    const tables = await this.db.all<{ name: string }>(
+      sql`SELECT name 
+      FROM sqlite_schema 
+      WHERE type = 'table' AND name NOT LIKE 'sqlite_%';`,
+    );
+
+    const info: Record<string, number> = {};
+
+    for (const table of tables) {
+      const countResult = await this.db
+        .select({ count: sql`count(*)` })
+        .from(sql.raw(table.name))
+        .get();
+
+      if (countResult && table.name) {
+        info[table.name] = Number(countResult.count);
+      }
+    }
+    console.info(info);
+  };
+
+  getAllOperations = async () => {
+    const operations = await this.db.select().from(schema.operationsTable);
+    // const operations = await this.db.select().from(schema.operationsTable);
+    return operations;
   };
 }

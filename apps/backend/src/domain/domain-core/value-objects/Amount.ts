@@ -56,4 +56,12 @@ export class Amount {
   isZero(): boolean {
     return this.minor === BigInt(0);
   }
+
+  isPositive(): boolean {
+    return this.minor > BigInt(0);
+  }
+
+  isNegative(): boolean {
+    return this.minor < BigInt(0);
+  }
 }
