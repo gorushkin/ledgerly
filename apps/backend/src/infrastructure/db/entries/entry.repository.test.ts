@@ -43,6 +43,7 @@ describe('EntryRepository', () => {
 
       const entryInput: EntryDbRow = {
         createdAt,
+        description: 'Test Entry',
         id,
         isTombstone: false,
         transactionId,

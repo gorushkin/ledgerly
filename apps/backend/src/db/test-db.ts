@@ -181,6 +181,7 @@ export class TestDB {
     params?: {
       transactionId?: UUID;
       date?: IsoDateString;
+      description?: string;
     },
   ): Promise<EntryDbRow> => {
     const transactionId =
@@ -193,10 +194,15 @@ export class TestDB {
         })
       ).id;
 
+    const description =
+      params?.description ??
+      `Test Entry ${this.transactionCounter.getNextName()}`;
+
     const entryData = {
       ...TestDB.uuid,
       ...TestDB.createTimestamps,
       date: params?.date ?? TestDB.isoDateString,
+      description,
       userId,
       ...params,
       isTombstone: false,

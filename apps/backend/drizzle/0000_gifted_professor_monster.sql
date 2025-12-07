@@ -74,6 +74,7 @@ CREATE TABLE `settings` (
 --> statement-breakpoint
 CREATE TABLE `entries` (
 	`created_at` text NOT NULL,
+	`description` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
 	`is_tombstone` integer NOT NULL,
 	`transaction_id` text NOT NULL,

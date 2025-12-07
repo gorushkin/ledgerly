@@ -72,7 +72,7 @@ export const createEntry = (
   transaction: Transaction,
   operations: Operation[],
 ) => {
-  return Entry.create(user, transaction, operations);
+  return Entry.create(user, transaction, 'Test entry', operations);
 };
 
 export const createOperation = (
