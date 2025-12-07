@@ -35,6 +35,8 @@ import * as schema from './schemas';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const FILE_PREFIX = 'file:/tmp/test-';
+
 class Counter {
   private count = 0;
 
@@ -73,7 +75,7 @@ export class TestDB {
       return;
     }
 
-    this.testDbFile = `file:/tmp/test-${Date.now()}-${Math.random()}.db`;
+    this.testDbFile = `${FILE_PREFIX}${Date.now()}-${crypto.randomUUID()}.db`;
 
     // To use an in-memory database for faster, ephemeral tests, set url to 'file::memory:'.
     // The default below uses a file-based database, which persists data across test runs and can aid debugging.
@@ -133,7 +135,7 @@ export class TestDB {
       }
     }
 
-    if (this.testDbFile?.startsWith('file:/tmp/test-')) {
+    if (this.testDbFile?.startsWith(FILE_PREFIX)) {
       try {
         const fs = await import('fs/promises');
         const filePath = this.testDbFile.replace('file:', '');
