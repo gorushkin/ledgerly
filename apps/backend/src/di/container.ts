@@ -75,6 +75,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     accountRepository,
     accountFactory,
     saveWithIdRetry,
+    operationRepository,
   );
 
   // Create Account Use Cases
@@ -112,8 +113,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionManager,
     transactionRepository,
     entryFactory,
-    entryRepository,
-    operationRepository,
     ensureEntityExistsAndOwned,
     transactionMapper,
   );
