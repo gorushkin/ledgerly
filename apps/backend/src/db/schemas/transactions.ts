@@ -46,7 +46,7 @@ export type TransactionDbInsert = InferInsertModel<typeof transactionsTable>;
 export type TransactionRepoInsert = TransactionDbInsert;
 
 export type TransactionDbUpdate = Partial<
-  Omit<TransactionDbRow, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+  Omit<TransactionDbRow, 'id' | 'userId' | 'createdAt'>
 >;
 
 // Type for transaction with nested relations (operations as array)

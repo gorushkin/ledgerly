@@ -54,6 +54,7 @@ export class UpdateTransactionUseCase {
       // For now, we will just delete all existing entries and create new ones
       // let's think about a better approach later
       // If entries are undefined, treat as 'no update to entries'
+      // we should compare with existing entries and update accordingly
       if (data.entries === undefined) {
         return this.transactionMapper.toResponseDTO(
           transaction,
@@ -61,7 +62,7 @@ export class UpdateTransactionUseCase {
         );
       }
 
-      await this.softDeleteEntriesByTransactionId(
+      await this.deleteEntriesByTransactionId(
         user.getId().valueOf(),
         transactionId,
       );
@@ -82,22 +83,21 @@ export class UpdateTransactionUseCase {
     });
   }
 
-  private async softDeleteEntriesByTransactionId(
+  private async deleteEntriesByTransactionId(
     userId: UUID,
     transactionId: UUID,
   ): Promise<void> {
-    const softDeletedEntries =
-      await this.entryRepository.softDeleteByTransactionId(
-        userId,
-        transactionId,
-      );
+    const deletedEntries = await this.entryRepository.deleteByTransactionId(
+      userId,
+      transactionId,
+    );
 
-    const entryIds = softDeletedEntries.map((entry) => entry.id);
+    const entryIds = deletedEntries.map((entry) => entry.id);
 
     if (entryIds.length === 0) {
       return;
     }
 
-    await this.operationRepository.softDeleteByEntryIds(userId, entryIds);
+    await this.operationRepository.deleteByEntryIds(userId, entryIds);
   }
 }
