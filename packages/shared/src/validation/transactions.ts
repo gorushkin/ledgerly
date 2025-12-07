@@ -14,10 +14,10 @@ export const operationCreateSchema = z.object({
   description: requiredText,
 });
 
-export const entryCreateSchema = z.tuple([
-  operationCreateSchema,
-  operationCreateSchema,
-]);
+export const entryCreateSchema = z.object({
+  description: requiredText,
+  operations: z.tuple([operationCreateSchema, operationCreateSchema]),
+});
 
 export const transactionCreateSchema = z.object({
   description: requiredText,
@@ -28,8 +28,6 @@ export const transactionCreateSchema = z.object({
 
 export const transactionUpdateSchema = z.object({
   description: requiredText,
-  // Note: Including the `entries` field here allows for complete replacement of all entries during an update.
-  // When updating, old entries are soft-deleted and new ones are created based on the provided array.
   entries: z.array(entryCreateSchema),
   postingDate: isoDate,
   transactionDate: isoDate,
@@ -49,3 +47,4 @@ export const transactionResponseSchema = z.object({
 export type TransactionCreateInput = z.infer<typeof transactionCreateSchema>;
 export type TransactionUpdateInput = z.infer<typeof transactionUpdateSchema>;
 export type TransactionResponse = z.infer<typeof transactionResponseSchema>;
+export type EntryCreateInput = z.infer<typeof entryCreateSchema>;

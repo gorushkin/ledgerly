@@ -37,13 +37,15 @@ export class OperationFactory {
   private addTradingOperations(
     user: User,
     entry: Entry,
-    [fromOperationDTO, toOperationDTO]: CreateEntryRequestDTO,
+    entryData: CreateEntryRequestDTO,
     [fromCurrency, toCurrency]: [Currency, Currency],
     systemAccountsMap: Map<CurrencyCode, Account>,
   ): [TradingOperationDTO, TradingOperationDTO] | [] {
     if (fromCurrency.isEqualTo(toCurrency)) {
       return [];
     }
+
+    const [fromOperationDTO, toOperationDTO] = entryData.operations;
 
     const oppositeFromAmount = Amount.create(fromOperationDTO.amount).negate();
     const oppositeToAmount = Amount.create(toOperationDTO.amount).negate();
@@ -102,10 +104,12 @@ export class OperationFactory {
   async createOperationsForEntry(
     user: User,
     entry: Entry,
-    [fromOperationDTO, toOperationDTO]: CreateEntryRequestDTO,
+    entryData: CreateEntryRequestDTO,
     accountsByIdMap: Map<UUID, Account>,
     currencySystemAccountsMap: Map<CurrencyCode, Account>,
   ) {
+    const [fromOperationDTO, toOperationDTO] = entryData.operations;
+
     const fromAccount = this.getAccountFromMap(
       fromOperationDTO.accountId,
       accountsByIdMap,
@@ -119,7 +123,7 @@ export class OperationFactory {
     const tradingOperationsDTO = this.addTradingOperations(
       user,
       entry,
-      [fromOperationDTO, toOperationDTO],
+      entryData,
       [fromAccount.currency, toAccount.currency],
       currencySystemAccountsMap,
     );

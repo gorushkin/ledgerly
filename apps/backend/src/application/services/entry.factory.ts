@@ -31,9 +31,10 @@ export class EntryFactory {
     const accountIds = new Set<UUID>();
     const currenciesSet = new Set<CurrencyCode>();
 
-    for (const [from, to] of entries) {
-      accountIds.add(from.accountId);
-      accountIds.add(to.accountId);
+    for (const entry of entries) {
+      for (const operation of entry.operations) {
+        accountIds.add(operation.accountId);
+      }
     }
 
     const accountRows = await this.accountRepository.getByIds(
@@ -104,7 +105,8 @@ export class EntryFactory {
     accountsMap: Map<UUID, Account>,
     systemAccountsMap: Map<CurrencyCode, Account>,
   ): Promise<Entry> {
-    const createEntry = () => Entry.create(user, transaction);
+    const createEntry = () =>
+      Entry.create(user, transaction, entryData.description);
 
     const entry = await this.saveEntry(createEntry);
 

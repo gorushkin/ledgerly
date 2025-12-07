@@ -45,7 +45,7 @@ describe('Entry Domain Entity', async () => {
   );
 
   it('should create a valid entry successfully', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     expect(entry).toBeInstanceOf(Entry);
     expect(entry.belongsToTransaction(transaction.getId())).toBe(true);
@@ -54,8 +54,8 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should have a unique ID when created', () => {
-    const entry1 = Entry.create(user, transaction);
-    const entry2 = Entry.create(user, transaction);
+    const entry1 = Entry.create(user, transaction, 'Test Entry');
+    const entry2 = Entry.create(user, transaction, 'Test Entry');
 
     expect(entry1.getId()).toBeDefined();
     expect(entry2.getId()).toBeDefined();
@@ -63,20 +63,20 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should return correct transaction ID', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     expect(entry.getTransactionId().isEqualTo(transaction.getId())).toBe(true);
   });
 
   it('should correctly identify ownership by user', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     expect(entry.belongsToUser(user.getId())).toBe(true);
     expect(entry.belongsToUser(anotherUser.getId())).toBe(false);
   });
 
   it('should correctly identify relationship to transaction', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     const anotherTransaction = Transaction.create(
       user.getId(),
@@ -90,13 +90,13 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should not be deleted when created', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     expect(entry.isDeleted()).toBe(false);
   });
 
   it('should be marked as deleted after markAsDeleted call', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     expect(entry.isDeleted()).toBe(false);
 
@@ -106,7 +106,7 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should remain deleted after multiple markAsDeleted calls', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     entry.markAsDeleted();
     entry.markAsDeleted();
@@ -115,7 +115,7 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should maintain transaction relationship after being marked as deleted', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     entry.markAsDeleted();
 
@@ -124,7 +124,7 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should maintain user ownership after being marked as deleted', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     entry.markAsDeleted();
 
@@ -132,7 +132,7 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should add operations properly', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     const fromUsdOperation = Operation.create(
       user,
@@ -163,7 +163,7 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should throw EmptyOperationsError when adding empty operations array', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     expect(() => entry.addOperations([])).toThrow(EmptyOperationsError);
     expect(() => entry.addOperations([])).toThrow(
@@ -172,7 +172,7 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should throw DeletedEntityOperationError when adding operations to deleted entry', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
     entry.markAsDeleted();
 
     const operation = Operation.create(
@@ -192,8 +192,8 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should throw OperationOwnershipError when operation does not belong to entry', () => {
-    const entry1 = Entry.create(user, transaction);
-    const entry2 = Entry.create(user, transaction);
+    const entry1 = Entry.create(user, transaction, 'Test Entry');
+    const entry2 = Entry.create(user, transaction, 'Test Entry');
 
     const operationForEntry2 = Operation.create(
       user,
@@ -212,7 +212,7 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should throw MissingOperationsError when validating entry without operations', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     expect(() => entry.validateBalance()).toThrow(MissingOperationsError);
     expect(() => entry.validateBalance()).toThrow(
@@ -221,7 +221,7 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should throw DeletedEntityOperationError when validating deleted entry', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     const operation1 = Operation.create(
       user,
@@ -248,7 +248,7 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should throw UnbalancedEntryError when operations do not balance', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     const operation1 = Operation.create(
       user,
@@ -271,7 +271,7 @@ describe('Entry Domain Entity', async () => {
   });
 
   it('should return a copy of operations array (immutability)', () => {
-    const entry = Entry.create(user, transaction);
+    const entry = Entry.create(user, transaction, 'Test Entry');
 
     const operation = Operation.create(
       user,

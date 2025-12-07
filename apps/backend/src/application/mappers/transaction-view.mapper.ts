@@ -12,6 +12,8 @@ import {
   TransactionResponseDTO,
 } from '../dto';
 
+// TODO: This mapper is similar to TransactionMapper but works with DB rows directly.
+// Consider refactoring to reduce code duplication.
 export class TransactionViewMapper {
   static toView(transaction: TransactionWithRelations): TransactionResponseDTO {
     return {
@@ -55,6 +57,7 @@ export class TransactionViewMapper {
 
     return {
       createdAt: entry.createdAt,
+      description: entry.description,
       id: entry.id,
       isTombstone: entry.isTombstone,
       operations,

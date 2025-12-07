@@ -1,13 +1,14 @@
 import {
-  CreateTransactionRequestDTO,
-  UpdateTransactionRequestDTO,
-} from 'src/application';
+  EntryCreateInput,
+  TransactionCreateInput,
+} from '@ledgerly/shared/validation';
+import { UpdateTransactionRequestDTO } from 'src/application';
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
 import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction/GetAllTransactions';
 import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
 import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
 import { User } from 'src/domain';
-import { Id } from 'src/domain/domain-core';
+import { Amount, DateValue, Id } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ZodError } from 'zod';
 
@@ -39,17 +40,19 @@ describe('TransactionController', () => {
 
   const operationFrom = {
     accountId: Id.create().valueOf(),
-    amount: '-100',
+    amount: Amount.create('-100').valueOf(),
     description: 'Test Operation From',
   };
 
   const operationTo = {
     accountId: Id.create().valueOf(),
-    amount: '100',
+    amount: Amount.create('100').valueOf(),
     description: 'Test Operation To',
   };
 
-  const entries = [[operationFrom, operationTo]];
+  const entries: EntryCreateInput[] = [
+    { description: 'Test Entry', operations: [operationFrom, operationTo] },
+  ];
 
   const transactionController = new TransactionController(
     mockCreateTransactionUseCase as unknown as CreateTransactionUseCase,
@@ -64,17 +67,14 @@ describe('TransactionController', () => {
 
   describe('create', () => {
     it('should call CreateTransactionUseCase with correct parameters', async () => {
-      const requestBody = {
+      const requestBody: TransactionCreateInput = {
         description: 'Test Transaction',
         entries,
-        postingDate: '2024-01-01',
-        transactionDate: '2024-01-02',
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
       };
 
-      const result = await transactionController.create(
-        user,
-        requestBody as unknown as CreateTransactionRequestDTO,
-      );
+      const result = await transactionController.create(user, requestBody);
 
       expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledWith(
         user,

@@ -1,6 +1,9 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import { UUID } from '@ledgerly/shared/types';
-import { TransactionUpdateInput } from '@ledgerly/shared/validation';
+import {
+  TransactionCreateInput,
+  TransactionUpdateInput,
+} from '@ledgerly/shared/validation';
 import { TransactionResponseDTO } from 'src/application';
 import {
   EntryDbRow,
@@ -64,21 +67,26 @@ describe('Transactions Integration Tests', () => {
 
       const fromOperation = {
         accountId: account1.id,
-        amount: '-100',
+        amount: Amount.create('-100').valueOf(),
         description: 'Transfer from checking',
       };
 
       const toOperation = {
         accountId: account2.id,
-        amount: '100',
+        amount: Amount.create('100').valueOf(),
         description: 'Transfer to savings',
       };
 
-      const payload = {
+      const payload: TransactionCreateInput = {
         description: 'some transaction',
-        entries: [[fromOperation, toOperation]],
-        postingDate: '2025-11-07',
-        transactionDate: '2025-11-07',
+        entries: [
+          {
+            description: 'Transfer between accounts',
+            operations: [fromOperation, toOperation],
+          },
+        ],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
       };
 
       const response = await server.inject({
@@ -657,18 +665,21 @@ describe('Transactions Integration Tests', () => {
       const payload: TransactionUpdateInput = {
         description: 'Updated description',
         entries: [
-          [
-            {
-              accountId: Id.fromPersistence(accounts[0].id).valueOf(),
-              amount: Amount.create('-70000').valueOf(),
-              description: 'Updated operation 1',
-            },
-            {
-              accountId: Id.fromPersistence(accounts[1].id).valueOf(),
-              amount: Amount.create('10000').valueOf(),
-              description: 'Updated operation 2',
-            },
-          ],
+          {
+            description: 'Updated Entry 1',
+            operations: [
+              {
+                accountId: Id.fromPersistence(accounts[0].id).valueOf(),
+                amount: Amount.create('-70000').valueOf(),
+                description: 'Updated operation 1',
+              },
+              {
+                accountId: Id.fromPersistence(accounts[1].id).valueOf(),
+                amount: Amount.create('10000').valueOf(),
+                description: 'Updated operation 2',
+              },
+            ],
+          },
         ],
         postingDate: DateValue.restore('2025-11-10').valueOf(),
         transactionDate: DateValue.restore('2025-11-10').valueOf(),
@@ -703,10 +714,12 @@ describe('Transactions Integration Tests', () => {
       expect(updatedTransaction.entries.length).toBe(payload.entries.length);
 
       updatedTransaction.entries.forEach((entry, index) => {
-        expect(entry.operations.length).toBe(payload.entries[index].length);
+        expect(entry.operations.length).toBe(
+          payload.entries[index].operations.length,
+        );
 
         entry.operations.forEach((op, opIndex) => {
-          const payloadOp = payload.entries[index][opIndex];
+          const payloadOp = payload.entries[index].operations[opIndex];
           expect(op.accountId).toBe(payloadOp.accountId);
           expect(op.amount).toBe(payloadOp.amount);
           expect(op.description).toBe(payloadOp.description);

@@ -84,7 +84,7 @@ describe('EntryFactory', () => {
       AccountType.create('asset'),
     );
 
-    mockEntry = Entry.create(user, transaction);
+    mockEntry = Entry.create(user, transaction, 'Mock Entry 1');
 
     operationFrom = Operation.create(
       user,
@@ -111,18 +111,21 @@ describe('EntryFactory', () => {
     const mockOperations = [operationFrom, operationTo];
 
     const rawEntries: CreateEntryRequestDTO[] = [
-      [
-        {
-          accountId: account1.getId().valueOf(),
-          amount: Amount.create('100').valueOf(),
-          description: 'Operation 1',
-        },
-        {
-          accountId: account2.getId().valueOf(),
-          amount: Amount.create('-100').valueOf(),
-          description: 'Operation 2',
-        },
-      ],
+      {
+        description: mockEntry.description,
+        operations: [
+          {
+            accountId: operationFrom.getAccountId().valueOf(),
+            amount: operationFrom.amount.valueOf(),
+            description: operationFrom.description,
+          },
+          {
+            accountId: operationTo.getAccountId().valueOf(),
+            amount: operationTo.amount.valueOf(),
+            description: operationTo.description,
+          },
+        ],
+      },
     ];
 
     mockAccountRepository.getByIds.mockResolvedValueOnce([
@@ -144,7 +147,45 @@ describe('EntryFactory', () => {
       rawEntries,
     );
 
-    expect(result).toHaveLength(1);
+    expect(result).toHaveLength(rawEntries.length);
+
+    const checkedEntries = new Set(rawEntries.map((e) => e.description));
+
+    result.forEach((entry) => {
+      const rawEntry = rawEntries.find((e) => {
+        return e.description === entry.description;
+      });
+
+      if (rawEntry) {
+        checkedEntries.delete(rawEntry.description);
+        expect(entry.description).toBe(rawEntry.description);
+      }
+
+      expect(entry).toBeInstanceOf(Entry);
+
+      const checkedOperations = new Set(
+        rawEntry?.operations.map((op) => op.accountId),
+      );
+
+      entry.getOperations().forEach((operation) => {
+        const rawOperation = rawEntry?.operations.find((op) => {
+          return op.accountId === operation.getAccountId().valueOf();
+        });
+
+        if (rawOperation) {
+          checkedOperations.delete(rawOperation.accountId);
+
+          expect(operation.getAccountId().valueOf()).toBe(
+            rawOperation.accountId,
+          );
+          expect(operation.amount.valueOf()).toBe(rawOperation.amount);
+          expect(operation.description).toBe(rawOperation.description);
+        }
+      });
+      expect(checkedOperations.size).toBe(0);
+    });
+
+    expect(checkedEntries.size).toBe(0);
 
     const entry = result[0];
 

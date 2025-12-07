@@ -122,18 +122,21 @@ describe('CreateTransactionUseCase', () => {
       mockedSaveWithIdRetry.mockResolvedValue(transaction);
 
       const entries: CreateEntryRequestDTO[] = [
-        [
-          {
-            accountId: usdAccount.getId().valueOf(),
-            amount: Amount.create('100').valueOf(),
-            description: 'Operation 1',
-          },
-          {
-            accountId: eurAccount.getId().valueOf(),
-            amount: Amount.create('100').valueOf(),
-            description: 'Operation 1',
-          },
-        ],
+        {
+          description: 'Entry 1',
+          operations: [
+            {
+              accountId: usdAccount.getId().valueOf(),
+              amount: Amount.create('100').valueOf(),
+              description: 'Operation 1',
+            },
+            {
+              accountId: eurAccount.getId().valueOf(),
+              amount: Amount.create('100').valueOf(),
+              description: 'Operation 1',
+            },
+          ],
+        },
       ];
 
       const data: CreateTransactionRequestDTO = {

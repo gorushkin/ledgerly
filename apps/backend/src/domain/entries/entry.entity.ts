@@ -48,7 +48,7 @@ export class Entry {
   static create(
     user: User,
     transaction: Transaction,
-    description = '',
+    description: string,
     operations?: Operation[],
   ): Entry {
     const identity = EntityIdentity.create();
