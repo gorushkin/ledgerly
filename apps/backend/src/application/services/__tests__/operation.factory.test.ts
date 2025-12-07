@@ -148,7 +148,7 @@ describe('OperationFactory', () => {
     );
 
     expect(mockedSaveWithIdRetry).toHaveBeenCalledTimes(
-      Object.keys(entriesRaw).length,
+      entriesRaw.operations.length,
     );
 
     operations.forEach((operation, index) => {
@@ -170,7 +170,7 @@ describe('OperationFactory', () => {
       expect(operation).toBeInstanceOf(Operation);
     });
 
-    expect(operations).toHaveLength(Object.keys(entriesRaw).length);
+    expect(operations).toHaveLength(entriesRaw.operations.length);
   });
 
   it('should throw an error if account not found', async () => {
