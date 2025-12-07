@@ -36,6 +36,9 @@ jobs:
           echo "Contents of .env file:"
           cat .env
 
+      - name: Create data directory for SQLite
+        run: mkdir -p apps/backend/data
+
       - name: TypeScript type check (backend only)
         run: pnpm --filter backend run type-check
 

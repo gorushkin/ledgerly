@@ -1,7 +1,12 @@
+import { MoneyString } from '@ledgerly/shared/types';
+
 import { Amount } from '../../domain/domain-core/value-objects/Amount';
 
 export class AmountFormatter {
-  private minorToMajor(minorUnits: string): { major: string; minor: string } {
+  private minorToMajor(minorUnits: MoneyString): {
+    major: string;
+    minor: string;
+  } {
     const isNegative = minorUnits.startsWith('-');
     const absoluteValue = isNegative ? minorUnits.slice(1) : minorUnits;
 
