@@ -104,10 +104,10 @@ describe('OperationFactory', () => {
       description: 'Operation to',
     };
 
-    const operationsRaw: CreateEntryRequestDTO = [
-      operationFromDTO,
-      operationToDTO,
-    ];
+    const entriesRaw: CreateEntryRequestDTO = {
+      description: 'Test Entry',
+      operations: [operationFromDTO, operationToDTO],
+    };
 
     const mockedOperationFrom = Operation.create(
       user,
@@ -142,20 +142,20 @@ describe('OperationFactory', () => {
     const operations = await operationFactory.createOperationsForEntry(
       user,
       entry,
-      operationsRaw,
+      entriesRaw,
       accountsByIdMap,
       currencySystemAccountsMap,
     );
 
     expect(mockedSaveWithIdRetry).toHaveBeenCalledTimes(
-      Object.keys(operationsRaw).length,
+      entriesRaw.operations.length,
     );
 
     operations.forEach((operation, index) => {
       expect(operation).toBeInstanceOf(Operation);
       expect(operation.getId()).toBeDefined();
       expect(operation.belongsToUser(user.getId())).toBe(true);
-      const expectedData = operationsRaw[index];
+      const expectedData = entriesRaw.operations[index];
       expect(operation.amount.valueOf()).toBe(expectedData.amount);
       expect(operation.description).toBe(expectedData.description);
     });
@@ -170,22 +170,25 @@ describe('OperationFactory', () => {
       expect(operation).toBeInstanceOf(Operation);
     });
 
-    expect(operations).toHaveLength(Object.keys(operationsRaw).length);
+    expect(operations).toHaveLength(entriesRaw.operations.length);
   });
 
   it('should throw an error if account not found', async () => {
-    const operationsRaw: CreateEntryRequestDTO = [
-      {
-        accountId: usdAccount1.getId().valueOf(),
-        amount: Amount.create('100').valueOf(),
-        description: 'Operation 1',
-      },
-      {
-        accountId: usdAccount2.getId().valueOf(),
-        amount: Amount.create('100').valueOf(),
-        description: 'Operation 1',
-      },
-    ];
+    const entriesRaw: CreateEntryRequestDTO = {
+      description: 'Test Entry',
+      operations: [
+        {
+          accountId: usdAccount1.getId().valueOf(),
+          amount: Amount.create('100').valueOf(),
+          description: 'Operation 1',
+        },
+        {
+          accountId: usdAccount2.getId().valueOf(),
+          amount: Amount.create('100').valueOf(),
+          description: 'Operation 1',
+        },
+      ],
+    };
 
     // Create accountsMap with missing account
     const accountsMap = new Map([
@@ -202,12 +205,12 @@ describe('OperationFactory', () => {
       operationFactory.createOperationsForEntry(
         user,
         entry,
-        operationsRaw,
+        entriesRaw,
         accountsMap,
         currencySystemAccountsMap,
       ),
     ).rejects.toThrowError(
-      `Account not found in map: ${operationsRaw[0].accountId}`,
+      `Account not found in map: ${entriesRaw.operations[0].accountId}`,
     );
   });
 
@@ -240,16 +243,19 @@ describe('OperationFactory', () => {
       },
     };
 
-    const operationsRaw: CreateEntryRequestDTO = [
-      {
-        ...testData.from.operation,
-        amount: testData.from.amount.valueOf(),
-      },
-      {
-        ...testData.to.operation,
-        amount: testData.to.amount.valueOf(),
-      },
-    ];
+    const entryOperationsInput: CreateEntryRequestDTO = {
+      description: 'Test Entry',
+      operations: [
+        {
+          ...testData.from.operation,
+          amount: testData.from.amount.valueOf(),
+        },
+        {
+          ...testData.to.operation,
+          amount: testData.to.amount.valueOf(),
+        },
+      ],
+    };
 
     // Create accountsMap for the new signature (only user accounts, system accounts will be fetched separately)
     const accountsMap = new Map([
@@ -303,7 +309,7 @@ describe('OperationFactory', () => {
     const operations = await operationFactory.createOperationsForEntry(
       user,
       entry,
-      operationsRaw,
+      entryOperationsInput,
       accountsMap,
       currencySystemAccountsMap,
     );
@@ -344,7 +350,7 @@ describe('OperationFactory', () => {
       expect(operation.currency.valueOf()).toBe(match.currency.valueOf());
     });
 
-    for (let i = 0; i < operationsRaw.length; i++) {
+    for (let i = 0; i < entryOperationsInput.operations.length; i++) {
       const resultOperation = operations[i];
       const systemOperation = operations[i + 2];
       const systemAmount = Amount.fromPersistence(
@@ -358,18 +364,21 @@ describe('OperationFactory', () => {
   });
 
   it('should throw an error if the balances of operations do not equal zero', async () => {
-    const operationsRaw: CreateEntryRequestDTO = [
-      {
-        accountId: usdAccount1.getId().valueOf(),
-        amount: Amount.create('100').valueOf(),
-        description: 'Operation 1',
-      },
-      {
-        accountId: usdAccount2.getId().valueOf(),
-        amount: Amount.create('100').valueOf(),
-        description: 'Operation 1',
-      },
-    ];
+    const entriesRaw: CreateEntryRequestDTO = {
+      description: 'Test Entry',
+      operations: [
+        {
+          accountId: usdAccount1.getId().valueOf(),
+          amount: Amount.create('100').valueOf(),
+          description: 'Operation 1',
+        },
+        {
+          accountId: usdAccount2.getId().valueOf(),
+          amount: Amount.create('100').valueOf(),
+          description: 'Operation 1',
+        },
+      ],
+    };
 
     // Create accountsMap for the new signature
     const accountsMap = new Map([
@@ -385,7 +394,7 @@ describe('OperationFactory', () => {
       operationFactory.createOperationsForEntry(
         user,
         entry,
-        operationsRaw,
+        entriesRaw,
         accountsMap,
         currencySystemAccountsMap,
       ),

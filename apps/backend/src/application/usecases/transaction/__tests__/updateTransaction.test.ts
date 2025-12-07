@@ -190,18 +190,21 @@ describe('UpdateTransactionUseCase', () => {
     const updateData: UpdateTransactionRequestDTO = {
       description: 'Updated Transaction Description with Entries',
       entries: [
-        [
-          {
-            accountId: newOperationFrom.getAccountId().valueOf(),
-            amount: newOperationFrom.amount.valueOf(),
-            description: newOperationFrom.description,
-          },
-          {
-            accountId: newOperationTo.getAccountId().valueOf(),
-            amount: newOperationTo.amount.valueOf(),
-            description: newOperationTo.description,
-          },
-        ],
+        {
+          description: newEntry.description,
+          operations: [
+            {
+              accountId: newOperationFrom.getAccountId().valueOf(),
+              amount: newOperationFrom.amount.valueOf(),
+              description: newOperationFrom.description,
+            },
+            {
+              accountId: newOperationTo.getAccountId().valueOf(),
+              amount: newOperationTo.amount.valueOf(),
+              description: newOperationTo.description,
+            },
+          ],
+        },
       ],
       postingDate: transactionDBRow.postingDate,
       transactionDate: transactionDBRow.transactionDate,
@@ -238,6 +241,7 @@ describe('UpdateTransactionUseCase', () => {
 
     const entryResponseDTO: EntryResponseDTO = {
       createdAt: newEntry.getCreatedAt().valueOf(),
+      description: newEntry.description,
       id: newEntry.getId().valueOf(),
       isTombstone: newEntry.isDeleted(),
       operations,

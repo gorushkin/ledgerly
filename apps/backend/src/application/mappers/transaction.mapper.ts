@@ -64,6 +64,7 @@ export class TransactionMapper implements TransactionMapperInterface {
 
     return {
       createdAt: entryData.createdAt,
+      description: entryData.description,
       id: entryData.id,
       isTombstone: entryData.isTombstone,
       operations: [userOperations[0], userOperations[1]],

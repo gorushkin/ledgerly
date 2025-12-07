@@ -11,6 +11,7 @@ export class EntryMapper {
 
     return {
       createdAt: entry.getCreatedAt().valueOf(),
+      description: entry.description,
       id: entry.getId().valueOf(),
       isTombstone: entry.isDeleted(),
       operations,

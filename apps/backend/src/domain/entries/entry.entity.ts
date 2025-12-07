@@ -31,6 +31,7 @@ export class Entry {
   private constructor(
     identity: EntityIdentity,
     timestamps: EntityTimestamps,
+    public description: string,
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
     transactionRelation: ParentChildRelation,
@@ -47,6 +48,7 @@ export class Entry {
   static create(
     user: User,
     transaction: Transaction,
+    description: string,
     operations?: Operation[],
   ): Entry {
     const identity = EntityIdentity.create();
@@ -65,6 +67,7 @@ export class Entry {
     const entry = new Entry(
       identity,
       timestamps,
+      description,
       softDelete,
       ownership,
       transactionRelation,
@@ -117,6 +120,7 @@ export class Entry {
   toPersistence(): EntryDbRow {
     return {
       createdAt: this.getCreatedAt().valueOf(),
+      description: this.description,
       id: this.identity.getId().valueOf(),
       isTombstone: this.isDeleted(),
       transactionId: this.getTransactionId().valueOf(),

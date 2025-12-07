@@ -8,10 +8,10 @@ import {
 
 // Request DTOs for creation
 
-export type CreateEntryRequestDTO = [
-  CreateOperationRequestDTO,
-  CreateOperationRequestDTO,
-];
+export type CreateEntryRequestDTO = {
+  operations: [CreateOperationRequestDTO, CreateOperationRequestDTO];
+  description: string;
+};
 
 export type EntryOperationsResponseDTO = [
   OperationResponseDTO,
@@ -34,6 +34,7 @@ export type EntryResponseDTO = {
   updatedAt: IsoDatetimeString;
   operations: EntryOperationsResponseDTO;
   isTombstone: boolean;
+  description: string;
   userId: UUID;
 };
 

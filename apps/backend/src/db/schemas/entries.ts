@@ -4,7 +4,7 @@ import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import { transactionsTable, usersTable } from '../schema';
 
-import { id, createdAt, updatedAt, isTombstone } from './common';
+import { id, createdAt, updatedAt, isTombstone, description } from './common';
 import { operationsTable } from './operations';
 import type { OperationDbRow } from './operations';
 
@@ -12,6 +12,7 @@ export const entriesTable = sqliteTable(
   'entries',
   {
     createdAt,
+    description,
     id,
     isTombstone,
     transactionId: text('transaction_id')
