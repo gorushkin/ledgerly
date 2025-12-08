@@ -4,8 +4,6 @@ import {
   UpdateTransactionRequestDTO,
 } from 'src/application/dto';
 import {
-  EntryRepositoryInterface,
-  OperationRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -19,11 +17,10 @@ export class UpdateTransactionUseCase {
     protected readonly transactionManager: TransactionManagerInterface,
     protected readonly transactionRepository: TransactionRepositoryInterface,
     protected readonly entryFactory: EntryFactory,
-    protected readonly entryRepository: EntryRepositoryInterface,
-    protected readonly operationRepository: OperationRepositoryInterface,
     protected readonly ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn,
     protected readonly transactionMapper: TransactionMapperInterface,
   ) {}
+
   execute(
     user: User,
     transactionId: UUID,
@@ -62,42 +59,14 @@ export class UpdateTransactionUseCase {
         );
       }
 
-      await this.deleteEntriesByTransactionId(
-        user.getId().valueOf(),
-        transactionId,
-      );
+      const withNewEntriesTransaction =
+        await this.entryFactory.updateEntriesForTransaction({
+          newEntriesData: data.entries,
+          transaction,
+          user,
+        });
 
-      const entries = await this.entryFactory.createEntriesWithOperations(
-        user,
-        transaction,
-        data.entries,
-      );
-
-      for (const entry of entries) {
-        transaction.addEntry(entry);
-      }
-
-      transaction.validateEntriesBalance();
-
-      return this.transactionMapper.toResponseDTO(transaction);
+      return this.transactionMapper.toResponseDTO(withNewEntriesTransaction);
     });
-  }
-
-  private async deleteEntriesByTransactionId(
-    userId: UUID,
-    transactionId: UUID,
-  ): Promise<void> {
-    const deletedEntries = await this.entryRepository.deleteByTransactionId(
-      userId,
-      transactionId,
-    );
-
-    const entryIds = deletedEntries.map((entry) => entry.id);
-
-    if (entryIds.length === 0) {
-      return;
-    }
-
-    await this.operationRepository.deleteByEntryIds(userId, entryIds);
   }
 }

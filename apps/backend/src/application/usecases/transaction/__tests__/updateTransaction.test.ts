@@ -1,12 +1,11 @@
 import { TransactionMapperInterface } from 'src/application';
 import {
+  CreateEntryRequestDTO,
   EntryResponseDTO,
   TransactionResponseDTO,
   UpdateTransactionRequestDTO,
 } from 'src/application/dto';
 import {
-  EntryRepositoryInterface,
-  OperationRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -50,15 +49,7 @@ describe('UpdateTransactionUseCase', () => {
   };
 
   const entryFactory = {
-    createEntriesWithOperations: vi.fn(),
-  };
-
-  const mockEntryRepository = {
-    deleteByTransactionId: vi.fn(),
-  };
-
-  const mockOperationRepository = {
-    deleteByEntryIds: vi.fn(),
+    updateEntriesForTransaction: vi.fn(),
   };
 
   const mockEnsureEntityExistsAndOwned = vi.fn();
@@ -71,8 +62,6 @@ describe('UpdateTransactionUseCase', () => {
     transactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
     entryFactory as unknown as EntryFactory,
-    mockEntryRepository as unknown as EntryRepositoryInterface,
-    mockOperationRepository as unknown as OperationRepositoryInterface,
     mockEnsureEntityExistsAndOwned,
     transactionMapper as unknown as TransactionMapperInterface,
   );
@@ -185,9 +174,7 @@ describe('UpdateTransactionUseCase', () => {
 
     const entries = [newEntry];
 
-    entryFactory.createEntriesWithOperations.mockResolvedValue(entries);
-
-    const updateData: UpdateTransactionRequestDTO = {
+    const updatedTransactionPayload: UpdateTransactionRequestDTO = {
       description: 'Updated Transaction Description with Entries',
       entries: [
         {
@@ -263,25 +250,25 @@ describe('UpdateTransactionUseCase', () => {
 
     transactionMapper.toResponseDTO.mockReturnValue({
       ...mockedResultWithUpdatingEntries,
-      description: updateData.description,
+      description: updatedTransactionPayload.description,
     });
-
-    const softDeletedEntries = entries.map((e) => e.toPersistence());
-
-    mockEntryRepository.deleteByTransactionId.mockResolvedValue(
-      softDeletedEntries,
-    );
 
     const updatedTransaction = await updateTransactionUseCase.execute(
       user,
       transactionDBRow.id,
-      updateData,
+      updatedTransactionPayload,
     );
 
     expect(updatedTransaction.id).toBe(transactionDBRow.id);
-    expect(updatedTransaction.description).toBe(updateData.description);
-    expect(updatedTransaction.postingDate).toBe(updateData.postingDate);
-    expect(updatedTransaction.transactionDate).toBe(updateData.transactionDate);
+    expect(updatedTransaction.description).toBe(
+      updatedTransactionPayload.description,
+    );
+    expect(updatedTransaction.postingDate).toBe(
+      updatedTransactionPayload.postingDate,
+    );
+    expect(updatedTransaction.transactionDate).toBe(
+      updatedTransactionPayload.transactionDate,
+    );
 
     expect(updatedTransaction.entries).toHaveLength(entries.length);
 
@@ -289,26 +276,27 @@ describe('UpdateTransactionUseCase', () => {
       user.getId().valueOf(),
       transactionDBRow.id,
       expect.objectContaining({
-        description: updateData.description,
+        description: updatedTransactionPayload.description,
       }),
     );
 
-    expect(mockEntryRepository.deleteByTransactionId).toHaveBeenCalledWith(
-      user.getId().valueOf(),
-      transactionDBRow.id,
+    expect(entryFactory.updateEntriesForTransaction).toHaveBeenCalledTimes(1);
+
+    const actualCall = entryFactory.updateEntriesForTransaction.mock
+      .calls[0][0] as {
+      user: User;
+      newEntriesData: CreateEntryRequestDTO[];
+      transaction: Transaction;
+    };
+
+    expect(actualCall.user).toBe(user);
+    expect(actualCall.newEntriesData).toEqual(
+      updatedTransactionPayload.entries,
     );
-
-    expect(mockOperationRepository.deleteByEntryIds).toHaveBeenCalledTimes(1);
-
-    expect(mockOperationRepository.deleteByEntryIds).toHaveBeenCalledWith(
-      user.getId().valueOf(),
-      softDeletedEntries.map((e) => e.id),
-    );
-
-    expect(entryFactory.createEntriesWithOperations).toHaveBeenCalledWith(
-      user,
-      expect.any(Transaction),
-      updateData.entries,
+    expect(actualCall.transaction).toBeInstanceOf(Transaction);
+    expect(actualCall.transaction.getId().valueOf()).toBe(transactionDBRow.id);
+    expect(actualCall.transaction.description).toBe(
+      updatedTransactionPayload.description,
     );
 
     updatedTransaction.entries.forEach((entry) => {

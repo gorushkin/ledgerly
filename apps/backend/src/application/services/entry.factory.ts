@@ -6,6 +6,7 @@ import { CreateEntryRequestDTO } from '../dto';
 import {
   AccountRepositoryInterface,
   EntryRepositoryInterface,
+  OperationRepositoryInterface,
 } from '../interfaces';
 import { SaveWithIdRetryType } from '../shared/saveWithIdRetry';
 
@@ -19,9 +20,10 @@ export class EntryFactory {
     protected readonly accountRepository: AccountRepositoryInterface,
     protected readonly accountFactory: AccountFactory,
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
+    protected readonly operationRepository: OperationRepositoryInterface,
   ) {}
 
-  async preloadAccounts(
+  private async preloadAccounts(
     user: User,
     entries: CreateEntryRequestDTO[],
   ): Promise<{
@@ -52,7 +54,7 @@ export class EntryFactory {
     return { accountsMap, currenciesSet };
   }
 
-  async preloadSystemAccounts(
+  private async preloadSystemAccounts(
     user: User,
     currenciesSet: Set<CurrencyCode>,
   ): Promise<Map<CurrencyCode, Account>> {
@@ -128,5 +130,52 @@ export class EntryFactory {
       this.entryRepository.create.bind(this.entryRepository),
       createEntry,
     );
+  }
+
+  private async deleteEntriesByTransactionId(
+    userId: UUID,
+    transactionId: UUID,
+  ): Promise<void> {
+    const deletedEntries = await this.entryRepository.deleteByTransactionId(
+      userId,
+      transactionId,
+    );
+
+    const entryIds = deletedEntries.map((entry) => entry.id);
+
+    if (entryIds.length === 0) {
+      return;
+    }
+
+    await this.operationRepository.deleteByEntryIds(userId, entryIds);
+  }
+
+  async updateEntriesForTransaction({
+    newEntriesData,
+    transaction,
+    user,
+  }: {
+    newEntriesData: CreateEntryRequestDTO[];
+    transaction: Transaction;
+    user: User;
+  }): Promise<Transaction> {
+    await this.deleteEntriesByTransactionId(
+      user.getId().valueOf(),
+      transaction.getId().valueOf(),
+    );
+
+    const entries = await this.createEntriesWithOperations(
+      user,
+      transaction,
+      newEntriesData,
+    );
+
+    for (const entry of entries) {
+      transaction.addEntry(entry);
+    }
+
+    transaction.validateEntriesBalance();
+
+    return transaction;
   }
 }
