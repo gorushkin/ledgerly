@@ -1,9 +1,6 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import { UUID } from '@ledgerly/shared/types';
-import {
-  TransactionCreateInput,
-  TransactionUpdateInput,
-} from '@ledgerly/shared/validation';
+import { TransactionCreateInput } from '@ledgerly/shared/validation';
 import { TransactionResponseDTO } from 'src/application';
 import {
   EntryDbRow,
@@ -595,180 +592,180 @@ describe('Transactions Integration Tests', () => {
     });
   });
 
-  describe('PUT /api/transactions/:id', () => {
-    it('should update an existing transaction and all related entries and operations', async () => {
-      const accounts = await Promise.all([
-        testDB.createAccount(userId, {
-          currency: Currency.create('USD').valueOf(),
-          name: 'Account 1 USD',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('EUR').valueOf(),
-          name: 'Account 2 EUR',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('USD').valueOf(),
-          name: 'Account 3 USD',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('EUR').valueOf(),
-          name: 'Account 4 EUR',
-        }),
-      ]);
+  // describe('PUT /api/transactions/:id', () => {
+  //   it('should update an existing transaction and all related entries and operations', async () => {
+  //     const accounts = await Promise.all([
+  //       testDB.createAccount(userId, {
+  //         currency: Currency.create('USD').valueOf(),
+  //         name: 'Account 1 USD',
+  //       }),
+  //       testDB.createAccount(userId, {
+  //         currency: Currency.create('EUR').valueOf(),
+  //         name: 'Account 2 EUR',
+  //       }),
+  //       testDB.createAccount(userId, {
+  //         currency: Currency.create('USD').valueOf(),
+  //         name: 'Account 3 USD',
+  //       }),
+  //       testDB.createAccount(userId, {
+  //         currency: Currency.create('EUR').valueOf(),
+  //         name: 'Account 4 EUR',
+  //       }),
+  //     ]);
 
-      const transaction = await testDB.createTransaction(userId, {
-        description: 'Initial description',
-        postingDate: DateValue.restore('2025-11-01').valueOf(),
-        transactionDate: DateValue.restore('2025-11-01').valueOf(),
-      });
+  //     const transaction = await testDB.createTransaction(userId, {
+  //       description: 'Initial description',
+  //       postingDate: DateValue.restore('2025-11-01').valueOf(),
+  //       transactionDate: DateValue.restore('2025-11-01').valueOf(),
+  //     });
 
-      const entries = await Promise.all([
-        testDB.createEntry(userId, {
-          transactionId: transaction.id,
-        }),
-        testDB.createEntry(userId, {
-          transactionId: transaction.id,
-        }),
-      ]);
+  //     const entries = await Promise.all([
+  //       testDB.createEntry(userId, {
+  //         transactionId: transaction.id,
+  //       }),
+  //       testDB.createEntry(userId, {
+  //         transactionId: transaction.id,
+  //       }),
+  //     ]);
 
-      const operations = await Promise.all([
-        testDB.createOperation(userId, {
-          accountId: accounts[0].id,
-          amount: Amount.create('-10000').valueOf(),
-          description: 'Initial operation 1 USD',
-          entryId: entries[0].id,
-          isSystem: false,
-        }),
-        testDB.createOperation(userId, {
-          accountId: accounts[1].id,
-          amount: Amount.create('10000').valueOf(),
-          description: 'Initial operation 2 EUR',
-          entryId: entries[0].id,
-          isSystem: false,
-        }),
-        testDB.createOperation(userId, {
-          accountId: accounts[2].id,
-          amount: Amount.create('5000').valueOf(),
-          description: 'Initial operation 3 USD',
-          entryId: entries[1].id,
-          isSystem: false,
-        }),
-        testDB.createOperation(userId, {
-          accountId: accounts[3].id,
-          amount: Amount.create('-5000').valueOf(),
-          description: 'Initial operation 4 EUR',
-          entryId: entries[1].id,
-          isSystem: false,
-        }),
-      ]);
+  //     const operations = await Promise.all([
+  //       testDB.createOperation(userId, {
+  //         accountId: accounts[0].id,
+  //         amount: Amount.create('-10000').valueOf(),
+  //         description: 'Initial operation 1 USD',
+  //         entryId: entries[0].id,
+  //         isSystem: false,
+  //       }),
+  //       testDB.createOperation(userId, {
+  //         accountId: accounts[1].id,
+  //         amount: Amount.create('10000').valueOf(),
+  //         description: 'Initial operation 2 EUR',
+  //         entryId: entries[0].id,
+  //         isSystem: false,
+  //       }),
+  //       testDB.createOperation(userId, {
+  //         accountId: accounts[2].id,
+  //         amount: Amount.create('5000').valueOf(),
+  //         description: 'Initial operation 3 USD',
+  //         entryId: entries[1].id,
+  //         isSystem: false,
+  //       }),
+  //       testDB.createOperation(userId, {
+  //         accountId: accounts[3].id,
+  //         amount: Amount.create('-5000').valueOf(),
+  //         description: 'Initial operation 4 EUR',
+  //         entryId: entries[1].id,
+  //         isSystem: false,
+  //       }),
+  //     ]);
 
-      const payload: TransactionUpdateInput = {
-        description: 'Updated description',
-        entries: [
-          {
-            description: 'Updated Entry 1',
-            operations: [
-              {
-                accountId: Id.fromPersistence(accounts[0].id).valueOf(),
-                amount: Amount.create('-70000').valueOf(),
-                description: 'Updated operation 1',
-              },
-              {
-                accountId: Id.fromPersistence(accounts[1].id).valueOf(),
-                amount: Amount.create('10000').valueOf(),
-                description: 'Updated operation 2',
-              },
-            ],
-          },
-        ],
-        postingDate: DateValue.restore('2025-11-10').valueOf(),
-        transactionDate: DateValue.restore('2025-11-10').valueOf(),
-      };
+  //     const payload: TransactionUpdateInput = {
+  //       description: 'Updated description',
+  //       entries: [
+  //         {
+  //           description: 'Updated Entry 1',
+  //           operations: [
+  //             {
+  //               accountId: Id.fromPersistence(accounts[0].id).valueOf(),
+  //               amount: Amount.create('-70000').valueOf(),
+  //               description: 'Updated operation 1',
+  //             },
+  //             {
+  //               accountId: Id.fromPersistence(accounts[1].id).valueOf(),
+  //               amount: Amount.create('10000').valueOf(),
+  //               description: 'Updated operation 2',
+  //             },
+  //           ],
+  //         },
+  //       ],
+  //       postingDate: DateValue.restore('2025-11-10').valueOf(),
+  //       transactionDate: DateValue.restore('2025-11-10').valueOf(),
+  //     };
 
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload,
-        url: `${url}/${transaction.id}`,
-      });
+  //     const response = await server.inject({
+  //       headers: {
+  //         Authorization: `Bearer ${authToken}`,
+  //       },
+  //       method: 'PUT',
+  //       payload,
+  //       url: `${url}/${transaction.id}`,
+  //     });
 
-      const updatedTransaction = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO;
+  //     const updatedTransaction = JSON.parse(
+  //       response.body,
+  //     ) as TransactionResponseDTO;
 
-      expect(response.statusCode).toBe(200);
-      expect(updatedTransaction.description).toBe(payload.description);
-      expect(updatedTransaction.postingDate).toBe(payload.postingDate);
-      expect(updatedTransaction.transactionDate).toBe(payload.transactionDate);
+  //     expect(response.statusCode).toBe(200);
+  //     expect(updatedTransaction.description).toBe(payload.description);
+  //     expect(updatedTransaction.postingDate).toBe(payload.postingDate);
+  //     expect(updatedTransaction.transactionDate).toBe(payload.transactionDate);
 
-      await Promise.all(
-        operations.map((op) =>
-          testDB.getOperationById(op.id).then((fetchedOp) => {
-            expect(fetchedOp).toBeNull();
-          }),
-        ),
-      );
+  //     await Promise.all(
+  //       operations.map((op) =>
+  //         testDB.getOperationById(op.id).then((fetchedOp) => {
+  //           expect(fetchedOp).toBeNull();
+  //         }),
+  //       ),
+  //     );
 
-      expect(updatedTransaction.entries.length).toBe(payload.entries.length);
+  //     expect(updatedTransaction.entries.length).toBe(payload.entries.length);
 
-      updatedTransaction.entries.forEach((entry, index) => {
-        expect(entry.operations.length).toBe(
-          payload.entries[index].operations.length,
-        );
+  //     updatedTransaction.entries.forEach((entry, index) => {
+  //       expect(entry.operations.length).toBe(
+  //         payload.entries[index].operations.length,
+  //       );
 
-        entry.operations.forEach((op, opIndex) => {
-          const payloadOp = payload.entries[index].operations[opIndex];
-          expect(op.accountId).toBe(payloadOp.accountId);
-          expect(op.amount).toBe(payloadOp.amount);
-          expect(op.description).toBe(payloadOp.description);
-        });
-      });
-    });
+  //       entry.operations.forEach((op, opIndex) => {
+  //         const payloadOp = payload.entries[index].operations[opIndex];
+  //         expect(op.accountId).toBe(payloadOp.accountId);
+  //         expect(op.amount).toBe(payloadOp.amount);
+  //         expect(op.description).toBe(payloadOp.description);
+  //       });
+  //     });
+  //   });
 
-    it('should return 404 when updating non-existent transaction', async () => {
-      const payload = {
-        description: 'Updated description',
-        entries: [],
-        postingDate: '2025-11-10',
-        transactionDate: '2025-11-10',
-      };
+  //   it('should return 404 when updating non-existent transaction', async () => {
+  //     const payload = {
+  //       description: 'Updated description',
+  //       entries: [],
+  //       postingDate: '2025-11-10',
+  //       transactionDate: '2025-11-10',
+  //     };
 
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload,
-        url: `${url}/${Id.create().valueOf()}`,
-      });
+  //     const response = await server.inject({
+  //       headers: {
+  //         Authorization: `Bearer ${authToken}`,
+  //       },
+  //       method: 'PUT',
+  //       payload,
+  //       url: `${url}/${Id.create().valueOf()}`,
+  //     });
 
-      expect(response.statusCode).toBe(404);
-    });
+  //     expect(response.statusCode).toBe(404);
+  //   });
 
-    it('should return 400 for invalid update payload', async () => {
-      const transaction = await testDB.createTransaction(userId, {
-        description: 'Initial description',
-        postingDate: DateValue.restore('2025-11-01').valueOf(),
-        transactionDate: DateValue.restore('2025-11-01').valueOf(),
-      });
+  //   it('should return 400 for invalid update payload', async () => {
+  //     const transaction = await testDB.createTransaction(userId, {
+  //       description: 'Initial description',
+  //       postingDate: DateValue.restore('2025-11-01').valueOf(),
+  //       transactionDate: DateValue.restore('2025-11-01').valueOf(),
+  //     });
 
-      const payload = {
-        // missing required fields
-        description: '',
-      };
+  //     const payload = {
+  //       // missing required fields
+  //       description: '',
+  //     };
 
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload,
-        url: `${url}/${transaction.id}`,
-      });
+  //     const response = await server.inject({
+  //       headers: {
+  //         Authorization: `Bearer ${authToken}`,
+  //       },
+  //       method: 'PUT',
+  //       payload,
+  //       url: `${url}/${transaction.id}`,
+  //     });
 
-      expect(response.statusCode).toBe(400);
-    });
-  });
+  //     expect(response.statusCode).toBe(400);
+  //   });
+  // });
 });

@@ -9,6 +9,13 @@ export class EntryRepository
   extends BaseRepository
   implements EntryRepositoryInterface
 {
+  update(_userId: UUID, _entry: EntryDbInsert): Promise<EntryDbRow> {
+    throw new Error('Method not implemented.');
+  }
+  voidByIds(_userId: UUID, _entryIds: UUID[]): Promise<EntryDbRow[]> {
+    throw new Error('Method not implemented.');
+  }
+
   create(entry: EntryDbInsert): Promise<EntryDbRow> {
     return this.executeDatabaseOperation(
       async () => this.db.insert(entriesTable).values(entry).returning().get(),
@@ -35,7 +42,7 @@ export class EntryRepository
     );
   }
 
-  async softDeleteByTransactionId(
+  async voidByTransactionId(
     userId: UUID,
     transactionId: UUID,
   ): Promise<EntryDbRow[]> {

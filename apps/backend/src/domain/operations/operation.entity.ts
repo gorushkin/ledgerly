@@ -145,19 +145,6 @@ export class Operation {
     this.timestamps = this.timestamps.touch();
   }
 
-  // Delegation methods for soft delete
-  markAsDeleted(): void {
-    this.softDelete = this.softDelete.markAsDeleted();
-  }
-
-  isDeleted(): boolean {
-    return this.softDelete.isDeleted();
-  }
-
-  private validateUpdateIsAllowed(): void {
-    this.softDelete.validateUpdateIsAllowed();
-  }
-
   // Delegation methods for ownership
   belongsToUser(userId: Id): boolean {
     return this.ownership.belongsToParent(userId);
@@ -165,41 +152,6 @@ export class Operation {
 
   getUserId(): Id {
     return this.ownership.getParentId();
-  }
-
-  delete(): void {
-    if (this.isDeleted()) {
-      throw new Error('Operation is already deleted');
-    }
-
-    this.markAsDeleted();
-    this.touch();
-  }
-
-  canBeUpdated(): boolean {
-    return !this.isDeleted();
-  }
-
-  updateAmount(amount: Amount): void {
-    if (!this.canBeUpdated()) {
-      throw new Error('Operation cannot be updated');
-    }
-
-    this.amount = amount;
-    this.touch();
-  }
-
-  updateDescription(description: string): void {
-    if (!this.canBeUpdated()) {
-      throw new Error('Operation cannot be updated');
-    }
-
-    this.description = description;
-    this.touch();
-  }
-
-  updateUpdatedAt(): void {
-    this.touch();
   }
 
   getAccountId(): Id {

@@ -20,7 +20,7 @@ import {
 import { TransactionWithRelations } from 'src/db/schema';
 import { Account, Entry, Operation, Transaction, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { UpdateTransactionUseCase } from '../UpdateTransaction';
 
@@ -72,6 +72,7 @@ describe('UpdateTransactionUseCase', () => {
     account = createAccount(user);
     transaction = createTransaction(user);
     entry = createEntry(user, transaction, []);
+
     operationFrom = createOperation(
       user,
       account,
@@ -79,6 +80,7 @@ describe('UpdateTransactionUseCase', () => {
       Amount.create('100'),
       'From Operation',
     );
+
     operationTo = createOperation(
       user,
       account,
@@ -88,6 +90,7 @@ describe('UpdateTransactionUseCase', () => {
     );
 
     entry.addOperations([operationFrom, operationTo]);
+
     transaction.addEntry(entry);
 
     entries = [
@@ -106,9 +109,14 @@ describe('UpdateTransactionUseCase', () => {
     };
   });
 
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('should update transaction correctly without updating entries', async () => {
     const updateData: UpdateTransactionRequestDTO = {
       description: 'Updated Transaction Description',
+      entries: { create: [], delete: [], update: [] },
       postingDate: transactionDBRow.postingDate,
       transactionDate: transactionDBRow.transactionDate,
     };
@@ -176,23 +184,27 @@ describe('UpdateTransactionUseCase', () => {
 
     const updatedTransactionPayload: UpdateTransactionRequestDTO = {
       description: 'Updated Transaction Description with Entries',
-      entries: [
-        {
-          description: newEntry.description,
-          operations: [
-            {
-              accountId: newOperationFrom.getAccountId().valueOf(),
-              amount: newOperationFrom.amount.valueOf(),
-              description: newOperationFrom.description,
-            },
-            {
-              accountId: newOperationTo.getAccountId().valueOf(),
-              amount: newOperationTo.amount.valueOf(),
-              description: newOperationTo.description,
-            },
-          ],
-        },
-      ],
+      entries: {
+        create: [
+          {
+            description: newEntry.description,
+            operations: [
+              {
+                accountId: newOperationFrom.getAccountId().valueOf(),
+                amount: newOperationFrom.amount.valueOf(),
+                description: newOperationFrom.description,
+              },
+              {
+                accountId: newOperationTo.getAccountId().valueOf(),
+                amount: newOperationTo.amount.valueOf(),
+                description: newOperationTo.description,
+              },
+            ],
+          },
+        ],
+        delete: [],
+        update: [],
+      },
       postingDate: transactionDBRow.postingDate,
       transactionDate: transactionDBRow.transactionDate,
     };

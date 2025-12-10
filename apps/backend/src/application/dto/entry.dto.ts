@@ -23,6 +23,7 @@ export type EntryOperationsResponseDTO = [
 export type UpdateEntryRequestDTO = {
   id: UUID;
   operations: [UpdateOperationRequestDTO, UpdateOperationRequestDTO];
+  description: string;
 };
 
 // Response DTOs

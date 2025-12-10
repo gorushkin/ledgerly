@@ -47,26 +47,26 @@ export class UpdateTransactionUseCase {
         transactionId,
         transaction.toPersistence(),
       );
-      // TODO: this part is a bit tricky, because we need to handle entries update properly
-      // For now, we will just delete all existing entries and create new ones
-      // let's think about a better approach later
-      // If entries are undefined, treat as 'no update to entries'
-      // we should compare with existing entries and update accordingly
-      if (data.entries === undefined) {
-        return this.transactionMapper.toResponseDTO(
-          transaction,
-          transactionDbRow.entries,
-        );
+
+      const hasEntryChanges =
+        data.entries.create.length > 0 ||
+        data.entries.update.length > 0 ||
+        data.entries.delete.length > 0;
+
+      if (!hasEntryChanges) {
+        return this.transactionMapper.toResponseDTO(transaction);
       }
 
-      const withNewEntriesTransaction =
+      const updatedTransactionWithEntries =
         await this.entryFactory.updateEntriesForTransaction({
           newEntriesData: data.entries,
           transaction,
           user,
         });
 
-      return this.transactionMapper.toResponseDTO(withNewEntriesTransaction);
+      return this.transactionMapper.toResponseDTO(
+        updatedTransactionWithEntries,
+      );
     });
   }
 }

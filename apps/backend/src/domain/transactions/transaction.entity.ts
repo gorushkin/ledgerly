@@ -1,4 +1,4 @@
-import { IsoDateString } from '@ledgerly/shared/types';
+import { IsoDateString, UUID } from '@ledgerly/shared/types';
 import { TransactionDbRow } from 'src/db/schema';
 
 import {
@@ -222,11 +222,15 @@ export class Transaction {
     this.touch();
   }
 
+  addEntries(entries: Entry[]): void {
+    entries.forEach((entry) => this.addEntry(entry));
+  }
+
   removeEntry(entryId: Id): void {
     this.validateUpdateIsAllowed();
 
     const entryIndex = this.entries.findIndex((entry) =>
-      entry.getId().isEqualTo(entryId),
+      entry.getId().equals(entryId),
     );
 
     if (entryIndex === -1) {
@@ -237,8 +241,17 @@ export class Transaction {
     this.touch();
   }
 
+  removeEntries(entryIds: Id[]): void {
+    entryIds.forEach((entryId) => this.removeEntry(entryId));
+  }
+
   getEntries(): readonly Entry[] {
     return [...this.entries];
+  }
+
+  getEntryById(entryId: UUID): Entry | null {
+    const entry = this.entries.find((e) => e.getId().equals(entryId));
+    return entry ?? null;
   }
 
   validateEntriesBalance(): void {

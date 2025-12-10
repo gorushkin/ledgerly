@@ -32,4 +32,8 @@ export class EntityIdentity {
   static fromPersistence(id: Id): EntityIdentity {
     return new EntityIdentity(id);
   }
+
+  equals(other: EntityIdentity): boolean {
+    return this.id.equals(other.id);
+  }
 }

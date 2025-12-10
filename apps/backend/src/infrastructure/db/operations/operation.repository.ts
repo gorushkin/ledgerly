@@ -64,7 +64,7 @@ export class OperationRepository
     );
   }
 
-  async softDeleteByEntryIds(
+  async voidByEntryIds(
     userId: UUID,
     entryIds: UUID[],
   ): Promise<OperationDbRow[]> {
@@ -89,5 +89,9 @@ export class OperationRepository
         value: entryIds.join(', '),
       },
     );
+  }
+
+  voidByEntryId(_userId: UUID, _entryId: UUID): Promise<OperationDbRow[]> {
+    throw new Error('Method not implemented.');
   }
 }

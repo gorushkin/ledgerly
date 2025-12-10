@@ -1,8 +1,14 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { EntryRepoInsert, EntryDbRow } from 'src/db/schemas/entries';
 import { Account, Entry, Transaction, User } from 'src/domain';
+import { Id } from 'src/domain/domain-core';
 
-import { CreateEntryRequestDTO } from '../dto';
+import { compareEntry, EntryCompareResult } from '../comparers';
+import {
+  CreateEntryRequestDTO,
+  UpdateEntryRequestDTO,
+  UpdateTransactionRequestDTO,
+} from '../dto';
 import {
   AccountRepositoryInterface,
   EntryRepositoryInterface,
@@ -12,6 +18,8 @@ import { SaveWithIdRetryType } from '../shared/saveWithIdRetry';
 
 import { AccountFactory } from './account.factory';
 import { OperationFactory } from './operation.factory';
+
+type CompareResult = { existing: Entry; incoming: UpdateEntryRequestDTO };
 
 export class EntryFactory {
   constructor(
@@ -132,22 +140,167 @@ export class EntryFactory {
     );
   }
 
-  private async deleteEntriesByTransactionId(
-    userId: UUID,
-    transactionId: UUID,
-  ): Promise<void> {
-    const deletedEntries = await this.entryRepository.deleteByTransactionId(
-      userId,
-      transactionId,
-    );
-
-    const entryIds = deletedEntries.map((entry) => entry.id);
-
-    if (entryIds.length === 0) {
+  private async voidEntries(user: User, entriesIds: UUID[]) {
+    if (entriesIds.length === 0) {
       return;
     }
 
-    await this.operationRepository.deleteByEntryIds(userId, entryIds);
+    await this.entryRepository.voidByIds(user.getId().valueOf(), entriesIds);
+  }
+
+  private async updateEntryMetadata(
+    user: User,
+    existing: Entry,
+    incoming: UpdateEntryRequestDTO,
+  ): Promise<Entry> {
+    existing.updateDescription(incoming.description);
+
+    const updatedEntryDto = await this.entryRepository.update(
+      user.getId().valueOf(),
+      existing.toPersistence(),
+    );
+
+    const entry = Entry.fromPersistence(updatedEntryDto);
+    entry.addOperations(existing.getOperations());
+    return entry;
+  }
+
+  private async updateEntriesMetadata(
+    user: User,
+    date: CompareResult[],
+  ): Promise<Entry[]> {
+    const promises = date.map(async ({ existing, incoming }) =>
+      this.updateEntryMetadata(user, existing, incoming),
+    );
+
+    return Promise.all(promises);
+  }
+
+  private async updateEntriesFully(
+    user: User,
+    date: CompareResult[],
+    accountsMap: Map<UUID, Account>,
+    systemAccountsMap: Map<CurrencyCode, Account>,
+  ): Promise<Entry[]> {
+    const updatedDataPromises = date.map(async ({ existing, incoming }) => {
+      const updateEntryMetadata = this.updateEntryMetadata(
+        user,
+        existing,
+        incoming,
+      );
+
+      return { existing: await updateEntryMetadata, incoming };
+    });
+
+    const updatedEntriesWithData = await Promise.all(updatedDataPromises);
+
+    return this.updateEntriesFinancial(
+      user,
+      updatedEntriesWithData,
+      accountsMap,
+      systemAccountsMap,
+    );
+  }
+
+  private async updateEntriesFinancial(
+    user: User,
+    date: CompareResult[],
+    accountsMap: Map<UUID, Account>,
+    systemAccountsMap: Map<CurrencyCode, Account>,
+  ): Promise<Entry[]> {
+    const { existingEntriesIds } = date.reduce<{
+      existingEntriesIds: UUID[];
+      incoming: UpdateEntryRequestDTO[];
+    }>(
+      (acc, curr) => {
+        acc.existingEntriesIds.push(curr.existing.getId().valueOf());
+        acc.incoming.push(curr.incoming);
+        return acc;
+      },
+      { existingEntriesIds: [], incoming: [] },
+    );
+
+    await this.operationRepository.voidByEntryIds(
+      user.getId().valueOf(),
+      existingEntriesIds,
+    );
+
+    const promises = date.map(async ({ existing, incoming }) => {
+      const createdOperations =
+        await this.operationFactory.createOperationsForEntry(
+          user,
+          existing,
+          incoming,
+          accountsMap,
+          systemAccountsMap,
+        );
+
+      existing.updateOperations(createdOperations);
+
+      return existing;
+    });
+
+    return Promise.all(promises);
+  }
+
+  private async updateEntries(
+    user: User,
+    transaction: Transaction,
+    rawEntries: UpdateEntryRequestDTO[],
+    accountsMap: Map<UUID, Account>,
+    systemAccountsMap: Map<CurrencyCode, Account>,
+  ): Promise<Entry[]> {
+    const entriesToBeMetadataUpdated: CompareResult[] = [];
+    const entriesToBeFinancialUpdated: CompareResult[] = [];
+    const entriesToBeFullyUpdated: CompareResult[] = [];
+    const entriesToExclude: CompareResult[] = [];
+
+    const map: Record<EntryCompareResult, CompareResult[]> = {
+      unchanged: entriesToExclude,
+      updatedBoth: entriesToBeFullyUpdated,
+      updatedFinancial: entriesToBeFinancialUpdated,
+      updatedMetadata: entriesToBeMetadataUpdated,
+    };
+
+    rawEntries.forEach((incoming) => {
+      const existing = transaction.getEntryById(incoming.id);
+
+      if (!existing) {
+        // TODO: handle error
+        return;
+      }
+
+      const compareResult = compareEntry(existing, incoming);
+
+      const targetList = map[compareResult];
+
+      targetList.push({ existing, incoming });
+    });
+
+    const updateMetadataPromises = await this.updateEntriesMetadata(
+      user,
+      entriesToBeMetadataUpdated,
+    );
+
+    const updateFinancialPromises = await this.updateEntriesFinancial(
+      user,
+      entriesToBeFinancialUpdated,
+      accountsMap,
+      systemAccountsMap,
+    );
+
+    const updatedEntriesPromises = await this.updateEntriesFully(
+      user,
+      entriesToBeFullyUpdated,
+      accountsMap,
+      systemAccountsMap,
+    );
+
+    return [
+      ...updateMetadataPromises,
+      ...updateFinancialPromises,
+      ...updatedEntriesPromises,
+    ];
   }
 
   async updateEntriesForTransaction({
@@ -155,27 +308,62 @@ export class EntryFactory {
     transaction,
     user,
   }: {
-    newEntriesData: CreateEntryRequestDTO[];
+    newEntriesData: UpdateTransactionRequestDTO['entries'];
     transaction: Transaction;
     user: User;
   }): Promise<Transaction> {
-    await this.deleteEntriesByTransactionId(
-      user.getId().valueOf(),
-      transaction.getId().valueOf(),
+    const { accountsMap, currenciesSet } = await this.preloadAccounts(user, [
+      ...newEntriesData.create,
+      ...newEntriesData.update,
+    ]);
+
+    const systemAccountsMap = await this.preloadSystemAccounts(
+      user,
+      currenciesSet,
     );
 
-    const entries = await this.createEntriesWithOperations(
+    // TODO: it looks a bit weird, refactor later
+    const { entryId, id } = transaction.getEntries().reduce(
+      (acc, entry) => {
+        if (newEntriesData.delete.includes(entry.getId().valueOf())) {
+          const id = entry.getId();
+          acc.id.push(id.valueOf());
+          acc.entryId.push(id);
+        }
+
+        return acc;
+      },
+      { entryId: [], id: [] } as { id: UUID[]; entryId: Id[] },
+    );
+
+    await this.voidEntries(user, id);
+
+    const createdEntriesPromises = newEntriesData.create.map(
+      async (entryData) =>
+        this.createEntryWithOperations(
+          user,
+          transaction,
+          entryData,
+          accountsMap,
+          systemAccountsMap,
+        ),
+    );
+
+    const createdEntries = await Promise.all(createdEntriesPromises);
+
+    await this.updateEntries(
       user,
       transaction,
-      newEntriesData,
+      newEntriesData.update,
+      accountsMap,
+      systemAccountsMap,
     );
 
-    for (const entry of entries) {
-      transaction.addEntry(entry);
-    }
+    transaction.removeEntries(entryId);
+
+    transaction.addEntries(createdEntries);
 
     transaction.validateEntriesBalance();
-
     return transaction;
   }
 }

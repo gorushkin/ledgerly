@@ -163,12 +163,14 @@ describe('OperationRepository', () => {
         entryId: entry.id,
       });
 
-      const softDeletedOperations =
-        await operationRepository.softDeleteByEntryIds(user.id, [entry.id]);
+      const voidedOperations = await operationRepository.voidByEntryIds(
+        user.id,
+        [entry.id],
+      );
 
-      expect(softDeletedOperations).toHaveLength(1);
+      expect(voidedOperations).toHaveLength(1);
 
-      expect(softDeletedOperations[0]).toEqual(
+      expect(voidedOperations[0]).toEqual(
         expect.objectContaining({
           id: operation.id,
           isTombstone: true,
@@ -187,12 +189,12 @@ describe('OperationRepository', () => {
     it('should return an empty array if no operations to soft delete for the entry ID', async () => {
       const anotherEntry = await testDB.createEntry(user.id);
 
-      const softDeletedOperations =
-        await operationRepository.softDeleteByEntryIds(user.id, [
-          anotherEntry.id,
-        ]);
+      const voidedOperations = await operationRepository.voidByEntryIds(
+        user.id,
+        [anotherEntry.id],
+      );
 
-      expect(softDeletedOperations).toHaveLength(0);
+      expect(voidedOperations).toHaveLength(0);
     });
   });
 
