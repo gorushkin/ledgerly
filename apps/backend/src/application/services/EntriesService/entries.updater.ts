@@ -1,20 +1,21 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
-import { Account, Entry, Transaction, User } from 'src/domain';
-import { Id } from 'src/domain/domain-core';
-
-import { compareEntry, EntryCompareResult } from '../../comparers';
-import { UpdateEntryRequestDTO, UpdateTransactionRequestDTO } from '../../dto';
+import { compareEntry, EntryCompareResult } from 'src/application/comparers';
+import {
+  UpdateEntryRequestDTO,
+  UpdateTransactionRequestDTO,
+} from 'src/application/dto';
 import {
   EntryRepositoryInterface,
   OperationRepositoryInterface,
-} from '../../interfaces';
-import { OperationFactory } from '../operation.factory';
-
-import { EntryCreator } from './entries.creator';
+} from 'src/application/interfaces';
+import { EntryCreator } from 'src/application/services/EntriesService';
+import { OperationFactory } from 'src/application/services/operation.factory';
+import { Account, Entry, Transaction, User } from 'src/domain';
+import { Id } from 'src/domain/domain-core';
 
 type CompareResult = { existing: Entry; incoming: UpdateEntryRequestDTO };
 
-type EntryContext = {
+export type EntryContext = {
   accountsMap: Map<UUID, Account>;
   systemAccountsMap: Map<CurrencyCode, Account>;
 };
@@ -33,6 +34,10 @@ export class EntryUpdater {
     accountsMap: Map<UUID, Account>,
     systemAccountsMap: Map<CurrencyCode, Account>,
   ): Promise<Entry[]> {
+    if (entries.length === 0) {
+      return [];
+    }
+
     const { existingEntriesIds } = entries.reduce<{
       existingEntriesIds: UUID[];
       incoming: UpdateEntryRequestDTO[];
@@ -163,6 +168,10 @@ export class EntryUpdater {
     accountsMap: Map<UUID, Account>,
     systemAccountsMap: Map<CurrencyCode, Account>,
   ): Promise<Entry[]> {
+    if (entries.length === 0) {
+      return [];
+    }
+
     const updatedDataPromises = entries.map(async ({ existing, incoming }) => {
       const updateEntryMetadata = this.updateEntryMetadata(
         user,

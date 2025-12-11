@@ -1,3 +1,4 @@
+import { IsoDatetimeString } from '@ledgerly/shared/types';
 import { EntryDbRow } from 'src/db/schemas/entries';
 
 import {
@@ -232,5 +233,13 @@ export class Entry {
 
     this.operations = operations;
     this.touch();
+  }
+
+  get createdAt(): IsoDatetimeString {
+    return this.timestamps.getCreatedAt().valueOf();
+  }
+
+  get updatedAt(): IsoDatetimeString {
+    return this.timestamps.getUpdatedAt().valueOf();
   }
 }

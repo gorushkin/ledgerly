@@ -190,6 +190,10 @@ export class Operation {
   }
 
   get currency() {
-    return this.account.currency;
+    return this.account.currency.valueOf();
+  }
+
+  get accountName(): string {
+    return this.account.name.valueOf();
   }
 }

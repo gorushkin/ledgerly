@@ -36,12 +36,12 @@ export const createUser = async (
 
 export const createAccount = (
   user: User,
-  params: { currency?: Currency } = {},
+  params: { currency?: Currency; description?: string; name?: string } = {},
 ) => {
   return Account.create(
     user,
-    Name.create('Test Account'),
-    'Account for testing',
+    Name.create(params.name ?? 'Test Account'),
+    params.description ?? 'Account for testing',
     Amount.create('0'),
     params.currency ?? Currency.create('USD'),
     AccountType.create('asset'),
