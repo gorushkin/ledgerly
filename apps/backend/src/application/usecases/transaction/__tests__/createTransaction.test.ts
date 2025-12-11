@@ -12,7 +12,7 @@ import {
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import type { TransactionMapperInterface } from 'src/application/mappers';
-import { EntryFactory } from 'src/application/services';
+import { EntriesService } from 'src/application/services';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { createUser } from 'src/db/createTestUser';
 import { Account, Entry, Transaction, User, AccountType } from 'src/domain';
@@ -46,7 +46,7 @@ describe('CreateTransactionUseCase', () => {
     },
   ] as unknown as Entry[];
 
-  const entryFactory = {
+  const entryService = {
     createEntriesWithOperations: vi.fn().mockResolvedValue(mockedEntries),
   };
 
@@ -63,7 +63,7 @@ describe('CreateTransactionUseCase', () => {
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
-    entryFactory as unknown as EntryFactory,
+    entryService as unknown as EntriesService,
     mockedSaveWithIdRetry as unknown as SaveWithIdRetryType,
     transactionMapper as unknown as TransactionMapperInterface,
   );
@@ -157,7 +157,7 @@ describe('CreateTransactionUseCase', () => {
 
       expect(transactionManager.run).toHaveBeenCalled();
 
-      expect(entryFactory.createEntriesWithOperations).toHaveBeenCalledWith(
+      expect(entryService.createEntriesWithOperations).toHaveBeenCalledWith(
         user,
         expect.objectContaining({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

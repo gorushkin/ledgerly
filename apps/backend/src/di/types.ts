@@ -1,5 +1,5 @@
 import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
-import { AccountFactory } from 'src/application/services';
+import { AccountFactory, EntriesService } from 'src/application/services';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
 import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
 import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
@@ -35,6 +35,7 @@ type Repositories = {
 
 type Services = {
   passwordManager: PasswordManager;
+  entriesService: EntriesService;
 };
 
 type AccountUseCases = {

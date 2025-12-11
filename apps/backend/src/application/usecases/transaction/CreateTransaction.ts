@@ -7,7 +7,7 @@ import {
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import { TransactionMapperInterface } from 'src/application/mappers';
-import { EntryFactory } from 'src/application/services';
+import { EntriesService } from 'src/application/services';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { TransactionDbRow, TransactionRepoInsert } from 'src/db/schema';
 import { User } from 'src/domain';
@@ -18,7 +18,7 @@ export class CreateTransactionUseCase {
   constructor(
     protected readonly transactionManager: TransactionManagerInterface,
     protected readonly transactionRepository: TransactionRepositoryInterface,
-    protected readonly entryFactory: EntryFactory,
+    protected readonly entryService: EntriesService,
     protected readonly saveWithIdRetry: SaveWithIdRetryType,
     protected readonly transactionMapper: TransactionMapperInterface,
   ) {}
@@ -32,7 +32,7 @@ export class CreateTransactionUseCase {
 
       const transaction = await this.saveTransaction(transactionFactory);
 
-      const entries = await this.entryFactory.createEntriesWithOperations(
+      const entries = await this.entryService.createEntriesWithOperations(
         user,
         transaction,
         data.entries,

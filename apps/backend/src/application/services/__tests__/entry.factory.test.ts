@@ -2,12 +2,6 @@ import {
   CreateEntryRequestDTO,
   UpdateTransactionRequestDTO,
 } from 'src/application';
-import {
-  AccountRepositoryInterface,
-  EntryRepositoryInterface,
-  OperationRepositoryInterface,
-} from 'src/application/interfaces';
-import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { createTransaction, createUser } from 'src/db/createTestUser';
 import { Account, Entry, Operation } from 'src/domain';
 import { AccountType } from 'src/domain/';
@@ -22,11 +16,14 @@ import {
   vi,
 } from 'vitest';
 
-import { AccountFactory } from '..';
-import { EntryFactory } from '../entry.factory';
-import { OperationFactory } from '../operation.factory';
+import {
+  EntriesContextLoader,
+  EntryCreator,
+  EntryUpdater,
+} from '../EntriesService';
+import { EntriesService } from '../EntriesService/entry.service';
 
-describe.skip('EntryFactory', () => {
+describe.skip('EntryService', () => {
   let user: Awaited<ReturnType<typeof createUser>>;
   let transaction: ReturnType<typeof createTransaction>;
 
@@ -44,10 +41,6 @@ describe.skip('EntryFactory', () => {
     getByIds: vi.fn(),
   };
 
-  const mockOperationRepository = {
-    deleteByEntryIds: vi.fn(),
-  };
-
   const mockSaveWithIdRetry = vi.fn();
 
   const mockCreateOperationFactory = {
@@ -55,13 +48,22 @@ describe.skip('EntryFactory', () => {
     preloadAccounts: vi.fn(),
   };
 
-  const entryFactory = new EntryFactory(
-    mockCreateOperationFactory as unknown as OperationFactory,
-    mockEntryRepository as unknown as EntryRepositoryInterface,
-    mockAccountRepository as unknown as AccountRepositoryInterface,
-    accountFactory as unknown as AccountFactory,
-    mockSaveWithIdRetry as unknown as SaveWithIdRetryType,
-    mockOperationRepository as unknown as OperationRepositoryInterface,
+  const entriesContextLoader = {
+    loadForEntries: vi.fn(),
+  };
+
+  const entryCreator = {
+    createEntryWithOperations: vi.fn(),
+  };
+
+  const entryUpdater = {
+    execute: vi.fn(),
+  };
+
+  const entryService = new EntriesService(
+    entriesContextLoader as unknown as EntriesContextLoader,
+    entryCreator as unknown as EntryCreator,
+    entryUpdater as unknown as EntryUpdater,
   );
 
   let account1: Account;
@@ -161,7 +163,7 @@ describe.skip('EntryFactory', () => {
         mockOperations,
       );
 
-      const result = await entryFactory.createEntriesWithOperations(
+      const result = await entryService.createEntriesWithOperations(
         user,
         transaction,
         rawEntries,
@@ -283,7 +285,7 @@ describe.skip('EntryFactory', () => {
     //     mockOperations,
     //   );
     //   mockSaveWithIdRetry.mockResolvedValue(mockEntry);
-    //   const result = await entryFactory.updateEntriesForTransaction({
+    //   const result = await entryService.updateEntriesForTransaction({
     //     newEntriesData,
     //     transaction,
     //     user,
@@ -315,7 +317,7 @@ describe.skip('EntryFactory', () => {
         update: [],
       };
 
-      const updatedTransaction = await entryFactory.updateEntriesForTransaction(
+      const updatedTransaction = await entryService.updateEntriesWithOperations(
         {
           newEntriesData,
           transaction,
@@ -344,7 +346,7 @@ describe.skip('EntryFactory', () => {
         update: [],
       };
 
-      const updatedTransaction = await entryFactory.updateEntriesForTransaction(
+      const updatedTransaction = await entryService.updateEntriesWithOperations(
         {
           newEntriesData,
           transaction,

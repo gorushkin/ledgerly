@@ -8,7 +8,7 @@ import {
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import { TransactionMapperInterface } from 'src/application/mappers';
-import { EntryFactory } from 'src/application/services';
+import { EntriesService } from 'src/application/services';
 import { EnsureEntityExistsAndOwnedFn } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { Transaction, User } from 'src/domain';
 
@@ -16,7 +16,7 @@ export class UpdateTransactionUseCase {
   constructor(
     protected readonly transactionManager: TransactionManagerInterface,
     protected readonly transactionRepository: TransactionRepositoryInterface,
-    protected readonly entryFactory: EntryFactory,
+    protected readonly entryService: EntriesService,
     protected readonly ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn,
     protected readonly transactionMapper: TransactionMapperInterface,
   ) {}
@@ -58,7 +58,7 @@ export class UpdateTransactionUseCase {
       }
 
       const updatedTransactionWithEntries =
-        await this.entryFactory.updateEntriesForTransaction({
+        await this.entryService.updateEntriesWithOperations({
           newEntriesData: data.entries,
           transaction,
           user,

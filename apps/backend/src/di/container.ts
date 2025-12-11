@@ -5,9 +5,14 @@ import {
 } from 'src/application';
 import {
   AccountFactory,
-  EntryFactory,
+  EntriesService,
   OperationFactory,
 } from 'src/application/services';
+import {
+  EntriesContextLoader,
+  EntryCreator,
+  EntryUpdater,
+} from 'src/application/services/EntriesService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { saveWithIdRetry } from 'src/application/shared/saveWithIdRetry';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
@@ -38,13 +43,17 @@ import { UserController } from 'src/presentation/controllers/user.controller';
 import { AppContainer } from './types';
 
 export const createContainer = (db: DataBase): AppContainer => {
+  // Repositories
   const transactionManager = new TransactionManager(db);
+
   const accountRepository = new AccountRepository(transactionManager);
   const currencyRepository = new CurrencyRepository(transactionManager);
   const transactionRepository = new TransactionRepository(transactionManager);
   const userRepository = new UserRepository(transactionManager);
   const operationRepository = new OperationRepository(transactionManager);
   const entryRepository = new EntryRepository(transactionManager);
+
+  // Mappers
 
   const transactionMapper = new TransactionMapper();
 
@@ -57,11 +66,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     user: userRepository,
   };
 
-  const passwordManager = new PasswordManager();
-
-  const services: AppContainer['services'] = {
-    passwordManager,
-  };
+  // Services and Factories
 
   const accountFactory = new AccountFactory(accountRepository, saveWithIdRetry);
 
@@ -69,14 +74,37 @@ export const createContainer = (db: DataBase): AppContainer => {
     operationRepository,
     saveWithIdRetry,
   );
-  const entryFactory = new EntryFactory(
-    operationFactory,
-    entryRepository,
+
+  const entriesContextLoader = new EntriesContextLoader(
     accountRepository,
     accountFactory,
-    saveWithIdRetry,
-    operationRepository,
   );
+
+  const entryCreator = new EntryCreator(
+    operationFactory,
+    entryRepository,
+    saveWithIdRetry,
+  );
+
+  const entriesUpdater = new EntryUpdater(
+    operationFactory,
+    entryRepository,
+    operationRepository,
+    entryCreator,
+  );
+
+  const passwordManager = new PasswordManager();
+
+  const entriesService = new EntriesService(
+    entriesContextLoader,
+    entryCreator,
+    entriesUpdater,
+  );
+
+  const services: AppContainer['services'] = {
+    entriesService,
+    passwordManager,
+  };
 
   // Create Account Use Cases
   const createAccountUseCase = new CreateAccountUseCase(accountFactory);
@@ -95,7 +123,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager,
     transactionRepository,
-    entryFactory,
+    entriesService,
     saveWithIdRetry,
     transactionMapper,
   );
@@ -112,7 +140,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const updateTransactionUseCase = new UpdateTransactionUseCase(
     transactionManager,
     transactionRepository,
-    entryFactory,
+    entriesService,
     ensureEntityExistsAndOwned,
     transactionMapper,
   );

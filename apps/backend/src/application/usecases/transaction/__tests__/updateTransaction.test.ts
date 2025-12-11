@@ -9,7 +9,7 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { EntryFactory } from 'src/application/services';
+import { EntriesService } from 'src/application/services';
 import {
   createAccount,
   createEntry,
@@ -48,8 +48,8 @@ describe('UpdateTransactionUseCase', () => {
     update: vi.fn(),
   };
 
-  const entryFactory = {
-    updateEntriesForTransaction: vi.fn(),
+  const entriesService = {
+    updateEntriesWithOperations: vi.fn(),
   };
 
   const mockEnsureEntityExistsAndOwned = vi.fn();
@@ -61,7 +61,7 @@ describe('UpdateTransactionUseCase', () => {
   const updateTransactionUseCase = new UpdateTransactionUseCase(
     transactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
-    entryFactory as unknown as EntryFactory,
+    entriesService as unknown as EntriesService,
     mockEnsureEntityExistsAndOwned,
     transactionMapper as unknown as TransactionMapperInterface,
   );
@@ -292,9 +292,9 @@ describe('UpdateTransactionUseCase', () => {
       }),
     );
 
-    expect(entryFactory.updateEntriesForTransaction).toHaveBeenCalledTimes(1);
+    expect(entriesService.updateEntriesWithOperations).toHaveBeenCalledTimes(1);
 
-    const actualCall = entryFactory.updateEntriesForTransaction.mock
+    const actualCall = entriesService.updateEntriesWithOperations.mock
       .calls[0][0] as {
       user: User;
       newEntriesData: CreateEntryRequestDTO[];

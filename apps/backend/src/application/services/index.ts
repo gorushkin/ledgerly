@@ -1,3 +1,3 @@
 export * from './operation.factory';
-export * from './entry.factory';
+export * from './EntriesService/entry.service';
 export * from './account.factory';
