@@ -16,7 +16,7 @@ export class UpdateTransactionUseCase {
   constructor(
     protected readonly transactionManager: TransactionManagerInterface,
     protected readonly transactionRepository: TransactionRepositoryInterface,
-    protected readonly entryService: EntriesService,
+    protected readonly entriesService: EntriesService,
     protected readonly ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn,
     protected readonly transactionMapper: TransactionMapperInterface,
   ) {}
@@ -36,12 +36,14 @@ export class UpdateTransactionUseCase {
 
       const transaction = Transaction.restore(transactionDbRow);
 
+      // TODO: update only if there are changes. Add method hasChanges()
       transaction.update({
         description: data.description,
         postingDate: data.postingDate,
         transactionDate: data.transactionDate,
       });
 
+      // TODO: update only if there are changes. Add method hasChanges()
       await this.transactionRepository.update(
         user.getId().valueOf(),
         transactionId,
@@ -58,11 +60,11 @@ export class UpdateTransactionUseCase {
       }
 
       const updatedTransactionWithEntries =
-        await this.entryService.updateEntriesWithOperations({
-          newEntriesData: data.entries,
-          transaction,
+        await this.entriesService.updateEntriesWithOperations(
           user,
-        });
+          transaction,
+          data.entries,
+        );
 
       return this.transactionMapper.toResponseDTO(
         updatedTransactionWithEntries,

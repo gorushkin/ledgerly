@@ -21,7 +21,7 @@ export class EntriesService {
     const { accountsMap, systemAccountsMap } =
       await this.entriesContextLoader.loadForEntries(user, rawEntries);
 
-    const createEntries = rawEntries.map(async (entryData) =>
+    const createEntriesPromises = rawEntries.map(async (entryData) =>
       this.entryCreator.createEntryWithOperations(
         user,
         transaction,
@@ -31,18 +31,14 @@ export class EntriesService {
       ),
     );
 
-    return Promise.all(createEntries);
+    return await Promise.all(createEntriesPromises);
   }
 
-  async updateEntriesWithOperations({
-    newEntriesData,
-    transaction,
-    user,
-  }: {
-    newEntriesData: UpdateTransactionRequestDTO['entries'];
-    transaction: Transaction;
-    user: User;
-  }): Promise<Transaction> {
+  async updateEntriesWithOperations(
+    user: User,
+    transaction: Transaction,
+    newEntriesData: UpdateTransactionRequestDTO['entries'],
+  ): Promise<Transaction> {
     const entryContext = await this.entriesContextLoader.loadForEntries(user, [
       ...newEntriesData.create,
       ...newEntriesData.update,

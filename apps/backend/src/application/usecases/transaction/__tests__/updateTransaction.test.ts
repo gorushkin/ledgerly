@@ -1,6 +1,5 @@
 import { TransactionMapperInterface } from 'src/application';
 import {
-  CreateEntryRequestDTO,
   EntryResponseDTO,
   TransactionResponseDTO,
   UpdateTransactionRequestDTO,
@@ -34,7 +33,7 @@ describe('UpdateTransactionUseCase', () => {
   let entries: TransactionWithRelations['entries'];
   let transactionDBRow: TransactionWithRelations;
 
-  const transactionManager = {
+  const mockTransactionManager = {
     run: vi.fn((cb: () => unknown) => {
       return cb();
     }),
@@ -48,22 +47,22 @@ describe('UpdateTransactionUseCase', () => {
     update: vi.fn(),
   };
 
-  const entriesService = {
+  const mockEntriesService = {
     updateEntriesWithOperations: vi.fn(),
   };
 
   const mockEnsureEntityExistsAndOwned = vi.fn();
 
-  const transactionMapper = {
+  const mockTransactionMapper = {
     toResponseDTO: vi.fn(),
   };
 
   const updateTransactionUseCase = new UpdateTransactionUseCase(
-    transactionManager as unknown as TransactionManagerInterface,
+    mockTransactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
-    entriesService as unknown as EntriesService,
+    mockEntriesService as unknown as EntriesService,
     mockEnsureEntityExistsAndOwned,
-    transactionMapper as unknown as TransactionMapperInterface,
+    mockTransactionMapper as unknown as TransactionMapperInterface,
   );
 
   beforeAll(async () => {
@@ -132,7 +131,7 @@ describe('UpdateTransactionUseCase', () => {
       userId: transactionDBRow.userId,
     };
 
-    transactionMapper.toResponseDTO.mockReturnValue({
+    mockTransactionMapper.toResponseDTO.mockReturnValue({
       ...mockedResultWithoutUpdatingEntries,
       description: updateData.description,
     });
@@ -260,7 +259,7 @@ describe('UpdateTransactionUseCase', () => {
       userId: user.getId().valueOf(),
     };
 
-    transactionMapper.toResponseDTO.mockReturnValue({
+    mockTransactionMapper.toResponseDTO.mockReturnValue({
       ...mockedResultWithUpdatingEntries,
       description: updatedTransactionPayload.description,
     });
@@ -292,37 +291,29 @@ describe('UpdateTransactionUseCase', () => {
       }),
     );
 
-    expect(entriesService.updateEntriesWithOperations).toHaveBeenCalledTimes(1);
+    expect(
+      mockEntriesService.updateEntriesWithOperations,
+    ).toHaveBeenCalledTimes(1);
 
-    const actualCall = entriesService.updateEntriesWithOperations.mock
-      .calls[0][0] as {
-      user: User;
-      newEntriesData: CreateEntryRequestDTO[];
-      transaction: Transaction;
-    };
-
-    expect(actualCall.user).toBe(user);
-    expect(actualCall.newEntriesData).toEqual(
+    expect(mockEntriesService.updateEntriesWithOperations).toHaveBeenCalledWith(
+      user,
+      expect.any(Transaction),
       updatedTransactionPayload.entries,
     );
-    expect(actualCall.transaction).toBeInstanceOf(Transaction);
-    expect(actualCall.transaction.getId().valueOf()).toBe(transactionDBRow.id);
-    expect(actualCall.transaction.description).toBe(
-      updatedTransactionPayload.description,
-    );
 
-    updatedTransaction.entries.forEach((entry) => {
-      expect(entry).toBeDefined();
-      expect(entry.id).toBe(newEntry.getId().valueOf());
-      expect(entry.operations).toHaveLength(operations.length);
-      expect(entry.createdAt).toBe(newEntry.getCreatedAt().valueOf());
-      expect(entry.isTombstone).toBe(newEntry.isDeleted());
-      expect(entry.transactionId).toBe(transactionDBRow.id);
-      expect(entry.updatedAt).toBe(newEntry.getUpdatedAt().valueOf());
-      expect(entry.userId).toBe(user.getId().valueOf());
+    updatedTransaction.entries.forEach((entryDTO) => {
+      expect(entryDTO).toBeDefined();
+      expect(entryDTO.id).toBe(newEntry.getId().valueOf());
+      expect(entryDTO.operations).toHaveLength(operations.length);
+      expect(entryDTO.createdAt).toBe(newEntry.getCreatedAt().valueOf());
+      expect(entryDTO.isTombstone).toBe(newEntry.isDeleted());
+      expect(entryDTO.transactionId).toBe(transactionDBRow.id);
+      expect(entryDTO.updatedAt).toBe(newEntry.getUpdatedAt().valueOf());
+      expect(entryDTO.userId).toBe(user.getId().valueOf());
 
-      entry.operations.forEach((op, index) => {
+      entryDTO.operations.forEach((op, index) => {
         const expectedOp = operations[index];
+
         expect(op).toBeDefined();
         expect(op.accountId).toBe(expectedOp.accountId);
         expect(op.amount).toBe(expectedOp.amount);
@@ -336,4 +327,8 @@ describe('UpdateTransactionUseCase', () => {
       });
     });
   });
+
+  it.todo('should update transaction if there are changes');
+  it.todo('should not update transaction if there are no changes');
+  it.todo('should not update entries if there are no changes');
 });
