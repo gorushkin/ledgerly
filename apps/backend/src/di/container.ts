@@ -80,11 +80,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     accountFactory,
   );
 
-  const entryCreator = new EntryCreator(
-    operationFactory,
-    entryRepository,
-    saveWithIdRetry,
-  );
+  const entryCreator = new EntryCreator(operationFactory, entryRepository);
 
   const entriesUpdater = new EntryUpdater(
     operationFactory,
