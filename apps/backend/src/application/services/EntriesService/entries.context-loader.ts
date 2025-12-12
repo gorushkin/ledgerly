@@ -17,7 +17,7 @@ export class EntriesContextLoader {
   ) {}
   private async preloadAccounts(
     user: User,
-    entries: CreateEntryRequestDTO[],
+    entries: (CreateEntryRequestDTO | UpdateEntryRequestDTO)[],
   ): Promise<{
     accountsMap: Map<UUID, Account>;
     currenciesSet: Set<CurrencyCode>;
@@ -26,7 +26,7 @@ export class EntriesContextLoader {
     const currenciesSet = new Set<CurrencyCode>();
 
     for (const entry of entries) {
-      for (const operation of entry.operations) {
+      for (const operation of entry?.operations ?? []) {
         accountIds.add(operation.accountId);
       }
     }

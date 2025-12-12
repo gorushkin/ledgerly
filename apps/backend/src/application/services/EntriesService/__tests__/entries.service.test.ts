@@ -6,7 +6,7 @@ import {
 import { createTransaction, createUser } from 'src/db/createTestUser';
 import { Account, Entry, Operation } from 'src/domain';
 import { AccountType } from 'src/domain/';
-import { Amount, Currency, Id, Name } from 'src/domain/domain-core';
+import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { EntriesContextLoader } from '../entries.context-loader';
@@ -250,15 +250,11 @@ describe('EntryService', () => {
                 accountId: operationEntry1From.getAccountId().valueOf(),
                 amount: operationEntry1From.amount.valueOf(),
                 description: operationEntry1From.description,
-                entryId: mockEntry1.getId().valueOf(),
-                id: Id.create().valueOf(),
               },
               {
                 accountId: operationEntry1To.getAccountId().valueOf(),
                 amount: operationEntry1To.amount.valueOf(),
                 description: operationEntry1To.description,
-                entryId: mockEntry1.getId().valueOf(),
-                id: Id.create().valueOf(),
               },
             ],
           },
@@ -270,15 +266,11 @@ describe('EntryService', () => {
                 accountId: operationEntry2From.getAccountId().valueOf(),
                 amount: operationEntry2From.amount.valueOf(),
                 description: operationEntry2From.description,
-                entryId: mockEntry2.getId().valueOf(),
-                id: Id.create().valueOf(),
               },
               {
                 accountId: operationEntry2To.getAccountId().valueOf(),
                 amount: operationEntry2To.amount.valueOf(),
                 description: operationEntry2To.description,
-                entryId: mockEntry2.getId().valueOf(),
-                id: Id.create().valueOf(),
               },
             ],
           },

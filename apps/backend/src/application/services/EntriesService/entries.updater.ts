@@ -56,11 +56,16 @@ export class EntryUpdater {
     );
 
     const promises = entries.map(async ({ existing, incoming }) => {
+      if (!incoming.operations) {
+        return existing;
+      }
+
       const createdOperations =
         await this.operationFactory.createOperationsForEntry(
           user,
           existing,
-          incoming,
+          incoming as Required<Pick<UpdateEntryRequestDTO, 'operations'>> &
+            UpdateEntryRequestDTO,
           accountsMap,
           systemAccountsMap,
         );
@@ -95,6 +100,10 @@ export class EntryUpdater {
     user: User,
     entries: CompareResult[],
   ): Promise<Entry[]> {
+    if (entries.length === 0) {
+      return [];
+    }
+
     const promises = entries.map(async ({ existing, incoming }) =>
       this.updateEntryMetadata(user, existing, incoming),
     );

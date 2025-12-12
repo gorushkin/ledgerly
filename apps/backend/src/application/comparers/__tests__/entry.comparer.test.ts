@@ -56,13 +56,6 @@ describe('compareEntry', () => {
     const incoming: UpdateEntryRequestDTO = {
       description: 'Changed description',
       id: entry.getId().valueOf(),
-      operations: entry.getOperations().map((op) => ({
-        accountId: op.getAccountId().valueOf(),
-        amount: op.amount.valueOf(),
-        description: op.description,
-        entryId: entry.getId().valueOf(),
-        id: op.getId().valueOf(),
-      })) as UpdateEntryRequestDTO['operations'],
     };
 
     expect(compareEntry(entry, incoming)).toBe('updatedMetadata');
@@ -79,8 +72,6 @@ describe('compareEntry', () => {
           accountId: origOps[0].getAccountId().valueOf(),
           amount: Amount.create('999').valueOf(), // changed amount
           description: origOps[0].description,
-          entryId: entry.getId().valueOf(),
-          id: origOps[0].getId().valueOf(),
         },
         {
           accountId:
@@ -88,8 +79,6 @@ describe('compareEntry', () => {
           amount:
             origOps[1]?.amount.valueOf() || Amount.create('-999').valueOf(),
           description: origOps[1]?.description || 'op2',
-          entryId: entry.getId().valueOf(),
-          id: origOps[1]?.getId().valueOf() || Id.create().valueOf(),
         },
       ],
     };
@@ -108,8 +97,6 @@ describe('compareEntry', () => {
           accountId: origOps[0].getAccountId().valueOf(),
           amount: Amount.create('999').valueOf(), // changed amount
           description: origOps[0].description,
-          entryId: entry.getId().valueOf(),
-          id: origOps[0].getId().valueOf(),
         },
         {
           accountId:
@@ -117,8 +104,6 @@ describe('compareEntry', () => {
           amount:
             origOps[1]?.amount.valueOf() || Amount.create('-999').valueOf(),
           description: origOps[1]?.description || 'op2',
-          entryId: entry.getId().valueOf(),
-          id: origOps[1]?.getId().valueOf() || Id.create().valueOf(),
         },
       ],
     };
@@ -130,13 +115,6 @@ describe('compareEntry', () => {
     const incoming: UpdateEntryRequestDTO = {
       description: entry.description,
       id: entry.getId().valueOf(),
-      operations: entry.getOperations().map((op) => ({
-        accountId: op.getAccountId().valueOf(),
-        amount: op.amount.valueOf(),
-        description: op.description,
-        entryId: entry.getId().valueOf(),
-        id: op.getId().valueOf(),
-      })) as UpdateEntryRequestDTO['operations'],
     };
 
     expect(compareEntry(entry, incoming)).toBe('unchanged');

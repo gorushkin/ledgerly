@@ -59,7 +59,10 @@ export class TransactionBuilder {
   _systemAccounts = new Map<CurrencyCode, Account>();
   self: Transaction | null = null;
 
-  static create() {
+  static create(user?: User) {
+    if (user) {
+      return new TransactionBuilder().withUser(user);
+    }
     return new TransactionBuilder();
   }
 
@@ -133,6 +136,10 @@ export class TransactionBuilder {
     return this;
   }
 
+  getAccountByKey(key: string): Account | undefined {
+    return this._accounts.get(key);
+  }
+
   build() {
     this.validateUser();
 
@@ -179,6 +186,7 @@ export class TransactionBuilder {
         accountsMap: this.accountsMap,
         systemAccountsMap: this._systemAccounts,
       },
+      getAccountByKey: this.getAccountByKey.bind(this),
       systemAccounts: this._systemAccounts,
       transaction: this.self,
       user: this.user,

@@ -1,2 +1,2 @@
-export { printTransactionPTA } from './prettyPrint';
+export { prettyPrint } from './prettyPrint';
 export { TransactionBuilder } from './testEntityBuilder';

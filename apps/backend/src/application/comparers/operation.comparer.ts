@@ -5,6 +5,7 @@ import { UpdateOperationRequestDTO } from '../dto';
 
 export type OperationsCompareResult = 'identical' | 'different';
 
+// TODO: remove if unused
 export const compareOperation = (
   existing: Operation,
   incoming: UpdateOperationRequestDTO,
