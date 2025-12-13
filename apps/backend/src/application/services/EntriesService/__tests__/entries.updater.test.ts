@@ -11,7 +11,7 @@ import { OperationFactory } from 'src/application/services/operation.factory';
 import { createUser } from 'src/db/createTestUser';
 import { EntryDbRow } from 'src/db/schema';
 import { TransactionBuilder } from 'src/db/test-utils';
-import { Account, Entry, Operation, User } from 'src/domain';
+import { Account, Entry, Operation, Transaction, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core/value-objects/Amount';
 import { beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
@@ -438,6 +438,7 @@ describe('EntryUpdater', () => {
 
       (compareEntry as Mock).mockReturnValueOnce('unchanged');
 
+      // TODO: store json representation of operations before update
       const operationsByEntryIdMap = new Map<UUID, Operation[]>();
 
       transaction.getEntries().forEach((entry) => {
@@ -492,72 +493,251 @@ describe('EntryUpdater', () => {
         });
       });
     });
-    it.todo(
-      'does not call entryRepository.update or operationRepository.voidByEntryIds',
-    );
   });
 
-  // describe('creating new entries', () => {
-  //   it.todo(
-  //     'calls entryCreator.createEntryWithOperations for each created entry',
-  //   );
-  //   it.todo('adds newly created entries to transaction');
-  // });
+  describe('creating new entries', () => {
+    it('should create new entries via entryCreator.createEntryWithOperations', async () => {
+      const transactionBuilder = TransactionBuilder.create(user);
 
-  // describe('deleting entries', () => {
-  //   it.todo('voids deleted entries via entryRepository.voidByIds');
-  //   it.todo('removes deleted entries from transaction');
-  //   it.todo('does not process deleted entries in update logic');
-  // });
+      const { entryContext, transaction } = transactionBuilder
+        .withAccounts(['USD', 'EUR', 'RUB'])
+        .withSystemAccounts()
+        .withEntry('First Entry', [
+          {
+            accountKey: 'USD',
+            amount: Amount.create('10000'),
+            description: 'From Operation',
+          },
+          {
+            accountKey: 'EUR',
+            amount: Amount.create('-10000'),
+            description: 'To Operation',
+          },
+        ])
+        .build();
 
-  // describe('combined operations (create + update + delete)', () => {
-  //   it.todo('executes deletion before creation and updates');
-  //   it.todo('final transaction contains updated + created entries only');
-  // });
+      const create: CreateEntryRequestDTO[] = [
+        {
+          description: 'New Entry',
+          operations: [
+            {
+              accountId: transactionBuilder
+                .getAccountByKey('RUB')!
+                .getId()
+                .valueOf(),
+              amount: Amount.create('5000').valueOf(),
+              description: 'New From Operation',
+            },
+            {
+              accountId: transactionBuilder
+                .getAccountByKey('USD')!
+                .getId()
+                .valueOf(),
+              amount: Amount.create('-5000').valueOf(),
+              description: 'New To Operation',
+            },
+          ],
+        },
+      ];
 
-  // describe('balance validation', () => {
-  //   it.todo('calls transaction.validateEntriesBalance after all operations');
-  //   it.todo('throws if validateEntriesBalance fails');
-  // });
+      const newEntriesData: UpdateTransactionRequestDTO['entries'] = {
+        create,
+        delete: [],
+        update: [],
+      };
 
-  // describe('voiding operations', () => {
-  //   it.todo('voids operations only for entries with financial or full updates');
-  //   it.todo('does not void operations for metadata-only or unchanged entries');
-  // });
+      create.forEach(() => {
+        mockEntryCreator.createEntryWithOperations.mockImplementation(
+          (
+            user: User,
+            transaction: Transaction,
+            entryData: CreateEntryRequestDTO,
+            accountsByIdMap: Map<UUID, Account>,
+          ) => {
+            const entry = Entry.create(
+              user,
+              transaction,
+              entryData.description,
+            );
 
-  // describe('compareEntry routing', () => {
-  //   it.todo('routes updatedMetadata to metadata update handler');
-  //   it.todo('routes updatedFinancial to financial update handler');
-  //   it.todo('routes updatedBoth to full update handler');
-  //   it.todo('routes unchanged to no-op');
-  // });
+            const operations = entryData.operations.map((opData) => {
+              const account = accountsByIdMap.get(opData.accountId)!;
 
-  // describe('operationFactory integration', () => {
-  //   it.todo(
-  //     'passes correct accountsMap and systemAccountsMap to operationFactory',
-  //   );
-  //   it.todo(
-  //     'operation creation result is attached to entry via updateOperations',
-  //   );
-  // });
+              return Operation.create(
+                user,
+                account,
+                entry,
+                Amount.create(opData.amount),
+                opData.description,
+              );
+            });
 
-  // describe('entryRepository integration', () => {
-  //   it.todo(
-  //     'updateEntryMetadata loads new entry from persistence and attaches operations',
-  //   );
-  //   it.todo('does not lose operations after metadata rewrite');
-  // });
+            entry.addOperations(operations);
 
-  // describe('transaction updates', () => {
-  //   it.todo('transaction.removeEntries is called with correct IDs');
-  //   it.todo('transaction.addEntries is called with newly created entries');
-  //   it.todo('final transaction contains correct set of entries');
-  // });
+            return entry;
+          },
+        );
+      });
 
-  // describe('error handling', () => {
-  //   it.todo(
-  //     'ignores update when entry not found in transaction (current behavior)',
-  //   );
-  //   // позже можно заменить на it('throws...')
-  // });
+      const previousEntriesCount = transaction.getEntries().length;
+
+      const result = await entriesUpdater.execute({
+        entryContext,
+        newEntriesData,
+        transaction,
+        user,
+      });
+
+      expect(result.getEntries().length).toBe(
+        previousEntriesCount + create.length,
+      );
+
+      const alreadyExistingEntriesMap = transaction
+        .getEntries()
+        .reduce((acc, entry) => {
+          acc.set(entry.getId().valueOf(), entry);
+          return acc;
+        }, new Map<UUID, Entry>());
+
+      create.forEach((data, index) => {
+        expect(
+          mockEntryCreator.createEntryWithOperations,
+        ).toHaveBeenNthCalledWith(
+          index + 1,
+          user,
+          transaction,
+          data,
+          entryContext.accountsMap,
+          entryContext.systemAccountsMap,
+        );
+      });
+
+      const compareAlreadyExistingEntry = (
+        existedEntry: Entry,
+        entry: Entry,
+      ) => {
+        expect(entry.description).toBe(existedEntry.description);
+        expect(entry).toBeInstanceOf(Entry);
+
+        entry.getOperations().forEach((operation, opIndex) => {
+          const existedOperation = existedEntry.getOperations()[opIndex];
+
+          expect(operation.description).toBe(existedOperation.description);
+          expect(operation.amount.valueOf()).toBe(
+            existedOperation.amount.valueOf(),
+          );
+          expect(operation.getAccountId().valueOf()).toBe(
+            existedOperation.getAccountId().valueOf(),
+          );
+        });
+      };
+
+      const compareCreatedEntry = (
+        rawEntry: CreateEntryRequestDTO,
+        entry: Entry,
+      ) => {
+        expect(entry.description).toBe(rawEntry.description);
+        expect(entry).toBeInstanceOf(Entry);
+
+        entry.getOperations().forEach((operation, opIndex) => {
+          const rawOperation = rawEntry.operations?.[opIndex];
+
+          expect(operation.description).toBe(rawOperation.description);
+          expect(operation.amount.valueOf()).toBe(rawOperation.amount);
+          expect(operation.getAccountId().valueOf()).toBe(
+            rawOperation.accountId,
+          );
+        });
+      };
+
+      result.getEntries().forEach((entry, index) => {
+        if (alreadyExistingEntriesMap.has(entry.getId().valueOf())) {
+          return compareAlreadyExistingEntry(
+            alreadyExistingEntriesMap.get(entry.getId().valueOf())!,
+            entry,
+          );
+        }
+
+        const rawEntry =
+          newEntriesData.create[index - transaction.getEntries().length];
+
+        compareCreatedEntry(rawEntry, entry);
+      });
+
+      expect(mockEntryRepository.voidByIds).not.toHaveBeenCalled();
+
+      expect(mockEntryCreator.createEntryWithOperations).toHaveBeenCalledTimes(
+        create.length,
+      );
+
+      expect(mockEntryRepository.update).not.toHaveBeenCalled();
+
+      expect(mockOperationRepository.voidByEntryIds).not.toHaveBeenCalled();
+
+      expect(
+        mockOperationFactory.createOperationsForEntry,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleting entries', () => {
+    it('should void entries via entryRepository.voidByIds', async () => {
+      const transactionBuilder = TransactionBuilder.create(user);
+
+      const { entries, entryContext, transaction } = transactionBuilder
+        .withAccounts(['USD', 'EUR'])
+        .withSystemAccounts()
+        .withEntry('First Entry', [
+          {
+            accountKey: 'USD',
+            amount: Amount.create('10000'),
+            description: 'From Operation',
+          },
+          {
+            accountKey: 'EUR',
+            amount: Amount.create('-10000'),
+            description: 'To Operation',
+          },
+        ])
+        .build();
+
+      const idsToDelete = entries.map((entry) => entry.getId().valueOf());
+
+      const newEntriesData: UpdateTransactionRequestDTO['entries'] = {
+        create: [],
+        delete: idsToDelete,
+        update: [],
+      };
+
+      const previousEntriesCount = transaction.getEntries().length;
+
+      const result = await entriesUpdater.execute({
+        entryContext,
+        newEntriesData,
+        transaction,
+        user,
+      });
+
+      expect(mockEntryRepository.voidByIds).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        idsToDelete,
+      );
+
+      expect(mockEntryRepository.voidByIds).toHaveBeenCalledTimes(1);
+
+      expect(mockEntryCreator.createEntryWithOperations).not.toHaveBeenCalled();
+
+      expect(mockEntryRepository.update).not.toHaveBeenCalled();
+
+      expect(mockOperationRepository.voidByEntryIds).not.toHaveBeenCalled();
+
+      expect(
+        mockOperationFactory.createOperationsForEntry,
+      ).not.toHaveBeenCalled();
+
+      expect(result.getEntries().length).toBe(
+        previousEntriesCount - idsToDelete.length,
+      );
+    });
+  });
 });
