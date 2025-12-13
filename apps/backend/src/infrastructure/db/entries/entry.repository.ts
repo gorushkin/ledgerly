@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { EntryRepositoryInterface } from 'src/application';
 import { entriesTable, EntryDbInsert, EntryDbRow } from 'src/db/schema';
 
@@ -9,11 +9,42 @@ export class EntryRepository
   extends BaseRepository
   implements EntryRepositoryInterface
 {
-  update(_userId: UUID, _entry: EntryDbInsert): Promise<EntryDbRow> {
-    throw new Error('Method not implemented.');
+  update(userId: UUID, entry: EntryDbInsert): Promise<EntryDbRow> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const safeData = this.getSafeUpdate(entry, ['description']);
+
+        return this.db
+          .update(entriesTable)
+          .set({ ...safeData, ...this.updateTimestamp })
+          .where(
+            and(eq(entriesTable.id, entry.id), eq(entriesTable.userId, userId)),
+          )
+          .returning()
+          .get();
+      },
+      'EntryRepository.update',
+      { field: 'entry', tableName: 'entries', value: entry.id },
+    );
   }
-  voidByIds(_userId: UUID, _entryIds: UUID[]): Promise<EntryDbRow[]> {
-    throw new Error('Method not implemented.');
+  voidByIds(userId: UUID, entryIds: UUID[]): Promise<EntryDbRow[]> {
+    return this.executeDatabaseOperation<EntryDbRow[]>(
+      () => {
+        return this.db
+          .update(entriesTable)
+          .set({ isTombstone: true, ...this.updateTimestamp })
+          .where(
+            and(
+              inArray(entriesTable.id, entryIds),
+              eq(entriesTable.userId, userId),
+            ),
+          )
+          .returning()
+          .all();
+      },
+      'EntryRepository.voidByIds',
+      { field: 'entryIds', tableName: 'entries', value: entryIds.join(',') },
+    );
   }
 
   create(entry: EntryDbInsert): Promise<EntryDbRow> {
@@ -50,7 +81,7 @@ export class EntryRepository
       () => {
         return this.db
           .update(entriesTable)
-          .set({ isTombstone: true })
+          .set({ isTombstone: true, ...this.updateTimestamp })
           .where(
             and(
               eq(entriesTable.transactionId, transactionId),
@@ -61,32 +92,6 @@ export class EntryRepository
           .all();
       },
       'EntryRepository.softDeleteByTransactionId',
-      {
-        field: 'transactionId',
-        tableName: 'entries',
-        value: transactionId,
-      },
-    );
-  }
-
-  async deleteByTransactionId(
-    userId: UUID,
-    transactionId: UUID,
-  ): Promise<EntryDbRow[]> {
-    return this.executeDatabaseOperation<EntryDbRow[]>(
-      () => {
-        return this.db
-          .delete(entriesTable)
-          .where(
-            and(
-              eq(entriesTable.transactionId, transactionId),
-              eq(entriesTable.userId, userId),
-            ),
-          )
-          .returning()
-          .all();
-      },
-      'EntryRepository.deleteByTransactionId',
       {
         field: 'transactionId',
         tableName: 'entries',

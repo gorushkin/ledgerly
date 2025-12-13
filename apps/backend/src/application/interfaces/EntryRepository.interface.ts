@@ -6,9 +6,6 @@ export type EntryRepositoryInterface = {
   update(userId: UUID, entry: EntryDbInsert): Promise<EntryDbRow>;
   getByTransactionId(userId: UUID, transactionId: UUID): Promise<EntryDbRow[]>;
   voidByTransactionId(userId: UUID, transactionId: UUID): Promise<EntryDbRow[]>;
-  deleteByTransactionId(
-    userId: UUID,
-    transactionId: UUID,
-  ): Promise<EntryDbRow[]>;
+
   voidByIds(userId: UUID, entryIds: UUID[]): Promise<EntryDbRow[]>;
 };

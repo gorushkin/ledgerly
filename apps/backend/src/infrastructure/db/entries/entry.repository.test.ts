@@ -1,4 +1,5 @@
 import { EntryDbRow, TransactionDbRow, UserDbRow } from 'src/db/schema';
+import { compareEntities } from 'src/db/test-utils';
 import { Id, Timestamp } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -172,8 +173,40 @@ describe('EntryRepository', () => {
     });
   });
 
-  describe('deleteByTransactionId', () => {
-    it('should delete entries by transaction ID', async () => {
+  describe('update', () => {
+    it('should update an existing entry', async () => {
+      const createdEntry = await testDB.createEntry(user.id, {
+        description: 'Old Description',
+        transactionId: transaction.id,
+      });
+
+      const updatedEntryData: EntryDbRow = {
+        ...createdEntry,
+        createdAt: Timestamp.create().valueOf(),
+        description: 'Updated Description',
+        isTombstone: true,
+        updatedAt: Timestamp.create().valueOf(),
+      };
+
+      const updatedEntry = await entryRepository.update(
+        user.id,
+        updatedEntryData,
+      );
+
+      expect(updatedEntry.description).toBe('Updated Description');
+
+      const fetchedEntry = await testDB.getEntryById(createdEntry.id);
+      expect(fetchedEntry?.description).toBe('Updated Description');
+
+      compareEntities<EntryDbRow>(createdEntry, updatedEntry, [
+        'description',
+        'updatedAt',
+      ]);
+    });
+  });
+
+  describe('voidByIds', () => {
+    it('should mark entries as tombstone by their IDs', async () => {
       const createdEntries = await Promise.all([
         testDB.createEntry(user.id, {
           transactionId: transaction.id,
@@ -183,18 +216,31 @@ describe('EntryRepository', () => {
         }),
       ]);
 
-      await entryRepository.deleteByTransactionId(user.id, transaction.id);
+      const entryIds = createdEntries.map((entry) => entry.id);
 
-      const entries = await entryRepository.getByTransactionId(
-        user.id,
-        transaction.id,
-      );
+      const voidedEntries = await entryRepository.voidByIds(user.id, entryIds);
 
-      expect(entries).toHaveLength(0);
+      expect(voidedEntries).toHaveLength(createdEntries.length);
+
+      voidedEntries.forEach((entry) => {
+        expect(entry.isTombstone).toBe(true);
+
+        const wasCreatedEntry = createdEntries.find((e) => e.id === entry.id);
+        expect(wasCreatedEntry).toBeDefined();
+        expect(entry.description).toBe(wasCreatedEntry?.description);
+      });
 
       for (const createdEntry of createdEntries) {
         const deletedEntry = await testDB.getEntryById(createdEntry.id);
-        expect(deletedEntry).toBeNull();
+
+        if (!deletedEntry) {
+          throw new Error('Deleted entry should exist');
+        }
+
+        compareEntities<EntryDbRow>(createdEntry, deletedEntry, [
+          'isTombstone',
+          'updatedAt',
+        ]);
       }
     });
   });

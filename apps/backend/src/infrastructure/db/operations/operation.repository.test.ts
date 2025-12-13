@@ -1,9 +1,11 @@
+import { UUID } from '@ledgerly/shared/types';
 import {
   AccountDbRow,
   EntryDbRow,
   OperationDbRow,
   UserDbRow,
 } from 'src/db/schema';
+import { compareEntities } from 'src/db/test-utils';
 import { Amount, Id, Timestamp } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -25,6 +27,7 @@ describe('OperationRepository', () => {
 
   let user: UserDbRow;
   let entry: EntryDbRow;
+  let anotherEntry: EntryDbRow;
   let account1: AccountDbRow;
   let account2: AccountDbRow;
 
@@ -42,6 +45,7 @@ describe('OperationRepository', () => {
     account2 = await testDB.createAccount(user.id, { name: 'Account 2' });
 
     entry = await testDB.createEntry(user.id);
+    anotherEntry = await testDB.createEntry(user.id);
   });
 
   describe('create', () => {
@@ -198,39 +202,92 @@ describe('OperationRepository', () => {
     });
   });
 
-  describe('deleteByEntryIds', () => {
-    it('should delete operations by entry IDs', async () => {
-      const operations = await Promise.all([
-        testDB.createOperation(user.id, {
-          accountId: account1.id,
-          amount: Amount.create('700').valueOf(),
-          description: 'Operation to be deleted',
-          entryId: entry.id,
-        }),
-
-        testDB.createOperation(user.id, {
+  describe('voidByEntryIds', () => {
+    it('should soft delete operations by a single entry ID', async () => {
+      const entryForDeletingData = [
+        {
           accountId: account2.id,
-          amount: Amount.create('300').valueOf(),
-          description: 'Another operation to be deleted',
+          amount: Amount.create('400').valueOf(),
+          description: 'Operation to be soft deleted by single entry ID',
           entryId: entry.id,
-        }),
-      ]);
+        },
+        {
+          accountId: account1.id,
+          amount: Amount.create('600').valueOf(),
+          description: 'Another operation for the same entry',
+          entryId: entry.id,
+        },
+      ];
 
-      const fetchedOperationsBefore = await operationRepository.getByEntryId(
+      const operationsToBeDeleted = await Promise.all(
+        entryForDeletingData.map((opData) =>
+          testDB.createOperation(user.id, opData),
+        ),
+      );
+
+      const operationsBeforeVoiding = new Map<UUID, OperationDbRow>();
+
+      operationsToBeDeleted.forEach((op) =>
+        operationsBeforeVoiding.set(op.id, op),
+      );
+
+      const thirdOperation = await testDB.createOperation(user.id, {
+        accountId: account1.id,
+        amount: Amount.create('600').valueOf(),
+        description: 'Another operation for the same entry',
+        entryId: anotherEntry.id,
+      });
+
+      const voidedOperations = await operationRepository.voidByEntryId(
         user.id,
         entry.id,
       );
 
-      expect(fetchedOperationsBefore).toHaveLength(operations.length);
+      voidedOperations.forEach((voidedOp) => {
+        const originalOp = operationsBeforeVoiding.get(voidedOp.id);
 
-      await operationRepository.deleteByEntryIds(user.id, [entry.id]);
+        if (!originalOp) {
+          throw new Error(
+            `Operation with ID ${voidedOp.id} was not expected to be voided.`,
+          );
+        }
 
-      const fetchedOperationsAfter = await operationRepository.getByEntryId(
+        expect(voidedOp.isTombstone).toBe(true);
+
+        compareEntities(originalOp, voidedOp, ['updatedAt', 'isTombstone']);
+      });
+
+      const unVoidedOperation = await testDB.getOperationById(
+        thirdOperation.id,
+      );
+
+      expect(unVoidedOperation?.isTombstone).toBe(false);
+
+      const voidedOperationsDBrows = await testDB.getOperationsByEntryId(
         user.id,
         entry.id,
       );
 
-      expect(fetchedOperationsAfter).toHaveLength(0);
+      expect(voidedOperationsDBrows).toHaveLength(voidedOperations.length);
+
+      const fetchedOperations = await operationRepository.getByEntryId(
+        user.id,
+        entry.id,
+      );
+
+      fetchedOperations.forEach((fetchedOp) => {
+        expect(fetchedOp.isTombstone).toBe(true);
+
+        const originalOp = operationsBeforeVoiding.get(fetchedOp.id);
+
+        if (!originalOp) {
+          throw new Error(
+            `Operation with ID ${fetchedOp.id} was not expected to be voided.`,
+          );
+        }
+
+        compareEntities(originalOp, fetchedOp, ['isTombstone', 'updatedAt']);
+      });
     });
   });
 });
