@@ -5,6 +5,7 @@ import {
   OperationDbRow,
   UserDbRow,
 } from 'src/db/schema';
+import { compareEntities } from 'src/db/test-utils';
 import { Amount, Id, Timestamp } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -201,7 +202,7 @@ describe('OperationRepository', () => {
     });
   });
 
-  describe('softDeleteByEntryId', () => {
+  describe('voidByEntryIds', () => {
     it('should soft delete operations by a single entry ID', async () => {
       const entryForDeletingData = [
         {
@@ -224,10 +225,10 @@ describe('OperationRepository', () => {
         ),
       );
 
-      const deleteOperationsData = new Map<UUID, OperationDbRow>();
+      const operationsBeforeVoiding = new Map<UUID, OperationDbRow>();
 
       operationsToBeDeleted.forEach((op) =>
-        deleteOperationsData.set(op.id, op),
+        operationsBeforeVoiding.set(op.id, op),
       );
 
       const thirdOperation = await testDB.createOperation(user.id, {
@@ -242,22 +243,8 @@ describe('OperationRepository', () => {
         entry.id,
       );
 
-      const compareDBRows = (
-        originalOp: OperationDbRow,
-        voidedOp: OperationDbRow,
-      ) => {
-        expect(originalOp).toBeDefined();
-        expect(voidedOp.isTombstone).toBe(true);
-        expect(voidedOp.entryId).toBe(originalOp.entryId);
-        expect(voidedOp.accountId).toBe(originalOp.accountId);
-        expect(voidedOp.amount).toBe(originalOp.amount);
-        expect(voidedOp.createdAt).toBe(originalOp.createdAt);
-        expect(voidedOp.updatedAt).toBe(originalOp.updatedAt);
-        expect(voidedOp.description).toBe(originalOp.description);
-      };
-
       voidedOperations.forEach((voidedOp) => {
-        const originalOp = deleteOperationsData.get(voidedOp.id);
+        const originalOp = operationsBeforeVoiding.get(voidedOp.id);
 
         if (!originalOp) {
           throw new Error(
@@ -265,7 +252,9 @@ describe('OperationRepository', () => {
           );
         }
 
-        compareDBRows(originalOp, voidedOp);
+        expect(voidedOp.isTombstone).toBe(true);
+
+        compareEntities(originalOp, voidedOp, ['updatedAt', 'isTombstone']);
       });
 
       const unVoidedOperation = await testDB.getOperationById(
@@ -289,7 +278,7 @@ describe('OperationRepository', () => {
       fetchedOperations.forEach((fetchedOp) => {
         expect(fetchedOp.isTombstone).toBe(true);
 
-        const originalOp = deleteOperationsData.get(fetchedOp.id);
+        const originalOp = operationsBeforeVoiding.get(fetchedOp.id);
 
         if (!originalOp) {
           throw new Error(
@@ -297,7 +286,7 @@ describe('OperationRepository', () => {
           );
         }
 
-        compareDBRows(originalOp, fetchedOp);
+        compareEntities(originalOp, fetchedOp, ['isTombstone', 'updatedAt']);
       });
     });
   });

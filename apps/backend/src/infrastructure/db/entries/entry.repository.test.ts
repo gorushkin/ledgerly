@@ -1,4 +1,5 @@
 import { EntryDbRow, TransactionDbRow, UserDbRow } from 'src/db/schema';
+import { compareEntities } from 'src/db/test-utils';
 import { Id, Timestamp } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,20 +7,6 @@ import { TestDB } from '../../../db/test-db';
 import { TransactionManager } from '../TransactionManager';
 
 import { EntryRepository } from './entry.repository';
-
-const compareEntities = <T extends object>(
-  before: T,
-  after: T,
-  keysToIgnore: (keyof T)[] = [],
-) => {
-  const keys = Object.keys(before) as (keyof T)[];
-
-  keys.forEach((key) => {
-    if (!keysToIgnore.includes(key)) {
-      expect(after[key]).toEqual(before[key]);
-    }
-  });
-};
 
 describe('EntryRepository', () => {
   let testDB: TestDB;
@@ -186,33 +173,6 @@ describe('EntryRepository', () => {
     });
   });
 
-  describe('deleteByTransactionId', () => {
-    it('should delete entries by transaction ID', async () => {
-      const createdEntries = await Promise.all([
-        testDB.createEntry(user.id, {
-          transactionId: transaction.id,
-        }),
-        testDB.createEntry(user.id, {
-          transactionId: transaction.id,
-        }),
-      ]);
-
-      await entryRepository.deleteByTransactionId(user.id, transaction.id);
-
-      const entries = await entryRepository.getByTransactionId(
-        user.id,
-        transaction.id,
-      );
-
-      expect(entries).toHaveLength(0);
-
-      for (const createdEntry of createdEntries) {
-        const deletedEntry = await testDB.getEntryById(createdEntry.id);
-        expect(deletedEntry).toBeNull();
-      }
-    });
-  });
-
   describe('update', () => {
     it('should update an existing entry', async () => {
       const createdEntry = await testDB.createEntry(user.id, {
@@ -279,6 +239,7 @@ describe('EntryRepository', () => {
 
         compareEntities<EntryDbRow>(createdEntry, deletedEntry, [
           'isTombstone',
+          'updatedAt',
         ]);
       }
     });

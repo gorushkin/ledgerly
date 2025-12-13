@@ -51,7 +51,7 @@ export class OperationRepository
       () => {
         return this.db
           .update(operationsTable)
-          .set({ isTombstone: true })
+          .set({ isTombstone: true, ...this.updateTimestamp })
           .where(
             and(
               inArray(operationsTable.entryId, entryIds),
@@ -75,7 +75,7 @@ export class OperationRepository
       () => {
         return this.db
           .update(operationsTable)
-          .set({ isTombstone: true })
+          .set({ isTombstone: true, ...this.updateTimestamp })
           .where(
             and(
               eq(operationsTable.entryId, entryId),

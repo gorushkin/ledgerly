@@ -27,15 +27,15 @@ export class EntryRepository
       { field: 'entry', tableName: 'entries', value: entry.id },
     );
   }
-  voidByIds(userId: UUID, _entryIds: UUID[]): Promise<EntryDbRow[]> {
+  voidByIds(userId: UUID, entryIds: UUID[]): Promise<EntryDbRow[]> {
     return this.executeDatabaseOperation<EntryDbRow[]>(
       () => {
         return this.db
           .update(entriesTable)
-          .set({ isTombstone: true })
+          .set({ isTombstone: true, ...this.updateTimestamp })
           .where(
             and(
-              inArray(entriesTable.id, _entryIds),
+              inArray(entriesTable.id, entryIds),
               eq(entriesTable.userId, userId),
             ),
           )
@@ -43,7 +43,7 @@ export class EntryRepository
           .all();
       },
       'EntryRepository.voidByIds',
-      { field: 'entryIds', tableName: 'entries', value: _entryIds.join(',') },
+      { field: 'entryIds', tableName: 'entries', value: entryIds.join(',') },
     );
   }
 
@@ -81,7 +81,7 @@ export class EntryRepository
       () => {
         return this.db
           .update(entriesTable)
-          .set({ isTombstone: true })
+          .set({ isTombstone: true, ...this.updateTimestamp })
           .where(
             and(
               eq(entriesTable.transactionId, transactionId),
@@ -92,32 +92,6 @@ export class EntryRepository
           .all();
       },
       'EntryRepository.softDeleteByTransactionId',
-      {
-        field: 'transactionId',
-        tableName: 'entries',
-        value: transactionId,
-      },
-    );
-  }
-
-  async deleteByTransactionId(
-    userId: UUID,
-    transactionId: UUID,
-  ): Promise<EntryDbRow[]> {
-    return this.executeDatabaseOperation<EntryDbRow[]>(
-      () => {
-        return this.db
-          .delete(entriesTable)
-          .where(
-            and(
-              eq(entriesTable.transactionId, transactionId),
-              eq(entriesTable.userId, userId),
-            ),
-          )
-          .returning()
-          .all();
-      },
-      'EntryRepository.deleteByTransactionId',
       {
         field: 'transactionId',
         tableName: 'entries',
