@@ -39,12 +39,12 @@ export class EntryBuilder {
     description,
   }: {
     accountKey: string;
-    amount?: Amount;
+    amount: Amount;
     description?: string;
   }) {
     this.operationsData.push({
       accountKey,
-      amount: amount!,
+      amount: amount,
       description: description!,
     });
 

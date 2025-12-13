@@ -1,4 +1,5 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { EntityNotFoundError } from 'src/application/application.errors';
 import { compareEntry, EntryCompareResult } from 'src/application/comparers';
 import {
   UpdateEntryRequestDTO,
@@ -163,8 +164,7 @@ export class EntryUpdater {
       const existing = transaction.getEntryById(incoming.id);
 
       if (!existing) {
-        // TODO: handle error
-        return;
+        throw new EntityNotFoundError(`Entry with id ${incoming.id}`);
       }
 
       const compareResult = compareEntry(existing, incoming);

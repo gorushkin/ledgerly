@@ -1,3 +1,4 @@
+import { CurrencyCode } from '@ledgerly/shared/types';
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
 import { Account, Entry, User } from '..';
@@ -189,7 +190,7 @@ export class Operation {
     return this.account.isSystem;
   }
 
-  get currency() {
+  get currency(): CurrencyCode {
     return this.account.currency.valueOf();
   }
 
