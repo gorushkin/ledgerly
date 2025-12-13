@@ -459,6 +459,17 @@ export class TestDB {
     return operation ?? null;
   };
 
+  getOperationsByEntryId = async (userId: UUID, entryId: UUID) => {
+    const operations = await this.db
+      .select()
+      .from(schema.operationsTable)
+      .where(
+        sql`${schema.operationsTable.entryId} = ${entryId} AND ${schema.operationsTable.userId} = ${userId}`,
+      );
+
+    return operations;
+  };
+
   deleteData = async () => {
     await this.db.delete(transactionsTable);
     await this.db.delete(accountsTable);

@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import {
   AccountDbRow,
   EntryDbRow,
@@ -25,6 +26,7 @@ describe('OperationRepository', () => {
 
   let user: UserDbRow;
   let entry: EntryDbRow;
+  let anotherEntry: EntryDbRow;
   let account1: AccountDbRow;
   let account2: AccountDbRow;
 
@@ -42,6 +44,7 @@ describe('OperationRepository', () => {
     account2 = await testDB.createAccount(user.id, { name: 'Account 2' });
 
     entry = await testDB.createEntry(user.id);
+    anotherEntry = await testDB.createEntry(user.id);
   });
 
   describe('create', () => {
@@ -198,39 +201,104 @@ describe('OperationRepository', () => {
     });
   });
 
-  describe('deleteByEntryIds', () => {
-    it('should delete operations by entry IDs', async () => {
-      const operations = await Promise.all([
-        testDB.createOperation(user.id, {
-          accountId: account1.id,
-          amount: Amount.create('700').valueOf(),
-          description: 'Operation to be deleted',
-          entryId: entry.id,
-        }),
-
-        testDB.createOperation(user.id, {
+  describe('softDeleteByEntryId', () => {
+    it('should soft delete operations by a single entry ID', async () => {
+      const entryForDeletingData = [
+        {
           accountId: account2.id,
-          amount: Amount.create('300').valueOf(),
-          description: 'Another operation to be deleted',
+          amount: Amount.create('400').valueOf(),
+          description: 'Operation to be soft deleted by single entry ID',
           entryId: entry.id,
-        }),
-      ]);
+        },
+        {
+          accountId: account1.id,
+          amount: Amount.create('600').valueOf(),
+          description: 'Another operation for the same entry',
+          entryId: entry.id,
+        },
+      ];
 
-      const fetchedOperationsBefore = await operationRepository.getByEntryId(
+      const operationsToBeDeleted = await Promise.all(
+        entryForDeletingData.map((opData) =>
+          testDB.createOperation(user.id, opData),
+        ),
+      );
+
+      const deleteOperationsData = new Map<UUID, OperationDbRow>();
+
+      operationsToBeDeleted.forEach((op) =>
+        deleteOperationsData.set(op.id, op),
+      );
+
+      const thirdOperation = await testDB.createOperation(user.id, {
+        accountId: account1.id,
+        amount: Amount.create('600').valueOf(),
+        description: 'Another operation for the same entry',
+        entryId: anotherEntry.id,
+      });
+
+      const voidedOperations = await operationRepository.voidByEntryId(
         user.id,
         entry.id,
       );
 
-      expect(fetchedOperationsBefore).toHaveLength(operations.length);
+      const compareDBRows = (
+        originalOp: OperationDbRow,
+        voidedOp: OperationDbRow,
+      ) => {
+        expect(originalOp).toBeDefined();
+        expect(voidedOp.isTombstone).toBe(true);
+        expect(voidedOp.entryId).toBe(originalOp.entryId);
+        expect(voidedOp.accountId).toBe(originalOp.accountId);
+        expect(voidedOp.amount).toBe(originalOp.amount);
+        expect(voidedOp.createdAt).toBe(originalOp.createdAt);
+        expect(voidedOp.updatedAt).toBe(originalOp.updatedAt);
+        expect(voidedOp.description).toBe(originalOp.description);
+      };
 
-      await operationRepository.deleteByEntryIds(user.id, [entry.id]);
+      voidedOperations.forEach((voidedOp) => {
+        const originalOp = deleteOperationsData.get(voidedOp.id);
 
-      const fetchedOperationsAfter = await operationRepository.getByEntryId(
+        if (!originalOp) {
+          throw new Error(
+            `Operation with ID ${voidedOp.id} was not expected to be voided.`,
+          );
+        }
+
+        compareDBRows(originalOp, voidedOp);
+      });
+
+      const unVoidedOperation = await testDB.getOperationById(
+        thirdOperation.id,
+      );
+
+      expect(unVoidedOperation?.isTombstone).toBe(false);
+
+      const voidedOperationsDBrows = await testDB.getOperationsByEntryId(
         user.id,
         entry.id,
       );
 
-      expect(fetchedOperationsAfter).toHaveLength(0);
+      expect(voidedOperationsDBrows).toHaveLength(voidedOperations.length);
+
+      const fetchedOperations = await operationRepository.getByEntryId(
+        user.id,
+        entry.id,
+      );
+
+      fetchedOperations.forEach((fetchedOp) => {
+        expect(fetchedOp.isTombstone).toBe(true);
+
+        const originalOp = deleteOperationsData.get(fetchedOp.id);
+
+        if (!originalOp) {
+          throw new Error(
+            `Operation with ID ${fetchedOp.id} was not expected to be voided.`,
+          );
+        }
+
+        compareDBRows(originalOp, fetchedOp);
+      });
     });
   });
 });

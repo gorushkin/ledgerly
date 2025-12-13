@@ -43,27 +43,6 @@ export class OperationRepository
     );
   }
 
-  async deleteByEntryIds(userId: UUID, entryIds: UUID[]): Promise<void> {
-    return this.executeDatabaseOperation<void>(
-      async () => {
-        await this.db
-          .delete(operationsTable)
-          .where(
-            and(
-              inArray(operationsTable.entryId, entryIds),
-              eq(operationsTable.userId, userId),
-            ),
-          );
-      },
-      'OperationRepository.deleteByEntryIds',
-      {
-        field: 'entryId',
-        tableName: 'operations',
-        value: entryIds.join(', '),
-      },
-    );
-  }
-
   async voidByEntryIds(
     userId: UUID,
     entryIds: UUID[],
@@ -91,7 +70,23 @@ export class OperationRepository
     );
   }
 
-  voidByEntryId(_userId: UUID, _entryId: UUID): Promise<OperationDbRow[]> {
-    throw new Error('Method not implemented.');
+  voidByEntryId(userId: UUID, entryId: UUID): Promise<OperationDbRow[]> {
+    return this.executeDatabaseOperation<OperationDbRow[]>(
+      () => {
+        return this.db
+          .update(operationsTable)
+          .set({ isTombstone: true })
+          .where(
+            and(
+              eq(operationsTable.entryId, entryId),
+              eq(operationsTable.userId, userId),
+            ),
+          )
+          .returning()
+          .all();
+      },
+      'OperationRepository.voidByEntryId',
+      { field: 'entryId', tableName: 'operations', value: entryId },
+    );
   }
 }
