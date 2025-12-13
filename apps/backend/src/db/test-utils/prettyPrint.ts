@@ -11,6 +11,7 @@ const formatter = new AmountFormatter();
  */
 export function printEntryPTA(entry: Entry): string {
   const lines: string[] = [];
+  lines.push(entry.description);
   entry.getOperations().forEach((op) => {
     const amount = formatter.formatForTable(op.amount, 'en-US');
     lines.push(

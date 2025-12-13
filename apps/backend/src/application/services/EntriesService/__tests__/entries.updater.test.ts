@@ -13,7 +13,7 @@ import { EntryDbRow } from 'src/db/schema';
 import { TransactionBuilder } from 'src/db/test-utils';
 import { Account, Entry, Operation, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core/value-objects/Amount';
-import { beforeAll, describe, expect, it, Mock, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { EntryCreator, EntryUpdater } from '..';
 
@@ -52,6 +52,10 @@ describe('EntryUpdater', () => {
     user = await createUser();
   });
 
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
   describe.skip('metadata-only updates', () => {
     it('updates only metadata when compareEntry returns updatedMetadata', async () => {
       const transactionBuilder = TransactionBuilder.create(user);
@@ -76,28 +80,9 @@ describe('EntryUpdater', () => {
       const newData = [{ description: 'Updated Entry 1 Description' }];
 
       const update: UpdateEntryRequestDTO[] = entries.map((entry, index) => {
-        const operationFrom = entry.getOperations()[0];
-        const operationTo = entry.getOperations()[1];
-
         return {
           description: newData[index].description,
           id: entry.getId().valueOf(),
-          operations: [
-            {
-              accountId: operationFrom.getAccountId().valueOf(),
-              amount: operationFrom.amount.valueOf(),
-              description: operationFrom.description,
-              entryId: entry.getId().valueOf(),
-              id: operationFrom.getId().valueOf(),
-            },
-            {
-              accountId: operationTo.getAccountId().valueOf(),
-              amount: operationTo.amount.valueOf(),
-              description: operationTo.description,
-              entryId: entry.getId().valueOf(),
-              id: operationTo.getId().valueOf(),
-            },
-          ],
         };
       });
 
@@ -128,6 +113,8 @@ describe('EntryUpdater', () => {
         user,
       });
 
+      expect(compareEntry).toHaveBeenCalledTimes(update.length);
+
       update.forEach((data, index) => {
         expect(mockEntryRepository.update).toHaveBeenNthCalledWith(
           index + 1,
@@ -152,20 +139,6 @@ describe('EntryUpdater', () => {
 
         expect(entry.description).toBe(rawEntry.description);
         expect(entry).toBeInstanceOf(Entry);
-
-        entry.getOperations().forEach((operation, opIndex) => {
-          const rawOperation = rawEntry.operations?.[opIndex];
-
-          if (!rawOperation) {
-            throw new Error('rawOperation is undefined');
-          }
-
-          expect(operation.description).toBe(rawOperation.description);
-          expect(operation.amount.valueOf()).toBe(rawOperation.amount);
-          expect(operation.getAccountId().valueOf()).toBe(
-            rawOperation.accountId,
-          );
-        });
       });
     });
   });
@@ -182,12 +155,12 @@ describe('EntryUpdater', () => {
             {
               accountKey: 'USD',
               amount: Amount.create('10000'),
-              description: 'From Operation',
+              description: 'From Operation Old description',
             },
             {
               accountKey: 'EUR',
               amount: Amount.create('-10000'),
-              description: 'To Operation',
+              description: 'To Operation Old description',
             },
           ])
           .build();
@@ -251,6 +224,8 @@ describe('EntryUpdater', () => {
         user,
       });
 
+      expect(compareEntry).toHaveBeenCalledTimes(update.length);
+
       expect(mockEntryRepository.update).not.toHaveBeenCalled();
       expect(mockEntryRepository.voidByIds).not.toHaveBeenCalled();
       expect(mockEntryCreator.createEntryWithOperations).not.toHaveBeenCalled();
@@ -285,11 +260,150 @@ describe('EntryUpdater', () => {
     });
   });
 
-  // describe('full updates (metadata + financial)', () => {
-  //   it.todo('updates metadata before financial changes');
-  //   it.todo('voids operations and recreates new ones');
-  //   it.todo('returns updated entry with both metadata and operations changed');
-  // });
+  describe('full updates (metadata + financial)', () => {
+    it('should void previous operations,  create new ones for full update and update entires', async () => {
+      const transactionBuilder = TransactionBuilder.create(user);
+
+      const { entries, entryContext, getAccountByKey, transaction } =
+        transactionBuilder
+          .withAccounts(['USD', 'EUR', 'RUB'])
+          .withSystemAccounts()
+          .withEntry('First Entry', [
+            {
+              accountKey: 'USD',
+              amount: Amount.create('10000'),
+              description: 'From Operation',
+            },
+            {
+              accountKey: 'EUR',
+              amount: Amount.create('-10000'),
+              description: 'To Operation',
+            },
+          ])
+          .build();
+
+      const update: UpdateEntryRequestDTO[] = entries.map((entry) => {
+        const operationFrom = entry.getOperations()[0];
+
+        return {
+          description: 'Updated ' + entry.description, // changed description
+          id: entry.getId().valueOf(),
+          operations: [
+            {
+              accountId: operationFrom.getAccountId().valueOf(),
+              amount: Amount.create('20000').valueOf(), // changed amount
+              description: operationFrom.description,
+            },
+            {
+              accountId: getAccountByKey('RUB')!.getId().valueOf(), // changed account
+              amount: Amount.create('-20000').valueOf(), // changed amount
+              description: 'New To Operation', // changed description
+            },
+          ],
+        };
+      });
+
+      const newEntriesData: UpdateTransactionRequestDTO['entries'] = {
+        create: [],
+        delete: [],
+        update,
+      };
+
+      (compareEntry as Mock).mockReturnValueOnce('updatedBoth');
+
+      const mockEntryDbRow: EntryDbRow = {
+        createdAt: entries[0].createdAt,
+        description: 'Updated Entry Description',
+        id: entries[0].getId().valueOf(),
+        isTombstone: entries[0].isDeleted(),
+        transactionId: transaction.getId().valueOf(),
+        updatedAt: entries[0].updatedAt,
+        userId: user.getId().valueOf(),
+      };
+
+      mockEntryRepository.update.mockResolvedValue(mockEntryDbRow);
+
+      mockOperationFactory.createOperationsForEntry.mockImplementation(
+        (
+          user: User,
+          existing: Entry,
+          incoming: CreateEntryRequestDTO,
+          accountsByIdMap: Map<UUID, Account>,
+        ) => {
+          const operations = incoming.operations.map((opData) => {
+            const account = accountsByIdMap.get(opData.accountId)!;
+
+            return Operation.create(
+              user,
+              account,
+              existing,
+              Amount.create(opData.amount),
+              opData.description,
+            );
+          });
+
+          return operations;
+        },
+      );
+
+      const result = await entriesUpdater.execute({
+        entryContext,
+        newEntriesData,
+        transaction,
+        user,
+      });
+
+      result.getEntries().forEach((entry, index) => {
+        const rawEntry = newEntriesData.update[index];
+
+        expect(entry.description).toBe(rawEntry.description);
+        expect(entry).toBeInstanceOf(Entry);
+
+        entry.getOperations().forEach((operation, opIndex) => {
+          const rawOperation = rawEntry.operations?.[opIndex];
+
+          if (!rawOperation) {
+            throw new Error('rawOperation is undefined');
+          }
+
+          expect(operation.description).toBe(rawOperation.description);
+          expect(operation.amount.valueOf()).toBe(rawOperation.amount);
+          expect(operation.getAccountId().valueOf()).toBe(
+            rawOperation.accountId,
+          );
+        });
+      });
+
+      update.forEach((data, index) => {
+        expect(mockEntryRepository.update).toHaveBeenNthCalledWith(
+          index + 1,
+          user.getId().valueOf(),
+          expect.objectContaining({
+            description: data.description,
+            id: data.id,
+          }),
+        );
+      });
+
+      expect(compareEntry).toHaveBeenCalledTimes(update.length);
+
+      expect(mockEntryRepository.update).toHaveBeenCalledTimes(update.length);
+
+      expect(mockEntryRepository.voidByIds).not.toHaveBeenCalled();
+      expect(mockEntryCreator.createEntryWithOperations).not.toHaveBeenCalled();
+
+      expect(mockOperationRepository.voidByEntryIds).toHaveBeenCalledTimes(
+        update.length,
+      );
+
+      expect(
+        mockOperationFactory.createOperationsForEntry,
+      ).toHaveBeenCalledTimes(update.length);
+    });
+    // it.todo('updates metadata before financial changes');
+    // it.todo('voids operations and recreates new ones');
+    // it.todo('returns updated entry with both metadata and operations changed');
+  });
 
   // describe('unchanged entries', () => {
   //   it.todo('does nothing when compareEntry returns unchanged');

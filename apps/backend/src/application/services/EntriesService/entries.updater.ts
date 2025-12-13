@@ -30,15 +30,15 @@ export class EntryUpdater {
 
   private async updateEntriesFinancial(
     user: User,
-    entries: CompareResult[],
+    entriesData: CompareResult[],
     accountsMap: Map<UUID, Account>,
     systemAccountsMap: Map<CurrencyCode, Account>,
   ): Promise<Entry[]> {
-    if (entries.length === 0) {
+    if (entriesData.length === 0) {
       return [];
     }
 
-    const { existingEntriesIds } = entries.reduce<{
+    const { existingEntriesIds } = entriesData.reduce<{
       existingEntriesIds: UUID[];
       incoming: UpdateEntryRequestDTO[];
     }>(
@@ -55,7 +55,7 @@ export class EntryUpdater {
       existingEntriesIds,
     );
 
-    const promises = entries.map(async ({ existing, incoming }) => {
+    const promises = entriesData.map(async ({ existing, incoming }) => {
       if (!incoming.operations) {
         return existing;
       }
@@ -85,15 +85,12 @@ export class EntryUpdater {
   ): Promise<Entry> {
     existing.updateDescription(incoming.description);
 
-    const updatedEntryDto = await this.entryRepository.update(
+    await this.entryRepository.update(
       user.getId().valueOf(),
       existing.toPersistence(),
     );
 
-    const entry = Entry.fromPersistence(updatedEntryDto);
-    entry.addOperations(existing.getOperations());
-
-    return entry;
+    return existing;
   }
 
   private async updateEntriesMetadata(
@@ -109,6 +106,38 @@ export class EntryUpdater {
     );
 
     return Promise.all(promises);
+  }
+
+  private async updateEntriesFully(
+    user: User,
+    entriesData: CompareResult[],
+    accountsMap: Map<UUID, Account>,
+    systemAccountsMap: Map<CurrencyCode, Account>,
+  ): Promise<Entry[]> {
+    if (entriesData.length === 0) {
+      return [];
+    }
+
+    const updatedDataPromises = entriesData.map(
+      async ({ existing, incoming }) => {
+        const updateEntryMetadata = this.updateEntryMetadata(
+          user,
+          existing,
+          incoming,
+        );
+
+        return { existing: await updateEntryMetadata, incoming };
+      },
+    );
+
+    const updatedEntriesWithData = await Promise.all(updatedDataPromises);
+
+    return this.updateEntriesFinancial(
+      user,
+      updatedEntriesWithData,
+      accountsMap,
+      systemAccountsMap,
+    );
   }
 
   private async updateEntries(
@@ -145,57 +174,18 @@ export class EntryUpdater {
       targetList.push({ existing, incoming });
     });
 
-    const updateMetadataPromises = await this.updateEntriesMetadata(
-      user,
-      entriesToBeMetadataUpdated,
-    );
+    await this.updateEntriesMetadata(user, entriesToBeMetadataUpdated);
 
-    const updateFinancialPromises = await this.updateEntriesFinancial(
+    await this.updateEntriesFinancial(
       user,
       entriesToBeFinancialUpdated,
       accountsMap,
       systemAccountsMap,
     );
 
-    const updatedEntriesPromises = await this.updateEntriesFully(
+    await this.updateEntriesFully(
       user,
       entriesToBeFullyUpdated,
-      accountsMap,
-      systemAccountsMap,
-    );
-
-    await Promise.all([
-      ...updateMetadataPromises,
-      ...updateFinancialPromises,
-      ...updatedEntriesPromises,
-    ]);
-  }
-
-  private async updateEntriesFully(
-    user: User,
-    entries: CompareResult[],
-    accountsMap: Map<UUID, Account>,
-    systemAccountsMap: Map<CurrencyCode, Account>,
-  ): Promise<Entry[]> {
-    if (entries.length === 0) {
-      return [];
-    }
-
-    const updatedDataPromises = entries.map(async ({ existing, incoming }) => {
-      const updateEntryMetadata = this.updateEntryMetadata(
-        user,
-        existing,
-        incoming,
-      );
-
-      return { existing: await updateEntryMetadata, incoming };
-    });
-
-    const updatedEntriesWithData = await Promise.all(updatedDataPromises);
-
-    return this.updateEntriesFinancial(
-      user,
-      updatedEntriesWithData,
       accountsMap,
       systemAccountsMap,
     );
