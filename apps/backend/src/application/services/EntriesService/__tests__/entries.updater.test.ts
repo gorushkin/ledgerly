@@ -56,7 +56,7 @@ describe('EntryUpdater', () => {
     vi.resetAllMocks();
   });
 
-  describe.skip('metadata-only updates', () => {
+  describe('metadata-only updates', () => {
     it('updates only metadata when compareEntry returns updatedMetadata', async () => {
       const transactionBuilder = TransactionBuilder.create(user);
 
@@ -400,17 +400,102 @@ describe('EntryUpdater', () => {
         mockOperationFactory.createOperationsForEntry,
       ).toHaveBeenCalledTimes(update.length);
     });
-    // it.todo('updates metadata before financial changes');
-    // it.todo('voids operations and recreates new ones');
-    // it.todo('returns updated entry with both metadata and operations changed');
   });
 
-  // describe('unchanged entries', () => {
-  //   it.todo('does nothing when compareEntry returns unchanged');
-  //   it.todo(
-  //     'does not call entryRepository.update or operationRepository.voidByEntryIds',
-  //   );
-  // });
+  describe('unchanged entries', () => {
+    it('does nothing when compareEntry returns unchanged', async () => {
+      const transactionBuilder = TransactionBuilder.create(user);
+
+      const { entries, entryContext, transaction } = transactionBuilder
+        .withAccounts(['USD', 'EUR', 'RUB'])
+        .withSystemAccounts()
+        .withEntry('First Entry', [
+          {
+            accountKey: 'USD',
+            amount: Amount.create('10000'),
+            description: 'From Operation',
+          },
+          {
+            accountKey: 'EUR',
+            amount: Amount.create('-10000'),
+            description: 'To Operation',
+          },
+        ])
+        .build();
+
+      const update: UpdateEntryRequestDTO[] = entries.map((entry) => {
+        return {
+          description: entry.description,
+          id: entry.getId().valueOf(),
+        };
+      });
+
+      const newEntriesData: UpdateTransactionRequestDTO['entries'] = {
+        create: [],
+        delete: [],
+        update,
+      };
+
+      (compareEntry as Mock).mockReturnValueOnce('unchanged');
+
+      const operationsByEntryIdMap = new Map<UUID, Operation[]>();
+
+      transaction.getEntries().forEach((entry) => {
+        operationsByEntryIdMap.set(
+          entry.getId().valueOf(),
+          entry.getOperations(),
+        );
+      });
+
+      const result = await entriesUpdater.execute({
+        entryContext,
+        newEntriesData,
+        transaction,
+        user,
+      });
+
+      expect(mockEntryRepository.voidByIds).not.toHaveBeenCalled();
+
+      expect(mockEntryCreator.createEntryWithOperations).not.toHaveBeenCalled();
+
+      expect(mockEntryRepository.update).not.toHaveBeenCalled();
+
+      expect(mockOperationRepository.voidByEntryIds).not.toHaveBeenCalled();
+
+      expect(
+        mockOperationFactory.createOperationsForEntry,
+      ).not.toHaveBeenCalled();
+
+      expect(result).toBe(transaction);
+
+      result.getEntries().forEach((entry, index) => {
+        const rawEntry = newEntriesData.update[index];
+
+        expect(entry.description).toBe(rawEntry.description);
+        expect(entry).toBeInstanceOf(Entry);
+
+        const originalOperations = operationsByEntryIdMap.get(
+          entry.getId().valueOf(),
+        );
+        expect(originalOperations).toBeDefined();
+
+        entry.getOperations().forEach((operation, opIndex) => {
+          const originalOperation = originalOperations![opIndex];
+
+          expect(operation.description).toBe(originalOperation.description);
+          expect(operation.amount.valueOf()).toBe(
+            originalOperation.amount.valueOf(),
+          );
+          expect(operation.getAccountId().valueOf()).toBe(
+            originalOperation.getAccountId().valueOf(),
+          );
+        });
+      });
+    });
+    it.todo(
+      'does not call entryRepository.update or operationRepository.voidByEntryIds',
+    );
+  });
 
   // describe('creating new entries', () => {
   //   it.todo(
