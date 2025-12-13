@@ -7,6 +7,20 @@ import { TransactionManager } from '../TransactionManager';
 
 import { EntryRepository } from './entry.repository';
 
+const compareEntities = <T extends object>(
+  before: T,
+  after: T,
+  keysToIgnore: (keyof T)[] = [],
+) => {
+  const keys = Object.keys(before) as (keyof T)[];
+
+  keys.forEach((key) => {
+    if (!keysToIgnore.includes(key)) {
+      expect(after[key]).toEqual(before[key]);
+    }
+  });
+};
+
 describe('EntryRepository', () => {
   let testDB: TestDB;
   let entryRepository: EntryRepository;
@@ -195,6 +209,77 @@ describe('EntryRepository', () => {
       for (const createdEntry of createdEntries) {
         const deletedEntry = await testDB.getEntryById(createdEntry.id);
         expect(deletedEntry).toBeNull();
+      }
+    });
+  });
+
+  describe('update', () => {
+    it('should update an existing entry', async () => {
+      const createdEntry = await testDB.createEntry(user.id, {
+        description: 'Old Description',
+        transactionId: transaction.id,
+      });
+
+      const updatedEntryData: EntryDbRow = {
+        ...createdEntry,
+        createdAt: Timestamp.create().valueOf(),
+        description: 'Updated Description',
+        isTombstone: true,
+        updatedAt: Timestamp.create().valueOf(),
+      };
+
+      const updatedEntry = await entryRepository.update(
+        user.id,
+        updatedEntryData,
+      );
+
+      expect(updatedEntry.description).toBe('Updated Description');
+
+      const fetchedEntry = await testDB.getEntryById(createdEntry.id);
+      expect(fetchedEntry?.description).toBe('Updated Description');
+
+      compareEntities<EntryDbRow>(createdEntry, updatedEntry, [
+        'description',
+        'updatedAt',
+      ]);
+    });
+  });
+
+  describe('voidByIds', () => {
+    it('should mark entries as tombstone by their IDs', async () => {
+      const createdEntries = await Promise.all([
+        testDB.createEntry(user.id, {
+          transactionId: transaction.id,
+        }),
+        testDB.createEntry(user.id, {
+          transactionId: transaction.id,
+        }),
+      ]);
+
+      const entryIds = createdEntries.map((entry) => entry.id);
+
+      const voidedEntries = await entryRepository.voidByIds(user.id, entryIds);
+
+      expect(voidedEntries).toHaveLength(createdEntries.length);
+
+      voidedEntries.forEach((entry) => {
+        expect(entry.isTombstone).toBe(true);
+
+        const wasCreatedEntry = createdEntries.find((e) => e.id === entry.id);
+        expect(wasCreatedEntry).toBeDefined();
+        expect(entry.description).toBe(wasCreatedEntry?.description);
+      });
+
+      for (const createdEntry of createdEntries) {
+        const deletedEntry = await testDB.getEntryById(createdEntry.id);
+
+        if (!deletedEntry) {
+          throw new Error('Deleted entry should exist');
+        }
+
+        compareEntities<EntryDbRow>(createdEntry, deletedEntry, [
+          'isTombstone',
+        ]);
       }
     });
   });
