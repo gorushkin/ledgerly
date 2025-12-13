@@ -1,3 +1,4 @@
+import { IsoDatetimeString } from '@ledgerly/shared/types';
 import { EntryDbRow } from 'src/db/schemas/entries';
 
 import {
@@ -180,5 +181,65 @@ export class Entry {
     if (!total.isZero()) {
       throw new UnbalancedEntryError(this, total);
     }
+  }
+
+  updateDescription(newDescription: string): void {
+    this.description = newDescription;
+    this.touch();
+  }
+
+  static fromPersistence({
+    createdAt,
+    description,
+    id,
+    isTombstone,
+    transactionId,
+    updatedAt,
+    userId,
+  }: EntryDbRow): Entry {
+    const identity = new EntityIdentity(Id.fromPersistence(id));
+
+    const timestamps = EntityTimestamps.fromPersistence(
+      Timestamp.restore(updatedAt),
+      Timestamp.restore(createdAt),
+    );
+    const softDelete = SoftDelete.fromPersistence(isTombstone);
+    const ownership = ParentChildRelation.create(
+      Id.fromPersistence(userId),
+      identity.getId(),
+    );
+    const transactionRelation = ParentChildRelation.create(
+      Id.fromPersistence(transactionId),
+      identity.getId(),
+    );
+
+    return new Entry(
+      identity,
+      timestamps,
+      description,
+      softDelete,
+      ownership,
+      transactionRelation,
+    );
+  }
+
+  removeOperations(): void {
+    this.operations = [];
+    this.touch();
+  }
+
+  updateOperations(operations: Operation[]): void {
+    this.validateCanAddOperations(operations);
+
+    this.operations = operations;
+    this.touch();
+  }
+
+  get createdAt(): IsoDatetimeString {
+    return this.timestamps.getCreatedAt().valueOf();
+  }
+
+  get updatedAt(): IsoDatetimeString {
+    return this.timestamps.getUpdatedAt().valueOf();
   }
 }

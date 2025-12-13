@@ -11,10 +11,10 @@ export type CreateOperationRequestDTO = {
 // Request DTOs for updating
 
 export type UpdateOperationRequestDTO = {
-  accountId?: UUID;
-  entryId?: UUID;
+  accountId: UUID;
+  entryId: UUID;
   id: UUID;
-  amount?: string;
+  amount: MoneyString;
   description: string;
 };
 

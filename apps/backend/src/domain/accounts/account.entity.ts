@@ -25,9 +25,10 @@ export class Account {
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
-    private name: Name,
-    private description: string,
+    public name: Name,
+    public description: string,
     private initialBalance: Amount,
+    // remove currentClearedBalanceLocal from entity and schemas later
     private currentClearedBalanceLocal: Amount,
     public currency: Currency,
     private type: AccountType,

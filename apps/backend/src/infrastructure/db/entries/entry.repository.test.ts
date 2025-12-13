@@ -125,14 +125,13 @@ describe('EntryRepository', () => {
         }),
       ]);
 
-      const softDeletedEntries =
-        await entryRepository.softDeleteByTransactionId(
-          user.id,
-          transaction.id,
-        );
+      const voidedEntries = await entryRepository.voidByTransactionId(
+        user.id,
+        transaction.id,
+      );
 
-      expect(softDeletedEntries).toHaveLength(createdEntries.length);
-      expect(softDeletedEntries).toEqual(
+      expect(voidedEntries).toHaveLength(createdEntries.length);
+      expect(voidedEntries).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             id: createdEntries[0].id,
@@ -162,10 +161,7 @@ describe('EntryRepository', () => {
     it('should do nothing if no entries exist for the given transaction ID', async () => {
       const anotherTransaction = await testDB.createTransaction(user.id);
 
-      await entryRepository.softDeleteByTransactionId(
-        user.id,
-        anotherTransaction.id,
-      );
+      await entryRepository.voidByTransactionId(user.id, anotherTransaction.id);
 
       const entries = await entryRepository.getByTransactionId(
         user.id,

@@ -13,14 +13,14 @@ export class ParentChildRelation {
    * Checks if the child belongs to the specified parent
    */
   belongsToParent(parentId: Id): boolean {
-    return this.parentId.isEqualTo(parentId);
+    return this.parentId.equals(parentId);
   }
 
   /**
    * Checks if this relation involves the specified child
    */
   isChild(childId: Id): boolean {
-    return this.childId.isEqualTo(childId);
+    return this.childId.equals(childId);
   }
 
   /**
@@ -49,8 +49,7 @@ export class ParentChildRelation {
    */
   isEqualTo(other: ParentChildRelation): boolean {
     return (
-      this.parentId.isEqualTo(other.parentId) &&
-      this.childId.isEqualTo(other.childId)
+      this.parentId.equals(other.parentId) && this.childId.equals(other.childId)
     );
   }
 }

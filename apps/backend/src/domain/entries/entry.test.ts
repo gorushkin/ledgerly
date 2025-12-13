@@ -59,13 +59,13 @@ describe('Entry Domain Entity', async () => {
 
     expect(entry1.getId()).toBeDefined();
     expect(entry2.getId()).toBeDefined();
-    expect(entry1.getId().isEqualTo(entry2.getId())).toBe(false);
+    expect(entry1.getId().equals(entry2.getId())).toBe(false);
   });
 
   it('should return correct transaction ID', () => {
     const entry = Entry.create(user, transaction, 'Test Entry');
 
-    expect(entry.getTransactionId().isEqualTo(transaction.getId())).toBe(true);
+    expect(entry.getTransactionId().equals(transaction.getId())).toBe(true);
   });
 
   it('should correctly identify ownership by user', () => {
@@ -120,7 +120,7 @@ describe('Entry Domain Entity', async () => {
     entry.markAsDeleted();
 
     expect(entry.belongsToTransaction(transaction.getId())).toBe(true);
-    expect(entry.getTransactionId().isEqualTo(transaction.getId())).toBe(true);
+    expect(entry.getTransactionId().equals(transaction.getId())).toBe(true);
   });
 
   it('should maintain user ownership after being marked as deleted', () => {

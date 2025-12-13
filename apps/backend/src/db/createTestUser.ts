@@ -34,13 +34,16 @@ export const createUser = async (
   return User.create(userName, userEmail, userPassword);
 };
 
-export const createAccount = (user: User) => {
+export const createAccount = (
+  user: User,
+  params: { currency?: Currency; description?: string; name?: string } = {},
+) => {
   return Account.create(
     user,
-    Name.create('Test Account'),
-    'Account for testing',
+    Name.create(params.name ?? 'Test Account'),
+    params.description ?? 'Account for testing',
     Amount.create('0'),
-    Currency.create('USD'),
+    params.currency ?? Currency.create('USD'),
     AccountType.create('asset'),
   );
 };

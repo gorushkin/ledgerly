@@ -27,7 +27,7 @@ export class Id {
     return this.value;
   }
 
-  isEqualTo(other: Id | string): boolean {
+  equals(other: Id | string): boolean {
     return this.value === (other instanceof Id ? other.value : other);
   }
 

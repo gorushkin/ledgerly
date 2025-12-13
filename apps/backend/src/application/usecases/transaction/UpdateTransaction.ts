@@ -8,7 +8,7 @@ import {
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import { TransactionMapperInterface } from 'src/application/mappers';
-import { EntryFactory } from 'src/application/services';
+import { EntriesService } from 'src/application/services';
 import { EnsureEntityExistsAndOwnedFn } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { Transaction, User } from 'src/domain';
 
@@ -16,7 +16,7 @@ export class UpdateTransactionUseCase {
   constructor(
     protected readonly transactionManager: TransactionManagerInterface,
     protected readonly transactionRepository: TransactionRepositoryInterface,
-    protected readonly entryFactory: EntryFactory,
+    protected readonly entriesService: EntriesService,
     protected readonly ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn,
     protected readonly transactionMapper: TransactionMapperInterface,
   ) {}
@@ -36,37 +36,39 @@ export class UpdateTransactionUseCase {
 
       const transaction = Transaction.restore(transactionDbRow);
 
+      // TODO: update only if there are changes. Add method hasChanges()
       transaction.update({
         description: data.description,
         postingDate: data.postingDate,
         transactionDate: data.transactionDate,
       });
 
+      // TODO: update only if there are changes. Add method hasChanges()
       await this.transactionRepository.update(
         user.getId().valueOf(),
         transactionId,
         transaction.toPersistence(),
       );
-      // TODO: this part is a bit tricky, because we need to handle entries update properly
-      // For now, we will just delete all existing entries and create new ones
-      // let's think about a better approach later
-      // If entries are undefined, treat as 'no update to entries'
-      // we should compare with existing entries and update accordingly
-      if (data.entries === undefined) {
-        return this.transactionMapper.toResponseDTO(
-          transaction,
-          transactionDbRow.entries,
-        );
+
+      const hasEntryChanges =
+        data.entries.create.length > 0 ||
+        data.entries.update.length > 0 ||
+        data.entries.delete.length > 0;
+
+      if (!hasEntryChanges) {
+        return this.transactionMapper.toResponseDTO(transaction);
       }
 
-      const withNewEntriesTransaction =
-        await this.entryFactory.updateEntriesForTransaction({
-          newEntriesData: data.entries,
-          transaction,
+      const updatedTransactionWithEntries =
+        await this.entriesService.updateEntriesWithOperations(
           user,
-        });
+          transaction,
+          data.entries,
+        );
 
-      return this.transactionMapper.toResponseDTO(withNewEntriesTransaction);
+      return this.transactionMapper.toResponseDTO(
+        updatedTransactionWithEntries,
+      );
     });
   }
 }
