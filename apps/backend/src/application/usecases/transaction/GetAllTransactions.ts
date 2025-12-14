@@ -1,12 +1,12 @@
 import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
 import {
   AccountRepositoryInterface,
-  TransactionRepositoryInterface,
+  TransactionQueryRepositoryInterface,
 } from 'src/application/interfaces';
 
 export class GetAllTransactionsUseCase {
   constructor(
-    private readonly transactionRepository: TransactionRepositoryInterface,
+    private readonly transactionQueryRepository: TransactionQueryRepositoryInterface,
     private readonly accountRepository: AccountRepositoryInterface,
   ) {}
   async execute(userId: UUID, query?: TransactionQueryParams) {
@@ -17,6 +17,6 @@ export class GetAllTransactionsUseCase {
       );
     }
 
-    return this.transactionRepository.getAll(userId, query);
+    return this.transactionQueryRepository.findAll(userId, query);
   }
 }

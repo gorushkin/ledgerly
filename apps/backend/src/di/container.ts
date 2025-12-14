@@ -31,6 +31,7 @@ import { AccountRepository } from 'src/infrastructure/db/accounts/account.reposi
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { EntryRepository } from 'src/infrastructure/db/entries/entry.repository';
 import { OperationRepository } from 'src/infrastructure/db/operations/operation.repository';
+import { TransactionQueryRepository } from 'src/infrastructure/db/transaction/transaction-query.repository';
 import { TransactionRepository } from 'src/infrastructure/db/transaction/transaction.repository';
 import { UserRepository } from 'src/infrastructure/db/user/user.repository';
 import {
@@ -49,6 +50,9 @@ export const createContainer = (db: DataBase): AppContainer => {
   const accountRepository = new AccountRepository(transactionManager);
   const currencyRepository = new CurrencyRepository(transactionManager);
   const transactionRepository = new TransactionRepository(transactionManager);
+  const transactionQueryRepository = new TransactionQueryRepository(
+    transactionManager,
+  );
   const userRepository = new UserRepository(transactionManager);
   const operationRepository = new OperationRepository(transactionManager);
   const entryRepository = new EntryRepository(transactionManager);
@@ -63,6 +67,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     entry: entryRepository,
     operation: operationRepository,
     transaction: transactionRepository,
+    transactionQuery: transactionQueryRepository,
     user: userRepository,
   };
 
@@ -125,11 +130,11 @@ export const createContainer = (db: DataBase): AppContainer => {
   );
 
   const getTransactionByIdUseCase = new GetTransactionByIdUseCase(
-    transactionRepository,
+    transactionQueryRepository,
   );
 
   const getAllTransactionsUseCase = new GetAllTransactionsUseCase(
-    transactionRepository,
+    transactionQueryRepository,
     accountRepository,
   );
 

@@ -197,4 +197,8 @@ export class Operation {
   get accountName(): string {
     return this.account.name.valueOf();
   }
+
+  get entryId(): Id {
+    return this.entryRelation.getParentId();
+  }
 }

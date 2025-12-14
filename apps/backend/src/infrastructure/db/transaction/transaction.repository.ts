@@ -1,15 +1,14 @@
-import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
-import { and, eq, inArray } from 'drizzle-orm';
+import { UUID } from '@ledgerly/shared/types';
+import { and, eq } from 'drizzle-orm';
 import { TransactionRepositoryInterface } from 'src/application';
 import {
   TransactionDbInsert,
   TransactionDbRow,
   TransactionDbUpdate,
   TransactionWithRelations,
-  entriesTable,
-  operationsTable,
   transactionsTable,
 } from 'src/db/schema';
+import { Transaction } from 'src/domain';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -33,13 +32,10 @@ export class TransactionRepository
     );
   }
 
-  getById(
-    userId: UUID,
-    transactionId: UUID,
-  ): Promise<TransactionWithRelations | null> {
+  getById(userId: UUID, transactionId: UUID): Promise<Transaction | null> {
     return this.executeDatabaseOperation(
       async () => {
-        const result: TransactionWithRelations | undefined =
+        const transactionDbRow: TransactionWithRelations | undefined =
           await this.db.query.transactionsTable.findFirst({
             where: and(
               eq(transactionsTable.id, transactionId),
@@ -50,64 +46,19 @@ export class TransactionRepository
             },
           });
 
-        return result ?? null;
+        if (!transactionDbRow) {
+          return null;
+        }
+
+        const transaction = Transaction.restore(transactionDbRow);
+
+        return transaction;
       },
       'TransactionRepository.getById',
       {
         field: 'transactionId',
         tableName: 'transactions',
         value: transactionId,
-      },
-    );
-  }
-
-  async getAll(
-    userId: UUID,
-    query?: TransactionQueryParams,
-  ): Promise<TransactionWithRelations[]> {
-    return this.executeDatabaseOperation(
-      async () => {
-        const accountFilter = query?.accountId
-          ? eq(operationsTable.accountId, query.accountId)
-          : undefined;
-
-        const transactionRows = await this.db
-          .select({ id: transactionsTable.id })
-          .from(transactionsTable)
-          .innerJoin(
-            entriesTable,
-            and(
-              eq(entriesTable.transactionId, transactionsTable.id),
-              eq(entriesTable.userId, userId),
-            ),
-          )
-          .innerJoin(
-            operationsTable,
-            and(
-              eq(operationsTable.entryId, entriesTable.id),
-              eq(operationsTable.userId, userId),
-              ...(accountFilter ? [accountFilter] : []),
-            ),
-          )
-          .groupBy(transactionsTable.id)
-          .orderBy(transactionsTable.createdAt);
-
-        const transactionIds = transactionRows.map((r) => r.id);
-
-        if (transactionIds.length === 0) return [];
-
-        return await this.db.query.transactionsTable.findMany({
-          where: inArray(transactionsTable.id, transactionIds),
-          with: {
-            entries: { with: { operations: true } },
-          },
-        });
-      },
-      'TransactionRepository.getAll',
-      {
-        field: 'transactions',
-        tableName: 'transactions',
-        value: JSON.stringify(query),
       },
     );
   }

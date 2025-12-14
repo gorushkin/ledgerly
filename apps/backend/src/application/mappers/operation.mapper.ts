@@ -9,7 +9,7 @@ export class OperationMapper {
       amount: operation.amount.valueOf(),
       createdAt: operation.getCreatedAt().valueOf(),
       description: operation.description,
-      entryId: operation.id.valueOf(),
+      entryId: operation.entryId.valueOf(),
       id: operation.id.valueOf(),
       isSystem: operation.isSystem,
       updatedAt: operation.getUpdatedAt().valueOf(),

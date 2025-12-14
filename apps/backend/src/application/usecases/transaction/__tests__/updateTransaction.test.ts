@@ -1,6 +1,6 @@
-import { TransactionMapperInterface } from 'src/application';
+import { TransactionMapper, TransactionMapperInterface } from 'src/application';
+import { compareTransaction } from 'src/application/comparers';
 import {
-  EntryResponseDTO,
   TransactionResponseDTO,
   UpdateTransactionRequestDTO,
 } from 'src/application/dto';
@@ -9,29 +9,33 @@ import {
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import { EntriesService } from 'src/application/services';
-import {
-  createAccount,
-  createEntry,
-  createOperation,
-  createTransaction,
-  createUser,
-} from 'src/db/createTestUser';
-import { TransactionWithRelations } from 'src/db/schema';
-import { Account, Entry, Operation, Transaction, User } from 'src/domain';
+import { createUser } from 'src/db/createTestUser';
+import { TransactionBuilder } from 'src/db/test-utils';
+import { EntryBuilder } from 'src/db/test-utils/testEntityBuilder';
+import { Account, Transaction, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+  Mock,
+  beforeEach,
+} from 'vitest';
 
 import { UpdateTransactionUseCase } from '../UpdateTransaction';
+
+vi.mock('src/application/comparers', () => ({
+  compareTransaction: vi.fn(),
+}));
 
 describe('UpdateTransactionUseCase', () => {
   let user: User;
   let transaction: Transaction;
-  let entry: Entry;
-  let operationFrom: Operation;
-  let operationTo: Operation;
-  let account: Account;
-  let entries: TransactionWithRelations['entries'];
-  let transactionDBRow: TransactionWithRelations;
+  let account1: Account;
+  let account2: Account;
 
   const mockTransactionManager = {
     run: vi.fn((cb: () => unknown) => {
@@ -57,6 +61,8 @@ describe('UpdateTransactionUseCase', () => {
     toResponseDTO: vi.fn(),
   };
 
+  const mapper = new TransactionMapper();
+
   const updateTransactionUseCase = new UpdateTransactionUseCase(
     mockTransactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
@@ -67,45 +73,33 @@ describe('UpdateTransactionUseCase', () => {
 
   beforeAll(async () => {
     user = await createUser();
+  });
 
-    account = createAccount(user);
-    transaction = createTransaction(user);
-    entry = createEntry(user, transaction, []);
+  beforeEach(() => {
+    const transactionBuilder = TransactionBuilder.create(user);
 
-    operationFrom = createOperation(
-      user,
-      account,
-      entry,
-      Amount.create('100'),
-      'From Operation',
-    );
+    const { getAccountByKey, transaction: predefinedTransaction } =
+      transactionBuilder
+        .withAccounts(['USD', 'EUR'])
+        .withSystemAccounts()
+        .withEntry('First Entry', [
+          {
+            accountKey: 'USD',
+            amount: Amount.create('10000'),
+            description: 'From Operation',
+          },
+          {
+            accountKey: 'EUR',
+            amount: Amount.create('-10000'),
+            description: 'To Operation',
+          },
+        ])
+        .build();
 
-    operationTo = createOperation(
-      user,
-      account,
-      entry,
-      Amount.create('100'),
-      'To Operation',
-    );
+    account1 = getAccountByKey('USD');
+    account2 = getAccountByKey('EUR');
 
-    entry.addOperations([operationFrom, operationTo]);
-
-    transaction.addEntry(entry);
-
-    entries = [
-      {
-        ...entry.toPersistence(),
-        operations: [
-          operationFrom.toPersistence(),
-          operationTo.toPersistence(),
-        ],
-      },
-    ];
-
-    transactionDBRow = {
-      ...transaction.toPersistence(),
-      entries,
-    };
+    transaction = predefinedTransaction;
   });
 
   afterEach(() => {
@@ -113,76 +107,154 @@ describe('UpdateTransactionUseCase', () => {
   });
 
   it('should update transaction correctly without updating entries', async () => {
-    const updateData: UpdateTransactionRequestDTO = {
+    const data: UpdateTransactionRequestDTO = {
       description: 'Updated Transaction Description',
       entries: { create: [], delete: [], update: [] },
-      postingDate: transactionDBRow.postingDate,
-      transactionDate: transactionDBRow.transactionDate,
+      postingDate: transaction.getPostingDate().valueOf(),
+      transactionDate: transaction.getTransactionDate().valueOf(),
     };
 
-    const mockedResultWithoutUpdatingEntries: TransactionResponseDTO = {
-      createdAt: transactionDBRow.createdAt,
-      description: transactionDBRow.description,
-      entries: [],
-      id: transactionDBRow.id,
-      postingDate: transactionDBRow.postingDate,
-      transactionDate: transactionDBRow.transactionDate,
-      updatedAt: transactionDBRow.updatedAt,
-      userId: transactionDBRow.userId,
-    };
+    const transactionEntries = transaction.getEntries();
 
-    mockTransactionMapper.toResponseDTO.mockReturnValue({
-      ...mockedResultWithoutUpdatingEntries,
-      description: updateData.description,
-    });
+    mockTransactionMapper.toResponseDTO.mockImplementation(
+      (transaction: Transaction): TransactionResponseDTO =>
+        mapper.toResponseDTO(transaction),
+    );
 
-    mockEnsureEntityExistsAndOwned.mockResolvedValue(transactionDBRow);
+    mockEnsureEntityExistsAndOwned.mockResolvedValue(transaction);
+
+    (compareTransaction as Mock).mockReturnValueOnce('updatedMetadata');
 
     const updatedTransaction = await updateTransactionUseCase.execute(
       user,
-      transactionDBRow.id,
-      updateData,
+      transaction.getId().valueOf(),
+      data,
     );
 
-    expect(updatedTransaction.id).toBe(transactionDBRow.id);
-    expect(updatedTransaction.description).toBe(updateData.description);
-    expect(updatedTransaction.postingDate).toBe(updateData.postingDate);
-    expect(updatedTransaction.transactionDate).toBe(updateData.transactionDate);
+    updatedTransaction.entries.forEach((entryDTO) => {
+      const originalEntry = transactionEntries.find(
+        (e) => e.getId().valueOf() === entryDTO.id,
+      );
+
+      if (!originalEntry) {
+        throw new Error('Original entry not found');
+      }
+
+      expect(entryDTO.operations).toHaveLength(
+        originalEntry.getOperations().length,
+      );
+
+      expect(entryDTO.createdAt).toBe(originalEntry.getCreatedAt().valueOf());
+      expect(entryDTO.isTombstone).toBe(originalEntry.isDeleted());
+      expect(entryDTO.transactionId).toBe(transaction.getId().valueOf());
+      expect(entryDTO.updatedAt).toBe(originalEntry.getUpdatedAt().valueOf());
+      expect(entryDTO.userId).toBe(user.getId().valueOf());
+
+      entryDTO.operations.forEach((opDTO) => {
+        const originalOp = originalEntry
+          .getOperations()
+          .find((o) => o.getId().valueOf() === opDTO.id);
+
+        if (!originalOp) {
+          throw new Error('Original operation not found');
+        }
+
+        expect(opDTO.accountId).toBe(originalOp.getAccountId().valueOf());
+        expect(opDTO.amount).toBe(originalOp.amount.valueOf());
+        expect(opDTO.createdAt).toBe(originalOp.getCreatedAt().valueOf());
+        expect(opDTO.description).toBe(originalOp.description);
+        expect(opDTO.entryId).toBe(originalEntry.getId().valueOf());
+        expect(opDTO.isSystem).toBe(originalOp.isSystem);
+        expect(opDTO.updatedAt).toBe(originalOp.getUpdatedAt().valueOf());
+        expect(opDTO.userId).toBe(user.getId().valueOf());
+      });
+    });
+
+    expect(updatedTransaction.entries).toHaveLength(transactionEntries.length);
+
+    transactionEntries.forEach((entry) => {
+      const entryDTO = updatedTransaction.entries.find(
+        (e) => e.id === entry.getId().valueOf(),
+      );
+
+      if (!entryDTO) {
+        throw new Error('Entry DTO not found');
+      }
+
+      expect(entryDTO).toBeDefined();
+      expect(entryDTO.id).toBe(entry.getId().valueOf());
+      expect(entryDTO.createdAt).toBe(entry.getCreatedAt().valueOf());
+      expect(entryDTO.isTombstone).toBe(entry.isDeleted());
+      expect(entryDTO.transactionId).toBe(transaction.getId().valueOf());
+      expect(entryDTO.updatedAt).toBe(entry.getUpdatedAt().valueOf());
+      expect(entryDTO.userId).toBe(user.getId().valueOf());
+
+      const operations = entry.getOperations();
+
+      expect(entryDTO.operations).toHaveLength(operations.length);
+
+      operations.forEach((op) => {
+        const opDTO = entryDTO.operations.find(
+          (o) => o.id === op.getId().valueOf(),
+        );
+
+        if (!opDTO) {
+          throw new Error('Operation DTO not found');
+        }
+
+        expect(opDTO).toBeDefined();
+        expect(opDTO.accountId).toBe(op.getAccountId().valueOf());
+        expect(opDTO.amount).toBe(op.amount.valueOf());
+        expect(opDTO.createdAt).toBe(op.getCreatedAt().valueOf());
+        expect(opDTO.description).toBe(op.description);
+        expect(opDTO.entryId).toBe(entry.getId().valueOf());
+        expect(opDTO.id).toBe(op.getId().valueOf());
+        expect(opDTO.isSystem).toBe(op.isSystem);
+        expect(opDTO.updatedAt).toBe(op.getUpdatedAt().valueOf());
+        expect(opDTO.userId).toBe(user.getId().valueOf());
+      });
+    });
+
+    expect(updatedTransaction.id).toBe(transaction.getId().valueOf());
+    expect(updatedTransaction.description).toBe(data.description);
+    expect(updatedTransaction.postingDate).toBe(data.postingDate);
+    expect(updatedTransaction.transactionDate).toBe(data.transactionDate);
+
     expect(mockTransactionRepository.update).toHaveBeenCalledWith(
       user.getId().valueOf(),
-      transactionDBRow.id,
+      transaction.getId().valueOf(),
       expect.objectContaining({
-        description: updateData.description,
+        description: data.description,
       }),
     );
+
+    expect(
+      mockEntriesService.updateEntriesWithOperations,
+    ).not.toHaveBeenCalled();
   });
 
   it('should update transaction and its entries correctly', async () => {
-    mockEnsureEntityExistsAndOwned.mockResolvedValue(transactionDBRow);
+    const entryBuilder = new EntryBuilder(transaction);
 
-    const newEntry = createEntry(user, transaction, []);
+    const newEntry = entryBuilder
+      .withUser(user)
+      .withDescription('New Entry with Operations')
+      .withOperation({
+        account: account1,
+        amount: Amount.create('200'),
+        description: 'Updated From Operation',
+      })
+      .withOperation({
+        account: account2,
+        amount: Amount.create('-200'),
+        description: 'Updated To Operation',
+      })
+      .build();
 
-    const newOperationFrom = createOperation(
-      user,
-      account,
-      newEntry,
-      Amount.create('200'),
-      'Updated From Operation',
-    );
-    const newOperationTo = createOperation(
-      user,
-      account,
-      newEntry,
-      Amount.create('-200'),
-      'Updated To Operation',
-    );
-
-    newEntry.addOperations([newOperationFrom, newOperationTo]);
-
-    const entries = [newEntry];
+    const [newOperationFrom, newOperationTo] = newEntry.getOperations();
 
     const updatedTransactionPayload: UpdateTransactionRequestDTO = {
-      description: 'Updated Transaction Description with Entries',
+      description: transaction.description,
       entries: {
         create: [
           {
@@ -204,131 +276,192 @@ describe('UpdateTransactionUseCase', () => {
         delete: [],
         update: [],
       },
-      postingDate: transactionDBRow.postingDate,
-      transactionDate: transactionDBRow.transactionDate,
+      postingDate: transaction.getPostingDate().valueOf(),
+      transactionDate: transaction.getTransactionDate().valueOf(),
     };
 
-    const operationFromResponseDTO: EntryResponseDTO['operations'][0] = {
-      accountId: newOperationFrom.getAccountId().valueOf(),
-      amount: newOperationFrom.amount.valueOf(),
-      createdAt: newOperationFrom.getCreatedAt().valueOf(),
-      description: newOperationFrom.description,
-      entryId: newEntry.getId().valueOf(),
-      id: newOperationFrom.getId().valueOf(),
-      isSystem: newOperationFrom.isSystem,
-      updatedAt: newOperationFrom.getUpdatedAt().valueOf(),
-      userId: newOperationFrom.getUserId().valueOf(),
-    };
+    mockEnsureEntityExistsAndOwned.mockResolvedValue(transaction);
 
-    const operationToResponseDTO: EntryResponseDTO['operations'][1] = {
-      accountId: newOperationTo.getAccountId().valueOf(),
-      amount: newOperationTo.amount.valueOf(),
-      createdAt: newOperationTo.getCreatedAt().valueOf(),
-      description: newOperationTo.description,
-      entryId: newEntry.getId().valueOf(),
-      id: newOperationTo.getId().valueOf(),
-      isSystem: newOperationTo.isSystem,
-      updatedAt: newOperationTo.getUpdatedAt().valueOf(),
-      userId: newOperationTo.getUserId().valueOf(),
-    };
+    (compareTransaction as Mock).mockReturnValueOnce('updatedMetadata');
+    const prevTransactionEntries = transaction.getEntries();
 
-    const operations: EntryResponseDTO['operations'] = [
-      operationFromResponseDTO,
-      operationToResponseDTO,
-    ];
+    mockEntriesService.updateEntriesWithOperations.mockImplementation(
+      (_: User, transaction: Transaction) => {
+        transaction.addEntry(newEntry);
 
-    const entryResponseDTO: EntryResponseDTO = {
-      createdAt: newEntry.getCreatedAt().valueOf(),
-      description: newEntry.description,
-      id: newEntry.getId().valueOf(),
-      isTombstone: newEntry.isDeleted(),
-      operations,
-      transactionId: transactionDBRow.id,
-      updatedAt: newEntry.getUpdatedAt().valueOf(),
-      userId: user.getId().valueOf(),
-    };
+        return transaction;
+      },
+    );
 
-    const mockedResultWithUpdatingEntries: TransactionResponseDTO = {
-      createdAt: transactionDBRow.createdAt,
-      description: transactionDBRow.description,
-      entries: [entryResponseDTO],
-      id: transactionDBRow.id,
-      postingDate: transactionDBRow.postingDate,
-      transactionDate: transactionDBRow.transactionDate,
-      updatedAt: transactionDBRow.updatedAt,
-      userId: user.getId().valueOf(),
-    };
-
-    mockTransactionMapper.toResponseDTO.mockReturnValue({
-      ...mockedResultWithUpdatingEntries,
-      description: updatedTransactionPayload.description,
-    });
+    mockTransactionMapper.toResponseDTO.mockImplementation(
+      (transaction: Transaction): TransactionResponseDTO =>
+        mapper.toResponseDTO(transaction),
+    );
 
     const updatedTransaction = await updateTransactionUseCase.execute(
       user,
-      transactionDBRow.id,
+      transaction.getId().valueOf(),
       updatedTransactionPayload,
     );
 
-    expect(updatedTransaction.id).toBe(transactionDBRow.id);
+    const entriesCount =
+      prevTransactionEntries.length +
+      updatedTransactionPayload.entries.create.length;
+
+    expect(updatedTransaction.entries).toHaveLength(entriesCount);
+
+    prevTransactionEntries.forEach((entry) => {
+      const entryDTO = updatedTransaction.entries.find(
+        (e) => e.id === entry.getId().valueOf(),
+      );
+
+      if (!entryDTO) {
+        throw new Error('Entry DTO not found');
+      }
+
+      expect(entryDTO).toBeDefined();
+      expect(entryDTO.id).toBe(entry.getId().valueOf());
+      expect(entryDTO.createdAt).toBe(entry.getCreatedAt().valueOf());
+      expect(entryDTO.isTombstone).toBe(entry.isDeleted());
+      expect(entryDTO.transactionId).toBe(transaction.getId().valueOf());
+      expect(entryDTO.updatedAt).toBe(entry.getUpdatedAt().valueOf());
+      expect(entryDTO.userId).toBe(user.getId().valueOf());
+
+      const operations = entry.getOperations();
+
+      expect(entryDTO.operations).toHaveLength(operations.length);
+
+      operations.forEach((op) => {
+        const opDTO = entryDTO.operations.find(
+          (o) => o.id === op.getId().valueOf(),
+        );
+
+        if (!opDTO) {
+          throw new Error('Operation DTO not found');
+        }
+
+        expect(opDTO).toBeDefined();
+        expect(opDTO.accountId).toBe(op.getAccountId().valueOf());
+        expect(opDTO.amount).toBe(op.amount.valueOf());
+        expect(opDTO.createdAt).toBe(op.getCreatedAt().valueOf());
+        expect(opDTO.description).toBe(op.description);
+        expect(opDTO.entryId).toBe(entry.getId().valueOf());
+        expect(opDTO.id).toBe(op.getId().valueOf());
+        expect(opDTO.isSystem).toBe(op.isSystem);
+        expect(opDTO.updatedAt).toBe(op.getUpdatedAt().valueOf());
+        expect(opDTO.userId).toBe(user.getId().valueOf());
+      });
+    });
+
     expect(updatedTransaction.description).toBe(
       updatedTransactionPayload.description,
     );
-    expect(updatedTransaction.postingDate).toBe(
-      updatedTransactionPayload.postingDate,
-    );
-    expect(updatedTransaction.transactionDate).toBe(
-      updatedTransactionPayload.transactionDate,
-    );
 
-    expect(updatedTransaction.entries).toHaveLength(entries.length);
+    expect(updatedTransaction.entries).toBeDefined();
+
+    expect(mockEnsureEntityExistsAndOwned).toHaveBeenCalledExactlyOnceWith(
+      user,
+      expect.any(Function),
+      transaction.getId().valueOf(),
+      'Transaction',
+    );
 
     expect(mockTransactionRepository.update).toHaveBeenCalledWith(
       user.getId().valueOf(),
-      transactionDBRow.id,
+      transaction.getId().valueOf(),
       expect.objectContaining({
         description: updatedTransactionPayload.description,
       }),
     );
 
-    expect(
-      mockEntriesService.updateEntriesWithOperations,
-    ).toHaveBeenCalledTimes(1);
+    expect(mockEntriesService.updateEntriesWithOperations).toHaveBeenCalled();
+  });
 
-    expect(mockEntriesService.updateEntriesWithOperations).toHaveBeenCalledWith(
+  it('should not update transaction if there are changes', async () => {
+    const updatedTransactionPayload: UpdateTransactionRequestDTO = {
+      description: transaction.description,
+      entries: {
+        create: [],
+        delete: [],
+        update: [],
+      },
+      postingDate: transaction.getPostingDate().valueOf(),
+      transactionDate: transaction.getTransactionDate().valueOf(),
+    };
+
+    mockEnsureEntityExistsAndOwned.mockResolvedValue(transaction);
+
+    (compareTransaction as Mock).mockReturnValueOnce('unchanged');
+
+    mockTransactionMapper.toResponseDTO.mockImplementation(
+      (transaction: Transaction): TransactionResponseDTO =>
+        mapper.toResponseDTO(transaction),
+    );
+
+    const updatedTransaction = await updateTransactionUseCase.execute(
       user,
-      expect.any(Transaction),
-      updatedTransactionPayload.entries,
+      transaction.getId().valueOf(),
+      updatedTransactionPayload,
+    );
+
+    expect(updatedTransaction.id).toBe(transaction.getId().valueOf());
+    expect(updatedTransaction.description).toBe(transaction.description);
+    expect(updatedTransaction.postingDate).toBe(
+      transaction.getPostingDate().valueOf(),
+    );
+    expect(updatedTransaction.transactionDate).toBe(
+      transaction.getTransactionDate().valueOf(),
     );
 
     updatedTransaction.entries.forEach((entryDTO) => {
-      expect(entryDTO).toBeDefined();
-      expect(entryDTO.id).toBe(newEntry.getId().valueOf());
-      expect(entryDTO.operations).toHaveLength(operations.length);
-      expect(entryDTO.createdAt).toBe(newEntry.getCreatedAt().valueOf());
-      expect(entryDTO.isTombstone).toBe(newEntry.isDeleted());
-      expect(entryDTO.transactionId).toBe(transactionDBRow.id);
-      expect(entryDTO.updatedAt).toBe(newEntry.getUpdatedAt().valueOf());
+      const originalEntry = transaction
+        .getEntries()
+        .find((e) => e.getId().valueOf() === entryDTO.id);
+
+      if (!originalEntry) {
+        throw new Error('Original entry not found');
+      }
+
+      expect(entryDTO.operations).toHaveLength(
+        originalEntry.getOperations().length,
+      );
+
+      expect(entryDTO.createdAt).toBe(originalEntry.getCreatedAt().valueOf());
+      expect(entryDTO.isTombstone).toBe(originalEntry.isDeleted());
+      expect(entryDTO.transactionId).toBe(transaction.getId().valueOf());
+      expect(entryDTO.updatedAt).toBe(originalEntry.getUpdatedAt().valueOf());
       expect(entryDTO.userId).toBe(user.getId().valueOf());
 
-      entryDTO.operations.forEach((op, index) => {
-        const expectedOp = operations[index];
+      entryDTO.operations.forEach((opDTO) => {
+        const originalOp = originalEntry
+          .getOperations()
+          .find((o) => o.getId().valueOf() === opDTO.id);
 
-        expect(op).toBeDefined();
-        expect(op.accountId).toBe(expectedOp.accountId);
-        expect(op.amount).toBe(expectedOp.amount);
-        expect(op.createdAt).toBe(expectedOp.createdAt);
-        expect(op.description).toBe(expectedOp.description);
-        expect(op.entryId).toBe(expectedOp.entryId);
-        expect(op.id).toBe(expectedOp.id);
-        expect(op.isSystem).toBe(expectedOp.isSystem);
-        expect(op.updatedAt).toBe(expectedOp.updatedAt);
-        expect(op.userId).toBe(expectedOp.userId);
+        if (!originalOp) {
+          throw new Error('Original operation not found');
+        }
+
+        expect(opDTO.accountId).toBe(originalOp.getAccountId().valueOf());
+        expect(opDTO.amount).toBe(originalOp.amount.valueOf());
+        expect(opDTO.createdAt).toBe(originalOp.getCreatedAt().valueOf());
+        expect(opDTO.description).toBe(originalOp.description);
+        expect(opDTO.entryId).toBe(originalEntry.getId().valueOf());
+        expect(opDTO.isSystem).toBe(originalOp.isSystem);
+        expect(opDTO.updatedAt).toBe(originalOp.getUpdatedAt().valueOf());
+        expect(opDTO.userId).toBe(user.getId().valueOf());
       });
     });
-  });
 
-  it.todo('should update transaction if there are changes');
+    expect(updatedTransaction.entries).toHaveLength(
+      transaction.getEntries().length,
+    );
+
+    expect(mockTransactionRepository.update).not.toHaveBeenCalled();
+
+    expect(
+      mockEntriesService.updateEntriesWithOperations,
+    ).not.toHaveBeenCalled();
+  });
   it.todo('should not update transaction if there are no changes');
   it.todo('should not update entries if there are no changes');
 });

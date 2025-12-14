@@ -15,6 +15,7 @@ import { AccountRepository } from 'src/infrastructure/db/accounts/account.reposi
 import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
 import { EntryRepository } from 'src/infrastructure/db/entries/entry.repository';
 import { OperationRepository } from 'src/infrastructure/db/operations/operation.repository';
+import { TransactionQueryRepository } from 'src/infrastructure/db/transaction/transaction-query.repository';
 import { TransactionRepository } from 'src/infrastructure/db/transaction/transaction.repository';
 import { UserRepository } from 'src/infrastructure/db/user/user.repository';
 import {
@@ -27,6 +28,7 @@ import { UserController } from 'src/presentation/controllers/user.controller';
 type Repositories = {
   currency: CurrencyRepository;
   transaction: TransactionRepository;
+  transactionQuery: TransactionQueryRepository;
   account: AccountRepository;
   user: UserRepository;
   operation: OperationRepository;

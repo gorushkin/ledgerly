@@ -178,7 +178,7 @@ describe('EntryUpdater', () => {
               description: operationFrom.description,
             },
             {
-              accountId: getAccountByKey('RUB')!.getId().valueOf(), // changed account
+              accountId: getAccountByKey('RUB').getId().valueOf(), // changed account
               amount: Amount.create('-20000').valueOf(), // changed amount
               description: 'New To Operation', // changed description
             },
@@ -295,7 +295,7 @@ describe('EntryUpdater', () => {
               description: operationFrom.description,
             },
             {
-              accountId: getAccountByKey('RUB')!.getId().valueOf(), // changed account
+              accountId: getAccountByKey('RUB').getId().valueOf(), // changed account
               amount: Amount.create('-20000').valueOf(), // changed amount
               description: 'New To Operation', // changed description
             },
@@ -522,7 +522,7 @@ describe('EntryUpdater', () => {
           operations: [
             {
               accountId: transactionBuilder
-                .getAccountByKey('RUB')!
+                .getAccountByKey('RUB')
                 .getId()
                 .valueOf(),
               amount: Amount.create('5000').valueOf(),
@@ -530,7 +530,7 @@ describe('EntryUpdater', () => {
             },
             {
               accountId: transactionBuilder
-                .getAccountByKey('USD')!
+                .getAccountByKey('USD')
                 .getId()
                 .valueOf(),
               amount: Amount.create('-5000').valueOf(),

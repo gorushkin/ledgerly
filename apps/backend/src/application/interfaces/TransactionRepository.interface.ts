@@ -1,21 +1,14 @@
-import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import {
   TransactionRepoInsert,
   TransactionDbRow,
-  TransactionWithRelations,
   TransactionDbUpdate,
 } from 'src/db/schema';
+import { Transaction } from 'src/domain';
 
 export type TransactionRepositoryInterface = {
   create(data: TransactionRepoInsert): Promise<TransactionDbRow>;
-  getById(
-    userId: UUID,
-    transactionId: UUID,
-  ): Promise<TransactionWithRelations | null>;
-  getAll(
-    userId: UUID,
-    query?: TransactionQueryParams,
-  ): Promise<TransactionWithRelations[]>;
+  getById(userId: UUID, transactionId: UUID): Promise<Transaction | null>;
   update(
     userId: UUID,
     transactionId: UUID,

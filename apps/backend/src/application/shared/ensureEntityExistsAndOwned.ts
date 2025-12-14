@@ -4,8 +4,11 @@ import {
   UnauthorizedAccessError,
 } from 'src/application/application.errors';
 import { User } from 'src/domain';
+import { Id } from 'src/domain/domain-core';
 
-export type EnsureEntityExistsAndOwnedFn = <T extends { userId: UUID }>(
+export type EnsureEntityExistsAndOwnedFn = <
+  T extends { belongsToUser: (userId: Id) => boolean },
+>(
   user: User,
   promise: (userId: UUID, entityId: UUID) => Promise<T | null>,
   entityId: UUID,
@@ -13,7 +16,7 @@ export type EnsureEntityExistsAndOwnedFn = <T extends { userId: UUID }>(
 ) => Promise<T>;
 
 export const ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn = async <
-  T extends { userId: UUID },
+  T extends { belongsToUser: (userId: Id) => boolean },
 >(
   user: User,
   promise: (userId: UUID, entityId: UUID) => Promise<T | null>,
@@ -25,7 +28,7 @@ export const ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn = async <
     throw new EntityNotFoundError(entityName);
   }
 
-  if (!user.verifyOwnership(entity.userId)) {
+  if (!entity.belongsToUser(user.getId())) {
     throw new UnauthorizedAccessError(entityName);
   }
 

@@ -10,8 +10,14 @@ import {
 } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
 
-type OperationData = {
+type OperationDataForTransaction = {
   accountKey: string;
+  amount: Amount;
+  description?: string;
+};
+
+type OperationDataForEntry = {
+  account: Account;
   amount: Amount;
   description?: string;
 };
@@ -19,9 +25,15 @@ type OperationData = {
 export class EntryBuilder {
   constructor(public transaction: Transaction) {}
   description = '';
-  operationsData: OperationData[] = [];
+  operationsData: OperationDataForEntry[] = [];
   user: User | null = null;
   self: Entry | null = null;
+
+  validateUser(): asserts this is { user: User } {
+    if (!this.user) {
+      throw new Error('User must be set before creating transaction');
+    }
+  }
 
   withDescription(desc: string) {
     this.description = desc;
@@ -33,24 +45,59 @@ export class EntryBuilder {
     return this;
   }
 
-  withOperation({
-    accountKey,
-    amount,
-    description,
-  }: {
-    accountKey: string;
-    amount: Amount;
-    description?: string;
-  }) {
+  private setSelf(): asserts this is { self: Transaction } {
+    this.validateUser();
+
+    if (this.self) {
+      return;
+    }
+
+    this.self = Entry.create(this.user, this.transaction, this.description, []);
+  }
+
+  withOperation({ account, amount, description = '' }: OperationDataForEntry) {
     this.operationsData.push({
-      accountKey,
-      amount: amount,
-      description: description!,
+      account,
+      amount,
+      description: description,
     });
 
     return this;
   }
+
+  build() {
+    if (!this.user) {
+      throw new Error('User must be set before building Entry');
+    }
+
+    this.self ??= Entry.create(
+      this.user,
+      this.transaction,
+      this.description,
+      [],
+    );
+
+    const operations: Operation[] = [];
+
+    for (const opData of this.operationsData) {
+      const account = opData.account;
+
+      const operation = Operation.create(
+        this.user,
+        account,
+        this.self,
+        opData.amount,
+        opData.description ?? 'Test Operation',
+      );
+
+      operations.push(operation);
+    }
+
+    this.self.addOperations(operations);
+    return this.self;
+  }
 }
+
 export class TransactionBuilder {
   _entries: EntryBuilder[] = [];
   user: User | null = null;
@@ -119,7 +166,10 @@ export class TransactionBuilder {
     );
   }
 
-  withEntry(description: string, operations: OperationData[] = []) {
+  withEntry(
+    description: string,
+    operations: OperationDataForTransaction[] = [],
+  ) {
     this.validateUser();
 
     this.setSelf();
@@ -129,20 +179,24 @@ export class TransactionBuilder {
       .withDescription(description);
 
     operations.forEach((op) => {
-      builder.withOperation(op);
+      const account = this.getAccountByKey(op.accountKey);
+
+      builder.withOperation({ ...op, account });
     });
 
     this._entries.push(builder);
     return this;
   }
 
-  getAccountByKey(key: string): Account | undefined {
-    return this._accounts.get(key);
+  getAccountByKey(key: string): Account {
+    const account = this._accounts.get(key);
+    if (!account) {
+      throw new Error(`Account with key ${key} not found`);
+    }
+    return account;
   }
 
   build() {
-    this.validateUser();
-
     this.setSelf();
 
     this.validateUser();
@@ -156,13 +210,7 @@ export class TransactionBuilder {
       const operations: Operation[] = [];
 
       for (const opData of b.operationsData) {
-        const account = this._accounts.get(opData.accountKey)!;
-
-        if (!account) {
-          throw new Error(
-            `Account with key ${opData.accountKey} not found in builder`,
-          );
-        }
+        const account = opData.account;
 
         const operation = Operation.create(
           this.user,
