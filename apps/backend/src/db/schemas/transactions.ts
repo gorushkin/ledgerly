@@ -11,7 +11,7 @@ import {
   getIsoDateString,
 } from './common';
 import { entriesTable } from './entries';
-import type { EntryWithOperations, EntryWithTwoOperations } from './entries';
+import type { EntryWithOperations } from './entries';
 import { usersTable } from './users';
 
 export const transactionsTable = sqliteTable(
@@ -56,5 +56,5 @@ export type TransactionWithRelations = TransactionDbRow & {
 
 // Type for transaction with nested relations (operations as tuple of 2)
 export type TransactionWithTwoOperationsPerEntry = TransactionDbRow & {
-  entries: EntryWithTwoOperations[];
+  entries: EntryWithOperations[];
 };

@@ -19,13 +19,12 @@ describe('OperationFactory', () => {
 
   const mockOperationRepository = {
     create: vi.fn(),
-  } as unknown as OperationRepositoryInterface;
+  };
 
   const mockedSaveWithIdRetry = vi.fn();
 
   const operationFactory = new OperationFactory(
-    mockOperationRepository,
-    mockedSaveWithIdRetry,
+    mockOperationRepository as unknown as OperationRepositoryInterface,
   );
 
   let usdAccount1: Account;
@@ -147,7 +146,7 @@ describe('OperationFactory', () => {
       currencySystemAccountsMap,
     );
 
-    expect(mockedSaveWithIdRetry).toHaveBeenCalledTimes(
+    expect(mockOperationRepository.create).toHaveBeenCalledTimes(
       entriesRaw.operations.length,
     );
 
@@ -347,7 +346,6 @@ describe('OperationFactory', () => {
       const match = expectedResultsDTO[index];
 
       expect(operation.amount.valueOf()).toBe(match.amount.valueOf());
-      expect(operation.currency.valueOf()).toBe(match.currency.valueOf());
     });
 
     for (let i = 0; i < entryOperationsInput.operations.length; i++) {

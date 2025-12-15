@@ -13,6 +13,7 @@ import {
 
 import { Entry } from './entry.entity';
 
+// TODO: move async from describe to beforeEach
 describe('Entry Domain Entity', async () => {
   const user = await createUser();
   const anotherUser = await createUser();
@@ -288,5 +289,30 @@ describe('Entry Domain Entity', async () => {
 
     expect(operations1).not.toBe(operations2); // Different references
     expect(operations1).toEqual(operations2); // Same content
+  });
+
+  it('should restore from persistence with operations correctly', () => {
+    const entry = Entry.create(user, transaction, 'Test Entry');
+
+    const operation = Operation.create(
+      user,
+      usdAccount,
+      entry,
+      Amount.create('100'),
+      'Test',
+    );
+
+    entry.addOperations([operation]);
+
+    const persistenceData = entry.toPersistence();
+
+    const restoredEntry = Entry.restore({
+      ...persistenceData,
+      operations: entry.getOperations().map((op) => op.toPersistence()),
+    });
+
+    expect(restoredEntry.toPersistence()).toEqual(entry.toPersistence());
+
+    expect(restoredEntry.getOperations().length).toBe(1);
   });
 });

@@ -1,5 +1,5 @@
 import { IsoDatetimeString } from '@ledgerly/shared/types';
-import { EntryDbRow } from 'src/db/schemas/entries';
+import { EntryDbRow, EntryWithOperations } from 'src/db/schemas/entries';
 
 import {
   EntityIdentity,
@@ -188,15 +188,16 @@ export class Entry {
     this.touch();
   }
 
-  static fromPersistence({
+  static restore({
     createdAt,
     description,
     id,
     isTombstone,
+    operations,
     transactionId,
     updatedAt,
     userId,
-  }: EntryDbRow): Entry {
+  }: EntryWithOperations): Entry {
     const identity = new EntityIdentity(Id.fromPersistence(id));
 
     const timestamps = EntityTimestamps.fromPersistence(
@@ -213,7 +214,7 @@ export class Entry {
       identity.getId(),
     );
 
-    return new Entry(
+    const entry = new Entry(
       identity,
       timestamps,
       description,
@@ -221,6 +222,13 @@ export class Entry {
       ownership,
       transactionRelation,
     );
+
+    operations.forEach((operationData) => {
+      const operation = Operation.fromPersistence(operationData);
+      entry.operations.push(operation);
+    });
+
+    return entry;
   }
 
   removeOperations(): void {

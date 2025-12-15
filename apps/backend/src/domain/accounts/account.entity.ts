@@ -117,7 +117,12 @@ export class Account {
   }
 
   // Delegation methods for identity
+  // TODO: remove
   getId(): Id {
+    return this.identity.getId();
+  }
+
+  get id(): Id {
     return this.identity.getId();
   }
 

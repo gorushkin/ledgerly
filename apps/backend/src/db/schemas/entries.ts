@@ -49,8 +49,3 @@ export type EntryRepoInsert = EntryDbInsert;
 export type EntryWithOperations = EntryDbRow & {
   operations: OperationDbRow[];
 };
-
-// Type for entry with exactly 2 operations (tuple)
-export type EntryWithTwoOperations = EntryDbRow & {
-  operations: [OperationDbRow, OperationDbRow];
-};

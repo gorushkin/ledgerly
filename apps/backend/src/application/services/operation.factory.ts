@@ -1,12 +1,10 @@
 import { CurrencyCode, MoneyString, UUID } from '@ledgerly/shared/types';
-import { OperationRepoInsert } from 'src/db/schema';
 import { Account, Entry, Operation, User } from 'src/domain';
 import { Amount, Currency } from 'src/domain/domain-core';
 import { UnbalancedEntryError } from 'src/domain/domain.errors';
 
-import { CreateEntryRequestDTO, OperationResponseDTO } from '../dto';
+import { CreateEntryRequestDTO } from '../dto';
 import { OperationRepositoryInterface } from '../interfaces';
-import { SaveWithIdRetryType } from '../shared/saveWithIdRetry';
 
 type TradingOperationDTO = {
   user: User;
@@ -19,7 +17,6 @@ type TradingOperationDTO = {
 export class OperationFactory {
   constructor(
     protected readonly operationRepository: OperationRepositoryInterface,
-    protected readonly saveWithIdRetry: SaveWithIdRetryType,
   ) {}
 
   private getSystemAccountDescription({
@@ -200,20 +197,16 @@ export class OperationFactory {
   ) {
     const amount = Amount.create(rawAmount);
 
-    const createOperation = () =>
-      Operation.create(user, account, entry, amount, description);
-
-    return this.saveOperation(createOperation);
-  }
-
-  private async saveOperation(createOperation: () => Operation) {
-    return this.saveWithIdRetry<
-      OperationRepoInsert,
-      Operation,
-      OperationResponseDTO
-    >(
-      this.operationRepository.create.bind(this.operationRepository),
-      createOperation,
+    const operation = Operation.create(
+      user,
+      account,
+      entry,
+      amount,
+      description,
     );
+
+    await this.operationRepository.create(operation.toPersistence());
+
+    return operation;
   }
 }

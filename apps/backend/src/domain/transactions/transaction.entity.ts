@@ -1,5 +1,5 @@
 import { IsoDateString, UUID } from '@ledgerly/shared/types';
-import { TransactionDbRow } from 'src/db/schema';
+import { TransactionDbRow, TransactionWithRelations } from 'src/db/schema';
 
 import {
   EntityIdentity,
@@ -67,7 +67,7 @@ export class Transaction {
     );
   }
 
-  static restore(data: TransactionDbRow): Transaction {
+  static restore(data: TransactionWithRelations): Transaction {
     const {
       createdAt,
       description,
@@ -92,7 +92,7 @@ export class Transaction {
       identity.getId(),
     );
 
-    return new Transaction(
+    const transaction = new Transaction(
       identity,
       timestamps,
       softDelete,
@@ -101,6 +101,13 @@ export class Transaction {
       DateValue.restore(transactionDate),
       description,
     );
+
+    data.entries.forEach((entryData) => {
+      const entry = Entry.restore(entryData);
+      transaction.addEntry(entry);
+    });
+
+    return transaction;
   }
   getId(): Id {
     return this.identity.getId();
