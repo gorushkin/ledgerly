@@ -1,18 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
-import {
-  TransactionRepoInsert,
-  TransactionDbRow,
-  TransactionDbUpdate,
-} from 'src/db/schema';
 import { Transaction } from 'src/domain';
 
 export type TransactionRepositoryInterface = {
-  create(data: TransactionRepoInsert): Promise<TransactionDbRow>;
+  create(transaction: Transaction): Promise<void>;
   getById(userId: UUID, transactionId: UUID): Promise<Transaction | null>;
-  update(
-    userId: UUID,
-    transactionId: UUID,
-    data: TransactionDbUpdate,
-  ): Promise<TransactionDbRow>;
+  // TODO: replace with save
+  update(transaction: Transaction): Promise<void>;
   delete(userId: UUID, transactionId: UUID): Promise<void>;
 };

@@ -1,4 +1,9 @@
 import { UUID, CurrencyCode } from '@ledgerly/shared/types';
+import {
+  CreateEntryRequestDTO,
+  CreateOperationRequestDTO,
+} from 'src/application';
+import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { createAccount } from 'src/db/createTestUser';
 import {
   Account,
@@ -23,7 +28,10 @@ type OperationDataForEntry = {
 };
 
 export class EntryBuilder {
-  constructor(public transaction: Transaction) {}
+  constructor(
+    public transaction: Transaction,
+    public entryContext: EntryContext,
+  ) {}
   description = '';
   operationsData: OperationDataForEntry[] = [];
   user: User | null = null;
@@ -45,15 +53,15 @@ export class EntryBuilder {
     return this;
   }
 
-  private setSelf(): asserts this is { self: Transaction } {
-    this.validateUser();
+  // private setSelf(): asserts this is { self: Transaction } {
+  //   this.validateUser();
 
-    if (this.self) {
-      return;
-    }
+  //   if (this.self) {
+  //     return;
+  //   }
 
-    this.self = Entry.create(this.user, this.transaction, this.description, []);
-  }
+  //   this.self = Entry.create(this.user, this.transaction, this.description, []);
+  // }
 
   withOperation({ account, amount, description = '' }: OperationDataForEntry) {
     this.operationsData.push({
@@ -70,11 +78,30 @@ export class EntryBuilder {
       throw new Error('User must be set before building Entry');
     }
 
+    if (this.operationsData.length !== 2) {
+      throw new Error('At least one operation must be added to the entry');
+    }
+
+    const operations2: CreateEntryRequestDTO['operations'] =
+      this.operationsData.map((op) => {
+        const operationData: CreateOperationRequestDTO = {
+          accountId: op.account.getId().valueOf(),
+          amount: op.amount.valueOf(),
+          description: op.description ?? 'Test Operation',
+        };
+        return operationData;
+      }) as [CreateOperationRequestDTO, CreateOperationRequestDTO];
+
+    const entryData: CreateEntryRequestDTO = {
+      description: this.description,
+      operations: operations2,
+    };
+
     this.self ??= Entry.create(
       this.user,
-      this.transaction,
-      this.description,
-      [],
+      this.transaction.getId(),
+      entryData,
+      this.entryContext,
     );
 
     const operations: Operation[] = [];
@@ -159,10 +186,17 @@ export class TransactionBuilder {
     }
 
     this.self = Transaction.create(
-      this.user.getId(),
-      'Test Transaction',
-      DateValue.restore('2023-01-01'),
-      DateValue.restore('2023-01-01'),
+      this.user,
+      {
+        description: 'Test Transaction',
+        entries: [],
+        postingDate: DateValue.restore('2023-01-01').valueOf(),
+        transactionDate: DateValue.restore('2023-01-01').valueOf(),
+      },
+      {
+        accountsMap: this.accountsMap,
+        systemAccountsMap: this._systemAccounts,
+      },
     );
   }
 
@@ -174,7 +208,10 @@ export class TransactionBuilder {
 
     this.setSelf();
 
-    const builder = new EntryBuilder(this.self)
+    const builder = new EntryBuilder(this.self, {
+      accountsMap: this.accountsMap,
+      systemAccountsMap: this._systemAccounts,
+    })
       .withUser(this.user)
       .withDescription(description);
 
@@ -184,7 +221,6 @@ export class TransactionBuilder {
       builder.withOperation({ ...op, account });
     });
 
-    this._entries.push(builder);
     return this;
   }
 
@@ -204,7 +240,22 @@ export class TransactionBuilder {
     const entries: Entry[] = [];
 
     for (const b of this._entries) {
-      const entry = Entry.create(this.user, this.self, b.description, []);
+      const entry = Entry.create(
+        this.user,
+        this.self.getId(),
+        {
+          description: b.description,
+          operations: b.operationsData.map((opData) => ({
+            accountId: opData.account.getId().valueOf(),
+            amount: opData.amount.valueOf(),
+            description: opData.description ?? 'Test Operation',
+          })) as [CreateOperationRequestDTO, CreateOperationRequestDTO],
+        },
+        {
+          accountsMap: this.accountsMap,
+          systemAccountsMap: this._systemAccounts,
+        },
+      );
       entries.push(entry);
 
       const operations: Operation[] = [];

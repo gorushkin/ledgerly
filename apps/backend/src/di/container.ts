@@ -3,16 +3,8 @@ import {
   RegisterUserUseCase,
   TransactionMapper,
 } from 'src/application';
-import {
-  AccountFactory,
-  EntriesService,
-  OperationFactory,
-} from 'src/application/services';
-import {
-  EntriesContextLoader,
-  EntryCreator,
-  EntryUpdater,
-} from 'src/application/services/EntriesService';
+import { AccountFactory } from 'src/application/services';
+import { EntriesContextLoader } from 'src/application/services/EntriesService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { saveWithIdRetry } from 'src/application/shared/saveWithIdRetry';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
@@ -75,32 +67,31 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const accountFactory = new AccountFactory(accountRepository, saveWithIdRetry);
 
-  const operationFactory = new OperationFactory(operationRepository);
+  // const operationFactory = new OperationFactory(operationRepository);
 
   const entriesContextLoader = new EntriesContextLoader(
     accountRepository,
     accountFactory,
   );
 
-  const entryCreator = new EntryCreator(operationFactory, entryRepository);
+  // const entryCreator = new EntryCreator(operationFactory, entryRepository);
 
-  const entriesUpdater = new EntryUpdater(
-    operationFactory,
-    entryRepository,
-    operationRepository,
-    entryCreator,
-  );
+  // const entriesUpdater = new EntryUpdater(
+  //   operationFactory,
+  //   entryRepository,
+  //   operationRepository,
+  //   entryCreator,
+  // );
 
   const passwordManager = new PasswordManager();
 
-  const entriesService = new EntriesService(
-    entriesContextLoader,
-    entryCreator,
-    entriesUpdater,
-  );
+  // const entriesService = new EntriesService(
+  //   entriesContextLoader,
+  //   entryCreator,
+  //   entriesUpdater,
+  // );
 
   const services: AppContainer['services'] = {
-    entriesService,
     passwordManager,
   };
 
@@ -121,9 +112,8 @@ export const createContainer = (db: DataBase): AppContainer => {
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager,
     transactionRepository,
-    entriesService,
-    saveWithIdRetry,
     transactionMapper,
+    entriesContextLoader,
   );
 
   const getTransactionByIdUseCase = new GetTransactionByIdUseCase(
@@ -138,7 +128,6 @@ export const createContainer = (db: DataBase): AppContainer => {
   const updateTransactionUseCase = new UpdateTransactionUseCase(
     transactionManager,
     transactionRepository,
-    entriesService,
     ensureEntityExistsAndOwned,
     transactionMapper,
   );

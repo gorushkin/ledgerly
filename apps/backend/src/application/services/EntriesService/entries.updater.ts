@@ -9,10 +9,9 @@ import {
   EntryRepositoryInterface,
   OperationRepositoryInterface,
 } from 'src/application/interfaces';
-import { EntryCreator } from 'src/application/services/EntriesService';
+// import { EntryCreator } from 'src/application/services/EntriesService';
 import { OperationFactory } from 'src/application/services/operation.factory';
 import { Account, Entry, Transaction, User } from 'src/domain';
-import { Id } from 'src/domain/domain-core';
 
 type CompareResult = { existing: Entry; incoming: UpdateEntryRequestDTO };
 
@@ -26,7 +25,7 @@ export class EntryUpdater {
     protected readonly operationFactory: OperationFactory,
     protected readonly entryRepository: EntryRepositoryInterface,
     protected readonly operationRepository: OperationRepositoryInterface,
-    protected readonly entryCreator: EntryCreator,
+    // protected readonly entryCreator: EntryCreator,
   ) {}
 
   private async updateEntriesFinancial(
@@ -199,59 +198,55 @@ export class EntryUpdater {
     await this.entryRepository.voidByIds(user.getId().valueOf(), entriesIds);
   }
 
-  async execute({
-    entryContext: { accountsMap, systemAccountsMap },
-    newEntriesData,
-    transaction,
-    user,
-  }: {
+  execute(_data: {
     newEntriesData: UpdateTransactionRequestDTO['entries'];
     transaction: Transaction;
     user: User;
     entryContext: EntryContext;
   }) {
-    const { entryIds, ids } = transaction.getEntries().reduce(
-      (acc, entry) => {
-        if (newEntriesData.delete.includes(entry.getId().valueOf())) {
-          const id = entry.getId();
-          acc.ids.push(id.valueOf());
-          acc.entryIds.push(id);
-        }
+    throw new Error('Not implemented');
+    // const { entryIds, ids } = transaction.getEntries().reduce(
+    //   (acc, entry) => {
+    //     if (newEntriesData.delete.includes(entry.getId().valueOf())) {
+    //       const id = entry.getId();
+    //       acc.ids.push(id.valueOf());
+    //       acc.entryIds.push(id);
+    //     }
 
-        return acc;
-      },
-      { entryIds: [], ids: [] } as { ids: UUID[]; entryIds: Id[] },
-    );
+    //     return acc;
+    //   },
+    //   { entryIds: [], ids: [] } as { ids: UUID[]; entryIds: Id[] },
+    // );
 
-    await this.voidEntries(user, ids);
+    // await this.voidEntries(user, ids);
 
-    const createdEntriesPromises = newEntriesData.create.map(
-      async (entryData) =>
-        this.entryCreator.createEntryWithOperations(
-          user,
-          transaction,
-          entryData,
-          accountsMap,
-          systemAccountsMap,
-        ),
-    );
+    // const createdEntriesPromises = newEntriesData.create.map(
+    //   async (entryData) =>
+    //     this.entryCreator.createEntryWithOperations(
+    //       user,
+    //       transaction,
+    //       entryData,
+    //       accountsMap,
+    //       systemAccountsMap,
+    //     ),
+    // );
 
-    const createdEntries = await Promise.all(createdEntriesPromises);
+    // const createdEntries = await Promise.all(createdEntriesPromises);
 
-    await this.updateEntries(
-      user,
-      transaction,
-      newEntriesData.update,
-      accountsMap,
-      systemAccountsMap,
-    );
+    // await this.updateEntries(
+    //   user,
+    //   transaction,
+    //   newEntriesData.update,
+    //   accountsMap,
+    //   systemAccountsMap,
+    // );
 
-    transaction.removeEntries(entryIds);
+    // transaction.removeEntries(entryIds);
 
-    transaction.addEntries(createdEntries);
+    // transaction.addEntries(createdEntries);
 
-    transaction.validateEntriesBalance();
+    // transaction.validateEntriesBalance();
 
-    return transaction;
+    // return transaction;
   }
 }

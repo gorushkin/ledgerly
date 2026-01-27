@@ -1,4 +1,5 @@
 import {
+  CurrencyCode,
   IsoDatetimeString,
   UUID,
 } from 'node_modules/@ledgerly/shared/src/types/types';
@@ -12,10 +13,10 @@ import {
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import type { TransactionMapperInterface } from 'src/application/mappers';
-import { EntriesService } from 'src/application/services';
-import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
+import { EntriesContextLoader } from 'src/application/services/EntriesService';
+import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { createUser } from 'src/db/createTestUser';
-import { Account, Entry, Transaction, User, AccountType } from 'src/domain';
+import { Account, User, AccountType } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -31,25 +32,6 @@ describe('CreateTransactionUseCase', () => {
     }),
   };
 
-  const mockedEntries = [
-    {
-      belongsToTransaction: () => true,
-      getOperations: () => [
-        {
-          amount: Amount.create('100'),
-        },
-        {
-          amount: Amount.create('-100'),
-        },
-      ],
-      validateBalance: vi.fn(),
-    },
-  ] as unknown as Entry[];
-
-  const entryService = {
-    createEntriesWithOperations: vi.fn().mockResolvedValue(mockedEntries),
-  };
-
   const transactionManager = {
     run: vi.fn((cb: () => unknown) => cb()),
   };
@@ -58,43 +40,92 @@ describe('CreateTransactionUseCase', () => {
     toResponseDTO: vi.fn(),
   };
 
-  const mockedSaveWithIdRetry = vi.fn();
+  const entriesContextLoader = {
+    loadForEntries: vi.fn(),
+  };
 
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
-    entryService as unknown as EntriesService,
-    mockedSaveWithIdRetry as unknown as SaveWithIdRetryType,
     transactionMapper as unknown as TransactionMapperInterface,
+    entriesContextLoader as unknown as EntriesContextLoader,
   );
 
   const postingDate = DateValue.restore('2024-01-01').valueOf();
   const transactionDate = DateValue.restore('2024-01-02').valueOf();
   const description = 'Test Transaction';
 
-  let usdAccount: Account;
-  let eurAccount: Account;
+  let entries: CreateEntryRequestDTO[];
+
+  let entryContext: EntryContext;
 
   beforeEach(async () => {
     user = await createUser();
 
-    usdAccount = Account.create(
+    const usdAccount = Account.create(
       user,
-      Name.create('Test Account'),
-      'Account for testing',
+      Name.create('USD Account'),
+      'USD',
       Amount.create('0'),
       Currency.create('USD'),
       AccountType.create('asset'),
     );
 
-    eurAccount = Account.create(
+    const eurAccount = Account.create(
       user,
-      Name.create('Test Account'),
-      'Account for testing',
+      Name.create('EUR Account'),
+      'EUR',
       Amount.create('0'),
       Currency.create('EUR'),
       AccountType.create('asset'),
     );
+
+    const usdSystemAccount = Account.create(
+      user,
+      Name.create('USD System Account'),
+      'System account for USD exchanges',
+      Amount.create('0'),
+      Currency.create('USD'),
+      AccountType.create('liability'),
+    );
+
+    const eurSystemAccount = Account.create(
+      user,
+      Name.create('EUR System Account'),
+      'System account for EUR exchanges',
+      Amount.create('0'),
+      Currency.create('EUR'),
+      AccountType.create('liability'),
+    );
+
+    entryContext = {
+      accountsMap: new Map<UUID, Account>([
+        [usdAccount.getId().valueOf(), usdAccount],
+        [eurAccount.getId().valueOf(), eurAccount],
+      ]),
+      systemAccountsMap: new Map<CurrencyCode, Account>([
+        [usdSystemAccount.getCurrency().valueOf(), usdSystemAccount],
+        [eurSystemAccount.getCurrency().valueOf(), eurSystemAccount],
+      ]),
+    };
+
+    entries = [
+      {
+        description: 'Sample Entry',
+        operations: [
+          {
+            accountId: usdAccount.getId().valueOf(),
+            amount: Amount.create('-200').valueOf(),
+            description: 'Credit operation',
+          },
+          {
+            accountId: eurAccount.getId().valueOf(),
+            amount: Amount.create('100').valueOf(),
+            description: 'Debit operation',
+          },
+        ],
+      },
+    ];
   });
 
   describe('execute', () => {
@@ -110,34 +141,15 @@ describe('CreateTransactionUseCase', () => {
         userId: user.getId().valueOf() as unknown as UUID,
       };
 
-      transactionMapper.toResponseDTO.mockResolvedValue(mockedResult);
-
-      const transaction = Transaction.create(
-        user.getId(),
+      const transactionDTO: CreateTransactionRequestDTO = {
         description,
-        DateValue.restore(postingDate),
-        DateValue.restore(transactionDate),
-      );
+        entries,
+        postingDate,
+        transactionDate,
+      };
 
-      mockedSaveWithIdRetry.mockResolvedValue(transaction);
-
-      const entries: CreateEntryRequestDTO[] = [
-        {
-          description: 'Entry 1',
-          operations: [
-            {
-              accountId: usdAccount.getId().valueOf(),
-              amount: Amount.create('100').valueOf(),
-              description: 'Operation 1',
-            },
-            {
-              accountId: eurAccount.getId().valueOf(),
-              amount: Amount.create('100').valueOf(),
-              description: 'Operation 1',
-            },
-          ],
-        },
-      ];
+      transactionMapper.toResponseDTO.mockResolvedValue(mockedResult);
+      entriesContextLoader.loadForEntries.mockResolvedValue(entryContext);
 
       const data: CreateTransactionRequestDTO = {
         description,
@@ -157,15 +169,6 @@ describe('CreateTransactionUseCase', () => {
 
       expect(transactionManager.run).toHaveBeenCalled();
 
-      expect(entryService.createEntriesWithOperations).toHaveBeenCalledWith(
-        user,
-        expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          getId: expect.any(Function),
-        }),
-        data.entries,
-      );
-
       expect(transactionMapper.toResponseDTO).toHaveBeenCalledWith(
         expect.objectContaining({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -173,10 +176,10 @@ describe('CreateTransactionUseCase', () => {
         }),
       );
 
-      expect(mockedSaveWithIdRetry).toHaveBeenCalled();
-      expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.any(Function),
+      expect(entriesContextLoader.loadForEntries).toHaveBeenCalled();
+      expect(entriesContextLoader.loadForEntries).toHaveBeenCalledWith(
+        user,
+        transactionDTO.entries,
       );
     });
   });

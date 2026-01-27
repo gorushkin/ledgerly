@@ -11,6 +11,8 @@ import {
   ParentChildRelation,
 } from '../domain-core';
 
+import { OperationSnapshot } from './types';
+
 export class Operation {
   private constructor(
     public readonly identity: EntityIdentity,
@@ -170,5 +172,20 @@ export class Operation {
 
   get entryId(): Id {
     return this.entryRelation.getParentId();
+  }
+
+  toSnapshot(): OperationSnapshot {
+    return {
+      accountId: this.getAccountId().valueOf(),
+      amount: this.amount.valueOf(),
+      createdAt: this.getCreatedAt().valueOf(),
+      description: this.description,
+      entryId: this.entryId.valueOf(),
+      id: this.id.valueOf(),
+      isSystem: this.isSystem,
+      isTombstone: this.softDelete.getIsTombstone(),
+      updatedAt: this.getUpdatedAt().valueOf(),
+      userId: this.getUserId().valueOf(),
+    };
   }
 }

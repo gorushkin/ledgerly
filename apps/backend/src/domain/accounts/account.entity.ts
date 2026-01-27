@@ -219,4 +219,8 @@ export class Account {
       userId: this.ownership.getParentId().valueOf(),
     };
   }
+
+  getCurrency(): Currency {
+    return this.currency;
+  }
 }
