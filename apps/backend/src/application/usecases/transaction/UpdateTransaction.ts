@@ -7,7 +7,7 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { TransactionMapperInterface } from 'src/application/mappers';
+// import { TransactionMapperInterface } from 'src/application/mappers';
 // import { EntriesService } from 'src/application/services';
 import { EnsureEntityExistsAndOwnedFn } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { Transaction, User } from 'src/domain';
@@ -18,7 +18,7 @@ export class UpdateTransactionUseCase {
     protected readonly transactionRepository: TransactionRepositoryInterface,
     // protected readonly entriesService: EntriesService,
     protected readonly ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn,
-    protected readonly transactionMapper: TransactionMapperInterface,
+    // protected readonly transactionMapper: TransactionMapperInterface,
   ) {}
 
   private updateTransactionMetadata(

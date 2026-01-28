@@ -1,7 +1,6 @@
 import { CurrencyCode, IsoDateString, UUID } from '@ledgerly/shared/types';
 import { CreateEntryRequestDTO } from 'src/application';
 import { CreateTransactionRequestDTO } from 'src/application/dto/transaction.dto';
-import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { createUser } from 'src/db/createTestUser';
 import {
   afterEach,
@@ -19,10 +18,11 @@ import { Entry } from '../entries';
 import { User } from '../users/user.entity';
 
 import { Transaction } from './transaction.entity';
+import { TransactionBuildContext } from './types';
 
 describe('Transaction Domain Entity', () => {
   let user: User;
-  let entryContext: EntryContext;
+  let entryContext: TransactionBuildContext;
   let entries: CreateEntryRequestDTO[];
   let transactionDTO: CreateTransactionRequestDTO;
 

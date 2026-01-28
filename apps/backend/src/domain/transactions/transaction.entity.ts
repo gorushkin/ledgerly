@@ -270,7 +270,7 @@ export class Transaction {
     this.touch();
   }
 
-  getEntries(): readonly Entry[] {
+  getEntries(): Entry[] {
     return [...this.entries];
   }
 
@@ -283,19 +283,5 @@ export class Transaction {
     for (const entry of this.entries) {
       entry.validateBalance();
     }
-  }
-
-  valueOf(): object {
-    return {
-      createdAt: this.getCreatedAt().valueOf(),
-      description: this.description,
-      entries: this.entries.map((entry) => entry.valueOf()),
-      id: this.getId().valueOf(),
-      isTombstone: this.isDeleted(),
-      postingDate: this.postingDate.valueOf(),
-      transactionDate: this.transactionDate.valueOf(),
-      updatedAt: this.getUpdatedAt().valueOf(),
-      userId: this.getUserId().valueOf(),
-    };
   }
 }

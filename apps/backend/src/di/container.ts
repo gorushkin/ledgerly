@@ -1,8 +1,4 @@
-import {
-  LoginUserUseCase,
-  RegisterUserUseCase,
-  TransactionMapper,
-} from 'src/application';
+import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
 import { AccountFactory } from 'src/application/services';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
@@ -41,17 +37,19 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const accountRepository = new AccountRepository(transactionManager);
   const currencyRepository = new CurrencyRepository(transactionManager);
-  const transactionRepository = new TransactionRepository(transactionManager);
+  const operationRepository = new OperationRepository(transactionManager);
+  const entryRepository = new EntryRepository(transactionManager);
+  const transactionRepository = new TransactionRepository(
+    entryRepository,
+    operationRepository,
+    transactionManager,
+  );
   const transactionQueryRepository = new TransactionQueryRepository(
     transactionManager,
   );
   const userRepository = new UserRepository(transactionManager);
-  const operationRepository = new OperationRepository(transactionManager);
-  const entryRepository = new EntryRepository(transactionManager);
 
   // Mappers
-
-  const transactionMapper = new TransactionMapper();
 
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
@@ -67,29 +65,12 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const accountFactory = new AccountFactory(accountRepository, saveWithIdRetry);
 
-  // const operationFactory = new OperationFactory(operationRepository);
-
   const transactionContextLoader = new TransactionContextLoader(
     accountRepository,
     accountFactory,
   );
 
-  // const entryCreator = new EntryCreator(operationFactory, entryRepository);
-
-  // const entriesUpdater = new EntryUpdater(
-  //   operationFactory,
-  //   entryRepository,
-  //   operationRepository,
-  //   entryCreator,
-  // );
-
   const passwordManager = new PasswordManager();
-
-  // const entriesService = new EntriesService(
-  //   entriesContextLoader,
-  //   entryCreator,
-  //   entriesUpdater,
-  // );
 
   const services: AppContainer['services'] = {
     passwordManager,
@@ -112,7 +93,6 @@ export const createContainer = (db: DataBase): AppContainer => {
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager,
     transactionRepository,
-    transactionMapper,
     transactionContextLoader,
   );
 
@@ -129,7 +109,6 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionManager,
     transactionRepository,
     ensureEntityExistsAndOwned,
-    transactionMapper,
   );
 
   const useCases: AppContainer['useCases'] = {

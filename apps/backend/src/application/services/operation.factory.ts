@@ -1,5 +1,5 @@
 import { CurrencyCode, MoneyString, UUID } from '@ledgerly/shared/types';
-import { Account, Entry, Operation, User } from 'src/domain';
+import { Account, Entry, User } from 'src/domain';
 import { Amount, Currency } from 'src/domain/domain-core';
 import { UnbalancedEntryError } from 'src/domain/domain.errors';
 
@@ -188,25 +188,23 @@ export class OperationFactory {
     return systemAccount;
   }
 
-  private async createOperation(
-    user: User,
-    entry: Entry,
-    rawAmount: MoneyString,
-    description: string,
-    account: Account,
+  private createOperation(
+    _user: User,
+    _entry: Entry,
+    _rawAmount: MoneyString,
+    _description: string,
+    _account: Account,
   ) {
-    const amount = Amount.create(rawAmount);
-
-    const operation = Operation.create(
-      user,
-      account,
-      entry,
-      amount,
-      description,
-    );
-
-    await this.operationRepository.create(operation.toPersistence());
-
-    return operation;
+    throw new Error('Not implemented');
+    // const amount = Amount.create(rawAmount);
+    // const operation = Operation.create(
+    //   user,
+    //   account,
+    //   entry,
+    //   amount,
+    //   description,
+    // );
+    // await this.operationRepository.create(operation.toPersistence());
+    // return operation;
   }
 }

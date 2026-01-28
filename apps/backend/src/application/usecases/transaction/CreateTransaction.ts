@@ -6,7 +6,7 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { TransactionMapperInterface } from 'src/application/mappers';
+import { TransactionMapper } from 'src/application/mappers';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { User } from 'src/domain';
 import { Transaction } from 'src/domain/transactions';
@@ -15,7 +15,6 @@ export class CreateTransactionUseCase {
   constructor(
     protected readonly transactionManager: TransactionManagerInterface,
     protected readonly transactionRepository: TransactionRepositoryInterface,
-    protected readonly transactionMapper: TransactionMapperInterface,
     protected readonly transactionContextLoader: TransactionContextLoader,
   ) {}
 
@@ -23,7 +22,7 @@ export class CreateTransactionUseCase {
     user: User,
     data: CreateTransactionRequestDTO,
   ): Promise<TransactionResponseDTO> {
-    const transactionSnapshot = await this.transactionManager.run(async () => {
+    const createdTransaction = await this.transactionManager.run(async () => {
       const context = await this.transactionContextLoader.loadContext(
         user,
         data.entries,
@@ -31,11 +30,14 @@ export class CreateTransactionUseCase {
 
       const transaction = Transaction.create(user, data, context);
 
-      await this.transactionRepository.create(transaction);
+      await this.transactionRepository.save(
+        user.getId().valueOf(),
+        transaction,
+      );
 
-      return transaction.toSnapshot();
+      return transaction;
     });
 
-    return this.transactionMapper.toResponseDTO(transactionSnapshot);
+    return TransactionMapper.toResponseDTO(createdTransaction);
   }
 }

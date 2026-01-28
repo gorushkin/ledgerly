@@ -28,69 +28,72 @@ export class EntryUpdater {
     // protected readonly entryCreator: EntryCreator,
   ) {}
 
-  private async updateEntriesFinancial(
-    user: User,
-    entriesData: CompareResult[],
-    accountsMap: Map<UUID, Account>,
-    systemAccountsMap: Map<CurrencyCode, Account>,
+  private updateEntriesFinancial(
+    _user: User,
+    _entriesData: CompareResult[],
+    _accountsMap: Map<UUID, Account>,
+    _systemAccountsMap: Map<CurrencyCode, Account>,
   ): Promise<Entry[]> {
-    if (entriesData.length === 0) {
-      return [];
-    }
+    throw new Error('Not implemented');
+    // if (entriesData.length === 0) {
+    //   return [];
+    // }
 
-    const { existingEntriesIds } = entriesData.reduce<{
-      existingEntriesIds: UUID[];
-      incoming: UpdateEntryRequestDTO[];
-    }>(
-      (acc, curr) => {
-        acc.existingEntriesIds.push(curr.existing.getId().valueOf());
-        acc.incoming.push(curr.incoming);
-        return acc;
-      },
-      { existingEntriesIds: [], incoming: [] },
-    );
+    // const { existingEntriesIds } = entriesData.reduce<{
+    //   existingEntriesIds: UUID[];
+    //   incoming: UpdateEntryRequestDTO[];
+    // }>(
+    //   (acc, curr) => {
+    //     acc.existingEntriesIds.push(curr.existing.getId().valueOf());
+    //     acc.incoming.push(curr.incoming);
+    //     return acc;
+    //   },
+    //   { existingEntriesIds: [], incoming: [] },
+    // );
 
-    await this.operationRepository.voidByEntryIds(
-      user.getId().valueOf(),
-      existingEntriesIds,
-    );
+    // await this.operationRepository.voidByEntryIds(
+    //   user.getId().valueOf(),
+    //   existingEntriesIds,
+    // );
 
-    const promises = entriesData.map(async ({ existing, incoming }) => {
-      if (!incoming.operations) {
-        return existing;
-      }
+    // const promises = entriesData.map(async ({ existing, incoming }) => {
+    //   if (!incoming.operations) {
+    //     return existing;
+    //   }
 
-      const createdOperations =
-        await this.operationFactory.createOperationsForEntry(
-          user,
-          existing,
-          incoming as Required<Pick<UpdateEntryRequestDTO, 'operations'>> &
-            UpdateEntryRequestDTO,
-          accountsMap,
-          systemAccountsMap,
-        );
+    //   const createdOperations =
+    //     await this.operationFactory.createOperationsForEntry(
+    //       user,
+    //       existing,
+    //       incoming as Required<Pick<UpdateEntryRequestDTO, 'operations'>> &
+    //         UpdateEntryRequestDTO,
+    //       accountsMap,
+    //       systemAccountsMap,
+    //     );
 
-      existing.updateOperations(createdOperations);
+    //   existing.updateOperations(createdOperations);
 
-      return existing;
-    });
+    //   return existing;
+    // });
 
-    return Promise.all(promises);
+    // return Promise.all(promises);
   }
 
-  private async updateEntryMetadata(
-    user: User,
-    existing: Entry,
-    incoming: UpdateEntryRequestDTO,
+  private updateEntryMetadata(
+    _user: User,
+    _existing: Entry,
+    _incoming: UpdateEntryRequestDTO,
   ): Promise<Entry> {
-    existing.updateDescription(incoming.description);
+    throw new Error('Not implemented');
 
-    await this.entryRepository.update(
-      user.getId().valueOf(),
-      existing.toPersistence(),
-    );
+    // existing.updateDescription(incoming.description);
 
-    return existing;
+    // await this.entryRepository.update(
+    //   user.getId().valueOf(),
+    //   existing.toPersistence(),
+    // );
+
+    // return existing;
   }
 
   private async updateEntriesMetadata(
@@ -190,12 +193,14 @@ export class EntryUpdater {
     );
   }
 
-  private async voidEntries(user: User, entriesIds: UUID[]) {
-    if (entriesIds.length === 0) {
-      return;
-    }
+  private voidEntries(_user: User, _entriesIds: UUID[]) {
+    // if (entriesIds.length === 0) {
+    //   return;
+    // }
 
-    await this.entryRepository.voidByIds(user.getId().valueOf(), entriesIds);
+    // await this.entryRepository.voidByIds(user.getId().valueOf(), entriesIds);
+
+    throw new Error('Not implemented');
   }
 
   execute(_data: {

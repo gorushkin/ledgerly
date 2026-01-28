@@ -1,19 +1,38 @@
-import { Operation } from 'src/domain/operations';
+import { OperationRepoInsert } from 'src/db/schema';
+import { Operation } from 'src/domain/operations/operation.entity';
 
 import { OperationResponseDTO } from '../dto';
 
 export class OperationMapper {
   static toResponseDTO(operation: Operation): OperationResponseDTO {
+    const snapshot = operation.toSnapshot();
+
     return {
-      accountId: operation.getAccountId().valueOf(),
-      amount: operation.amount.valueOf(),
-      createdAt: operation.getCreatedAt().valueOf(),
-      description: operation.description,
-      entryId: operation.entryId.valueOf(),
-      id: operation.id.valueOf(),
-      isSystem: operation.isSystem,
-      updatedAt: operation.getUpdatedAt().valueOf(),
-      userId: operation.getUserId().valueOf(),
+      accountId: snapshot.accountId,
+      amount: snapshot.amount,
+      createdAt: snapshot.createdAt,
+      description: snapshot.description,
+      entryId: snapshot.entryId,
+      id: snapshot.id,
+      isSystem: snapshot.isSystem,
+      updatedAt: snapshot.updatedAt,
+      userId: snapshot.userId,
+    };
+  }
+
+  static toDBRow(operation: Operation): OperationRepoInsert {
+    const snapshot = operation.toSnapshot();
+    return {
+      accountId: snapshot.accountId,
+      amount: snapshot.amount,
+      createdAt: snapshot.createdAt,
+      description: snapshot.description,
+      entryId: snapshot.entryId,
+      id: snapshot.id,
+      isSystem: snapshot.isSystem,
+      isTombstone: snapshot.isTombstone,
+      updatedAt: snapshot.updatedAt,
+      userId: snapshot.userId,
     };
   }
 }

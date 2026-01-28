@@ -10,14 +10,10 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import {
-  TransactionMapper,
-  type TransactionMapperInterface,
-} from 'src/application/mappers';
 import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { createUser } from 'src/db/createTestUser';
-import { Account, User, AccountType } from 'src/domain';
+import { Account, User, AccountType, Transaction } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -27,10 +23,7 @@ describe('CreateTransactionUseCase', () => {
   let user: User;
 
   const mockTransactionRepository = {
-    create: vi.fn(),
-    getDB: vi.fn().mockReturnValue({
-      transaction: <T>(cb: (trx: unknown) => T): T => cb({}),
-    }),
+    save: vi.fn(),
   };
 
   const transactionManager = {
@@ -41,12 +34,9 @@ describe('CreateTransactionUseCase', () => {
     loadContext: vi.fn(),
   };
 
-  const transactionMapper = new TransactionMapper();
-
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
-    transactionMapper as unknown as TransactionMapperInterface,
     transactionContextLoader as unknown as TransactionContextLoader,
   );
 
@@ -164,6 +154,38 @@ describe('CreateTransactionUseCase', () => {
       });
 
       expect(transactionManager.run).toHaveBeenCalled();
+
+      expect(mockTransactionRepository.save).toHaveBeenCalled();
+
+      const savedTransaction = mockTransactionRepository.save.mock
+        .calls[0][1] as unknown as Transaction;
+
+      const savedUserId = mockTransactionRepository.save.mock
+        .calls[0][0] as unknown as User;
+
+      expect(savedUserId).toBe(user.getId().valueOf());
+
+      expect(savedTransaction.getPostingDate().valueOf()).toBe(postingDate);
+      expect(savedTransaction.getTransactionDate().valueOf()).toBe(
+        transactionDate,
+      );
+      expect(savedTransaction.getEntries().length).toBe(
+        transactionDTO.entries.length,
+      );
+
+      expect(savedTransaction.description).toBe(description);
+
+      savedTransaction.getEntries().forEach((entry, index) => {
+        const dtoEntry = transactionDTO.entries[index];
+        expect(entry.description).toBe(dtoEntry.description);
+
+        dtoEntry.operations.forEach((op, opIndex) => {
+          const operation = entry.getOperations()[opIndex];
+          expect(operation.getAccountId().valueOf()).toBe(op.accountId);
+          expect(operation.amount.valueOf()).toBe(op.amount);
+          expect(operation.description).toBe(op.description);
+        });
+      });
 
       expect(transactionContextLoader.loadContext).toHaveBeenCalledWith(
         user,
