@@ -1,12 +1,12 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { Account, User } from 'src/domain';
-import { EntryBuildContext } from 'src/domain/transactions/types';
+import { TransactionBuildContext } from 'src/domain/transactions/types';
 
 import { CreateEntryRequestDTO, UpdateEntryRequestDTO } from '../../dto';
 import { AccountRepositoryInterface } from '../../interfaces';
 import { AccountFactory } from '../account.factory';
 
-export class EntriesContextLoader {
+export class TransactionContextLoader {
   constructor(
     protected readonly accountRepository: AccountRepositoryInterface,
     protected readonly accountFactory: AccountFactory,
@@ -60,10 +60,10 @@ export class EntriesContextLoader {
     return systemAccountsMap;
   }
 
-  async loadForEntries(
+  async loadContext(
     user: User,
     rawEntries: (CreateEntryRequestDTO | UpdateEntryRequestDTO)[],
-  ): Promise<EntryBuildContext> {
+  ): Promise<TransactionBuildContext> {
     const { accountsMap, currenciesSet } = await this.preloadAccounts(
       user,
       rawEntries,

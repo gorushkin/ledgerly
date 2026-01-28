@@ -16,7 +16,7 @@ export type TransactionUpdateData = {
   transactionDate?: IsoDateString;
 };
 
-export type EntryBuildContext = {
+export type TransactionBuildContext = {
   accountsMap: Map<UUID, Account>;
   systemAccountsMap: Map<CurrencyCode, Account>;
 };
@@ -48,6 +48,7 @@ export type TransactionSnapshot = {
   transactionDate: IsoDateString;
   updatedAt: IsoDatetimeString;
   userId: UUID;
+  entries: EntrySnapshot[];
 };
 
 export type TransactionWithEntriesAndOperations = TransactionSnapshot & {

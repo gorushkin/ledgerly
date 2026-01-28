@@ -10,16 +10,14 @@ import {
   DateValue,
 } from '../domain-core';
 import { Entry } from '../entries';
-import { EntrySnapshot } from '../entries/types';
-import { OperationSnapshot } from '../operations/types';
 import { User } from '../users/user.entity';
 
 import {
   CreateTransactionProps,
-  EntryBuildContext,
-  TransactionSnapshot,
+  TransactionBuildContext,
   TransactionUpdateData,
   TransactionWithEntriesAndOperations,
+  TransactionSnapshot,
 } from './types';
 
 export class Transaction {
@@ -52,7 +50,7 @@ export class Transaction {
   static create(
     user: User,
     dto: CreateTransactionProps,
-    entryContext: EntryBuildContext,
+    entryContext: TransactionBuildContext,
   ): Transaction {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
@@ -172,26 +170,17 @@ export class Transaction {
     return !this.isDeleted();
   }
 
-  toSnapshot(): {
-    transaction: TransactionSnapshot;
-    entries: EntrySnapshot[];
-    operations: OperationSnapshot[];
-  } {
+  toSnapshot(): TransactionSnapshot {
     return {
+      createdAt: this.getCreatedAt().valueOf(),
+      description: this.description,
       entries: this.entries.map((entry) => entry.toSnapshot()),
-      operations: this.entries.flatMap((entry) =>
-        entry.getOperations().map((operation) => operation.toSnapshot()),
-      ),
-      transaction: {
-        createdAt: this.getCreatedAt().valueOf(),
-        description: this.description,
-        id: this.getId().valueOf(),
-        isTombstone: this.isDeleted(),
-        postingDate: this.postingDate.valueOf(),
-        transactionDate: this.transactionDate.valueOf(),
-        updatedAt: this.getUpdatedAt().valueOf(),
-        userId: this.getUserId().valueOf(),
-      },
+      id: this.getId().valueOf(),
+      isTombstone: this.isDeleted(),
+      postingDate: this.postingDate.valueOf(),
+      transactionDate: this.transactionDate.valueOf(),
+      updatedAt: this.getUpdatedAt().valueOf(),
+      userId: this.getUserId().valueOf(),
     };
   }
 

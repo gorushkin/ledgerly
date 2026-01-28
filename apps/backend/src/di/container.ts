@@ -4,7 +4,7 @@ import {
   TransactionMapper,
 } from 'src/application';
 import { AccountFactory } from 'src/application/services';
-import { EntriesContextLoader } from 'src/application/services/EntriesService';
+import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { saveWithIdRetry } from 'src/application/shared/saveWithIdRetry';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
@@ -69,7 +69,7 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   // const operationFactory = new OperationFactory(operationRepository);
 
-  const entriesContextLoader = new EntriesContextLoader(
+  const transactionContextLoader = new TransactionContextLoader(
     accountRepository,
     accountFactory,
   );
@@ -113,7 +113,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionManager,
     transactionRepository,
     transactionMapper,
-    entriesContextLoader,
+    transactionContextLoader,
   );
 
   const getTransactionByIdUseCase = new GetTransactionByIdUseCase(

@@ -440,6 +440,7 @@ export class Entry {
       description: this.description,
       id: this.getId().valueOf(),
       isTombstone: this.isDeleted(),
+      operations: this.operations.map((operation) => operation.toSnapshot()),
       transactionId: this.getTransactionId().valueOf(),
       updatedAt: this.updatedAt,
       userId: this.ownership.getParentId().valueOf(),
