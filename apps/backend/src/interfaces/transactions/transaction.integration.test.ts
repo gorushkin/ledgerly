@@ -53,7 +53,7 @@ describe('Transactions Integration Tests', () => {
   });
 
   describe('POST /api/transactions', () => {
-    it.skip('should create a new transaction', async () => {
+    it('should create a new transaction', async () => {
       const account1 = await testDB.createAccount(userId, {
         name: 'Checking',
       });
@@ -109,7 +109,7 @@ describe('Transactions Integration Tests', () => {
       });
     });
 
-    it.skip('should fail when required fields are missing', async () => {
+    it('should fail when required fields are missing', async () => {
       const payload = {
         // missing description, entries, postingDate, transactionDate
         description: 'incomplete transaction',
@@ -127,7 +127,7 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it.skip('should fail with invalid amounts', async () => {
+    it('should fail with invalid amounts', async () => {
       const account1 = await testDB.createAccount(userId, { name: 'Checking' });
       const account2 = await testDB.createAccount(userId, { name: 'Savings' });
 
@@ -163,7 +163,7 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it.skip('should fail for unauthorized access', async () => {
+    it('should fail for unauthorized access', async () => {
       const account1 = await testDB.createAccount(userId, { name: 'Checking' });
       const account2 = await testDB.createAccount(userId, { name: 'Savings' });
 
@@ -196,17 +196,28 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(401);
     });
 
-    it.skip('should fail for non-existent accounts', async () => {
-      const payload = {
+    it('should fail for non-existent accounts', async () => {
+      const payload: TransactionCreateInput = {
         description: 'non-existent account',
         entries: [
-          [
-            { accountId: 'non-existent-id', amount: '-100' },
-            { accountId: 'another-non-existent-id', amount: '100' },
-          ],
+          {
+            description: 'Transfer between accounts',
+            operations: [
+              {
+                accountId: Id.create().valueOf(),
+                amount: Amount.create('-100').valueOf(),
+                description: 'Transfer from checking',
+              },
+              {
+                accountId: Id.create().valueOf(),
+                amount: Amount.create('100').valueOf(),
+                description: 'Transfer to savings',
+              },
+            ],
+          },
         ],
-        postingDate: '2025-11-07',
-        transactionDate: '2025-11-07',
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
       };
 
       const response = await server.inject({
@@ -221,7 +232,7 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
-    it.skip('should fail for zero amounts', async () => {
+    it('should fail for zero amounts', async () => {
       const account1 = await testDB.createAccount(userId, { name: 'Checking' });
       const account2 = await testDB.createAccount(userId, { name: 'Savings' });
 
@@ -249,7 +260,7 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it.skip('should fail when from and to accounts are the same', async () => {
+    it('should fail when from and to accounts are the same', async () => {
       const account1 = await testDB.createAccount(userId, { name: 'Checking' });
 
       const payload = {
@@ -416,7 +427,7 @@ describe('Transactions Integration Tests', () => {
       entryOperationsMap[singleCurrencyEntries[1].id] = singleCurrencyEntry2ops;
     });
 
-    it.skip('should retrieve a transaction by ID', async () => {
+    it('should retrieve a transaction by ID', async () => {
       const response = await server.inject({
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -462,7 +473,7 @@ describe('Transactions Integration Tests', () => {
       });
     });
 
-    it.skip('should retrieve system operations as well', async () => {
+    it('should retrieve system operations as well', async () => {
       const response = await server.inject({
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -495,7 +506,7 @@ describe('Transactions Integration Tests', () => {
   });
 
   describe('GET /api/transactions', () => {
-    it.skip('should retrieve all transactions for the user', async () => {
+    it('should retrieve all transactions for the user', async () => {
       await testDB.seedTestData(user);
 
       const response = await server.inject({
@@ -519,7 +530,7 @@ describe('Transactions Integration Tests', () => {
       expect(userTransactions).toHaveLength(2);
     });
 
-    it.skip('should return empty array if user has no transactions', async () => {
+    it('should return empty array if user has no transactions', async () => {
       const response = await server.inject({
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -541,7 +552,7 @@ describe('Transactions Integration Tests', () => {
       expect(userTransactions).toHaveLength(0);
     });
 
-    it.skip('should return filtered transactions based on query params', async () => {
+    it('should return filtered transactions based on query params', async () => {
       const { account3 } = await testDB.seedTestData(user);
 
       const response = await server.inject({
@@ -561,7 +572,7 @@ describe('Transactions Integration Tests', () => {
       expect(transactions).toHaveLength(1);
     });
 
-    it.skip('should throw 400 for invalid query params', async () => {
+    it('should throw 400 for invalid query params', async () => {
       const response = await server.inject({
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -573,7 +584,7 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it.skip('should ignore unknown query parameters and return 200', async () => {
+    it('should ignore unknown query parameters and return 200', async () => {
       const response = await server.inject({
         headers: {
           Authorization: `Bearer ${authToken}`,
