@@ -60,6 +60,7 @@ describe('GetTransactionByIdUseCase', () => {
       transactionId,
       updatedAt: Timestamp.create().valueOf(),
       userId,
+      version: 1,
     };
 
     const mockTransactionData: TransactionWithRelations = {
@@ -72,6 +73,7 @@ describe('GetTransactionByIdUseCase', () => {
       transactionDate: DateValue.create().valueOf(),
       updatedAt,
       userId,
+      version: 1,
     };
 
     mockTransactionQueryRepository.findById.mockResolvedValue(

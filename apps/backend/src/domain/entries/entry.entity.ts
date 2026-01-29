@@ -40,6 +40,7 @@ export class Entry {
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
     transactionRelation: ParentChildRelation,
+    private version = 0,
     operations?: Operation[],
   ) {
     this.identity = identity;
@@ -285,7 +286,8 @@ export class Entry {
     return this.softDelete.isDeleted();
   }
 
-  private touch(): void {
+  private markUpdated() {
+    this.version += 1;
     this.timestamps = this.timestamps.touch();
   }
 
@@ -306,6 +308,7 @@ export class Entry {
       transactionId: this.getTransactionId().valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),
+      version: this.version,
     };
   }
 
@@ -333,7 +336,7 @@ export class Entry {
     this.validateCanAddOperations(operations);
 
     this.operations.push(...operations);
-    this.touch();
+    this.markUpdated();
   }
 
   hasOperations(): boolean {
@@ -368,7 +371,7 @@ export class Entry {
 
   updateDescription(newDescription: string): void {
     this.description = newDescription;
-    this.touch();
+    this.markUpdated();
   }
 
   static restore({
@@ -380,6 +383,7 @@ export class Entry {
     transactionId,
     updatedAt,
     userId,
+    version,
   }: EntryWithOperations): Entry {
     const identity = new EntityIdentity(Id.fromPersistence(id));
 
@@ -404,6 +408,7 @@ export class Entry {
       softDelete,
       ownership,
       transactionRelation,
+      version,
     );
 
     operations.forEach((operationData) => {
@@ -416,14 +421,14 @@ export class Entry {
 
   removeOperations(): void {
     this.operations = [];
-    this.touch();
+    this.markUpdated();
   }
 
   updateOperations(operations: Operation[]): void {
     this.validateCanAddOperations(operations);
 
     this.operations = operations;
-    this.touch();
+    this.markUpdated();
   }
 
   get createdAt(): IsoDatetimeString {
@@ -444,6 +449,7 @@ export class Entry {
       transactionId: this.getTransactionId().valueOf(),
       updatedAt: this.updatedAt,
       userId: this.ownership.getParentId().valueOf(),
+      version: this.version,
     };
   }
 }

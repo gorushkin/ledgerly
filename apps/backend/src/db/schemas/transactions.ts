@@ -9,6 +9,7 @@ import {
   isTombstone,
   id,
   getIsoDateString,
+  version,
 } from './common';
 import { entriesTable } from './entries';
 import type { EntryWithOperations } from './entries';
@@ -28,6 +29,7 @@ export const transactionsTable = sqliteTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: 'cascade' })
       .$type<UUID>(),
+    version,
   },
 
   (t) => [index('idx_transactions_user_date').on(t.userId, t.transactionDate)],

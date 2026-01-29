@@ -49,6 +49,7 @@ export type TransactionSnapshot = {
   updatedAt: IsoDatetimeString;
   userId: UUID;
   entries: EntrySnapshot[];
+  version: number;
 };
 
 export type TransactionWithEntriesAndOperations = TransactionSnapshot & {

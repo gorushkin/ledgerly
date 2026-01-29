@@ -24,4 +24,5 @@ export type EntrySnapshot = {
   userId: UUID;
   transactionId: UUID;
   operations: OperationSnapshot[];
+  version: number;
 };

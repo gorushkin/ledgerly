@@ -37,6 +37,7 @@ export class Transaction {
     postingDate: DateValue,
     transactionDate: DateValue,
     public description: string,
+    private version = 0,
   ) {
     this.identity = identity;
     this.timestamps = timestamps;
@@ -94,6 +95,7 @@ export class Transaction {
       transactionDate,
       updatedAt,
       userId,
+      version,
     } = data;
 
     const idVO = Id.fromPersistence(id);
@@ -117,6 +119,7 @@ export class Transaction {
       DateValue.restore(postingDate),
       DateValue.restore(transactionDate),
       description,
+      version,
     );
 
     const entries = data.entries.map((entryData) => Entry.restore(entryData));
@@ -137,7 +140,8 @@ export class Transaction {
     return this.timestamps.getCreatedAt();
   }
 
-  private touch(): void {
+  private markUpdated() {
+    this.version += 1;
     this.timestamps = this.timestamps.touch();
   }
 
@@ -163,7 +167,7 @@ export class Transaction {
     }
 
     this.markAsDeleted();
-    this.touch();
+    this.markUpdated();
   }
 
   canBeUpdated(): boolean {
@@ -181,6 +185,7 @@ export class Transaction {
       transactionDate: this.transactionDate.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
+      version: this.version,
     };
   }
 
@@ -218,7 +223,7 @@ export class Transaction {
     if (updateData.transactionDate) {
       this.updateTransactionDate(DateValue.restore(updateData.transactionDate));
     }
-    this.touch();
+    this.markUpdated();
   }
 
   getPostingDate(): DateValue {
@@ -245,7 +250,7 @@ export class Transaction {
   addEntries(entries: Entry[]): void {
     this.validateUpdateIsAllowed();
     entries.forEach((entry) => this.addEntry(entry));
-    this.touch();
+    this.markUpdated();
   }
 
   attachEntries(entries: Entry[]): void {
@@ -267,7 +272,7 @@ export class Transaction {
   removeEntries(entryIds: Id[]): void {
     this.validateUpdateIsAllowed();
     entryIds.forEach((entryId) => this.removeEntry(entryId));
-    this.touch();
+    this.markUpdated();
   }
 
   getEntries(): Entry[] {

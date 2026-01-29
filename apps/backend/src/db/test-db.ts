@@ -207,6 +207,7 @@ export class TestDB {
       ...params,
       isTombstone: false,
       transactionId,
+      version: 0,
     };
 
     const entry = await this.db
@@ -247,6 +248,7 @@ export class TestDB {
       transactionDate: DateValue.create().valueOf(),
       ...params,
       userId,
+      version: 0,
     };
 
     const transaction = await this.db

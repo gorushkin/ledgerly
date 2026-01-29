@@ -58,6 +58,7 @@ export class EntryMapper {
       transactionId: snapshot.transactionId,
       updatedAt: snapshot.updatedAt,
       userId: snapshot.userId,
+      version: snapshot.version,
     };
   }
 }
