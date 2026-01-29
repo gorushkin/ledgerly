@@ -110,6 +110,7 @@ type TransactionBuilderResult = {
     transactionDate: IsoDateString;
     userId: UUID;
   };
+  entryData: CreateEntryRequestDTO[];
 };
 
 export class TransactionBuilder {
@@ -291,6 +292,20 @@ export class TransactionBuilder {
         accountsMap: this.accountsMap,
         systemAccountsMap: this.systemAccounts,
       },
+      entryData: entries.map((entry) => {
+        const operations = entry
+          .getOperations()
+          .filter((op) => !op.isSystem)
+          .map((op) => ({
+            accountId: op.getAccountId().valueOf(),
+            amount: op.amount.valueOf(),
+            description: op.description ?? 'Test Operation',
+          })) as [CreateOperationRequestDTO, CreateOperationRequestDTO];
+        return {
+          description: entry.description,
+          operations,
+        };
+      }),
       getAccountByKey: this.getAccountByKey.bind(this),
       systemAccounts: this.systemAccounts,
       transaction: this.transaction,
