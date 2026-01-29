@@ -1,20 +1,11 @@
 import {
-  CurrencyCode,
-  UUID,
-} from 'node_modules/@ledgerly/shared/src/types/types';
-import {
-  CreateEntryRequestDTO,
-  CreateTransactionRequestDTO,
-} from 'src/application/dto';
-import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { createUser } from 'src/db/createTestUser';
-import { Account, User, AccountType, Transaction } from 'src/domain';
-import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
+import { TransactionBuilder } from 'src/db/test-utils/testEntityBuilder';
+import { User, Transaction } from 'src/domain';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateTransactionUseCase } from '../CreateTransaction';
@@ -40,105 +31,47 @@ describe('CreateTransactionUseCase', () => {
     transactionContextLoader as unknown as TransactionContextLoader,
   );
 
-  const postingDate = DateValue.restore('2024-01-01').valueOf();
-  const transactionDate = DateValue.restore('2024-01-02').valueOf();
-  const description = 'Test Transaction';
+  const transactionData = {
+    description: 'Test transaction',
+    postingDate: '2024-01-01',
+    transactionDate: '2024-01-01',
+    userId: '123e4567-e89b-12d3-a456-426614174000',
+  };
 
-  let entries: CreateEntryRequestDTO[];
-
-  let entryContext: EntryContext;
+  const entriesData = [
+    {
+      description: 'First Entry',
+      operations: [
+        { accountKey: 'USD', amount: '10000', description: '1' },
+        { accountKey: 'USD', amount: '-10000', description: '2' },
+      ],
+    },
+  ];
 
   beforeEach(async () => {
     user = await createUser();
-
-    const usdAccount = Account.create(
-      user,
-      Name.create('USD Account'),
-      'USD',
-      Amount.create('0'),
-      Currency.create('USD'),
-      AccountType.create('asset'),
-    );
-
-    const eurAccount = Account.create(
-      user,
-      Name.create('EUR Account'),
-      'EUR',
-      Amount.create('0'),
-      Currency.create('EUR'),
-      AccountType.create('asset'),
-    );
-
-    const usdSystemAccount = Account.create(
-      user,
-      Name.create('USD System Account'),
-      'System account for USD exchanges',
-      Amount.create('0'),
-      Currency.create('USD'),
-      AccountType.create('currencyTrading'),
-    );
-
-    const eurSystemAccount = Account.create(
-      user,
-      Name.create('EUR System Account'),
-      'System account for EUR exchanges',
-      Amount.create('0'),
-      Currency.create('EUR'),
-      AccountType.create('currencyTrading'),
-    );
-
-    entryContext = {
-      accountsMap: new Map<UUID, Account>([
-        [usdAccount.getId().valueOf(), usdAccount],
-        [eurAccount.getId().valueOf(), eurAccount],
-      ]),
-      systemAccountsMap: new Map<CurrencyCode, Account>([
-        [usdSystemAccount.getCurrency().valueOf(), usdSystemAccount],
-        [eurSystemAccount.getCurrency().valueOf(), eurSystemAccount],
-      ]),
-    };
-
-    entries = [
-      {
-        description: 'Sample Entry',
-        operations: [
-          {
-            accountId: usdAccount.getId().valueOf(),
-            amount: Amount.create('-200').valueOf(),
-            description: 'Credit operation',
-          },
-          {
-            accountId: eurAccount.getId().valueOf(),
-            amount: Amount.create('100').valueOf(),
-            description: 'Debit operation',
-          },
-        ],
-      },
-    ];
   });
 
   describe('execute', () => {
     it('should create a new transaction with entries successfully', async () => {
-      const transactionDTO: CreateTransactionRequestDTO = {
-        description,
-        entries,
-        postingDate,
-        transactionDate,
-      };
+      const transactionBuilder = TransactionBuilder.create(user);
+
+      const { entryContext, transactionDTO } = transactionBuilder
+        .withSettings(transactionData)
+        .withAccounts(['USD', 'EUR'])
+        .withSystemAccounts()
+        .withEntries(entriesData)
+        .build();
 
       transactionContextLoader.loadContext.mockResolvedValue(entryContext);
 
-      const data: CreateTransactionRequestDTO = {
-        description,
-        entries,
-        postingDate,
-        transactionDate,
-      };
+      const result = await createTransactionUseCase.execute(
+        user,
+        transactionDTO,
+      );
 
-      const result = await createTransactionUseCase.execute(user, data);
-
-      expect(result.postingDate).toBe(postingDate);
-      expect(result.transactionDate).toBe(transactionDate);
+      expect(result.postingDate).toBe(transactionData.postingDate);
+      expect(result.transactionDate).toBe(transactionData.transactionDate);
       expect(result.entries).toBeDefined();
 
       transactionDTO.entries.forEach((entry, index) => {
@@ -165,15 +98,17 @@ describe('CreateTransactionUseCase', () => {
 
       expect(savedUserId).toBe(user.getId().valueOf());
 
-      expect(savedTransaction.getPostingDate().valueOf()).toBe(postingDate);
+      expect(savedTransaction.getPostingDate().valueOf()).toBe(
+        transactionData.postingDate,
+      );
       expect(savedTransaction.getTransactionDate().valueOf()).toBe(
-        transactionDate,
+        transactionData.transactionDate,
       );
       expect(savedTransaction.getEntries().length).toBe(
         transactionDTO.entries.length,
       );
 
-      expect(savedTransaction.description).toBe(description);
+      expect(savedTransaction.description).toBe(transactionData.description);
 
       savedTransaction.getEntries().forEach((entry, index) => {
         const dtoEntry = transactionDTO.entries[index];

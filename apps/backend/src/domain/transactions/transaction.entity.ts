@@ -50,7 +50,7 @@ export class Transaction {
   static create(
     user: User,
     dto: CreateTransactionProps,
-    entryContext: TransactionBuildContext,
+    transactionContext: TransactionBuildContext,
   ): Transaction {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
@@ -74,7 +74,7 @@ export class Transaction {
     );
 
     const entries = dto.entries.map((entryDTO) =>
-      Entry.create(user, transaction.getId(), entryDTO, entryContext),
+      Entry.create(user, transaction.getId(), entryDTO, transactionContext),
     );
 
     transaction.attachEntries(entries);

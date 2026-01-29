@@ -1,7 +1,8 @@
-import { CurrencyCode, IsoDateString, UUID } from '@ledgerly/shared/types';
+import { IsoDateString } from '@ledgerly/shared/types';
 import { CreateEntryRequestDTO } from 'src/application';
 import { CreateTransactionRequestDTO } from 'src/application/dto/transaction.dto';
 import { createUser } from 'src/db/createTestUser';
+import { TransactionBuilder } from 'src/db/test-utils';
 import {
   afterEach,
   beforeAll,
@@ -12,8 +13,6 @@ import {
   vi,
 } from 'vitest';
 
-import { Account, AccountType } from '../accounts';
-import { Amount, Currency, DateValue, Name } from '../domain-core';
 import { Entry } from '../entries';
 import { User } from '../users/user.entity';
 
@@ -28,88 +27,35 @@ describe('Transaction Domain Entity', () => {
 
   const transactionData = {
     description: 'Test transaction',
-    postingDate: '2024-01-01' as IsoDateString,
-    transactionDate: '2024-01-01' as IsoDateString,
-    userId: '123e4567-e89b-12d3-a456-426614174000',
+    postingDate: '2024-01-01',
+    transactionDate: '2024-01-01',
   };
 
-  const postingDate = DateValue.restore(transactionData.postingDate);
-  const transactionDate = DateValue.restore(transactionData.transactionDate);
+  const entriesData = [
+    {
+      description: 'First Entry',
+      operations: [
+        { accountKey: 'USD', amount: '10000', description: '1' },
+        { accountKey: 'USD', amount: '-10000', description: '2' },
+      ],
+    },
+  ];
 
   beforeAll(async () => {
     user = await createUser();
 
-    const usdAccount = Account.create(
-      user,
-      Name.create('USD Account'),
-      'USD',
-      Amount.create('0'),
-      Currency.create('USD'),
-      AccountType.create('asset'),
-    );
+    const transactionBuilder = TransactionBuilder.create(user);
 
-    const eurAccount = Account.create(
-      user,
-      Name.create('EUR Account'),
-      'EUR',
-      Amount.create('0'),
-      Currency.create('EUR'),
-      AccountType.create('asset'),
-    );
+    const data = transactionBuilder
+      .withSettings(transactionData)
+      .withAccounts(['USD', 'EUR'])
+      .withSystemAccounts()
+      .withEntries(entriesData)
+      .build();
 
-    const usdSystemAccount = Account.create(
-      user,
-      Name.create('USD System Account'),
-      'System account for USD exchanges',
-      Amount.create('0'),
-      Currency.create('USD'),
-      AccountType.create('liability'),
-    );
-
-    const eurSystemAccount = Account.create(
-      user,
-      Name.create('EUR System Account'),
-      'System account for EUR exchanges',
-      Amount.create('0'),
-      Currency.create('EUR'),
-      AccountType.create('liability'),
-    );
-
-    entryContext = {
-      accountsMap: new Map<UUID, Account>([
-        [usdAccount.getId().valueOf(), usdAccount],
-        [eurAccount.getId().valueOf(), eurAccount],
-      ]),
-      systemAccountsMap: new Map<CurrencyCode, Account>([
-        [usdSystemAccount.getCurrency().valueOf(), usdSystemAccount],
-        [eurSystemAccount.getCurrency().valueOf(), eurSystemAccount],
-      ]),
-    };
-
-    entries = [
-      {
-        description: 'Sample Entry',
-        operations: [
-          {
-            accountId: usdAccount.getId().valueOf(),
-            amount: Amount.create('-200').valueOf(),
-            description: 'Credit operation',
-          },
-          {
-            accountId: eurAccount.getId().valueOf(),
-            amount: Amount.create('100').valueOf(),
-            description: 'Debit operation',
-          },
-        ],
-      },
-    ];
-
-    transactionDTO = {
-      description: transactionData.description,
-      entries,
-      postingDate: postingDate.valueOf(),
-      transactionDate: transactionDate.valueOf(),
-    };
+    entries = data.transactionDTO.entries;
+    entryContext = data.entryContext;
+    transactionDTO = data.transactionDTO;
   });
 
   beforeEach(() => {
@@ -130,8 +76,12 @@ describe('Transaction Domain Entity', () => {
 
       expect(transaction).toBeInstanceOf(Transaction);
       expect(transaction.description).toBe(transactionData.description);
-      expect(transaction.getPostingDate()).toEqual(postingDate);
-      expect(transaction.getTransactionDate()).toEqual(transactionDate);
+      expect(transaction.getPostingDate().valueOf()).toEqual(
+        transactionData.postingDate,
+      );
+      expect(transaction.getTransactionDate().valueOf()).toEqual(
+        transactionData.transactionDate,
+      );
       expect(transaction.getId()).toBeDefined();
       expect(transaction.getCreatedAt()).toBeDefined();
       expect(transaction.getUpdatedAt()).toBeDefined();
@@ -142,31 +92,37 @@ describe('Transaction Domain Entity', () => {
       expect(transactionEntries).toHaveLength(entries.length);
 
       transactionEntries.forEach((entry, index) => {
+        const matchedEntryData = entriesData[index];
+
         expect(entry).toBeInstanceOf(Entry);
-        expect(entry.description).toBe(entries[index].description);
+        expect(entry.description).toBe(matchedEntryData.description);
+
+        const entryOperations = entry.getOperations();
+
+        entryOperations.forEach((op, opIndex) => {
+          const matchedOp = matchedEntryData.operations[opIndex];
+
+          expect(op.amount.valueOf()).toBe(matchedOp.amount);
+          expect(op.description).toBe(matchedOp.description);
+        });
       });
     });
   });
 
   it('should serialize and deserialize correctly', () => {
-    // TODO: fix test
-    // const transaction = Transaction.create(
-    //   userId,
-    //   transactionData.description,
-    //   postingDate,
-    //   transactionDate,
-    // );
-    // const transactionRecord = transaction.toPersistence();
-    // expect(transactionRecord).toMatchObject({
-    //   description: transactionData.description,
-    //   postingDate: transactionData.postingDate,
-    //   transactionDate: transactionData.transactionDate,
-    //   userId: transactionData.userId,
-    // });
-    // const restoredTransaction = Transaction.restore(transactionRecord);
-    // expect(restoredTransaction.toPersistence()).toEqual(
-    //   transaction.toPersistence(),
-    // );
+    const transaction = Transaction.create(user, transactionDTO, entryContext);
+
+    const transactionSnapshot = transaction.toSnapshot();
+
+    expect(transactionSnapshot).toMatchObject({
+      description: transactionData.description,
+      postingDate: transactionData.postingDate,
+      transactionDate: transactionData.transactionDate,
+      userId: user.getId().valueOf(),
+    });
+
+    const restoredTransaction = Transaction.restore(transactionSnapshot);
+    expect(restoredTransaction.toSnapshot()).toEqual(transactionSnapshot);
   });
 
   it('should update description via update method and touch updatedAt', () => {
