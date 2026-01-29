@@ -2,7 +2,7 @@ import { CurrencyCode } from '@ledgerly/shared/types';
 import { createUser } from 'src/db/createTestUser';
 import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
+import { AccountRepository } from 'src/infrastructure/db/';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DeleteAccountUseCase } from '../deleteAccount';

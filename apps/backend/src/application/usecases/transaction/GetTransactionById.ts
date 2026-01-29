@@ -1,5 +1,8 @@
 import { UUID } from '@ledgerly/shared/types';
-import { TransactionQueryRepositoryInterface } from 'src/application';
+import {
+  EntityNotFoundError,
+  TransactionQueryRepositoryInterface,
+} from 'src/application';
 import { TransactionWithRelations } from 'src/db/schema';
 
 export class GetTransactionByIdUseCase {
@@ -16,8 +19,7 @@ export class GetTransactionByIdUseCase {
     );
 
     if (!transactionRecord) {
-      // TODO: Replace with proper NotFound error
-      throw new Error('Transaction not found');
+      throw new EntityNotFoundError('Transaction');
     }
 
     return transactionRecord;

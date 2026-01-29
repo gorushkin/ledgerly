@@ -1,7 +1,7 @@
 import { CurrencyCode, Money } from '@ledgerly/shared/types';
 import { createUser } from 'src/db/createTestUser';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
+import { AccountRepository } from 'src/infrastructure/db/';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAccountByIdUseCase } from '../getAccountById';

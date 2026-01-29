@@ -26,7 +26,6 @@ export class Operation {
     public readonly isSystem: boolean,
   ) {}
 
-  // TODO: replaces separated account parameters accountId and isSystem with whole Account entity
   static create(
     user: User,
     account: Account,

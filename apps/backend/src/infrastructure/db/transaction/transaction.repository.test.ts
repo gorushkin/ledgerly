@@ -8,11 +8,12 @@ import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { EntryRepository } from '../entries/entry.repository';
-import { OperationRepository } from '../operations/operation.repository';
-import { TransactionManager } from '../TransactionManager';
-
-import { TransactionRepository } from './transaction.repository';
+import {
+  OperationRepository,
+  EntryRepository,
+  TransactionManager,
+  TransactionRepository,
+} from '../';
 
 describe('TransactionRepository', () => {
   let testDB: TestDB;
