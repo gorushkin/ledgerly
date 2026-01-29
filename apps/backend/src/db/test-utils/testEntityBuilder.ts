@@ -3,6 +3,7 @@ import {
   CreateEntryRequestDTO,
   CreateOperationRequestDTO,
   CreateTransactionRequestDTO,
+  EntityNotFoundError,
 } from 'src/application';
 import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { createAccount } from 'src/db/createTestUser';
@@ -268,8 +269,9 @@ export class TransactionBuilder {
 
   getAccountByKey(key: string): Account {
     const account = this.accounts.get(key);
+
     if (!account) {
-      throw new Error(`Account with key ${key} not found`);
+      throw new EntityNotFoundError(`Account with key ${key} not found`);
     }
     return account;
   }
@@ -281,7 +283,7 @@ export class TransactionBuilder {
 
     const entries = this.entryBuilders.map((builder) => {
       const entry = builder.build();
-      this.transaction.addEntry(entry);
+      this.transaction.addEntries([entry]);
       return entry;
     });
 

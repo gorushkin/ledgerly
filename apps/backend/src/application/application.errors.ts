@@ -10,8 +10,8 @@ export class ApplicationError extends BaseError {}
  * Thrown when an entity is not found in the system.
  */
 export class EntityNotFoundError extends ApplicationError {
-  constructor(entityName: string) {
-    super(`${entityName} not found`);
+  constructor(entityName: string, description?: string) {
+    super(`${entityName} not found ${description ? `: ${description}` : ''}`);
   }
 }
 

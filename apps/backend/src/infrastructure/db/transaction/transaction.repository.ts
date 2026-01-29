@@ -17,7 +17,6 @@ import {
   transactionsTable,
 } from 'src/db/schema';
 import { Transaction } from 'src/domain';
-import { EntrySnapshot } from 'src/domain/entries/types';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -57,14 +56,6 @@ export class TransactionRepository
         value: transaction.getId().valueOf(),
       },
     );
-  }
-
-  private getEntries(_entriesData: EntrySnapshot[]): {
-    insert: EntryDbInsert[];
-    update: EntryDbInsert[];
-    delete: UUID[];
-  } {
-    return { delete: [], insert: [], update: [] };
   }
 
   async save(userId: UUID, transaction: Transaction): Promise<void> {

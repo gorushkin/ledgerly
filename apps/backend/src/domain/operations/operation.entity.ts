@@ -48,7 +48,7 @@ export class Operation {
     );
 
     const accountRelation = ParentChildRelation.create(
-      account.id,
+      account.getId(),
       identity.getId(),
     );
 
