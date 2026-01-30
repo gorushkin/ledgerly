@@ -14,14 +14,16 @@ import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/
 import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { TransactionManager } from 'src/infrastructure/db';
-import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
-import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
-import { EntryRepository } from 'src/infrastructure/db/entries/entry.repository';
-import { OperationRepository } from 'src/infrastructure/db/operations/operation.repository';
-import { TransactionQueryRepository } from 'src/infrastructure/db/transaction/transaction-query.repository';
-import { TransactionRepository } from 'src/infrastructure/db/transaction/transaction.repository';
-import { UserRepository } from 'src/infrastructure/db/user/user.repository';
+import {
+  TransactionRepository,
+  TransactionQueryRepository,
+  OperationRepository,
+  EntryRepository,
+  CurrencyRepository,
+  TransactionManager,
+  AccountRepository,
+  UserRepository,
+} from 'src/infrastructure/db';
 import {
   AuthController,
   AccountController,

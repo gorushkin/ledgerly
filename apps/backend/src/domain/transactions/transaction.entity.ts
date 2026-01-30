@@ -234,45 +234,19 @@ export class Transaction {
     return this.transactionDate;
   }
 
-  // Entry management methods
-  addEntry(entry: Entry): void {
-    this.attachEntry(entry);
-  }
-
-  attachEntry(entry: Entry): void {
-    if (!entry.belongsToTransaction(this.getId())) {
-      throw new Error('Entry does not belong to this transaction');
-    }
-
-    this.entries.push(entry);
-  }
-
   addEntries(entries: Entry[]): void {
-    this.validateUpdateIsAllowed();
-    entries.forEach((entry) => this.addEntry(entry));
+    this.attachEntries(entries);
     this.markUpdated();
   }
 
   attachEntries(entries: Entry[]): void {
-    entries.forEach((entry) => this.attachEntry(entry));
-  }
+    entries.forEach((entry) => {
+      if (!entry.belongsToTransaction(this.getId())) {
+        throw new Error('Entry does not belong to this transaction');
+      }
 
-  removeEntry(entryId: Id): void {
-    const entryIndex = this.entries.findIndex((entry) =>
-      entry.getId().equals(entryId),
-    );
-
-    if (entryIndex === -1) {
-      throw new Error('Entry not found in transaction');
-    }
-
-    this.entries.splice(entryIndex, 1);
-  }
-
-  removeEntries(entryIds: Id[]): void {
-    this.validateUpdateIsAllowed();
-    entryIds.forEach((entryId) => this.removeEntry(entryId));
-    this.markUpdated();
+      this.entries.push(entry);
+    });
   }
 
   getEntries(): Entry[] {

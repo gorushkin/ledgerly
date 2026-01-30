@@ -4,7 +4,7 @@ import { AccountDbInsert, AccountDbRow, UserDbRow } from 'src/db/schema';
 import { Amount } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
+import { AccountRepository } from 'src/infrastructure/db/';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import {
   ForeignKeyConstraintError,

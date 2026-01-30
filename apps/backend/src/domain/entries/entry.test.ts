@@ -1,123 +1,74 @@
-import {
-  CurrencyCode,
-  UUID,
-} from 'node_modules/@ledgerly/shared/src/types/types';
 import { CreateEntryRequestDTO } from 'src/application';
 import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { createUser } from 'src/db/createTestUser';
+import { TransactionBuilder } from 'src/db/test-utils';
 import {
   Account,
-  AccountType,
+  DeletedEntityOperationError,
+  EmptyOperationsError,
   Operation,
+  OperationOwnershipError,
   Transaction,
+  UnbalancedEntryError,
   User,
 } from 'src/domain/';
-import { Amount, Currency, DateValue, Id, Name } from 'src/domain/domain-core/';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  EmptyOperationsError,
-  DeletedEntityOperationError,
-  OperationOwnershipError,
-  UnbalancedEntryError,
-} from '../domain.errors';
+import { Amount, Id } from '../domain-core';
 
 import { Entry } from './entry.entity';
 
-// TODO: move async from describe to beforeEach
-describe('Entry Domain Entity', async () => {
+describe('Entry Domain Entity', () => {
   let user: User;
-
-  const anotherUser = await createUser();
-  const transactionPostingDate = DateValue.restore('2024-01-01');
-  const transactionDate = DateValue.restore('2024-01-01');
-
-  let usdAccount: Account;
-
-  let eurAccount: Account;
-  let usdSystemAccount: Account;
-  let eurSystemAccount: Account;
+  let anotherUser: User;
 
   let entryData: CreateEntryRequestDTO;
+
+  let createEntryRequests: CreateEntryRequestDTO[];
   let entryContext: EntryContext;
   let transaction: Transaction;
+
+  let usdAccount: Account;
+  let eurAccount: Account;
+
+  const transactionData = {
+    description: 'Test transaction',
+    postingDate: '2024-01-01',
+    transactionDate: '2024-01-01',
+    userId: '123e4567-e89b-12d3-a456-426614174000',
+  };
+
+  const entriesData = [
+    {
+      description: 'First Entry',
+      operations: [
+        { accountKey: 'USD', amount: '10000', description: '1' },
+        { accountKey: 'USD', amount: '-10000', description: '2' },
+      ],
+    },
+  ];
 
   beforeAll(async () => {
     user = await createUser();
 
-    usdAccount = Account.create(
-      user,
-      Name.create('USD Account'),
-      'USD',
-      Amount.create('0'),
-      Currency.create('USD'),
-      AccountType.create('asset'),
-    );
+    anotherUser = await createUser();
 
-    eurAccount = Account.create(
-      user,
-      Name.create('EUR Account'),
-      'EUR',
-      Amount.create('0'),
-      Currency.create('EUR'),
-      AccountType.create('asset'),
-    );
+    const transactionBuilder = TransactionBuilder.create(user);
 
-    usdSystemAccount = Account.create(
-      user,
-      Name.create('USD System Account'),
-      'System account for USD exchanges',
-      Amount.create('0'),
-      Currency.create('USD'),
-      AccountType.create('liability'),
-    );
+    const data = transactionBuilder
+      .withSettings(transactionData)
+      .withAccounts(['USD', 'EUR'])
+      .withSystemAccounts()
+      .withEntries(entriesData)
+      .build();
 
-    eurSystemAccount = Account.create(
-      user,
-      Name.create('EUR System Account'),
-      'System account for EUR exchanges',
-      Amount.create('0'),
-      Currency.create('EUR'),
-      AccountType.create('liability'),
-    );
+    entryContext = data.entryContext;
+    transaction = data.transaction;
+    createEntryRequests = data.entryData;
+    entryData = createEntryRequests[0];
 
-    entryData = {
-      description: 'Sample Entry',
-      operations: [
-        {
-          accountId: usdAccount.getId().valueOf(),
-          amount: Amount.create('-200').valueOf(),
-          description: 'Credit operation',
-        },
-        {
-          accountId: eurAccount.getId().valueOf(),
-          amount: Amount.create('100').valueOf(),
-          description: 'Debit operation',
-        },
-      ],
-    };
-
-    entryContext = {
-      accountsMap: new Map<UUID, Account>([
-        [usdAccount.getId().valueOf(), usdAccount],
-        [eurAccount.getId().valueOf(), eurAccount],
-      ]),
-      systemAccountsMap: new Map<CurrencyCode, Account>([
-        [usdSystemAccount.getCurrency().valueOf(), usdSystemAccount],
-        [eurSystemAccount.getCurrency().valueOf(), eurSystemAccount],
-      ]),
-    };
-
-    transaction = Transaction.create(
-      user,
-      {
-        description: 'Test Transaction',
-        entries: [],
-        postingDate: transactionPostingDate.valueOf(),
-        transactionDate: transactionDate.valueOf(),
-      },
-      entryContext,
-    );
+    usdAccount = data.getAccountByKey('USD');
+    eurAccount = data.getAccountByKey('EUR');
   });
 
   describe('createEntryWithOperations', () => {
@@ -380,7 +331,7 @@ describe('Entry Domain Entity', async () => {
     ).toThrow(EmptyOperationsError);
   });
 
-  it.skip('should throw DeletedEntityOperationError when validating deleted entry', () => {
+  it('should throw DeletedEntityOperationError when validating deleted entry', () => {
     const entry = Entry.create(
       user,
       transaction.getId(),

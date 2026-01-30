@@ -8,6 +8,7 @@ import {
 } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 
+// TODO: move to the test builder
 export const createUser = async (
   params: {
     name?: string;
