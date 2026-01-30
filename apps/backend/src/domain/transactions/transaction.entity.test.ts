@@ -1,4 +1,4 @@
-import { IsoDateString } from '@ledgerly/shared/types';
+import { IsoDateString, MoneyString, UUID } from '@ledgerly/shared/types';
 import { CreateEntryRequestDTO } from 'src/application';
 import { CreateTransactionRequestDTO } from 'src/application/dto/transaction.dto';
 import { createUser } from 'src/db/createTestUser';
@@ -6,6 +6,11 @@ import {
   TransactionBuilder,
   TransactionBuilderResult,
 } from 'src/db/test-utils';
+import {
+  ConflictingEntryIdsError,
+  EntryNotFoundInTransactionError,
+  MissingTransactionContextError,
+} from 'src/domain/domain.errors';
 import {
   afterEach,
   beforeAll,
@@ -147,7 +152,10 @@ describe('Transaction Domain Entity', () => {
 
       const originalSnapshot = transaction.toSnapshot();
 
-      transaction.update({ description });
+      transaction.applyUpdate(
+        { entries: null, metadata: { description } },
+        entryContext,
+      );
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -171,7 +179,10 @@ describe('Transaction Domain Entity', () => {
 
       const originalSnapshot = transaction.toSnapshot();
 
-      transaction.update({ postingDate });
+      transaction.applyUpdate(
+        { entries: null, metadata: { postingDate } },
+        entryContext,
+      );
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -195,7 +206,10 @@ describe('Transaction Domain Entity', () => {
 
       const originalSnapshot = transaction.toSnapshot();
 
-      transaction.update({ transactionDate });
+      transaction.applyUpdate(
+        { entries: null, metadata: { transactionDate } },
+        entryContext,
+      );
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -219,11 +233,13 @@ describe('Transaction Domain Entity', () => {
       const postingDate = '2024-04-01' as IsoDateString;
       const transactionDate = '2024-04-05' as IsoDateString;
 
-      transaction.update({
-        description,
-        postingDate,
-        transactionDate,
-      });
+      transaction.applyUpdate(
+        {
+          entries: null,
+          metadata: { description, postingDate, transactionDate },
+        },
+        entryContext,
+      );
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -281,7 +297,16 @@ describe('Transaction Domain Entity', () => {
 
       const transactionEntriesData = [entryDataInitial, newEntryData];
 
-      transaction.addEntries([newEntryData], entryContext);
+      transaction.applyUpdate(
+        {
+          entries: {
+            create: [newEntryData],
+            delete: [],
+            update: [],
+          },
+        },
+        entryContext,
+      );
 
       const snapshot = transaction.toSnapshot();
 
@@ -335,7 +360,16 @@ describe('Transaction Domain Entity', () => {
         id: entryToUpdate.id,
       };
 
-      transaction.updateEntries([newEntryData], entryContext);
+      transaction.applyUpdate(
+        {
+          entries: {
+            create: [],
+            delete: [],
+            update: [newEntryData],
+          },
+        },
+        entryContext,
+      );
 
       const snapshot = transaction.toSnapshot();
 
@@ -399,7 +433,16 @@ describe('Transaction Domain Entity', () => {
         ],
       };
 
-      transaction.updateEntries([newEntryData], entryContext);
+      transaction.applyUpdate(
+        {
+          entries: {
+            create: [],
+            delete: [],
+            update: [newEntryData],
+          },
+        },
+        entryContext,
+      );
 
       const snapshot = transaction.toSnapshot();
 
@@ -424,7 +467,148 @@ describe('Transaction Domain Entity', () => {
     });
   });
 
-  // it('should update description via update method and touch updatedAt', () => {
+  describe('Deletion', () => {
+    it('should mark transaction as deleted and all related entries and operations', () => {
+      const tryAccount = data.getAccountByKey('TRY');
+      const eurAccount = data.getAccountByKey('EUR');
+
+      const entryDataInitial: EntryDraft = {
+        description: 'Entry initial',
+        operations: [
+          {
+            accountId: eurAccount.getId().valueOf(),
+            amount: Amount.create('5000').toPersistence(),
+            description: 'Entry initial Op 1',
+          },
+          {
+            accountId: tryAccount.getId().valueOf(),
+            amount: Amount.create('-5000').toPersistence(),
+            description: 'Entry initial Op 2',
+          },
+        ],
+      };
+
+      const transaction = Transaction.create(
+        user.getId(),
+        { ...transactionDTO, entries: [entryDataInitial] },
+        entryContext,
+      );
+
+      const versionBeforeDelete = transaction.toSnapshot().version;
+
+      transaction.markAsDeleted();
+
+      expect(transaction.isDeleted()).toBe(true);
+
+      const entries = transaction.getEntries();
+
+      entries.forEach((entry) => {
+        expect(entry.isDeleted()).toBe(true);
+
+        entry.getOperations().forEach((op) => {
+          expect(op.isDeleted()).toBe(true);
+        });
+      });
+
+      expect(transaction.toSnapshot().version).toBe(versionBeforeDelete + 1);
+    });
+
+    it('Should delete an entry from transaction', () => {
+      const tryAccount = data.getAccountByKey('TRY');
+      const eurAccount = data.getAccountByKey('EUR');
+
+      const entryData: EntryDraft[] = [
+        {
+          description: 'Entry One',
+          operations: [
+            {
+              accountId: eurAccount.getId().valueOf(),
+              amount: Amount.create('5000').toPersistence(),
+              description: 'Entry initial Op 1',
+            },
+            {
+              accountId: tryAccount.getId().valueOf(),
+              amount: Amount.create('-5000').toPersistence(),
+              description: 'Entry initial Op 2',
+            },
+          ],
+        },
+        {
+          description: 'Entry Two',
+          operations: [
+            {
+              accountId: eurAccount.getId().valueOf(),
+              amount: Amount.create('8000').toPersistence(),
+              description: 'Entry initial Op 1',
+            },
+            {
+              accountId: tryAccount.getId().valueOf(),
+              amount: Amount.create('-8000').toPersistence(),
+              description: 'Entry initial Op 2',
+            },
+          ],
+        },
+      ];
+
+      const transaction = Transaction.create(
+        user.getId(),
+        { ...transactionDTO, entries: entryData },
+        entryContext,
+      );
+
+      transaction.getEntries().forEach((entry, index) => {
+        const matchedEntryData = entryData[index];
+
+        expect(entry).toBeDefined();
+        expect(entry.description).toBe(matchedEntryData.description);
+      });
+
+      const entryToDelete = transaction.toSnapshot().entries[0];
+      const entryVersionBeforeDelete = entryToDelete.version;
+
+      const transactionVersionBeforeEdit = transaction.toSnapshot().version;
+
+      transaction.applyUpdate(
+        {
+          entries: {
+            create: [],
+            delete: [entryToDelete.id],
+            update: [],
+          },
+        },
+        entryContext,
+      );
+
+      transaction.getEntries().forEach((entry) => {
+        if (entry.getId().valueOf() === entryToDelete.id) {
+          expect(entry.isDeleted()).toBe(true);
+          expect(entry.toSnapshot().version).toBe(entryVersionBeforeDelete + 1);
+          const operations = entry.getOperations();
+
+          operations.forEach((op) => {
+            expect(op.isDeleted()).toBe(true);
+          });
+
+          return;
+        }
+
+        expect(entry.isDeleted()).toBe(false);
+        expect(entry.toSnapshot().version).toBe(0);
+
+        const operations = entry.getOperations();
+        operations.forEach((op) => {
+          expect(op.isDeleted()).toBe(false);
+        });
+      });
+
+      expect(transaction.isDeleted()).toBe(false);
+      expect(transaction.toSnapshot().version).toBe(
+        transactionVersionBeforeEdit + 1,
+      );
+    });
+  });
+
+  // it.skip('should update description via update method and touch updatedAt', () => {
   //   const transaction = Transaction.create(user, transactionDTO, entryContext);
 
   //   const originalUpdatedAt = transaction.getUpdatedAt();
@@ -442,7 +626,7 @@ describe('Transaction Domain Entity', () => {
   //   expect(originalUpdatedAt).not.toEqual(transaction.getUpdatedAt());
   // });
 
-  // it('should update postingDate via update method and touch updatedAt', () => {
+  // it.skip('should update postingDate via update method and touch updatedAt', () => {
   //   const transaction = Transaction.create(user, transactionDTO, entryContext);
 
   //   const originalUpdatedAt = transaction.getUpdatedAt();
@@ -459,7 +643,7 @@ describe('Transaction Domain Entity', () => {
   //   );
   // });
 
-  // it('should update transactionDate via update method and touch updatedAt', () => {
+  // it.skip('should update transactionDate via update method and touch updatedAt', () => {
   //   const transaction = Transaction.create(user, transactionDTO, entryContext);
 
   //   const originalUpdatedAt = transaction.getUpdatedAt();
@@ -476,7 +660,7 @@ describe('Transaction Domain Entity', () => {
   //   );
   // });
 
-  // it('should update multiple fields at once via update method', () => {
+  // it.skip('should update multiple fields at once via update method', () => {
   //   const transaction = Transaction.create(user, transactionDTO, entryContext);
   //   const newDescription = 'New description';
   //   const newPostingDate = '2024-02-01' as IsoDateString;
@@ -558,4 +742,216 @@ describe('Transaction Domain Entity', () => {
   //     // TODO: Implement isBalanced and validateBalance tests
   //   });
   // });
+
+  describe('EntriesPatch Validation', () => {
+    it('should throw error when same ID appears in update and delete arrays', () => {
+      const transaction = Transaction.create(
+        user.getId(),
+        transactionDTO,
+        entryContext,
+      );
+
+      const entry = transaction.getEntries()[0];
+      const entryId = entry.getId().valueOf();
+
+      expect(() => {
+        transaction.applyUpdate(
+          {
+            entries: {
+              create: [],
+              delete: [entryId],
+              update: [{ description: 'Updated', id: entryId }],
+            },
+          },
+          entryContext,
+        );
+      }).toThrow(ConflictingEntryIdsError);
+    });
+
+    it('should throw error when duplicate IDs exist in update array', () => {
+      const transaction = Transaction.create(
+        user.getId(),
+        transactionDTO,
+        entryContext,
+      );
+
+      const entry = transaction.getEntries()[0];
+      const entryId = entry.getId().valueOf();
+
+      expect(() => {
+        transaction.applyUpdate(
+          {
+            entries: {
+              create: [],
+              delete: [],
+              update: [
+                { description: 'Update 1', id: entryId },
+                { description: 'Update 2', id: entryId },
+              ],
+            },
+          },
+          entryContext,
+        );
+      }).toThrow(ConflictingEntryIdsError);
+    });
+
+    it('should throw error when duplicate IDs exist in delete array', () => {
+      const transaction = Transaction.create(
+        user.getId(),
+        transactionDTO,
+        entryContext,
+      );
+
+      const entry = transaction.getEntries()[0];
+      const entryId = entry.getId().valueOf();
+
+      expect(() => {
+        transaction.applyUpdate(
+          {
+            entries: {
+              create: [],
+              delete: [entryId, entryId],
+              update: [],
+            },
+          },
+          entryContext,
+        );
+      }).toThrow(ConflictingEntryIdsError);
+    });
+
+    it('should successfully apply patch when no conflicts exist', () => {
+      const transactionBuilder = TransactionBuilder.create(user);
+
+      const multiEntryData = transactionBuilder
+        .withSettings(transactionData)
+        .withAccounts(['USD'])
+        .withSystemAccounts()
+        .withEntries([
+          {
+            description: 'Entry 1',
+            operations: [
+              { accountKey: 'USD', amount: '10000', description: '1' },
+              { accountKey: 'USD', amount: '-10000', description: '2' },
+            ],
+          },
+          {
+            description: 'Entry 2',
+            operations: [
+              { accountKey: 'USD', amount: '20000', description: '3' },
+              { accountKey: 'USD', amount: '-20000', description: '4' },
+            ],
+          },
+        ])
+        .build();
+
+      const transaction = Transaction.create(
+        user.getId(),
+        multiEntryData.transactionDTO,
+        multiEntryData.entryContext,
+      );
+
+      const entries = transaction.getEntries();
+      const entryToUpdate = entries[0].getId().valueOf();
+      const entryToDelete = entries[1].getId().valueOf();
+
+      expect(() => {
+        transaction.applyUpdate(
+          {
+            entries: {
+              create: [],
+              delete: [entryToDelete],
+              update: [{ description: 'Updated Entry', id: entryToUpdate }],
+            },
+          },
+          multiEntryData.entryContext,
+        );
+      }).not.toThrow();
+
+      expect(transaction.getEntryById(entryToDelete)?.isDeleted()).toBe(true);
+    });
+
+    it('should throw error when trying to update non-existent entry', () => {
+      const transaction = Transaction.create(
+        user.getId(),
+        transactionDTO,
+        entryContext,
+      );
+
+      const nonExistentId = '00000000-0000-0000-0000-000000000000' as UUID;
+
+      expect(() => {
+        transaction.applyUpdate(
+          {
+            entries: {
+              create: [],
+              delete: [],
+              update: [{ description: 'Update', id: nonExistentId }],
+            },
+          },
+          entryContext,
+        );
+      }).toThrow(EntryNotFoundInTransactionError);
+    });
+
+    it('should throw error when TransactionBuildContext is missing for create', () => {
+      const transaction = Transaction.create(
+        user.getId(),
+        transactionDTO,
+        entryContext,
+      );
+
+      const account = data.entryContext.accountsMap.values().next().value;
+
+      if (!account) {
+        throw new Error('Account not found');
+      }
+
+      expect(() => {
+        transaction.applyUpdate({
+          entries: {
+            create: [
+              {
+                description: 'New Entry',
+                operations: [
+                  {
+                    accountId: account.getId().valueOf(),
+                    amount: '100.00' as MoneyString,
+                    description: 'op1',
+                  },
+                  {
+                    accountId: account.getId().valueOf(),
+                    amount: '-100.00' as MoneyString,
+                    description: 'op2',
+                  },
+                ],
+              },
+            ],
+            delete: [],
+            update: [],
+          },
+        });
+      }).toThrow(MissingTransactionContextError);
+    });
+
+    it('should throw error when TransactionBuildContext is missing for update', () => {
+      const transaction = Transaction.create(
+        user.getId(),
+        transactionDTO,
+        entryContext,
+      );
+
+      const entry = transaction.getEntries()[0];
+      const entryId = entry.getId().valueOf();
+
+      expect(() => {
+        transaction.applyUpdate({
+          entries: {
+            create: [],
+            delete: [],
+            update: [{ description: 'Updated', id: entryId }],
+          },
+        });
+      }).toThrow(MissingTransactionContextError);
+    });
+  });
 });

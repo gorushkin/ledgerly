@@ -28,6 +28,8 @@ import {
   EntryUpdate,
   TradingOperationDTO,
 } from './types';
+
+// TODO: add validation that entry and its operations are deleted or not in the same state
 export class Entry {
   private readonly identity: EntityIdentity;
   private timestamps: EntityTimestamps;
@@ -280,6 +282,11 @@ export class Entry {
 
   markAsDeleted(): void {
     this.softDelete = this.softDelete.markAsDeleted();
+
+    const operations = this.getOperations();
+    operations.forEach((operation) => operation.markAsDeleted());
+
+    this.markUpdated();
   }
 
   isDeleted(): boolean {

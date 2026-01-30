@@ -17,7 +17,7 @@ export class Operation {
   private constructor(
     public readonly identity: EntityIdentity,
     public readonly timestamps: EntityTimestamps,
-    public readonly softDelete: SoftDelete,
+    public softDelete: SoftDelete,
     public readonly ownership: ParentChildRelation,
     public readonly entryRelation: ParentChildRelation,
     public readonly accountRelation: ParentChildRelation,
@@ -183,5 +183,14 @@ export class Operation {
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
     };
+  }
+
+  markAsDeleted(): void {
+    this.softDelete = this.softDelete.markAsDeleted();
+    this.timestamps.touch();
+  }
+
+  isDeleted(): boolean {
+    return this.softDelete.isDeleted();
   }
 }

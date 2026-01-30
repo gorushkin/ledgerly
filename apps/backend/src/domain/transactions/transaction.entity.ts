@@ -1,4 +1,9 @@
 import { UUID } from '@ledgerly/shared/types';
+import {
+  ConflictingEntryIdsError,
+  EntryNotFoundInTransactionError,
+  MissingTransactionContextError,
+} from 'src/domain/domain.errors';
 
 import {
   EntityIdentity,
@@ -18,6 +23,8 @@ import {
   TransactionUpdateData,
   TransactionWithEntriesAndOperations,
   TransactionSnapshot,
+  UpdateTransactionProps,
+  EntriesPatch,
 } from './types';
 
 export class Transaction {
@@ -162,6 +169,11 @@ export class Transaction {
 
   markAsDeleted(): void {
     this.softDelete = this.softDelete.markAsDeleted();
+
+    const entries = this.getEntries();
+
+    this.deleteEntries(entries.map((entry) => entry.getId().valueOf()));
+    this.markUpdated();
   }
 
   isDeleted(): boolean {
@@ -226,19 +238,30 @@ export class Transaction {
     this.description = description;
   }
 
-  update(updateData: TransactionUpdateData): void {
-    if (updateData.description !== undefined) {
-      this.updateDescription(updateData.description);
+  private updateMetadataIfChanged(metadata?: TransactionUpdateData): boolean {
+    let isUpdated = false;
+
+    if (!metadata) {
+      return isUpdated;
     }
 
-    if (updateData.postingDate) {
-      this.updatePostingDate(DateValue.restore(updateData.postingDate));
+    if (metadata.description !== undefined) {
+      isUpdated = true;
+      this.updateDescription(metadata.description);
     }
 
-    if (updateData.transactionDate) {
-      this.updateTransactionDate(DateValue.restore(updateData.transactionDate));
+    if (metadata.postingDate) {
+      isUpdated = true;
+
+      this.updatePostingDate(DateValue.restore(metadata.postingDate));
     }
-    this.markUpdated();
+
+    if (metadata.transactionDate) {
+      isUpdated = true;
+      this.updateTransactionDate(DateValue.restore(metadata.transactionDate));
+    }
+
+    return isUpdated;
   }
 
   getPostingDate(): DateValue {
@@ -249,7 +272,7 @@ export class Transaction {
     return this.transactionDate;
   }
 
-  addEntries(
+  private addEntries(
     entriesData: EntryDraft[],
     transactionContext: TransactionBuildContext,
   ): void {
@@ -262,18 +285,19 @@ export class Transaction {
     this.markUpdated();
   }
 
-  updateEntries(
+  private updateEntries(
     entriesData: EntryUpdate[],
     transactionContext: TransactionBuildContext,
   ) {
-    // TODO: add validation if updating is allowed
+    this.validateUpdateIsAllowed();
+
     entriesData.forEach((entryData) => {
       const existingEntry = this.getEntryById(entryData.id);
 
       if (!existingEntry) {
-        // TODO: add proper error handling
-        throw new Error(
-          `Entry with id ${entryData.id} does not belong to this transaction`,
+        throw new EntryNotFoundInTransactionError(
+          entryData.id,
+          this.getId().valueOf(),
         );
       }
 
@@ -281,6 +305,20 @@ export class Transaction {
     });
 
     this.markUpdated();
+  }
+
+  private deleteEntries(entryIds: UUID[]): void {
+    entryIds.forEach((entryId) => {
+      const entry = this.getEntryById(entryId);
+
+      if (entry) {
+        entry.markAsDeleted();
+      } else {
+        throw new Error(
+          `Entry with id ${entryId} does not belong to this transaction`,
+        );
+      }
+    });
   }
 
   attachEntries(entries: Entry[]): void {
@@ -329,5 +367,105 @@ export class Transaction {
       errors,
       isValid: errors.length === 0,
     };
+  }
+
+  private validateEntriesPatch(entries: EntriesPatch): void {
+    if (!entries) {
+      return;
+    }
+
+    const deleteIds = new Set(entries.delete);
+
+    // Check for IDs present in both update and delete
+    const updateDeleteConflicts = entries.update
+      .map((entry) => entry.id)
+      .filter((id) => deleteIds.has(id));
+
+    if (updateDeleteConflicts.length > 0) {
+      throw new ConflictingEntryIdsError(
+        updateDeleteConflicts,
+        'IDs found in both update and delete arrays',
+      );
+    }
+
+    // Check for duplicate IDs within update array
+    const updateDuplicates = entries.update
+      .map((entry) => entry.id)
+      .filter((id, index, arr) => arr.indexOf(id) !== index);
+
+    if (updateDuplicates.length > 0) {
+      throw new ConflictingEntryIdsError(
+        [...new Set(updateDuplicates)],
+        'Duplicate IDs in update array',
+      );
+    }
+
+    // Check for duplicate IDs within delete array
+    const deleteDuplicates = entries.delete.filter(
+      (id, index, arr) => arr.indexOf(id) !== index,
+    );
+
+    if (deleteDuplicates.length > 0) {
+      throw new ConflictingEntryIdsError(
+        [...new Set(deleteDuplicates)],
+        'Duplicate IDs in delete array',
+      );
+    }
+  }
+
+  private applyEntriesPatch(
+    entries: EntriesPatch,
+    transactionContext?: TransactionBuildContext,
+  ) {
+    let isUpdated = false;
+
+    if (!entries) {
+      return isUpdated;
+    }
+
+    this.validateEntriesPatch(entries);
+
+    if (entries.create.length > 0) {
+      isUpdated = true;
+
+      if (!transactionContext) {
+        throw new MissingTransactionContextError('create new entries');
+      }
+
+      this.addEntries(entries.create, transactionContext);
+    }
+
+    if (entries.update.length > 0) {
+      isUpdated = true;
+
+      if (!transactionContext) {
+        throw new MissingTransactionContextError('update entries');
+      }
+
+      this.updateEntries(entries.update, transactionContext);
+    }
+
+    if (entries.delete.length > 0) {
+      isUpdated = true;
+      this.deleteEntries(entries.delete);
+    }
+
+    return isUpdated;
+  }
+
+  applyUpdate(
+    { entries, metadata }: UpdateTransactionProps,
+    transactionContext?: TransactionBuildContext,
+  ) {
+    const isMetadataUpdated = this.updateMetadataIfChanged(metadata);
+
+    const isEntriesUpdated = this.applyEntriesPatch(
+      entries,
+      transactionContext,
+    );
+
+    if (isMetadataUpdated || isEntriesUpdated) {
+      this.markUpdated();
+    }
   }
 }

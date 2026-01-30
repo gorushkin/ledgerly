@@ -6,7 +6,7 @@ import {
 } from '@ledgerly/shared/types';
 
 import { Account } from '../accounts';
-import { EntryDraft, EntrySnapshot } from '../entries/types';
+import { EntryDraft, EntrySnapshot, EntryUpdate } from '../entries/types';
 import { OperationSnapshot } from '../operations/types';
 
 export type TransactionUpdateData = {
@@ -25,6 +25,17 @@ export type CreateTransactionProps = {
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
   entries: EntryDraft[];
+};
+
+export type EntriesPatch = {
+  create: EntryDraft[];
+  update: EntryUpdate[];
+  delete: UUID[];
+} | null;
+
+export type UpdateTransactionProps = {
+  entries: EntriesPatch;
+  metadata?: TransactionUpdateData;
 };
 
 export type TransactionSnapshot = {
