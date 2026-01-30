@@ -1,5 +1,4 @@
-import { IsoDateString, UUID } from '@ledgerly/shared/types';
-import { TransactionDbRow } from 'src/db/schema';
+import { UUID } from '@ledgerly/shared/types';
 
 import {
   EntityIdentity,
@@ -11,12 +10,15 @@ import {
   DateValue,
 } from '../domain-core';
 import { Entry } from '../entries';
+import { User } from '../users/user.entity';
 
-export type TransactionUpdateData = {
-  description?: string;
-  postingDate?: IsoDateString;
-  transactionDate?: IsoDateString;
-};
+import {
+  CreateTransactionProps,
+  TransactionBuildContext,
+  TransactionUpdateData,
+  TransactionWithEntriesAndOperations,
+  TransactionSnapshot,
+} from './types';
 
 export class Transaction {
   private readonly identity: EntityIdentity;
@@ -46,28 +48,43 @@ export class Transaction {
   }
 
   static create(
-    userId: Id,
-    description: string,
-    postingDate: DateValue,
-    transactionDate: DateValue,
+    user: User,
+    dto: CreateTransactionProps,
+    transactionContext: TransactionBuildContext,
   ): Transaction {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
-    const ownership = ParentChildRelation.create(userId, identity.getId());
+    const ownership = ParentChildRelation.create(
+      user.getId(),
+      identity.getId(),
+    );
 
-    return new Transaction(
+    const postingDate = DateValue.restore(dto.postingDate);
+    const transactionDate = DateValue.restore(dto.transactionDate);
+
+    const transaction = new Transaction(
       identity,
       timestamps,
       softDelete,
       ownership,
       postingDate,
       transactionDate,
-      description,
+      dto.description,
     );
+
+    const entries = dto.entries.map((entryDTO) =>
+      Entry.create(user, transaction.getId(), entryDTO, transactionContext),
+    );
+
+    transaction.addEntries(entries);
+
+    transaction.validate();
+
+    return transaction;
   }
 
-  static restore(data: TransactionDbRow): Transaction {
+  static restore(data: TransactionWithEntriesAndOperations): Transaction {
     const {
       createdAt,
       description,
@@ -92,7 +109,7 @@ export class Transaction {
       identity.getId(),
     );
 
-    return new Transaction(
+    const transaction = new Transaction(
       identity,
       timestamps,
       softDelete,
@@ -101,6 +118,12 @@ export class Transaction {
       DateValue.restore(transactionDate),
       description,
     );
+
+    const entries = data.entries.map((entryData) => Entry.restore(entryData));
+
+    transaction.addEntries(entries);
+
+    return transaction;
   }
   getId(): Id {
     return this.identity.getId();
@@ -147,14 +170,11 @@ export class Transaction {
     return !this.isDeleted();
   }
 
-  private updateUpdatedAt(): void {
-    this.touch();
-  }
-
-  toPersistence(): TransactionDbRow {
+  toSnapshot(): TransactionSnapshot {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
+      entries: this.entries.map((entry) => entry.toSnapshot()),
       id: this.getId().valueOf(),
       isTombstone: this.isDeleted(),
       postingDate: this.postingDate.valueOf(),
@@ -209,43 +229,18 @@ export class Transaction {
     return this.transactionDate;
   }
 
-  // Entry management methods
-  addEntry(entry: Entry): void {
-    this.validateUpdateIsAllowed();
-
-    // Validate entry belongs to this transaction
-    if (!entry.belongsToTransaction(this.getId())) {
-      throw new Error('Entry does not belong to this transaction');
-    }
-
-    this.entries.push(entry);
-    this.touch();
-  }
-
   addEntries(entries: Entry[]): void {
-    entries.forEach((entry) => this.addEntry(entry));
-  }
+    entries.forEach((entry) => {
+      if (!entry.belongsToTransaction(this.getId())) {
+        throw new Error('Entry does not belong to this transaction');
+      }
 
-  removeEntry(entryId: Id): void {
-    this.validateUpdateIsAllowed();
-
-    const entryIndex = this.entries.findIndex((entry) =>
-      entry.getId().equals(entryId),
-    );
-
-    if (entryIndex === -1) {
-      throw new Error('Entry not found in transaction');
-    }
-
-    this.entries.splice(entryIndex, 1);
+      this.entries.push(entry);
+    });
     this.touch();
   }
 
-  removeEntries(entryIds: Id[]): void {
-    entryIds.forEach((entryId) => this.removeEntry(entryId));
-  }
-
-  getEntries(): readonly Entry[] {
+  getEntries(): Entry[] {
     return [...this.entries];
   }
 
@@ -254,7 +249,7 @@ export class Transaction {
     return entry ?? null;
   }
 
-  validateEntriesBalance(): void {
+  private validate(): void {
     for (const entry of this.entries) {
       entry.validateBalance();
     }

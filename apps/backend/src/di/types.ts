@@ -1,5 +1,5 @@
 import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
-import { AccountFactory, EntriesService } from 'src/application/services';
+import { AccountFactory } from 'src/application/services';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
 import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
 import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
@@ -11,12 +11,15 @@ import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/
 import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
-import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
-import { EntryRepository } from 'src/infrastructure/db/entries/entry.repository';
-import { OperationRepository } from 'src/infrastructure/db/operations/operation.repository';
-import { TransactionRepository } from 'src/infrastructure/db/transaction/transaction.repository';
-import { UserRepository } from 'src/infrastructure/db/user/user.repository';
+import {
+  TransactionQueryRepository,
+  AccountRepository,
+  CurrencyRepository,
+  EntryRepository,
+  OperationRepository,
+  TransactionRepository,
+  UserRepository,
+} from 'src/infrastructure/db';
 import {
   AuthController,
   AccountController,
@@ -27,6 +30,7 @@ import { UserController } from 'src/presentation/controllers/user.controller';
 type Repositories = {
   currency: CurrencyRepository;
   transaction: TransactionRepository;
+  transactionQuery: TransactionQueryRepository;
   account: AccountRepository;
   user: UserRepository;
   operation: OperationRepository;
@@ -35,7 +39,6 @@ type Repositories = {
 
 type Services = {
   passwordManager: PasswordManager;
-  entriesService: EntriesService;
 };
 
 type AccountUseCases = {

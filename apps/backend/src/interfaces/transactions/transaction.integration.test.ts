@@ -196,17 +196,28 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(401);
     });
 
-    it.skip('should fail for non-existent accounts', async () => {
-      const payload = {
+    it('should fail for non-existent accounts', async () => {
+      const payload: TransactionCreateInput = {
         description: 'non-existent account',
         entries: [
-          [
-            { accountId: 'non-existent-id', amount: '-100' },
-            { accountId: 'another-non-existent-id', amount: '100' },
-          ],
+          {
+            description: 'Transfer between accounts',
+            operations: [
+              {
+                accountId: Id.create().valueOf(),
+                amount: Amount.create('-100').valueOf(),
+                description: 'Transfer from checking',
+              },
+              {
+                accountId: Id.create().valueOf(),
+                amount: Amount.create('100').valueOf(),
+                description: 'Transfer to savings',
+              },
+            ],
+          },
         ],
-        postingDate: '2025-11-07',
-        transactionDate: '2025-11-07',
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
       };
 
       const response = await server.inject({
@@ -221,7 +232,7 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
-    it.skip('should fail for zero amounts', async () => {
+    it('should fail for zero amounts', async () => {
       const account1 = await testDB.createAccount(userId, { name: 'Checking' });
       const account2 = await testDB.createAccount(userId, { name: 'Savings' });
 
@@ -249,7 +260,7 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it.skip('should fail when from and to accounts are the same', async () => {
+    it('should fail when from and to accounts are the same', async () => {
       const account1 = await testDB.createAccount(userId, { name: 'Checking' });
 
       const payload = {

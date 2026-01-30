@@ -1,23 +1,62 @@
 import { IsoDateString } from '@ledgerly/shared/types';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CreateEntryRequestDTO } from 'src/application';
+import { CreateTransactionRequestDTO } from 'src/application/dto/transaction.dto';
+import { createUser } from 'src/db/createTestUser';
+import { TransactionBuilder } from 'src/db/test-utils';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
-import { Id } from '../domain-core';
-import { DateValue } from '../domain-core/value-objects/DateValue';
 import { Entry } from '../entries';
+import { User } from '../users/user.entity';
 
 import { Transaction } from './transaction.entity';
+import { TransactionBuildContext } from './types';
 
 describe('Transaction Domain Entity', () => {
+  let user: User;
+  let entryContext: TransactionBuildContext;
+  let entries: CreateEntryRequestDTO[];
+  let transactionDTO: CreateTransactionRequestDTO;
+
   const transactionData = {
     description: 'Test transaction',
     postingDate: '2024-01-01',
     transactionDate: '2024-01-01',
-    userId: '123e4567-e89b-12d3-a456-426614174000',
   };
 
-  const userId = Id.fromPersistence(transactionData.userId);
-  const postingDate = DateValue.restore(transactionData.postingDate);
-  const transactionDate = DateValue.restore(transactionData.transactionDate);
+  const entriesData = [
+    {
+      description: 'First Entry',
+      operations: [
+        { accountKey: 'USD', amount: '10000', description: '1' },
+        { accountKey: 'USD', amount: '-10000', description: '2' },
+      ],
+    },
+  ];
+
+  beforeAll(async () => {
+    user = await createUser();
+
+    const transactionBuilder = TransactionBuilder.create(user);
+
+    const data = transactionBuilder
+      .withSettings(transactionData)
+      .withAccounts(['USD', 'EUR'])
+      .withSystemAccounts()
+      .withEntries(entriesData)
+      .build();
+
+    entries = data.transactionDTO.entries;
+    entryContext = data.entryContext;
+    transactionDTO = data.transactionDTO;
+  });
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -27,55 +66,67 @@ describe('Transaction Domain Entity', () => {
     vi.useRealTimers();
   });
 
-  it('should create a valid transaction', () => {
-    const transaction = Transaction.create(
-      userId,
-      transactionData.description,
-      postingDate,
-      transactionDate,
-    );
+  describe('Creation and Restoration', () => {
+    it('should create a valid transaction with entries', () => {
+      const transaction = Transaction.create(
+        user,
+        transactionDTO,
+        entryContext,
+      );
 
-    expect(transaction).toBeInstanceOf(Transaction);
-    expect(transaction.description).toBe(transactionData.description);
-    expect(transaction.getPostingDate()).toEqual(postingDate);
-    expect(transaction.getTransactionDate()).toEqual(transactionDate);
-    expect(transaction.getId()).toBeDefined();
-    expect(transaction.getCreatedAt()).toBeDefined();
-    expect(transaction.getUpdatedAt()).toBeDefined();
-    expect(transaction.isDeleted()).toBe(false);
+      expect(transaction).toBeInstanceOf(Transaction);
+      expect(transaction.description).toBe(transactionData.description);
+      expect(transaction.getPostingDate().valueOf()).toEqual(
+        transactionData.postingDate,
+      );
+      expect(transaction.getTransactionDate().valueOf()).toEqual(
+        transactionData.transactionDate,
+      );
+      expect(transaction.getId()).toBeDefined();
+      expect(transaction.getCreatedAt()).toBeDefined();
+      expect(transaction.getUpdatedAt()).toBeDefined();
+      expect(transaction.isDeleted()).toBe(false);
+
+      const transactionEntries = transaction.getEntries();
+
+      expect(transactionEntries).toHaveLength(entries.length);
+
+      transactionEntries.forEach((entry, index) => {
+        const matchedEntryData = entriesData[index];
+
+        expect(entry).toBeInstanceOf(Entry);
+        expect(entry.description).toBe(matchedEntryData.description);
+
+        const entryOperations = entry.getOperations();
+
+        entryOperations.forEach((op, opIndex) => {
+          const matchedOp = matchedEntryData.operations[opIndex];
+
+          expect(op.amount.valueOf()).toBe(matchedOp.amount);
+          expect(op.description).toBe(matchedOp.description);
+        });
+      });
+    });
   });
 
   it('should serialize and deserialize correctly', () => {
-    const transaction = Transaction.create(
-      userId,
-      transactionData.description,
-      postingDate,
-      transactionDate,
-    );
+    const transaction = Transaction.create(user, transactionDTO, entryContext);
 
-    const transactionRecord = transaction.toPersistence();
+    const transactionSnapshot = transaction.toSnapshot();
 
-    expect(transactionRecord).toMatchObject({
+    expect(transactionSnapshot).toMatchObject({
       description: transactionData.description,
       postingDate: transactionData.postingDate,
       transactionDate: transactionData.transactionDate,
-      userId: transactionData.userId,
+      userId: user.getId().valueOf(),
     });
 
-    const restoredTransaction = Transaction.restore(transactionRecord);
-
-    expect(restoredTransaction.toPersistence()).toEqual(
-      transaction.toPersistence(),
-    );
+    const restoredTransaction = Transaction.restore(transactionSnapshot);
+    expect(restoredTransaction.toSnapshot()).toEqual(transactionSnapshot);
   });
 
   it('should update description via update method and touch updatedAt', () => {
-    const transaction = Transaction.create(
-      userId,
-      transactionData.description,
-      postingDate,
-      transactionDate,
-    );
+    const transaction = Transaction.create(user, transactionDTO, entryContext);
 
     const originalUpdatedAt = transaction.getUpdatedAt();
 
@@ -93,12 +144,7 @@ describe('Transaction Domain Entity', () => {
   });
 
   it('should update postingDate via update method and touch updatedAt', () => {
-    const transaction = Transaction.create(
-      userId,
-      transactionData.description,
-      postingDate,
-      transactionDate,
-    );
+    const transaction = Transaction.create(user, transactionDTO, entryContext);
 
     const originalUpdatedAt = transaction.getUpdatedAt();
     const newPostingDate = '2024-01-15' as IsoDateString;
@@ -115,12 +161,7 @@ describe('Transaction Domain Entity', () => {
   });
 
   it('should update transactionDate via update method and touch updatedAt', () => {
-    const transaction = Transaction.create(
-      userId,
-      transactionData.description,
-      postingDate,
-      transactionDate,
-    );
+    const transaction = Transaction.create(user, transactionDTO, entryContext);
 
     const originalUpdatedAt = transaction.getUpdatedAt();
     const newTransactionDate = '2024-01-20' as IsoDateString;
@@ -137,13 +178,7 @@ describe('Transaction Domain Entity', () => {
   });
 
   it('should update multiple fields at once via update method', () => {
-    const transaction = Transaction.create(
-      userId,
-      transactionData.description,
-      postingDate,
-      transactionDate,
-    );
-
+    const transaction = Transaction.create(user, transactionDTO, entryContext);
     const newDescription = 'New description';
     const newPostingDate = '2024-02-01' as IsoDateString;
     const newTransactionDate = '2024-02-05' as IsoDateString;
@@ -157,80 +192,5 @@ describe('Transaction Domain Entity', () => {
     expect(transaction.description).toBe(newDescription);
     expect(transaction.getPostingDate().valueOf()).toBe(newPostingDate);
     expect(transaction.getTransactionDate().valueOf()).toBe(newTransactionDate);
-  });
-
-  describe('Entry Management', () => {
-    let transaction: Transaction;
-
-    beforeEach(() => {
-      transaction = Transaction.create(
-        userId,
-        transactionData.description,
-        postingDate,
-        transactionDate,
-      );
-    });
-
-    it('should start with empty entries array', () => {
-      expect(transaction.getEntries()).toEqual([]);
-    });
-
-    it('should add entry successfully', () => {
-      const transaction = Transaction.create(
-        userId,
-        transactionData.description,
-        postingDate,
-        transactionDate,
-      );
-
-      const mockEntry1 = {
-        belongsToTransaction: () => true,
-        data: 'mock entry data1',
-      } as unknown as Entry;
-
-      const mockEntry2 = {
-        belongsToTransaction: () => true,
-        data: 'mock entry data2',
-      } as unknown as Entry;
-
-      vi.spyOn(Entry, 'create').mockReturnValue(mockEntry1);
-
-      transaction.addEntry(mockEntry1);
-      transaction.addEntry(mockEntry2);
-
-      const entries = transaction.getEntries();
-      expect(entries).toHaveLength(2);
-      expect(entries[0]).toBe(mockEntry1);
-      expect(entries[1]).toBe(mockEntry2);
-    });
-
-    it.todo('should remove entry successfully', () => {
-      // TODO: Implement when Entry.create is available
-      // const entry = Entry.create(/* appropriate parameters */);
-      // transaction.addEntry(entry);
-      // transaction.removeEntry(entry.getId());
-      // expect(transaction.getEntries()).toHaveLength(0);
-    });
-
-    it.todo('should throw error when removing non-existent entry', () => {
-      // const nonExistentId = Id.create();
-      // expect(() => transaction.removeEntry(nonExistentId)).toThrow('Entry not found in transaction');
-    });
-
-    it.todo('should validate entry belongs to transaction when adding', () => {
-      // TODO: Test that entry validation works correctly
-    });
-
-    it('should provide read-only access to entries', () => {
-      const entries = transaction.getEntries();
-      expect(entries).toBeInstanceOf(Array);
-
-      // Should return a readonly array
-      expect(transaction.getEntries()).toHaveLength(0);
-    });
-
-    it.todo('should implement balance validation', () => {
-      // TODO: Implement isBalanced and validateBalance tests
-    });
   });
 });

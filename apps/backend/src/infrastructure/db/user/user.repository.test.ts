@@ -4,9 +4,8 @@ import { TransactionManager } from 'src/infrastructure/db';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 
+import { UserRepository } from '../';
 import { TestDB } from '../../../db/test-db';
-
-import { UserRepository } from './user.repository';
 
 describe('UsersRepository', () => {
   let testDB: TestDB;

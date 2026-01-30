@@ -1,18 +1,6 @@
-import {
-  LoginUserUseCase,
-  RegisterUserUseCase,
-  TransactionMapper,
-} from 'src/application';
-import {
-  AccountFactory,
-  EntriesService,
-  OperationFactory,
-} from 'src/application/services';
-import {
-  EntriesContextLoader,
-  EntryCreator,
-  EntryUpdater,
-} from 'src/application/services/EntriesService';
+import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
+import { AccountFactory } from 'src/application/services';
+import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { saveWithIdRetry } from 'src/application/shared/saveWithIdRetry';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
@@ -26,13 +14,16 @@ import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/
 import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { TransactionManager } from 'src/infrastructure/db';
-import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
-import { CurrencyRepository } from 'src/infrastructure/db/CurrencyRepository';
-import { EntryRepository } from 'src/infrastructure/db/entries/entry.repository';
-import { OperationRepository } from 'src/infrastructure/db/operations/operation.repository';
-import { TransactionRepository } from 'src/infrastructure/db/transaction/transaction.repository';
-import { UserRepository } from 'src/infrastructure/db/user/user.repository';
+import {
+  TransactionRepository,
+  TransactionQueryRepository,
+  OperationRepository,
+  EntryRepository,
+  CurrencyRepository,
+  TransactionManager,
+  AccountRepository,
+  UserRepository,
+} from 'src/infrastructure/db';
 import {
   AuthController,
   AccountController,
@@ -48,14 +39,19 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const accountRepository = new AccountRepository(transactionManager);
   const currencyRepository = new CurrencyRepository(transactionManager);
-  const transactionRepository = new TransactionRepository(transactionManager);
-  const userRepository = new UserRepository(transactionManager);
   const operationRepository = new OperationRepository(transactionManager);
   const entryRepository = new EntryRepository(transactionManager);
+  const transactionRepository = new TransactionRepository(
+    entryRepository,
+    operationRepository,
+    transactionManager,
+  );
+  const transactionQueryRepository = new TransactionQueryRepository(
+    transactionManager,
+  );
+  const userRepository = new UserRepository(transactionManager);
 
   // Mappers
-
-  const transactionMapper = new TransactionMapper();
 
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
@@ -63,6 +59,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     entry: entryRepository,
     operation: operationRepository,
     transaction: transactionRepository,
+    transactionQuery: transactionQueryRepository,
     user: userRepository,
   };
 
@@ -70,35 +67,14 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const accountFactory = new AccountFactory(accountRepository, saveWithIdRetry);
 
-  const operationFactory = new OperationFactory(
-    operationRepository,
-    saveWithIdRetry,
-  );
-
-  const entriesContextLoader = new EntriesContextLoader(
+  const transactionContextLoader = new TransactionContextLoader(
     accountRepository,
     accountFactory,
   );
 
-  const entryCreator = new EntryCreator(operationFactory, entryRepository);
-
-  const entriesUpdater = new EntryUpdater(
-    operationFactory,
-    entryRepository,
-    operationRepository,
-    entryCreator,
-  );
-
   const passwordManager = new PasswordManager();
 
-  const entriesService = new EntriesService(
-    entriesContextLoader,
-    entryCreator,
-    entriesUpdater,
-  );
-
   const services: AppContainer['services'] = {
-    entriesService,
     passwordManager,
   };
 
@@ -119,26 +95,22 @@ export const createContainer = (db: DataBase): AppContainer => {
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager,
     transactionRepository,
-    entriesService,
-    saveWithIdRetry,
-    transactionMapper,
+    transactionContextLoader,
   );
 
   const getTransactionByIdUseCase = new GetTransactionByIdUseCase(
-    transactionRepository,
+    transactionQueryRepository,
   );
 
   const getAllTransactionsUseCase = new GetAllTransactionsUseCase(
-    transactionRepository,
+    transactionQueryRepository,
     accountRepository,
   );
 
   const updateTransactionUseCase = new UpdateTransactionUseCase(
     transactionManager,
     transactionRepository,
-    entriesService,
     ensureEntityExistsAndOwned,
-    transactionMapper,
   );
 
   const useCases: AppContainer['useCases'] = {

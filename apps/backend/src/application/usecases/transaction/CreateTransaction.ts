@@ -6,71 +6,38 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { TransactionMapperInterface } from 'src/application/mappers';
-import { EntriesService } from 'src/application/services';
-import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
-import { TransactionDbRow, TransactionRepoInsert } from 'src/db/schema';
+import { TransactionMapper } from 'src/application/mappers';
+import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { User } from 'src/domain';
-import { DateValue } from 'src/domain/domain-core';
 import { Transaction } from 'src/domain/transactions';
 
 export class CreateTransactionUseCase {
   constructor(
     protected readonly transactionManager: TransactionManagerInterface,
     protected readonly transactionRepository: TransactionRepositoryInterface,
-    protected readonly entryService: EntriesService,
-    protected readonly saveWithIdRetry: SaveWithIdRetryType,
-    protected readonly transactionMapper: TransactionMapperInterface,
+    protected readonly transactionContextLoader: TransactionContextLoader,
   ) {}
 
   async execute(
     user: User,
     data: CreateTransactionRequestDTO,
   ): Promise<TransactionResponseDTO> {
-    return await this.transactionManager.run(async () => {
-      const transactionFactory = this.createTransaction(user, data);
-
-      const transaction = await this.saveTransaction(transactionFactory);
-
-      const entries = await this.entryService.createEntriesWithOperations(
+    const createdTransaction = await this.transactionManager.run(async () => {
+      const context = await this.transactionContextLoader.loadContext(
         user,
-        transaction,
         data.entries,
       );
 
-      for (const entry of entries) {
-        transaction.addEntry(entry);
-      }
+      const transaction = Transaction.create(user, data, context);
 
-      transaction.validateEntriesBalance();
-
-      return this.transactionMapper.toResponseDTO(transaction);
-    });
-  }
-
-  private async saveTransaction(createTransaction: () => Transaction) {
-    const result = await this.saveWithIdRetry<
-      TransactionRepoInsert,
-      Transaction,
-      TransactionDbRow
-    >(
-      this.transactionRepository.create.bind(this.transactionRepository),
-      createTransaction,
-    );
-
-    return result;
-  }
-
-  private createTransaction(user: User, data: CreateTransactionRequestDTO) {
-    const postingDateVO = DateValue.restore(data.postingDate);
-    const transactionDateVO = DateValue.restore(data.transactionDate);
-
-    return () =>
-      Transaction.create(
-        user.getId(),
-        data.description,
-        postingDateVO,
-        transactionDateVO,
+      await this.transactionRepository.save(
+        user.getId().valueOf(),
+        transaction,
       );
+
+      return transaction;
+    });
+
+    return TransactionMapper.toResponseDTO(createdTransaction);
   }
 }

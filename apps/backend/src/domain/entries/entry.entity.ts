@@ -1,6 +1,9 @@
-import { IsoDatetimeString } from '@ledgerly/shared/types';
-import { EntryDbRow } from 'src/db/schemas/entries';
+import { CurrencyCode, IsoDatetimeString, UUID } from '@ledgerly/shared/types';
+import { CreateEntryRequestDTO } from 'src/application';
+import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
+import { EntryDbRow, EntryWithOperations } from 'src/db/schemas/entries';
 
+import { Account } from '../accounts';
 import {
   EntityIdentity,
   EntityTimestamps,
@@ -9,6 +12,7 @@ import {
   ParentChildRelation,
   Timestamp,
   Amount,
+  Currency,
 } from '../domain-core';
 import {
   UnbalancedEntryError,
@@ -18,9 +22,9 @@ import {
   MissingOperationsError,
 } from '../domain.errors';
 import { Operation } from '../operations';
-import { Transaction } from '../transactions';
 import { User } from '../users/user.entity';
 
+import { EntrySnapshot, TradingOperationDTO } from './types';
 export class Entry {
   private readonly identity: EntityIdentity;
   private timestamps: EntityTimestamps;
@@ -46,11 +50,179 @@ export class Entry {
     this.operations = operations ?? [];
   }
 
+  private getAccountFromMap(
+    accountId: UUID,
+    accountsMap: Map<UUID, Account>,
+  ): Account {
+    const account = accountsMap.get(accountId);
+
+    if (!account) {
+      throw new Error(`Account not found in map: ${accountId}`);
+    }
+
+    return account;
+  }
+
+  private getSystemAccountFromMap(
+    currencyCode: CurrencyCode,
+    currencySystemAccountsMap: Map<CurrencyCode, Account>,
+  ): Account {
+    const systemAccount = currencySystemAccountsMap.get(currencyCode);
+
+    if (!systemAccount) {
+      throw new Error(
+        `System account not found in map for currency: ${currencyCode}`,
+      );
+    }
+
+    return systemAccount;
+  }
+
+  private getSystemAccountDescription({
+    amount,
+    currency,
+    direction,
+  }: {
+    amount: Amount;
+    currency: CurrencyCode;
+    direction: 'from' | 'to';
+  }) {
+    return `Currency exchange ${direction} ${currency} account: ${amount.valueOf()}`;
+  }
+
+  private addTradingOperations(
+    user: User,
+    entry: Entry,
+    entryData: CreateEntryRequestDTO,
+    [fromCurrency, toCurrency]: [Currency, Currency],
+    systemAccountsMap: Map<CurrencyCode, Account>,
+  ): [TradingOperationDTO, TradingOperationDTO] | [] {
+    if (fromCurrency.isEqualTo(toCurrency)) {
+      return [];
+    }
+
+    const [fromOperationDTO, toOperationDTO] = entryData.operations;
+
+    const oppositeFromAmount = Amount.create(fromOperationDTO.amount).negate();
+    const oppositeToAmount = Amount.create(toOperationDTO.amount).negate();
+
+    const fromSystemAccount = this.getSystemAccountFromMap(
+      fromCurrency.valueOf(),
+      systemAccountsMap,
+    );
+
+    const toSystemAccount = this.getSystemAccountFromMap(
+      toCurrency.valueOf(),
+      systemAccountsMap,
+    );
+
+    const balancedFromOperationDTO: TradingOperationDTO = {
+      account: fromSystemAccount,
+      description: this.getSystemAccountDescription({
+        amount: oppositeFromAmount,
+        currency: fromSystemAccount.currency.valueOf(),
+        direction: 'from',
+      }),
+      entry,
+      rawAmount: oppositeFromAmount.valueOf(),
+      user,
+    };
+
+    const balancedToOperationDTO: TradingOperationDTO = {
+      account: toSystemAccount,
+      description: this.getSystemAccountDescription({
+        amount: oppositeToAmount,
+        currency: toSystemAccount.currency.valueOf(),
+        direction: 'to',
+      }),
+      entry,
+      rawAmount: oppositeToAmount.valueOf(),
+      user,
+    };
+
+    return [balancedFromOperationDTO, balancedToOperationDTO];
+  }
+
+  private validateInputOperationsAmounts(
+    data: TradingOperationDTO[],
+    entry: Entry,
+  ) {
+    const balancedAmount = data.reduce((balance, dto) => {
+      const amount = Amount.create(dto.rawAmount);
+      return balance.add(amount);
+    }, Amount.create('0'));
+
+    if (!balancedAmount.isZero()) {
+      throw new UnbalancedEntryError(entry, balancedAmount);
+    }
+  }
+
+  private createOperationsForEntry(
+    user: User,
+    entry: Entry,
+    entryData: CreateEntryRequestDTO,
+    accountsByIdMap: Map<UUID, Account>,
+    currencySystemAccountsMap: Map<CurrencyCode, Account>,
+  ) {
+    this.validateOperationsLength(entryData.operations);
+    const [fromOperationDTO, toOperationDTO] = entryData.operations;
+
+    const fromAccount = this.getAccountFromMap(
+      fromOperationDTO.accountId,
+      accountsByIdMap,
+    );
+
+    const toAccount = this.getAccountFromMap(
+      toOperationDTO.accountId,
+      accountsByIdMap,
+    );
+
+    const tradingOperationsDTO = this.addTradingOperations(
+      user,
+      entry,
+      entryData,
+      [fromAccount.currency, toAccount.currency],
+      currencySystemAccountsMap,
+    );
+
+    const dtos: TradingOperationDTO[] = [
+      {
+        account: fromAccount,
+        description: fromOperationDTO.description,
+        entry,
+        rawAmount: fromOperationDTO.amount,
+        user,
+      },
+      {
+        account: toAccount,
+        description: toOperationDTO.description,
+        entry,
+        rawAmount: toOperationDTO.amount,
+        user,
+      },
+      ...tradingOperationsDTO,
+    ];
+
+    this.validateInputOperationsAmounts(dtos, entry);
+
+    const operations = dtos.map((opDTO) => {
+      return Operation.create(
+        opDTO.user,
+        opDTO.account,
+        opDTO.entry,
+        Amount.create(opDTO.rawAmount),
+        opDTO.description,
+      );
+    });
+
+    return operations;
+  }
+
   static create(
     user: User,
-    transaction: Transaction,
-    description: string,
-    operations?: Operation[],
+    transactionId: Id,
+    entryData: CreateEntryRequestDTO,
+    entryContext: EntryContext,
   ): Entry {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
@@ -61,23 +233,30 @@ export class Entry {
     );
 
     const transactionRelation = ParentChildRelation.create(
-      transaction.getId(),
+      transactionId,
       identity.getId(),
     );
 
     const entry = new Entry(
       identity,
       timestamps,
-      description,
+      entryData.description,
       softDelete,
       ownership,
       transactionRelation,
-      operations,
     );
 
-    if (entry.canBeValidated()) {
-      entry.validateBalance();
-    }
+    const operations = entry.createOperationsForEntry(
+      user,
+      entry,
+      entryData,
+      entryContext.accountsMap,
+      entryContext.systemAccountsMap,
+    );
+
+    entry.addOperations(operations);
+
+    entry.validateBalance();
 
     return entry;
   }
@@ -130,14 +309,18 @@ export class Entry {
     };
   }
 
+  private validateOperationsLength<T>(operations: T[]): void {
+    if (operations.length === 0) {
+      throw new EmptyOperationsError();
+    }
+  }
+
   private validateCanAddOperations(operations: Operation[]): void {
     if (this.isDeleted()) {
       throw new DeletedEntityOperationError('entry', 'add operations');
     }
 
-    if (operations.length === 0) {
-      throw new EmptyOperationsError();
-    }
+    this.validateOperationsLength(operations);
 
     for (const operation of operations) {
       if (!operation.belongsToEntry(this)) {
@@ -188,15 +371,16 @@ export class Entry {
     this.touch();
   }
 
-  static fromPersistence({
+  static restore({
     createdAt,
     description,
     id,
     isTombstone,
+    operations,
     transactionId,
     updatedAt,
     userId,
-  }: EntryDbRow): Entry {
+  }: EntryWithOperations): Entry {
     const identity = new EntityIdentity(Id.fromPersistence(id));
 
     const timestamps = EntityTimestamps.fromPersistence(
@@ -213,7 +397,7 @@ export class Entry {
       identity.getId(),
     );
 
-    return new Entry(
+    const entry = new Entry(
       identity,
       timestamps,
       description,
@@ -221,6 +405,13 @@ export class Entry {
       ownership,
       transactionRelation,
     );
+
+    operations.forEach((operationData) => {
+      const operation = Operation.fromPersistence(operationData);
+      entry.operations.push(operation);
+    });
+
+    return entry;
   }
 
   removeOperations(): void {
@@ -241,5 +432,18 @@ export class Entry {
 
   get updatedAt(): IsoDatetimeString {
     return this.timestamps.getUpdatedAt().valueOf();
+  }
+
+  toSnapshot(): EntrySnapshot {
+    return {
+      createdAt: this.createdAt,
+      description: this.description,
+      id: this.getId().valueOf(),
+      isTombstone: this.isDeleted(),
+      operations: this.operations.map((operation) => operation.toSnapshot()),
+      transactionId: this.getTransactionId().valueOf(),
+      updatedAt: this.updatedAt,
+      userId: this.ownership.getParentId().valueOf(),
+    };
   }
 }

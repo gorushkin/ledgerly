@@ -1,4 +1,3 @@
-import { CurrencyCode } from '@ledgerly/shared/types';
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
 import { Account, Entry, User } from '..';
@@ -12,30 +11,20 @@ import {
   ParentChildRelation,
 } from '../domain-core';
 
-export class Operation {
-  private timestamps: EntityTimestamps;
-  private softDelete: SoftDelete;
-  private readonly ownership: ParentChildRelation;
-  private readonly entryRelation: ParentChildRelation;
-  private readonly accountRelation: ParentChildRelation;
+import { OperationSnapshot } from './types';
 
+export class Operation {
   private constructor(
-    private readonly identity: EntityIdentity,
-    private readonly account: Account,
-    timestamps: EntityTimestamps,
-    softDelete: SoftDelete,
-    ownership: ParentChildRelation,
-    entryRelation: ParentChildRelation,
-    accountRelation: ParentChildRelation,
-    public amount: Amount,
-    public description: string,
-  ) {
-    this.timestamps = timestamps;
-    this.softDelete = softDelete;
-    this.ownership = ownership;
-    this.entryRelation = entryRelation;
-    this.accountRelation = accountRelation;
-  }
+    public readonly identity: EntityIdentity,
+    public readonly timestamps: EntityTimestamps,
+    public readonly softDelete: SoftDelete,
+    public readonly ownership: ParentChildRelation,
+    public readonly entryRelation: ParentChildRelation,
+    public readonly accountRelation: ParentChildRelation,
+    public readonly amount: Amount,
+    public readonly description: string,
+    public readonly isSystem: boolean,
+  ) {}
 
   static create(
     user: User,
@@ -65,7 +54,6 @@ export class Operation {
 
     return new Operation(
       identity,
-      account,
       timestamps,
       softDelete,
       ownership,
@@ -73,20 +61,19 @@ export class Operation {
       accountRelation,
       amount,
       description,
+      account.isSystem,
     );
   }
 
-  static fromPersistence(
-    data: OperationDbRow & { account: Account },
-  ): Operation {
+  static fromPersistence(data: OperationDbRow): Operation {
     const {
-      account,
       accountId,
       amount,
       createdAt,
       description,
       entryId,
       id,
+      isSystem,
       isTombstone,
       updatedAt,
       userId,
@@ -117,7 +104,6 @@ export class Operation {
 
     return new Operation(
       identity,
-      account,
       timestamps,
       softDelete,
       ownership,
@@ -125,6 +111,7 @@ export class Operation {
       accountRelation,
       Amount.fromPersistence(amount),
       description,
+      isSystem,
     );
   }
 
@@ -140,10 +127,6 @@ export class Operation {
 
   getCreatedAt(): Timestamp {
     return this.timestamps.getCreatedAt();
-  }
-
-  private touch(): void {
-    this.timestamps = this.timestamps.touch();
   }
 
   // Delegation methods for ownership
@@ -186,15 +169,22 @@ export class Operation {
     return this.identity.getId();
   }
 
-  get isSystem(): boolean {
-    return this.account.isSystem;
+  get entryId(): Id {
+    return this.entryRelation.getParentId();
   }
 
-  get currency(): CurrencyCode {
-    return this.account.currency.valueOf();
-  }
-
-  get accountName(): string {
-    return this.account.name.valueOf();
+  toSnapshot(): OperationSnapshot {
+    return {
+      accountId: this.getAccountId().valueOf(),
+      amount: this.amount.valueOf(),
+      createdAt: this.getCreatedAt().valueOf(),
+      description: this.description,
+      entryId: this.entryId.valueOf(),
+      id: this.id.valueOf(),
+      isSystem: this.isSystem,
+      isTombstone: this.softDelete.getIsTombstone(),
+      updatedAt: this.getUpdatedAt().valueOf(),
+      userId: this.getUserId().valueOf(),
+    };
   }
 }

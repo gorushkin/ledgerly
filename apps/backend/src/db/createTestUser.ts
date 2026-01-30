@@ -1,20 +1,14 @@
-import {
-  Account,
-  Entry,
-  Operation,
-  Transaction,
-  AccountType,
-} from 'src/domain';
+import { Account, AccountType } from 'src/domain';
 import {
   Name,
   Email,
   Password,
   Amount,
   Currency,
-  DateValue,
 } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 
+// TODO: move to the test builder
 export const createUser = async (
   params: {
     name?: string;
@@ -48,42 +42,49 @@ export const createAccount = (
   );
 };
 
-export const createTransaction = (
-  user: User,
-  params: {
-    description?: string;
-    postingDate?: string;
-    transactionDate?: string;
-  } = {},
-) => {
-  const {
-    description = 'Test Transaction',
-    postingDate = '2023-01-01',
-    transactionDate = '2023-01-01',
-  } = params;
+// export const createTransaction = (
+//   user: User,
+//   params: {
+//     description?: string;
+//     postingDate?: IsoDateString;
+//     transactionDate?: IsoDateString;
+//   } = {},
+// ) => {
+//   const {
+//     description = 'Test Transaction',
+//     postingDate = '2023-01-01' as IsoDateString,
+//     transactionDate = '2023-01-01' as IsoDateString,
+//   } = params;
 
-  return Transaction.create(
-    user.getId(),
-    description,
-    DateValue.restore(postingDate),
-    DateValue.restore(transactionDate),
-  );
-};
+//   // const postingDate = DateValue.restore(postingDate)
 
-export const createEntry = (
-  user: User,
-  transaction: Transaction,
-  operations: Operation[],
-) => {
-  return Entry.create(user, transaction, 'Test entry', operations);
-};
+//   return Transaction.create(
+//     user,
+//     {
+//       description,
+//       entries: [],
+//       postingDate,
+//       transactionDate,
+//     },
+//     {}, // EntryContext placeholder
+//     // DateValue.restore(transactionDate),
+//   );
+// };
 
-export const createOperation = (
-  user: User,
-  account: Account,
-  entry: Entry,
-  amount: Amount,
-  description: string,
-) => {
-  return Operation.create(user, account, entry, amount, description);
-};
+// export const createEntry = (
+//   user: User,
+//   transaction: Transaction,
+//   operations: Operation[],
+// ) => {
+//   return Entry.create(user, transaction, 'Test entry', operations);
+// };
+
+// export const createOperation = (
+//   user: User,
+//   account: Account,
+//   entry: Entry,
+//   amount: Amount,
+//   description: string,
+// ) => {
+//   return Operation.create(user, account, entry, amount, description);
+// };

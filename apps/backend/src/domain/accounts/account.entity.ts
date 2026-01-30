@@ -117,7 +117,12 @@ export class Account {
   }
 
   // Delegation methods for identity
+  // TODO: remove
   getId(): Id {
+    return this.identity.getId();
+  }
+
+  get id(): Id {
     return this.identity.getId();
   }
 
@@ -213,5 +218,9 @@ export class Account {
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),
     };
+  }
+
+  getCurrency(): Currency {
+    return this.currency;
   }
 }

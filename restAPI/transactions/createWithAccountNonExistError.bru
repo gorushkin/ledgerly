@@ -1,0 +1,44 @@
+meta {
+  name: createWithAccountNonExistError
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/transactions
+  body: json
+  auth: bearer
+}
+
+headers {
+  ~Authorization: {{bearerToken}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "description": "some transaction",
+    "entries": [
+      {
+        "description": "non-existent account",
+        "operations": [
+          {
+            "accountId": "{{accountId1}}",
+            "amount": "-100",
+            "description": "Transfer from checking"
+          },
+          {
+            "accountId": "{{accountId2}}",
+            "amount": "100",
+            "description": "Transfer to savings"
+          }
+        ]
+      }
+    ],
+    "postingDate": "2025-11-07",
+    "transactionDate": "2025-11-07"
+  }
+}

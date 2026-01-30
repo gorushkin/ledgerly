@@ -7,10 +7,10 @@ import { Amount, Currency } from 'src/domain/domain-core';
 import { createUser } from 'src/interfaces/helpers';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { EntriesContextLoader } from '..';
+import { TransactionContextLoader } from '..';
 import { AccountFactory } from '../..';
 
-describe('EntriesContextLoader', () => {
+describe('TransactionContextLoader', () => {
   let user: User;
 
   const mockAccountRepository = {
@@ -21,7 +21,7 @@ describe('EntriesContextLoader', () => {
     findOrCreateSystemAccount: vi.fn(),
   };
 
-  const entriesContextLoader = new EntriesContextLoader(
+  const transactionContextLoader = new TransactionContextLoader(
     mockAccountRepository as unknown as AccountRepositoryInterface,
     mockAccountFactory as unknown as AccountFactory,
   );
@@ -30,7 +30,7 @@ describe('EntriesContextLoader', () => {
     user = await createUser();
   });
 
-  it('should return correct context for entries', async () => {
+  it('should return correct context for transaction', async () => {
     const account1 = createAccount(user);
     const account2 = createAccount(user);
     const account3 = createAccount(user);
@@ -92,7 +92,7 @@ describe('EntriesContextLoader', () => {
     });
 
     const { accountsMap, systemAccountsMap } =
-      await entriesContextLoader.loadForEntries(user, rawEntries);
+      await transactionContextLoader.loadContext(user, rawEntries);
 
     expect(mockAccountRepository.getByIds).toHaveBeenCalledWith(
       user.getId().valueOf(),

@@ -6,10 +6,9 @@ import {
   UserAlreadyExistsError,
   UserNotFoundError,
 } from 'src/application/application.errors';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
+import { DatabaseError, HttpApiError } from 'src/presentation/errors/index';
 import { ZodError } from 'zod';
-
-import { RepositoryNotFoundError } from '../infrastructure/infrastructure.errors';
-import { DatabaseError, HttpApiError } from '../presentation/errors';
 
 export function errorHandler(
   error:

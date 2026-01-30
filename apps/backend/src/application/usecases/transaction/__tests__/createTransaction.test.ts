@@ -1,22 +1,11 @@
 import {
-  IsoDatetimeString,
-  UUID,
-} from 'node_modules/@ledgerly/shared/src/types/types';
-import {
-  CreateEntryRequestDTO,
-  CreateTransactionRequestDTO,
-  TransactionResponseDTO,
-} from 'src/application/dto';
-import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import type { TransactionMapperInterface } from 'src/application/mappers';
-import { EntriesService } from 'src/application/services';
-import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
+import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { createUser } from 'src/db/createTestUser';
-import { Account, Entry, Transaction, User, AccountType } from 'src/domain';
-import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
+import { TransactionBuilder } from 'src/db/test-utils/testEntityBuilder';
+import { User, Transaction } from 'src/domain';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateTransactionUseCase } from '../CreateTransaction';
@@ -25,158 +14,117 @@ describe('CreateTransactionUseCase', () => {
   let user: User;
 
   const mockTransactionRepository = {
-    create: vi.fn(),
-    getDB: vi.fn().mockReturnValue({
-      transaction: <T>(cb: (trx: unknown) => T): T => cb({}),
-    }),
-  };
-
-  const mockedEntries = [
-    {
-      belongsToTransaction: () => true,
-      getOperations: () => [
-        {
-          amount: Amount.create('100'),
-        },
-        {
-          amount: Amount.create('-100'),
-        },
-      ],
-      validateBalance: vi.fn(),
-    },
-  ] as unknown as Entry[];
-
-  const entryService = {
-    createEntriesWithOperations: vi.fn().mockResolvedValue(mockedEntries),
+    save: vi.fn(),
   };
 
   const transactionManager = {
     run: vi.fn((cb: () => unknown) => cb()),
   };
 
-  const transactionMapper = {
-    toResponseDTO: vi.fn(),
+  const transactionContextLoader = {
+    loadContext: vi.fn(),
   };
-
-  const mockedSaveWithIdRetry = vi.fn();
 
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
-    entryService as unknown as EntriesService,
-    mockedSaveWithIdRetry as unknown as SaveWithIdRetryType,
-    transactionMapper as unknown as TransactionMapperInterface,
+    transactionContextLoader as unknown as TransactionContextLoader,
   );
 
-  const postingDate = DateValue.restore('2024-01-01').valueOf();
-  const transactionDate = DateValue.restore('2024-01-02').valueOf();
-  const description = 'Test Transaction';
+  const transactionData = {
+    description: 'Test transaction',
+    postingDate: '2024-01-01',
+    transactionDate: '2024-01-01',
+    userId: '123e4567-e89b-12d3-a456-426614174000',
+  };
 
-  let usdAccount: Account;
-  let eurAccount: Account;
+  const entriesData = [
+    {
+      description: 'First Entry',
+      operations: [
+        { accountKey: 'USD', amount: '10000', description: '1' },
+        { accountKey: 'USD', amount: '-10000', description: '2' },
+      ],
+    },
+  ];
 
   beforeEach(async () => {
     user = await createUser();
-
-    usdAccount = Account.create(
-      user,
-      Name.create('Test Account'),
-      'Account for testing',
-      Amount.create('0'),
-      Currency.create('USD'),
-      AccountType.create('asset'),
-    );
-
-    eurAccount = Account.create(
-      user,
-      Name.create('Test Account'),
-      'Account for testing',
-      Amount.create('0'),
-      Currency.create('EUR'),
-      AccountType.create('asset'),
-    );
   });
 
   describe('execute', () => {
     it('should create a new transaction with entries successfully', async () => {
-      const mockedResult: TransactionResponseDTO = {
-        createdAt: '2024-01-01T00:00:00.000Z' as unknown as IsoDatetimeString,
-        description,
-        entries: [],
-        id: 'transaction-id-123' as unknown as UUID,
-        postingDate,
-        transactionDate,
-        updatedAt: '2024-01-01T00:00:00.000Z' as unknown as IsoDatetimeString,
-        userId: user.getId().valueOf() as unknown as UUID,
-      };
+      const transactionBuilder = TransactionBuilder.create(user);
 
-      transactionMapper.toResponseDTO.mockResolvedValue(mockedResult);
+      const { entryContext, transactionDTO } = transactionBuilder
+        .withSettings(transactionData)
+        .withAccounts(['USD', 'EUR'])
+        .withSystemAccounts()
+        .withEntries(entriesData)
+        .build();
 
-      const transaction = Transaction.create(
-        user.getId(),
-        description,
-        DateValue.restore(postingDate),
-        DateValue.restore(transactionDate),
+      transactionContextLoader.loadContext.mockResolvedValue(entryContext);
+
+      const result = await createTransactionUseCase.execute(
+        user,
+        transactionDTO,
       );
 
-      mockedSaveWithIdRetry.mockResolvedValue(transaction);
-
-      const entries: CreateEntryRequestDTO[] = [
-        {
-          description: 'Entry 1',
-          operations: [
-            {
-              accountId: usdAccount.getId().valueOf(),
-              amount: Amount.create('100').valueOf(),
-              description: 'Operation 1',
-            },
-            {
-              accountId: eurAccount.getId().valueOf(),
-              amount: Amount.create('100').valueOf(),
-              description: 'Operation 1',
-            },
-          ],
-        },
-      ];
-
-      const data: CreateTransactionRequestDTO = {
-        description,
-        entries,
-        postingDate,
-        transactionDate,
-      };
-
-      const result = await createTransactionUseCase.execute(user, data);
-
-      expect(result).toBe(mockedResult);
-
-      expect(result.description).toBe(description);
-      expect(result.postingDate).toBe(postingDate);
-      expect(result.transactionDate).toBe(transactionDate);
+      expect(result.postingDate).toBe(transactionData.postingDate);
+      expect(result.transactionDate).toBe(transactionData.transactionDate);
       expect(result.entries).toBeDefined();
+
+      transactionDTO.entries.forEach((entry, index) => {
+        const matchedEntry = result.entries[index];
+        expect(matchedEntry).toBeDefined();
+        expect(matchedEntry.description).toBe(entry.description);
+        entry.operations.forEach((operation, opIndex) => {
+          const matchedOperation = matchedEntry.operations[opIndex];
+          expect(matchedOperation.accountId).toBe(operation.accountId);
+          expect(matchedOperation.amount).toBe(operation.amount);
+          expect(matchedOperation.description).toBe(operation.description);
+        });
+      });
 
       expect(transactionManager.run).toHaveBeenCalled();
 
-      expect(entryService.createEntriesWithOperations).toHaveBeenCalledWith(
+      expect(mockTransactionRepository.save).toHaveBeenCalled();
+
+      const savedTransaction = mockTransactionRepository.save.mock
+        .calls[0][1] as unknown as Transaction;
+
+      const savedUserId = mockTransactionRepository.save.mock
+        .calls[0][0] as unknown as User;
+
+      expect(savedUserId).toBe(user.getId().valueOf());
+
+      expect(savedTransaction.getPostingDate().valueOf()).toBe(
+        transactionData.postingDate,
+      );
+      expect(savedTransaction.getTransactionDate().valueOf()).toBe(
+        transactionData.transactionDate,
+      );
+      expect(savedTransaction.getEntries().length).toBe(
+        transactionDTO.entries.length,
+      );
+
+      expect(savedTransaction.description).toBe(transactionData.description);
+
+      savedTransaction.getEntries().forEach((entry, index) => {
+        const dtoEntry = transactionDTO.entries[index];
+        expect(entry.description).toBe(dtoEntry.description);
+
+        dtoEntry.operations.forEach((op, opIndex) => {
+          const operation = entry.getOperations()[opIndex];
+          expect(operation.getAccountId().valueOf()).toBe(op.accountId);
+          expect(operation.amount.valueOf()).toBe(op.amount);
+          expect(operation.description).toBe(op.description);
+        });
+      });
+
+      expect(transactionContextLoader.loadContext).toHaveBeenCalledWith(
         user,
-        expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          getId: expect.any(Function),
-        }),
-        data.entries,
-      );
-
-      expect(transactionMapper.toResponseDTO).toHaveBeenCalledWith(
-        expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          getId: expect.any(Function),
-        }),
-      );
-
-      expect(mockedSaveWithIdRetry).toHaveBeenCalled();
-      expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.any(Function),
+        transactionDTO.entries,
       );
     });
   });

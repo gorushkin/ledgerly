@@ -1,27 +1,51 @@
-import {
-  createAccount,
-  createEntry,
-  createTransaction,
-  createUser,
-} from 'src/db/createTestUser';
-import { describe, expect, it } from 'vitest';
+import { createUser } from 'src/db/createTestUser';
+import { TransactionBuilder } from 'src/db/test-utils';
+import { beforeAll, describe, expect, it } from 'vitest';
 
+import { Account } from '../accounts';
 import { Amount } from '../domain-core';
+import { Entry } from '../entries';
+import { User } from '../users/user.entity';
 
 import { Operation } from './operation.entity';
 
-describe('Operation Domain Entity', async () => {
-  const user = await createUser();
+describe('Operation Domain Entity', () => {
+  let user: User;
+  let entry: Entry;
+  let account: Account;
 
-  const account = createAccount(user);
+  const transactionData = {
+    description: 'Test transaction',
+    postingDate: '2024-01-01',
+    transactionDate: '2024-01-01',
+    userId: '123e4567-e89b-12d3-a456-426614174000',
+  };
 
-  const transaction = createTransaction(user, {
-    description: 'Test Transaction',
-    postingDate: '2023-01-01',
-    transactionDate: '2023-01-01',
+  const entriesData = [
+    {
+      description: 'First Entry',
+      operations: [
+        { accountKey: 'USD', amount: '10000', description: '1' },
+        { accountKey: 'USD', amount: '-10000', description: '2' },
+      ],
+    },
+  ];
+
+  beforeAll(async () => {
+    user = await createUser();
+
+    const transactionBuilder = TransactionBuilder.create(user);
+
+    const data = transactionBuilder
+      .withSettings(transactionData)
+      .withAccounts(['USD', 'EUR'])
+      .withSystemAccounts()
+      .withEntries(entriesData)
+      .build();
+
+    entry = data.entries[0];
+    account = data.getAccountByKey('USD');
   });
-
-  const entry = createEntry(user, transaction, []);
 
   it('should create a valid operation', () => {
     const operation = Operation.create(
@@ -56,7 +80,6 @@ describe('Operation Domain Entity', async () => {
 
     const restoredOperation = Operation.fromPersistence({
       ...persistenceData,
-      account,
       userId: user.getId().valueOf(),
     });
 

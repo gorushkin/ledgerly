@@ -1,4 +1,4 @@
-import { TransactionRepositoryInterface } from 'src/application';
+import { TransactionQueryRepositoryInterface } from 'src/application';
 import {
   EntryWithOperations,
   OperationDbRow,
@@ -10,12 +10,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { GetTransactionByIdUseCase } from '../GetTransactionById';
 
 describe('GetTransactionByIdUseCase', () => {
-  const mockTransactionRepository = {
-    getById: vi.fn(),
+  const mockTransactionQueryRepository = {
+    findById: vi.fn(),
   };
 
   const getTransactionByIdUseCase = new GetTransactionByIdUseCase(
-    mockTransactionRepository as unknown as TransactionRepositoryInterface,
+    mockTransactionQueryRepository as unknown as TransactionQueryRepositoryInterface,
   );
 
   it('should retrieve transaction by ID', async () => {
@@ -74,7 +74,9 @@ describe('GetTransactionByIdUseCase', () => {
       userId,
     };
 
-    mockTransactionRepository.getById.mockResolvedValue(mockTransactionData);
+    mockTransactionQueryRepository.findById.mockResolvedValue(
+      mockTransactionData,
+    );
 
     const transaction = await getTransactionByIdUseCase.execute(
       userId,
@@ -84,7 +86,7 @@ describe('GetTransactionByIdUseCase', () => {
     expect(transaction).toBeDefined();
     expect(transaction?.id).toBe(transactionId);
     expect(transaction?.description).toBe('Test Transaction');
-    expect(mockTransactionRepository.getById).toHaveBeenCalledWith(
+    expect(mockTransactionQueryRepository.findById).toHaveBeenCalledWith(
       userId,
       transactionId,
     );
@@ -94,7 +96,7 @@ describe('GetTransactionByIdUseCase', () => {
     const transactionId = Id.create().valueOf();
     const userId = Id.create().valueOf();
 
-    mockTransactionRepository.getById.mockResolvedValue(null);
+    mockTransactionQueryRepository.findById.mockResolvedValue(null);
 
     await expect(
       getTransactionByIdUseCase.execute(userId, transactionId),
