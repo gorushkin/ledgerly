@@ -12,3 +12,9 @@ export type OperationSnapshot = {
   amount: MoneyString;
   entryId: UUID;
 };
+
+export type OperationDraft = {
+  accountId: UUID;
+  amount: MoneyString;
+  description: string;
+};

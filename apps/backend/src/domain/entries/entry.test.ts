@@ -20,6 +20,7 @@ import { Entry } from './entry.entity';
 
 describe('Entry Domain Entity', () => {
   let user: User;
+  let userId: Id;
   let anotherUser: User;
 
   let entryData: CreateEntryRequestDTO;
@@ -50,6 +51,7 @@ describe('Entry Domain Entity', () => {
 
   beforeAll(async () => {
     user = await createUser();
+    userId = user.getId();
 
     anotherUser = await createUser();
 
@@ -74,7 +76,7 @@ describe('Entry Domain Entity', () => {
   describe('createEntryWithOperations', () => {
     it('should create a valid entry with operations successfully', () => {
       const entry = Entry.create(
-        user,
+        userId,
         transaction.getId(),
         entryData,
         entryContext,
@@ -89,14 +91,14 @@ describe('Entry Domain Entity', () => {
 
   it('should have a unique ID when created', () => {
     const entry1 = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
     );
 
     const entry2 = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -109,7 +111,7 @@ describe('Entry Domain Entity', () => {
 
   it('should return correct transaction ID', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -120,7 +122,7 @@ describe('Entry Domain Entity', () => {
 
   it('should correctly identify ownership by user', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -132,7 +134,7 @@ describe('Entry Domain Entity', () => {
 
   it('should correctly identify relationship to transaction', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -146,7 +148,7 @@ describe('Entry Domain Entity', () => {
 
   it('should not be deleted when created', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -157,7 +159,7 @@ describe('Entry Domain Entity', () => {
 
   it('should be marked as deleted after markAsDeleted call', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -172,7 +174,7 @@ describe('Entry Domain Entity', () => {
 
   it('should remain deleted after multiple markAsDeleted calls', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -186,7 +188,7 @@ describe('Entry Domain Entity', () => {
 
   it('should maintain transaction relationship after being marked as deleted', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -200,7 +202,7 @@ describe('Entry Domain Entity', () => {
 
   it('should maintain user ownership after being marked as deleted', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -250,21 +252,21 @@ describe('Entry Domain Entity', () => {
 
   it('should throw EmptyOperationsError when adding empty operations array', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
     );
 
-    expect(() => entry.addOperations([])).toThrow(EmptyOperationsError);
-    expect(() => entry.addOperations([])).toThrow(
+    expect(() => entry.attachOperations([])).toThrow(EmptyOperationsError);
+    expect(() => entry.attachOperations([])).toThrow(
       'Cannot add empty operations array',
     );
   });
 
   it('should throw DeletedEntityOperationError when adding operations to deleted entry', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -272,47 +274,47 @@ describe('Entry Domain Entity', () => {
     entry.markAsDeleted();
 
     const operation = Operation.create(
-      user,
+      userId,
       usdAccount,
       entry,
       Amount.create('100'),
       'Test',
     );
 
-    expect(() => entry.addOperations([operation])).toThrow(
+    expect(() => entry.attachOperations([operation])).toThrow(
       DeletedEntityOperationError,
     );
-    expect(() => entry.addOperations([operation])).toThrow(
+    expect(() => entry.attachOperations([operation])).toThrow(
       'Cannot add operations on deleted entry',
     );
   });
 
   it('should throw OperationOwnershipError when operation does not belong to entry', () => {
     const entry1 = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
     );
     const entry2 = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
     );
 
     const operationForEntry2 = Operation.create(
-      user,
+      userId,
       usdAccount,
       entry2,
       Amount.create('100'),
       'Test',
     );
 
-    expect(() => entry1.addOperations([operationForEntry2])).toThrow(
+    expect(() => entry1.attachOperations([operationForEntry2])).toThrow(
       OperationOwnershipError,
     );
-    expect(() => entry1.addOperations([operationForEntry2])).toThrow(
+    expect(() => entry1.attachOperations([operationForEntry2])).toThrow(
       'Operation does not belong to this entry',
     );
   });
@@ -320,7 +322,7 @@ describe('Entry Domain Entity', () => {
   it('should throw EmptyOperationsError when operations are missing', () => {
     expect(() =>
       Entry.create(
-        user,
+        userId,
         transaction.getId(),
         {
           ...entryData,
@@ -333,28 +335,28 @@ describe('Entry Domain Entity', () => {
 
   it('should throw DeletedEntityOperationError when validating deleted entry', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
     );
 
     const operation1 = Operation.create(
-      user,
+      userId,
       usdAccount,
       entry,
       Amount.create('100'),
       'Test 1',
     );
     const operation2 = Operation.create(
-      user,
+      userId,
       eurAccount,
       entry,
       Amount.create('-100'),
       'Test 2',
     );
 
-    entry.addOperations([operation1, operation2]);
+    entry.attachOperations([operation1, operation2]);
     entry.markAsDeleted();
 
     expect(() => entry.validateBalance()).toThrow(DeletedEntityOperationError);
@@ -381,13 +383,13 @@ describe('Entry Domain Entity', () => {
     };
 
     expect(() =>
-      Entry.create(user, transaction.getId(), entryData, entryContext),
+      Entry.create(userId, transaction.getId(), entryData, entryContext),
     ).toThrow(UnbalancedEntryError);
   });
 
   it('should return a copy of operations array (immutability)', () => {
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,
@@ -418,7 +420,7 @@ describe('Entry Domain Entity', () => {
     };
 
     const entry = Entry.create(
-      user,
+      userId,
       transaction.getId(),
       entryData,
       entryContext,

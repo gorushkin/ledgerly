@@ -39,7 +39,7 @@ export function printEntryPTA(
 
     const amount = formatter.formatForTable(op.amount, 'en-US');
     lines.push(
-      `  ${name.padEnd(20)} ${op.description.padEnd(20)} ${amount} ${currency}`,
+      `  ${name.padEnd(20)} ${op.description.padEnd(50)} ${amount} ${currency}`,
     );
   });
   return lines.join('\n');

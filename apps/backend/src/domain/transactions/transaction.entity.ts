@@ -10,7 +10,7 @@ import {
   DateValue,
 } from '../domain-core';
 import { Entry } from '../entries';
-import { User } from '../users/user.entity';
+import { EntryDraft, EntryUpdate } from '../entries/types';
 
 import {
   CreateTransactionProps,
@@ -49,17 +49,14 @@ export class Transaction {
   }
 
   static create(
-    user: User,
+    userId: Id,
     dto: CreateTransactionProps,
     transactionContext: TransactionBuildContext,
   ): Transaction {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
-    const ownership = ParentChildRelation.create(
-      user.getId(),
-      identity.getId(),
-    );
+    const ownership = ParentChildRelation.create(userId, identity.getId());
 
     const postingDate = DateValue.restore(dto.postingDate);
     const transactionDate = DateValue.restore(dto.transactionDate);
@@ -74,8 +71,9 @@ export class Transaction {
       dto.description,
     );
 
-    const entries = dto.entries.map((entryDTO) =>
-      Entry.create(user, transaction.getId(), entryDTO, transactionContext),
+    const entries = transaction.createEntriesFromDrafts(
+      dto.entries,
+      transactionContext,
     );
 
     transaction.attachEntries(entries);
@@ -83,6 +81,22 @@ export class Transaction {
     transaction.validate();
 
     return transaction;
+  }
+
+  private createEntriesFromDrafts(
+    entriesData: EntryDraft[],
+    transactionContext: TransactionBuildContext,
+  ): Entry[] {
+    const entries = entriesData.map((entryDTO) =>
+      Entry.create(
+        this.getUserId(),
+        this.getId(),
+        entryDTO,
+        transactionContext,
+      ),
+    );
+
+    return entries;
   }
 
   static restore(data: TransactionWithEntriesAndOperations): Transaction {
@@ -128,6 +142,7 @@ export class Transaction {
 
     return transaction;
   }
+
   getId(): Id {
     return this.identity.getId();
   }
@@ -234,8 +249,37 @@ export class Transaction {
     return this.transactionDate;
   }
 
-  addEntries(entries: Entry[]): void {
+  addEntries(
+    entriesData: EntryDraft[],
+    transactionContext: TransactionBuildContext,
+  ): void {
+    const entries = this.createEntriesFromDrafts(
+      entriesData,
+      transactionContext,
+    );
+
     this.attachEntries(entries);
+    this.markUpdated();
+  }
+
+  updateEntries(
+    entriesData: EntryUpdate[],
+    transactionContext: TransactionBuildContext,
+  ) {
+    // TODO: add validation if updating is allowed
+    entriesData.forEach((entryData) => {
+      const existingEntry = this.getEntryById(entryData.id);
+
+      if (!existingEntry) {
+        // TODO: add proper error handling
+        throw new Error(
+          `Entry with id ${entryData.id} does not belong to this transaction`,
+        );
+      }
+
+      existingEntry.updateEntry(entryData, transactionContext);
+    });
+
     this.markUpdated();
   }
 
@@ -262,5 +306,28 @@ export class Transaction {
     for (const entry of this.entries) {
       entry.validateBalance();
     }
+  }
+
+  get validationResult(): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    for (const entry of this.entries) {
+      try {
+        entry.validateBalance();
+      } catch (error) {
+        if (error instanceof Error) {
+          errors.push(
+            `Entry ${entry.getId().toString()} is invalid: ${error.message}`,
+          );
+        } else {
+          errors.push(`Entry ${entry.getId().toString()} is invalid.`);
+        }
+      }
+    }
+
+    return {
+      errors,
+      isValid: errors.length === 0,
+    };
   }
 }

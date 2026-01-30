@@ -1,6 +1,6 @@
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
-import { Account, Entry, User } from '..';
+import { Account, Entry } from '..';
 import {
   Id,
   Timestamp,
@@ -27,7 +27,7 @@ export class Operation {
   ) {}
 
   static create(
-    user: User,
+    userId: Id,
     account: Account,
     entry: Entry,
     amount: Amount,
@@ -37,10 +37,7 @@ export class Operation {
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
 
-    const ownership = ParentChildRelation.create(
-      user.getId(),
-      identity.getId(),
-    );
+    const ownership = ParentChildRelation.create(userId, identity.getId());
 
     const entryRelation = ParentChildRelation.create(
       entry.getId(),

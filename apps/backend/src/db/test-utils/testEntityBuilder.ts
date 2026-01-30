@@ -6,7 +6,6 @@ import {
   EntityNotFoundError,
 } from 'src/application';
 import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
-import { createAccount } from 'src/db/createTestUser';
 import { Account, AccountType, Entry, Transaction, User } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
 
@@ -86,7 +85,7 @@ export class EntryBuilder {
     };
 
     this.entry ??= Entry.create(
-      this.user,
+      this.user.getId(),
       this.transaction.getId(),
       entryData,
       this.entryContext,
@@ -96,7 +95,7 @@ export class EntryBuilder {
   }
 }
 
-type TransactionBuilderResult = {
+export type TransactionBuilderResult = {
   accountsMap: Map<UUID, Account>;
   entries: Entry[];
   entryContext: EntryContext;
@@ -201,10 +200,16 @@ export class TransactionBuilder {
     this.validateUser();
 
     for (const [_, account] of this.accounts) {
-      const systemAccount = createAccount(this.user, {
-        currency: Currency.create(account.currency.valueOf()),
-      });
+      const systemAccount = Account.create(
+        this.user,
+        Name.create(`System Account ${account.currency.valueOf()}`),
+        `System Account for ${account.currency.valueOf()}`,
+        Amount.create('0'),
+        Currency.create(account.currency.valueOf()),
+        AccountType.create('currencyTrading'),
+      );
       this.systemAccounts.set(systemAccount.currency.valueOf(), systemAccount);
+      this.accountsMap.set(systemAccount.getId().valueOf(), systemAccount);
     }
     return this;
   }
@@ -217,7 +222,7 @@ export class TransactionBuilder {
     }
 
     this.transaction = Transaction.create(
-      this.user,
+      this.user.getId(),
       {
         description: 'Test Transaction',
         entries: [],
@@ -283,7 +288,7 @@ export class TransactionBuilder {
 
     const entries = this.entryBuilders.map((builder) => {
       const entry = builder.build();
-      this.transaction.addEntries([entry]);
+      this.transaction.attachEntries([entry]);
       return entry;
     });
 

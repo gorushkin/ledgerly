@@ -3,7 +3,7 @@ import { TransactionBuilder } from 'src/db/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Account } from '../accounts';
-import { Amount } from '../domain-core';
+import { Amount, Id } from '../domain-core';
 import { Entry } from '../entries';
 import { User } from '../users/user.entity';
 
@@ -11,6 +11,7 @@ import { Operation } from './operation.entity';
 
 describe('Operation Domain Entity', () => {
   let user: User;
+  let userId: Id;
   let entry: Entry;
   let account: Account;
 
@@ -33,6 +34,7 @@ describe('Operation Domain Entity', () => {
 
   beforeAll(async () => {
     user = await createUser();
+    userId = user.getId();
 
     const transactionBuilder = TransactionBuilder.create(user);
 
@@ -49,7 +51,7 @@ describe('Operation Domain Entity', () => {
 
   it('should create a valid operation', () => {
     const operation = Operation.create(
-      user,
+      userId,
       account,
       entry,
       Amount.create('100'),
@@ -69,7 +71,7 @@ describe('Operation Domain Entity', () => {
 
   it('should serialize and deserialize correctly', () => {
     const operation = Operation.create(
-      user,
+      userId,
       account,
       entry,
       Amount.create('100'),
@@ -80,7 +82,7 @@ describe('Operation Domain Entity', () => {
 
     const restoredOperation = Operation.fromPersistence({
       ...persistenceData,
-      userId: user.getId().valueOf(),
+      userId: userId.valueOf(),
     });
 
     expect(restoredOperation.toPersistence()).toEqual(
@@ -90,7 +92,7 @@ describe('Operation Domain Entity', () => {
 
   it('should allow zero amount operations', () => {
     const operation = Operation.create(
-      user,
+      userId,
       account,
       entry,
       Amount.create('0'),
@@ -102,7 +104,7 @@ describe('Operation Domain Entity', () => {
 
   it('should handle negative amounts correctly', () => {
     const operation = Operation.create(
-      user,
+      userId,
       account,
       entry,
       Amount.create('-50'),
@@ -115,7 +117,7 @@ describe('Operation Domain Entity', () => {
   describe('calculations', () => {
     it('should add amounts correctly', () => {
       const operation1 = Operation.create(
-        user,
+        userId,
         account,
         entry,
         Amount.create('100'),
@@ -123,7 +125,7 @@ describe('Operation Domain Entity', () => {
       );
 
       const operation2 = Operation.create(
-        user,
+        userId,
         account,
         entry,
         Amount.create('50'),
@@ -136,7 +138,7 @@ describe('Operation Domain Entity', () => {
     });
     it('should subtract amounts correctly', () => {
       const operation1 = Operation.create(
-        user,
+        userId,
         account,
         entry,
         Amount.create('100'),
@@ -144,7 +146,7 @@ describe('Operation Domain Entity', () => {
       );
 
       const operation2 = Operation.create(
-        user,
+        userId,
         account,
         entry,
         Amount.create('50'),
