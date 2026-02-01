@@ -5,6 +5,7 @@ import {
   OperationDbRow,
   operationsTable,
 } from 'src/db/schema';
+import { OperationSnapshot } from 'src/domain/operations/types';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -115,17 +116,34 @@ export class OperationRepository
     );
   }
 
-  save(
+  async save(
     userId: UUID,
-    data: {
-      insert: OperationDbInsert[];
-      update: OperationDbInsert[];
-      delete: UUID[];
-    },
+    operations: OperationDbRow[],
+    snapshots: Map<UUID, OperationSnapshot>,
   ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        await this.insert(userId, data.insert);
+        const operationsToInsert: OperationDbRow[] = [];
+        const operationsToUpdate: OperationDbRow[] = [];
+        const operationsToDelete: UUID[] = [];
+
+        operations.forEach((operation) => {
+          const matchedOperationSnapshot = snapshots.get(operation.id);
+
+          if (!matchedOperationSnapshot) {
+            operationsToInsert.push(operation);
+            return;
+          }
+
+          if (operation.isTombstone) {
+            operationsToDelete.push(operation.id);
+            return;
+          }
+
+          operationsToUpdate.push(operation);
+        });
+
+        await this.insert(userId, operationsToInsert);
       },
       'OperationRepository.save',
       {

@@ -2,6 +2,7 @@ import { UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import { EntryRepositoryInterface } from 'src/application';
 import { entriesTable, EntryDbInsert, EntryDbRow } from 'src/db/schema';
+import { EntrySnapshot } from 'src/domain/entries/types';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -128,21 +129,38 @@ export class EntryRepository
 
   save(
     userId: UUID,
-    data: {
-      insert: EntryDbInsert[];
-      update: EntryDbInsert[];
-      delete: UUID[];
-    },
+    entries: EntryDbRow[],
+    snapshots: Map<UUID, EntrySnapshot>,
   ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        await this.insert(userId, data.insert);
+        const entriesToInsert: EntryDbInsert[] = [];
+        const entriesToUpdate: EntryDbInsert[] = [];
+        const entriesToDelete: UUID[] = [];
+
+        entries.forEach((entry) => {
+          const matchedEntrySnapshot = snapshots.get(entry.id);
+
+          if (!matchedEntrySnapshot) {
+            entriesToInsert.push(entry);
+            return;
+          }
+
+          if (entry.isTombstone) {
+            entriesToDelete.push(entry.id);
+            return;
+          }
+
+          entriesToUpdate.push(entry);
+        });
+
+        await this.insert(userId, entriesToInsert);
       },
       'EntryRepository.save',
       {
         field: 'entryIds',
         tableName: 'entries',
-        value: data.insert.map((e) => e.id).join(','),
+        value: '',
       },
     );
   }
