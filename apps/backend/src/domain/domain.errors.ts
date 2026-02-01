@@ -88,6 +88,21 @@ export class EntryNotFoundInTransactionError extends DomainError {
 }
 
 /**
+ * Thrown when attempting to attach an entry that doesn't belong to this transaction.
+ * This indicates a programming error - entries should be created with correct transactionId.
+ */
+export class EntryDoesNotBelongToTransactionError extends DomainError {
+  constructor(
+    public readonly entryId: string,
+    public readonly transactionId: string,
+  ) {
+    super(
+      `Entry with id ${entryId} was created with wrong transactionId. Expected: ${transactionId}`,
+    );
+  }
+}
+
+/**
  * Thrown when TransactionBuildContext is required but not provided.
  */
 export class MissingTransactionContextError extends DomainError {

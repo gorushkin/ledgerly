@@ -1,6 +1,7 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
   ConflictingEntryIdsError,
+  EntryDoesNotBelongToTransactionError,
   EntryNotFoundInTransactionError,
   MissingTransactionContextError,
 } from 'src/domain/domain.errors';
@@ -297,7 +298,7 @@ export class Transaction {
   attachEntries(entries: Entry[]): void {
     entries.forEach((entry) => {
       if (!entry.belongsToTransaction(this.getId())) {
-        throw new EntryNotFoundInTransactionError(
+        throw new EntryDoesNotBelongToTransactionError(
           entry.getId().valueOf(),
           this.getId().valueOf(),
         );
@@ -322,7 +323,7 @@ export class Transaction {
     }
   }
 
-  get validationResult(): { isValid: boolean; errors: string[] } {
+  getValidationResult(): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     for (const entry of this.entries) {
