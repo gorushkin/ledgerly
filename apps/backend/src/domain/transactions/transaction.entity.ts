@@ -188,15 +188,6 @@ export class Transaction {
     return this.ownership.getParentId();
   }
 
-  delete(): void {
-    if (this.isDeleted()) {
-      throw new Error('Transaction is already deleted');
-    }
-
-    this.markAsDeleted();
-    this.markUpdated();
-  }
-
   canBeUpdated(): boolean {
     return !this.isDeleted();
   }
@@ -220,25 +211,9 @@ export class Transaction {
     this.softDelete.validateUpdateIsAllowed();
   }
 
-  private updatePostingDate(date: DateValue): void {
-    this.validateUpdateIsAllowed();
-
-    this.postingDate = date;
-  }
-
-  private updateTransactionDate(date: DateValue): void {
-    this.validateUpdateIsAllowed();
-
-    this.transactionDate = date;
-  }
-
-  private updateDescription(description: string): void {
-    this.validateUpdateIsAllowed();
-
-    this.description = description;
-  }
-
   private updateMetadataIfChanged(metadata?: TransactionUpdateData): boolean {
+    this.validateUpdateIsAllowed();
+
     let isUpdated = false;
 
     if (!metadata) {
@@ -247,18 +222,18 @@ export class Transaction {
 
     if (metadata.description !== undefined) {
       isUpdated = true;
-      this.updateDescription(metadata.description);
+      this.description = metadata.description;
     }
 
     if (metadata.postingDate) {
       isUpdated = true;
 
-      this.updatePostingDate(DateValue.restore(metadata.postingDate));
+      this.postingDate = DateValue.restore(metadata.postingDate);
     }
 
     if (metadata.transactionDate) {
       isUpdated = true;
-      this.updateTransactionDate(DateValue.restore(metadata.transactionDate));
+      this.transactionDate = DateValue.restore(metadata.transactionDate);
     }
 
     return isUpdated;
@@ -282,7 +257,6 @@ export class Transaction {
     );
 
     this.attachEntries(entries);
-    this.markUpdated();
   }
 
   private updateEntries(
@@ -303,28 +277,30 @@ export class Transaction {
 
       existingEntry.updateEntry(entryData, transactionContext);
     });
-
-    this.markUpdated();
   }
 
   private deleteEntries(entryIds: UUID[]): void {
     entryIds.forEach((entryId) => {
       const entry = this.getEntryById(entryId);
 
-      if (entry) {
-        entry.markAsDeleted();
-      } else {
-        throw new Error(
-          `Entry with id ${entryId} does not belong to this transaction`,
+      if (!entry) {
+        throw new EntryNotFoundInTransactionError(
+          entryId,
+          this.getId().valueOf(),
         );
       }
+
+      entry.markAsDeleted();
     });
   }
 
   attachEntries(entries: Entry[]): void {
     entries.forEach((entry) => {
       if (!entry.belongsToTransaction(this.getId())) {
-        throw new Error('Entry does not belong to this transaction');
+        throw new EntryNotFoundInTransactionError(
+          entry.getId().valueOf(),
+          this.getId().valueOf(),
+        );
       }
 
       this.entries.push(entry);

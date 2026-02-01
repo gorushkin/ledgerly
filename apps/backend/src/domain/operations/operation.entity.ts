@@ -16,7 +16,7 @@ import { OperationSnapshot } from './types';
 export class Operation {
   private constructor(
     public readonly identity: EntityIdentity,
-    public readonly timestamps: EntityTimestamps,
+    public timestamps: EntityTimestamps,
     public softDelete: SoftDelete,
     public readonly ownership: ParentChildRelation,
     public readonly entryRelation: ParentChildRelation,
@@ -187,7 +187,7 @@ export class Operation {
 
   markAsDeleted(): void {
     this.softDelete = this.softDelete.markAsDeleted();
-    this.timestamps.touch();
+    this.timestamps = this.timestamps.touch();
   }
 
   isDeleted(): boolean {
