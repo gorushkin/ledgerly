@@ -1,4 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
+import {
+  ConflictingEntryIdsError,
+  EntryDoesNotBelongToTransactionError,
+  EntryNotFoundInTransactionError,
+  MissingTransactionContextError,
+} from 'src/domain/domain.errors';
 
 import {
   EntityIdentity,
@@ -10,7 +16,7 @@ import {
   DateValue,
 } from '../domain-core';
 import { Entry } from '../entries';
-import { User } from '../users/user.entity';
+import { EntryDraft, EntryUpdate } from '../entries/types';
 
 import {
   CreateTransactionProps,
@@ -18,6 +24,8 @@ import {
   TransactionUpdateData,
   TransactionWithEntriesAndOperations,
   TransactionSnapshot,
+  UpdateTransactionProps,
+  EntriesPatch,
 } from './types';
 
 export class Transaction {
@@ -37,6 +45,7 @@ export class Transaction {
     postingDate: DateValue,
     transactionDate: DateValue,
     public description: string,
+    private version = 0,
   ) {
     this.identity = identity;
     this.timestamps = timestamps;
@@ -48,17 +57,14 @@ export class Transaction {
   }
 
   static create(
-    user: User,
+    userId: Id,
     dto: CreateTransactionProps,
     transactionContext: TransactionBuildContext,
   ): Transaction {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
-    const ownership = ParentChildRelation.create(
-      user.getId(),
-      identity.getId(),
-    );
+    const ownership = ParentChildRelation.create(userId, identity.getId());
 
     const postingDate = DateValue.restore(dto.postingDate);
     const transactionDate = DateValue.restore(dto.transactionDate);
@@ -73,15 +79,32 @@ export class Transaction {
       dto.description,
     );
 
-    const entries = dto.entries.map((entryDTO) =>
-      Entry.create(user, transaction.getId(), entryDTO, transactionContext),
+    const entries = transaction.createEntriesFromDrafts(
+      dto.entries,
+      transactionContext,
     );
 
-    transaction.addEntries(entries);
+    transaction.attachEntries(entries);
 
     transaction.validate();
 
     return transaction;
+  }
+
+  private createEntriesFromDrafts(
+    entriesData: EntryDraft[],
+    transactionContext: TransactionBuildContext,
+  ): Entry[] {
+    const entries = entriesData.map((entryDTO) =>
+      Entry.create(
+        this.getUserId(),
+        this.getId(),
+        entryDTO,
+        transactionContext,
+      ),
+    );
+
+    return entries;
   }
 
   static restore(data: TransactionWithEntriesAndOperations): Transaction {
@@ -94,6 +117,7 @@ export class Transaction {
       transactionDate,
       updatedAt,
       userId,
+      version,
     } = data;
 
     const idVO = Id.fromPersistence(id);
@@ -117,14 +141,16 @@ export class Transaction {
       DateValue.restore(postingDate),
       DateValue.restore(transactionDate),
       description,
+      version,
     );
 
     const entries = data.entries.map((entryData) => Entry.restore(entryData));
 
-    transaction.addEntries(entries);
+    transaction.attachEntries(entries);
 
     return transaction;
   }
+
   getId(): Id {
     return this.identity.getId();
   }
@@ -137,12 +163,18 @@ export class Transaction {
     return this.timestamps.getCreatedAt();
   }
 
-  private touch(): void {
+  private markUpdated() {
+    this.version += 1;
     this.timestamps = this.timestamps.touch();
   }
 
   markAsDeleted(): void {
     this.softDelete = this.softDelete.markAsDeleted();
+
+    const entries = this.getEntries();
+
+    this.deleteEntries(entries.map((entry) => entry.getId().valueOf()));
+    this.markUpdated();
   }
 
   isDeleted(): boolean {
@@ -155,15 +187,6 @@ export class Transaction {
 
   getUserId(): Id {
     return this.ownership.getParentId();
-  }
-
-  delete(): void {
-    if (this.isDeleted()) {
-      throw new Error('Transaction is already deleted');
-    }
-
-    this.markAsDeleted();
-    this.touch();
   }
 
   canBeUpdated(): boolean {
@@ -181,6 +204,7 @@ export class Transaction {
       transactionDate: this.transactionDate.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
+      version: this.version,
     };
   }
 
@@ -188,37 +212,32 @@ export class Transaction {
     this.softDelete.validateUpdateIsAllowed();
   }
 
-  private updatePostingDate(date: DateValue): void {
+  private updateMetadataIfChanged(metadata?: TransactionUpdateData): boolean {
     this.validateUpdateIsAllowed();
 
-    this.postingDate = date;
-  }
+    let isUpdated = false;
 
-  private updateTransactionDate(date: DateValue): void {
-    this.validateUpdateIsAllowed();
-
-    this.transactionDate = date;
-  }
-
-  private updateDescription(description: string): void {
-    this.validateUpdateIsAllowed();
-
-    this.description = description;
-  }
-
-  update(updateData: TransactionUpdateData): void {
-    if (updateData.description !== undefined) {
-      this.updateDescription(updateData.description);
+    if (!metadata) {
+      return isUpdated;
     }
 
-    if (updateData.postingDate) {
-      this.updatePostingDate(DateValue.restore(updateData.postingDate));
+    if (metadata.description !== undefined) {
+      isUpdated = true;
+      this.description = metadata.description;
     }
 
-    if (updateData.transactionDate) {
-      this.updateTransactionDate(DateValue.restore(updateData.transactionDate));
+    if (metadata.postingDate) {
+      isUpdated = true;
+
+      this.postingDate = DateValue.restore(metadata.postingDate);
     }
-    this.touch();
+
+    if (metadata.transactionDate) {
+      isUpdated = true;
+      this.transactionDate = DateValue.restore(metadata.transactionDate);
+    }
+
+    return isUpdated;
   }
 
   getPostingDate(): DateValue {
@@ -229,15 +248,64 @@ export class Transaction {
     return this.transactionDate;
   }
 
-  addEntries(entries: Entry[]): void {
+  private addEntries(
+    entriesData: EntryDraft[],
+    transactionContext: TransactionBuildContext,
+  ): void {
+    const entries = this.createEntriesFromDrafts(
+      entriesData,
+      transactionContext,
+    );
+
+    this.attachEntries(entries);
+  }
+
+  private updateEntries(
+    entriesData: EntryUpdate[],
+    transactionContext: TransactionBuildContext,
+  ) {
+    this.validateUpdateIsAllowed();
+
+    entriesData.forEach((entryData) => {
+      const existingEntry = this.getEntryById(entryData.id);
+
+      if (!existingEntry) {
+        throw new EntryNotFoundInTransactionError(
+          entryData.id,
+          this.getId().valueOf(),
+        );
+      }
+
+      existingEntry.updateEntry(entryData, transactionContext);
+    });
+  }
+
+  private deleteEntries(entryIds: UUID[]): void {
+    entryIds.forEach((entryId) => {
+      const entry = this.getEntryById(entryId);
+
+      if (!entry) {
+        throw new EntryNotFoundInTransactionError(
+          entryId,
+          this.getId().valueOf(),
+        );
+      }
+
+      entry.markAsDeleted();
+    });
+  }
+
+  attachEntries(entries: Entry[]): void {
     entries.forEach((entry) => {
       if (!entry.belongsToTransaction(this.getId())) {
-        throw new Error('Entry does not belong to this transaction');
+        throw new EntryDoesNotBelongToTransactionError(
+          entry.getId().valueOf(),
+          this.getId().valueOf(),
+        );
       }
 
       this.entries.push(entry);
     });
-    this.touch();
   }
 
   getEntries(): Entry[] {
@@ -252,6 +320,129 @@ export class Transaction {
   private validate(): void {
     for (const entry of this.entries) {
       entry.validateBalance();
+    }
+  }
+
+  getValidationResult(): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    for (const entry of this.entries) {
+      try {
+        entry.validateBalance();
+      } catch (error) {
+        if (error instanceof Error) {
+          errors.push(
+            `Entry ${entry.getId().toString()} is invalid: ${error.message}`,
+          );
+        } else {
+          errors.push(`Entry ${entry.getId().toString()} is invalid.`);
+        }
+      }
+    }
+
+    return {
+      errors,
+      isValid: errors.length === 0,
+    };
+  }
+
+  private validateEntriesPatch(entries: EntriesPatch): void {
+    if (!entries) {
+      return;
+    }
+
+    const deleteIds = new Set(entries.delete);
+
+    // Check for IDs present in both update and delete
+    const updateDeleteConflicts = entries.update
+      .map((entry) => entry.id)
+      .filter((id) => deleteIds.has(id));
+
+    if (updateDeleteConflicts.length > 0) {
+      throw new ConflictingEntryIdsError(
+        updateDeleteConflicts,
+        'IDs found in both update and delete arrays',
+      );
+    }
+
+    // Check for duplicate IDs within update array
+    const updateDuplicates = entries.update
+      .map((entry) => entry.id)
+      .filter((id, index, arr) => arr.indexOf(id) !== index);
+
+    if (updateDuplicates.length > 0) {
+      throw new ConflictingEntryIdsError(
+        [...new Set(updateDuplicates)],
+        'Duplicate IDs in update array',
+      );
+    }
+
+    // Check for duplicate IDs within delete array
+    const deleteDuplicates = entries.delete.filter(
+      (id, index, arr) => arr.indexOf(id) !== index,
+    );
+
+    if (deleteDuplicates.length > 0) {
+      throw new ConflictingEntryIdsError(
+        [...new Set(deleteDuplicates)],
+        'Duplicate IDs in delete array',
+      );
+    }
+  }
+
+  private applyEntriesPatch(
+    entries: EntriesPatch,
+    transactionContext?: TransactionBuildContext,
+  ) {
+    let isUpdated = false;
+
+    if (!entries) {
+      return isUpdated;
+    }
+
+    this.validateEntriesPatch(entries);
+
+    if (entries.create.length > 0) {
+      isUpdated = true;
+
+      if (!transactionContext) {
+        throw new MissingTransactionContextError('create new entries');
+      }
+
+      this.addEntries(entries.create, transactionContext);
+    }
+
+    if (entries.update.length > 0) {
+      isUpdated = true;
+
+      if (!transactionContext) {
+        throw new MissingTransactionContextError('update entries');
+      }
+
+      this.updateEntries(entries.update, transactionContext);
+    }
+
+    if (entries.delete.length > 0) {
+      isUpdated = true;
+      this.deleteEntries(entries.delete);
+    }
+
+    return isUpdated;
+  }
+
+  applyUpdate(
+    { entries, metadata }: UpdateTransactionProps,
+    transactionContext?: TransactionBuildContext,
+  ) {
+    const isMetadataUpdated = this.updateMetadataIfChanged(metadata);
+
+    const isEntriesUpdated = this.applyEntriesPatch(
+      entries,
+      transactionContext,
+    );
+
+    if (isMetadataUpdated || isEntriesUpdated) {
+      this.markUpdated();
     }
   }
 }

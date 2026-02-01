@@ -35,6 +35,7 @@ export class TransactionMapper {
       transactionDate: snapshot.transactionDate,
       updatedAt: snapshot.updatedAt,
       userId: snapshot.userId,
+      version: snapshot.version,
     };
   }
 }

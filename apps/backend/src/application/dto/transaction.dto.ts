@@ -19,7 +19,7 @@ export type UpdateTransactionRequestDTO = {
   description: string;
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
-  entries: {
+  entries?: {
     create: CreateEntryRequestDTO[];
     update: UpdateEntryRequestDTO[];
     delete: UUID[];

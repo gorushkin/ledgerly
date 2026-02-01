@@ -2,12 +2,11 @@ import {
   IsoDateString,
   UUID,
   CurrencyCode,
-  MoneyString,
   IsoDatetimeString,
 } from '@ledgerly/shared/types';
 
 import { Account } from '../accounts';
-import { EntrySnapshot } from '../entries/types';
+import { EntryDraft, EntrySnapshot, EntryUpdate } from '../entries/types';
 import { OperationSnapshot } from '../operations/types';
 
 export type TransactionUpdateData = {
@@ -21,22 +20,22 @@ export type TransactionBuildContext = {
   systemAccountsMap: Map<CurrencyCode, Account>;
 };
 
-export type EntryOperation = {
-  accountId: UUID;
-  amount: MoneyString;
-  description: string;
-};
-
-export type TransactionEntry = {
-  description: string;
-  operations: [EntryOperation, EntryOperation];
-};
-
 export type CreateTransactionProps = {
   description: string;
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
-  entries: TransactionEntry[];
+  entries: EntryDraft[];
+};
+
+export type EntriesPatch = {
+  create: EntryDraft[];
+  update: EntryUpdate[];
+  delete: UUID[];
+} | null;
+
+export type UpdateTransactionProps = {
+  entries: EntriesPatch;
+  metadata?: TransactionUpdateData;
 };
 
 export type TransactionSnapshot = {
@@ -49,6 +48,7 @@ export type TransactionSnapshot = {
   updatedAt: IsoDatetimeString;
   userId: UUID;
   entries: EntrySnapshot[];
+  version: number;
 };
 
 export type TransactionWithEntriesAndOperations = TransactionSnapshot & {

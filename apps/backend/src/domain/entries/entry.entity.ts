@@ -1,5 +1,4 @@
 import { CurrencyCode, IsoDatetimeString, UUID } from '@ledgerly/shared/types';
-import { CreateEntryRequestDTO } from 'src/application';
 import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { EntryDbRow, EntryWithOperations } from 'src/db/schemas/entries';
 
@@ -22,9 +21,15 @@ import {
   MissingOperationsError,
 } from '../domain.errors';
 import { Operation } from '../operations';
-import { User } from '../users/user.entity';
 
-import { EntrySnapshot, TradingOperationDTO } from './types';
+import {
+  EntryDraft,
+  EntrySnapshot,
+  EntryUpdate,
+  TradingOperationDTO,
+} from './types';
+
+// TODO: add validation that entry and its operations are deleted or not in the same state
 export class Entry {
   private readonly identity: EntityIdentity;
   private timestamps: EntityTimestamps;
@@ -40,6 +45,7 @@ export class Entry {
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
     transactionRelation: ParentChildRelation,
+    private version = 0,
     operations?: Operation[],
   ) {
     this.identity = identity;
@@ -91,9 +97,9 @@ export class Entry {
   }
 
   private addTradingOperations(
-    user: User,
+    userId: Id,
     entry: Entry,
-    entryData: CreateEntryRequestDTO,
+    entryData: EntryDraft,
     [fromCurrency, toCurrency]: [Currency, Currency],
     systemAccountsMap: Map<CurrencyCode, Account>,
   ): [TradingOperationDTO, TradingOperationDTO] | [] {
@@ -125,7 +131,7 @@ export class Entry {
       }),
       entry,
       rawAmount: oppositeFromAmount.valueOf(),
-      user,
+      userId,
     };
 
     const balancedToOperationDTO: TradingOperationDTO = {
@@ -137,7 +143,7 @@ export class Entry {
       }),
       entry,
       rawAmount: oppositeToAmount.valueOf(),
-      user,
+      userId,
     };
 
     return [balancedFromOperationDTO, balancedToOperationDTO];
@@ -158,9 +164,9 @@ export class Entry {
   }
 
   private createOperationsForEntry(
-    user: User,
+    userId: Id,
     entry: Entry,
-    entryData: CreateEntryRequestDTO,
+    entryData: EntryDraft,
     accountsByIdMap: Map<UUID, Account>,
     currencySystemAccountsMap: Map<CurrencyCode, Account>,
   ) {
@@ -178,7 +184,7 @@ export class Entry {
     );
 
     const tradingOperationsDTO = this.addTradingOperations(
-      user,
+      userId,
       entry,
       entryData,
       [fromAccount.currency, toAccount.currency],
@@ -191,14 +197,14 @@ export class Entry {
         description: fromOperationDTO.description,
         entry,
         rawAmount: fromOperationDTO.amount,
-        user,
+        userId,
       },
       {
         account: toAccount,
         description: toOperationDTO.description,
         entry,
         rawAmount: toOperationDTO.amount,
-        user,
+        userId,
       },
       ...tradingOperationsDTO,
     ];
@@ -207,7 +213,7 @@ export class Entry {
 
     const operations = dtos.map((opDTO) => {
       return Operation.create(
-        opDTO.user,
+        opDTO.userId,
         opDTO.account,
         opDTO.entry,
         Amount.create(opDTO.rawAmount),
@@ -219,18 +225,15 @@ export class Entry {
   }
 
   static create(
-    user: User,
+    userId: Id,
     transactionId: Id,
-    entryData: CreateEntryRequestDTO,
+    entryData: EntryDraft,
     entryContext: EntryContext,
   ): Entry {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
-    const ownership = ParentChildRelation.create(
-      user.getId(),
-      identity.getId(),
-    );
+    const ownership = ParentChildRelation.create(userId, identity.getId());
 
     const transactionRelation = ParentChildRelation.create(
       transactionId,
@@ -247,14 +250,14 @@ export class Entry {
     );
 
     const operations = entry.createOperationsForEntry(
-      user,
+      userId,
       entry,
       entryData,
       entryContext.accountsMap,
       entryContext.systemAccountsMap,
     );
 
-    entry.addOperations(operations);
+    entry.attachOperations(operations);
 
     entry.validateBalance();
 
@@ -279,13 +282,19 @@ export class Entry {
 
   markAsDeleted(): void {
     this.softDelete = this.softDelete.markAsDeleted();
+
+    const operations = this.getOperations();
+    operations.forEach((operation) => operation.markAsDeleted());
+
+    this.markUpdated();
   }
 
   isDeleted(): boolean {
     return this.softDelete.isDeleted();
   }
 
-  private touch(): void {
+  private markUpdated() {
+    this.version += 1;
     this.timestamps = this.timestamps.touch();
   }
 
@@ -306,6 +315,7 @@ export class Entry {
       transactionId: this.getTransactionId().valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),
+      version: this.version,
     };
   }
 
@@ -329,19 +339,14 @@ export class Entry {
     }
   }
 
-  addOperations(operations: Operation[]): void {
+  attachOperations(operations: Operation[]): void {
     this.validateCanAddOperations(operations);
 
     this.operations.push(...operations);
-    this.touch();
   }
 
   hasOperations(): boolean {
     return this.operations.length > 0;
-  }
-
-  canBeValidated(): boolean {
-    return this.hasOperations() && !this.isDeleted();
   }
 
   getOperations(): Operation[] {
@@ -366,11 +371,6 @@ export class Entry {
     }
   }
 
-  updateDescription(newDescription: string): void {
-    this.description = newDescription;
-    this.touch();
-  }
-
   static restore({
     createdAt,
     description,
@@ -380,6 +380,7 @@ export class Entry {
     transactionId,
     updatedAt,
     userId,
+    version,
   }: EntryWithOperations): Entry {
     const identity = new EntityIdentity(Id.fromPersistence(id));
 
@@ -404,6 +405,7 @@ export class Entry {
       softDelete,
       ownership,
       transactionRelation,
+      version,
     );
 
     operations.forEach((operationData) => {
@@ -416,14 +418,6 @@ export class Entry {
 
   removeOperations(): void {
     this.operations = [];
-    this.touch();
-  }
-
-  updateOperations(operations: Operation[]): void {
-    this.validateCanAddOperations(operations);
-
-    this.operations = operations;
-    this.touch();
   }
 
   get createdAt(): IsoDatetimeString {
@@ -444,6 +438,27 @@ export class Entry {
       transactionId: this.getTransactionId().valueOf(),
       updatedAt: this.updatedAt,
       userId: this.ownership.getParentId().valueOf(),
+      version: this.version,
     };
+  }
+
+  updateEntry(entryData: EntryUpdate, entryContext: EntryContext) {
+    this.description = entryData.description;
+
+    if (entryData.operations) {
+      this.removeOperations();
+
+      const operations = this.createOperationsForEntry(
+        this.ownership.getParentId(),
+        this,
+        entryData as EntryDraft,
+        entryContext.accountsMap,
+        entryContext.systemAccountsMap,
+      );
+
+      this.attachOperations(operations);
+    }
+
+    this.markUpdated();
   }
 }

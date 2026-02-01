@@ -58,3 +58,55 @@ export class MissingOperationsError extends DomainError {
     super('Cannot validate entry without operations');
   }
 }
+
+/**
+ * Thrown when the same entry ID appears in multiple patch arrays simultaneously.
+ */
+export class ConflictingEntryIdsError extends DomainError {
+  constructor(
+    public readonly conflictingIds: string[],
+    public readonly conflictType: string,
+  ) {
+    super(
+      `Entry IDs cannot appear in multiple operations. ${conflictType}: ${conflictingIds.join(', ')}`,
+    );
+  }
+}
+
+/**
+ * Thrown when attempting to update/delete an entry that doesn't belong to the transaction.
+ */
+export class EntryNotFoundInTransactionError extends DomainError {
+  constructor(
+    public readonly entryId: string,
+    public readonly transactionId: string,
+  ) {
+    super(
+      `Entry with id ${entryId} does not belong to transaction ${transactionId}`,
+    );
+  }
+}
+
+/**
+ * Thrown when attempting to attach an entry that doesn't belong to this transaction.
+ * This indicates a programming error - entries should be created with correct transactionId.
+ */
+export class EntryDoesNotBelongToTransactionError extends DomainError {
+  constructor(
+    public readonly entryId: string,
+    public readonly transactionId: string,
+  ) {
+    super(
+      `Entry with id ${entryId} was created with wrong transactionId. Expected: ${transactionId}`,
+    );
+  }
+}
+
+/**
+ * Thrown when TransactionBuildContext is required but not provided.
+ */
+export class MissingTransactionContextError extends DomainError {
+  constructor(operation: string) {
+    super(`TransactionBuildContext is required to ${operation}`);
+  }
+}

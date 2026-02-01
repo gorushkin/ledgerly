@@ -122,7 +122,7 @@ describe('TransactionRepository', () => {
       const userDomain = User.fromPersistence(user);
 
       const transaction = Transaction.create(
-        userDomain,
+        userDomain.getId(),
         {
           description,
           entries,

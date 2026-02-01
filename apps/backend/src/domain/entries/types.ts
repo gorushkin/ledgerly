@@ -1,14 +1,14 @@
 import { IsoDatetimeString, MoneyString, UUID } from '@ledgerly/shared/types';
 
 import { Account } from '../accounts';
-import { OperationSnapshot } from '../operations/types';
-import { User } from '../users/user.entity';
+import { Id } from '../domain-core';
+import { OperationSnapshot, OperationDraft } from '../operations/types';
 
 import { Entry } from './entry.entity';
 
 // TODO: move to the application layer
 export type TradingOperationDTO = {
-  user: User;
+  userId: Id;
   entry: Entry;
   rawAmount: MoneyString;
   description: string;
@@ -24,4 +24,16 @@ export type EntrySnapshot = {
   userId: UUID;
   transactionId: UUID;
   operations: OperationSnapshot[];
+  version: number;
+};
+
+export type EntryDraft = {
+  description: string;
+  operations: [OperationDraft, OperationDraft];
+};
+
+export type EntryUpdate = {
+  description: string;
+  operations?: [OperationDraft, OperationDraft];
+  id: UUID;
 };

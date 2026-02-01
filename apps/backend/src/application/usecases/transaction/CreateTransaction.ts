@@ -28,7 +28,7 @@ export class CreateTransactionUseCase {
         data.entries,
       );
 
-      const transaction = Transaction.create(user, data, context);
+      const transaction = Transaction.create(user.getId(), data, context);
 
       await this.transactionRepository.save(
         user.getId().valueOf(),

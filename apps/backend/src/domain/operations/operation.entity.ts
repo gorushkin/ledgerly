@@ -1,6 +1,6 @@
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
-import { Account, Entry, User } from '..';
+import { Account, Entry } from '..';
 import {
   Id,
   Timestamp,
@@ -16,8 +16,8 @@ import { OperationSnapshot } from './types';
 export class Operation {
   private constructor(
     public readonly identity: EntityIdentity,
-    public readonly timestamps: EntityTimestamps,
-    public readonly softDelete: SoftDelete,
+    public timestamps: EntityTimestamps,
+    public softDelete: SoftDelete,
     public readonly ownership: ParentChildRelation,
     public readonly entryRelation: ParentChildRelation,
     public readonly accountRelation: ParentChildRelation,
@@ -27,7 +27,7 @@ export class Operation {
   ) {}
 
   static create(
-    user: User,
+    userId: Id,
     account: Account,
     entry: Entry,
     amount: Amount,
@@ -37,10 +37,7 @@ export class Operation {
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
 
-    const ownership = ParentChildRelation.create(
-      user.getId(),
-      identity.getId(),
-    );
+    const ownership = ParentChildRelation.create(userId, identity.getId());
 
     const entryRelation = ParentChildRelation.create(
       entry.getId(),
@@ -186,5 +183,14 @@ export class Operation {
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
     };
+  }
+
+  markAsDeleted(): void {
+    this.softDelete = this.softDelete.markAsDeleted();
+    this.timestamps = this.timestamps.touch();
+  }
+
+  isDeleted(): boolean {
+    return this.softDelete.isDeleted();
   }
 }
