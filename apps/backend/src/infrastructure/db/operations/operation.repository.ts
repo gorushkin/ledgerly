@@ -1,4 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
+import { and, eq, inArray } from 'drizzle-orm';
 import { OperationRepositoryInterface } from 'src/application';
 import {
   OperationDbInsert,
@@ -116,6 +117,52 @@ export class OperationRepository
     );
   }
 
+  update(userId: UUID, operations: OperationDbRow[]): Promise<void> {
+    return this.executeDatabaseOperation(
+      async () => {
+        for (const operation of operations) {
+          await this.db
+            .update(operationsTable)
+            .set({ ...operation, ...this.updateTimestamp })
+            .where(
+              and(
+                eq(operationsTable.id, operation.id),
+                eq(operationsTable.userId, userId),
+              ),
+            );
+        }
+      },
+      'OperationRepository.update',
+      {
+        field: 'operationIds',
+        tableName: 'operations',
+        value: operations.map((op) => op.id).join(', '),
+      },
+    );
+  }
+
+  softDelete(userId: UUID, operationIds: UUID[]): Promise<void> {
+    return this.executeDatabaseOperation(
+      async () => {
+        await this.db
+          .update(operationsTable)
+          .set({ isTombstone: true, ...this.updateTimestamp })
+          .where(
+            and(
+              eq(operationsTable.userId, userId),
+              inArray(operationsTable.id, operationIds),
+            ),
+          );
+      },
+      'OperationRepository.softDelete',
+      {
+        field: 'operationIds',
+        tableName: 'operations',
+        value: operationIds.join(', '),
+      },
+    );
+  }
+
   async save(
     userId: UUID,
     operations: OperationDbRow[],
@@ -143,7 +190,17 @@ export class OperationRepository
           operationsToUpdate.push(operation);
         });
 
-        await this.insert(userId, operationsToInsert);
+        if (operationsToInsert.length > 0) {
+          await this.insert(userId, operationsToInsert);
+        }
+
+        if (operationsToUpdate.length > 0) {
+          await this.update(userId, operationsToUpdate);
+        }
+
+        if (operationsToDelete.length > 0) {
+          await this.softDelete(userId, operationsToDelete);
+        }
       },
       'OperationRepository.save',
       {

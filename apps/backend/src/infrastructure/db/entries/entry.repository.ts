@@ -160,7 +160,7 @@ export class EntryRepository
       {
         field: 'entryIds',
         tableName: 'entries',
-        value: '',
+        value: entries.map((e) => e.id).join(','),
       },
     );
   }

@@ -95,7 +95,7 @@ export class TransactionRepository
 
         return this.insert(userId, transaction);
       },
-      'TransactionRepository.create',
+      'TransactionRepository.save',
       {
         field: 'transactionId',
         tableName: 'transactions',
