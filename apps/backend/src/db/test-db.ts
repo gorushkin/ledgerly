@@ -17,6 +17,9 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
 import { Amount, Currency, DateValue } from 'src/domain/domain-core';
+import { EntrySnapshot } from 'src/domain/entries/types';
+import { OperationSnapshot } from 'src/domain/operations/types';
+import { TransactionSnapshot } from 'src/domain/transactions/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { AmountFormatter } from 'src/presentation/formatters';
 
@@ -29,6 +32,7 @@ import {
   usersTable,
   UserDbRow,
   TransactionWithRelations,
+  AccountDbInsert,
 } from './schema';
 import * as schema from './schemas';
 
@@ -410,6 +414,46 @@ export class TestDB {
       .get();
 
     return account;
+  };
+
+  insertAccount = async (accountData: AccountDbInsert) => {
+    const account = await this.db
+      .insert(accountsTable)
+      .values(accountData)
+      .returning()
+      .get();
+
+    return account;
+  };
+
+  insertOperation = async (operationData: OperationSnapshot) => {
+    const operation = await this.db
+      .insert(schema.operationsTable)
+      .values(operationData)
+      .returning()
+      .get();
+
+    return operation;
+  };
+
+  insertEntry = async (entryData: EntrySnapshot) => {
+    const entry = await this.db
+      .insert(schema.entriesTable)
+      .values(entryData)
+      .returning()
+      .get();
+
+    return entry;
+  };
+
+  insertTransaction = async (transactionData: TransactionSnapshot) => {
+    const transaction = await this.db
+      .insert(transactionsTable)
+      .values(transactionData)
+      .returning()
+      .get();
+
+    return transaction;
   };
 
   createOperation = async (

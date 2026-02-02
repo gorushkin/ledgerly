@@ -9,7 +9,6 @@ import {
   TransactionRepositoryInterface,
 } from 'src/application';
 import {
-  EntryDbInsert,
   EntryDbRow,
   OperationDbRow,
   TransactionDbRow,
@@ -17,6 +16,8 @@ import {
   transactionsTable,
 } from 'src/db/schema';
 import { Transaction } from 'src/domain';
+import { EntrySnapshot } from 'src/domain/entries/types';
+import { OperationSnapshot } from 'src/domain/operations/types';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -27,7 +28,7 @@ export class TransactionRepository
   constructor(
     readonly entriesRepository: EntryRepositoryInterface,
     readonly operationsRepository: OperationRepositoryInterface,
-    transactionManager: BaseRepository['transactionManager'],
+    readonly transactionManager: BaseRepository['transactionManager'],
   ) {
     super(transactionManager);
   }
@@ -49,7 +50,7 @@ export class TransactionRepository
           .returning()
           .get();
       },
-      'TransactionRepository.create',
+      'TransactionRepository.insert',
       {
         field: 'transactionId',
         tableName: 'transactions',
@@ -58,19 +59,59 @@ export class TransactionRepository
     );
   }
 
-  async save(userId: UUID, transaction: Transaction): Promise<void> {
+  private update(
+    userId: UUID,
+    transaction: Transaction,
+  ): Promise<TransactionDbRow> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const transactionData = TransactionMapper.toDBRow(transaction);
+
+        return this.db
+          .update(transactionsTable)
+          .set({ ...transactionData, userId })
+          .returning()
+          .get();
+      },
+      'TransactionRepository.update',
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transaction.getId().valueOf(),
+      },
+    );
+  }
+
+  private save(
+    userId: UUID,
+    transaction: Transaction,
+    snapshot: TransactionWithRelations | null,
+  ): Promise<TransactionDbRow> {
+    return this.executeDatabaseOperation(
+      async () => {
+        if (snapshot) {
+          return this.update(userId, transaction);
+        }
+
+        return this.insert(userId, transaction);
+      },
+      'TransactionRepository.save',
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transaction.getId().valueOf(),
+      },
+    );
+  }
+
+  async rootSave(userId: UUID, transaction: Transaction): Promise<void> {
     await this.executeDatabaseOperation(
       async () => {
-        const entriesToInsert: EntryDbInsert[] = [];
-        const entriesToUpdate: EntryDbInsert[] = [];
-        const entriesToDelete: UUID[] = [];
-
-        const operationsToInsert: OperationDbRow[] = [];
-        const operationsToUpdate: OperationDbRow[] = [];
-        const operationsToDelete: UUID[] = [];
-
         const entries: EntryDbRow[] = [];
         const operations: OperationDbRow[] = [];
+
+        const entriesSnapshots = new Map<UUID, EntrySnapshot>();
+        const operationsSnapshots = new Map<UUID, OperationSnapshot>();
 
         transaction.getEntries().forEach((entry) => {
           entries.push(EntryMapper.toDBRow(entry));
@@ -85,25 +126,23 @@ export class TransactionRepository
           transaction.getId().valueOf(),
         );
 
-        if (!snapshot) {
-          await this.insert(userId, transaction);
+        snapshot?.entries.forEach((entrySnapshot) => {
+          entriesSnapshots.set(entrySnapshot.id, entrySnapshot);
 
-          entriesToInsert.push(...entries);
-
-          operationsToInsert.push(...operations);
-        }
-
-        await this.entriesRepository.save(userId, {
-          delete: entriesToDelete,
-          insert: entriesToInsert,
-          update: entriesToUpdate,
+          entrySnapshot.operations.forEach((operationSnapshot) => {
+            operationsSnapshots.set(operationSnapshot.id, operationSnapshot);
+          });
         });
 
-        await this.operationsRepository.save(userId, {
-          delete: operationsToDelete,
-          insert: operationsToInsert,
-          update: operationsToUpdate,
-        });
+        await this.save(userId, transaction, snapshot);
+
+        await this.entriesRepository.save(userId, entries, entriesSnapshots);
+
+        await this.operationsRepository.save(
+          userId,
+          operations,
+          operationsSnapshots,
+        );
       },
       'TransactionRepository.save',
       {

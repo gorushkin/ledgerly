@@ -111,6 +111,7 @@ export type TransactionBuilderResult = {
     userId: UUID;
   };
   entryData: CreateEntryRequestDTO[];
+  getSystemAccountByCurrency: (currencyCode: string) => Account;
 };
 
 export class TransactionBuilder {
@@ -281,6 +282,17 @@ export class TransactionBuilder {
     return account;
   }
 
+  getSystemAccountByCurrency(currencyCode: string): Account {
+    const account = this.systemAccounts.get(currencyCode as CurrencyCode);
+
+    if (!account) {
+      throw new EntityNotFoundError(
+        `System account with currency ${currencyCode} not found`,
+      );
+    }
+    return account;
+  }
+
   build(): TransactionBuilderResult {
     this.ensureTransaction();
 
@@ -314,6 +326,7 @@ export class TransactionBuilder {
         };
       }),
       getAccountByKey: this.getAccountByKey.bind(this),
+      getSystemAccountByCurrency: this.getSystemAccountByCurrency.bind(this),
       systemAccounts: this.systemAccounts,
       transaction: this.transaction,
       transactionData: {

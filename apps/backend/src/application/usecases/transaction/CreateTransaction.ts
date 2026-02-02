@@ -30,7 +30,7 @@ export class CreateTransactionUseCase {
 
       const transaction = Transaction.create(user.getId(), data, context);
 
-      await this.transactionRepository.save(
+      await this.transactionRepository.rootSave(
         user.getId().valueOf(),
         transaction,
       );

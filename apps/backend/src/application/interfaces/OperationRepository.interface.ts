@@ -1,13 +1,11 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationDbInsert } from 'src/db/schema';
+import { OperationDbRow } from 'src/db/schema';
+import { OperationSnapshot } from 'src/domain/operations/types';
 
 export type OperationRepositoryInterface = {
   save(
     userId: UUID,
-    data: {
-      insert: OperationDbInsert[];
-      update: OperationDbInsert[];
-      delete: UUID[];
-    },
+    operations: OperationDbRow[],
+    snapshots: Map<UUID, OperationSnapshot>,
   ): Promise<void>;
 };

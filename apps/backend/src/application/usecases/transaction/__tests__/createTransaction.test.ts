@@ -14,7 +14,7 @@ describe('CreateTransactionUseCase', () => {
   let user: User;
 
   const mockTransactionRepository = {
-    save: vi.fn(),
+    rootSave: vi.fn(),
   };
 
   const transactionManager = {
@@ -88,12 +88,12 @@ describe('CreateTransactionUseCase', () => {
 
       expect(transactionManager.run).toHaveBeenCalled();
 
-      expect(mockTransactionRepository.save).toHaveBeenCalled();
+      expect(mockTransactionRepository.rootSave).toHaveBeenCalled();
 
-      const savedTransaction = mockTransactionRepository.save.mock
+      const savedTransaction = mockTransactionRepository.rootSave.mock
         .calls[0][1] as unknown as Transaction;
 
-      const savedUserId = mockTransactionRepository.save.mock
+      const savedUserId = mockTransactionRepository.rootSave.mock
         .calls[0][0] as unknown as User;
 
       expect(savedUserId).toBe(user.getId().valueOf());
