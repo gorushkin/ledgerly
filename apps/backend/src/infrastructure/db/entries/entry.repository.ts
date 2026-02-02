@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { EntryRepositoryInterface } from 'src/application';
 import { entriesTable, EntryDbInsert, EntryDbRow } from 'src/db/schema';
 import { EntrySnapshot } from 'src/domain/entries/types';
@@ -28,78 +28,50 @@ export class EntryRepository
       { field: 'entry', tableName: 'entries', value: entry.id },
     );
   }
-  // voidByIds(userId: UUID, entryIds: UUID[]): Promise<EntryDbRow[]> {
-  //   return this.executeDatabaseOperation<EntryDbRow[]>(
-  //     () => {
-  //       return this.db
-  //         .update(entriesTable)
-  //         .set({ isTombstone: true, ...this.updateTimestamp })
-  //         .where(
-  //           and(
-  //             inArray(entriesTable.id, entryIds),
-  //             eq(entriesTable.userId, userId),
-  //           ),
-  //         )
-  //         .returning()
-  //         .all();
-  //     },
-  //     'EntryRepository.voidByIds',
-  //     { field: 'entryIds', tableName: 'entries', value: entryIds.join(',') },
-  //   );
-  // }
 
-  // create(entry: EntryDbInsert): Promise<EntryDbRow> {
-  //   return this.executeDatabaseOperation(
-  //     async () => this.db.insert(entriesTable).values(entry).returning().get(),
-  //     'EntryRepository.create',
-  //     { field: 'entry', tableName: 'entries', value: entry.id },
-  //   );
-  // }
+  private bulkUpdate(
+    userId: UUID,
+    entries: EntryDbInsert[],
+  ): Promise<EntryDbRow[]> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const updatedEntries: EntryDbRow[] = [];
 
-  // getByTransactionId(userId: UUID, transactionId: UUID): Promise<EntryDbRow[]> {
-  //   return this.executeDatabaseOperation(
-  //     async () =>
-  //       this.db
-  //         .select()
-  //         .from(entriesTable)
-  //         .where(
-  //           and(
-  //             eq(entriesTable.transactionId, transactionId),
-  //             eq(entriesTable.userId, userId),
-  //           ),
-  //         )
-  //         .all(),
-  //     'EntryRepository.getByTransactionId',
-  //     { field: 'transactionId', tableName: 'entries', value: transactionId },
-  //   );
-  // }
+        for (const entry of entries) {
+          const updatedEntry = await this.update(userId, entry);
+          updatedEntries.push(updatedEntry);
+        }
 
-  // async voidByTransactionId(
-  //   userId: UUID,
-  //   transactionId: UUID,
-  // ): Promise<EntryDbRow[]> {
-  //   return this.executeDatabaseOperation<EntryDbRow[]>(
-  //     () => {
-  //       return this.db
-  //         .update(entriesTable)
-  //         .set({ isTombstone: true, ...this.updateTimestamp })
-  //         .where(
-  //           and(
-  //             eq(entriesTable.transactionId, transactionId),
-  //             eq(entriesTable.userId, userId),
-  //           ),
-  //         )
-  //         .returning()
-  //         .all();
-  //     },
-  //     'EntryRepository.softDeleteByTransactionId',
-  //     {
-  //       field: 'entryIds',
-  //       tableName: 'entries',
-  //       value: transactionId,
-  //     },
-  //   );
-  // }
+        return updatedEntries;
+      },
+      'EntryRepository.bulkUpdate',
+      {
+        field: 'entryIds',
+        tableName: 'entries',
+        value: entries.map((e) => e.id).join(','),
+      },
+    );
+  }
+
+  voidByIds(userId: UUID, entryIds: UUID[]): Promise<EntryDbRow[]> {
+    return this.executeDatabaseOperation<EntryDbRow[]>(
+      () => {
+        return this.db
+          .update(entriesTable)
+          .set({ isTombstone: true, ...this.updateTimestamp })
+          .where(
+            and(
+              inArray(entriesTable.id, entryIds),
+              eq(entriesTable.userId, userId),
+            ),
+          )
+          .returning()
+          .all();
+      },
+      'EntryRepository.voidByIds',
+      { field: 'entryIds', tableName: 'entries', value: entryIds.join(',') },
+    );
+  }
 
   private insert(
     userId: UUID,
@@ -107,6 +79,10 @@ export class EntryRepository
   ): Promise<EntryDbRow[]> {
     return this.executeDatabaseOperation(
       async () => {
+        if (entries.length === 0) {
+          return [];
+        }
+
         const rowsToInsert = entries.map((e) => ({
           ...e,
           userId,
@@ -155,12 +131,14 @@ export class EntryRepository
         });
 
         await this.insert(userId, entriesToInsert);
+        await this.bulkUpdate(userId, entriesToUpdate);
+        await this.voidByIds(userId, entriesToDelete);
       },
       'EntryRepository.save',
       {
         field: 'entryIds',
         tableName: 'entries',
-        value: '',
+        value: entries.map((e) => e.id).join(','),
       },
     );
   }

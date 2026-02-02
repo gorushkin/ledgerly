@@ -1,255 +1,272 @@
-// import { EntryDbRow, TransactionDbRow, UserDbRow } from 'src/db/schema';
-// import { compareEntities } from 'src/db/test-utils';
-// import { Id, Timestamp } from 'src/domain/domain-core';
-// import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { UUID } from '@ledgerly/shared/types';
+import { EntryMapper } from 'src/application';
+import { EntryDbRow, UserDbRow } from 'src/db/schema';
+import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
+import { Transaction, User } from 'src/domain';
+import { Id, Timestamp } from 'src/domain/domain-core';
+import { EntrySnapshot } from 'src/domain/entries/types';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { it, describe } from 'vitest';
+import { TestDB } from '../../../db/test-db';
+import { TransactionManager } from '../TransactionManager';
 
-// import { TestDB } from '../../../db/test-db';
-// import { TransactionManager } from '../TransactionManager';
+import { EntryRepository } from './entry.repository';
 
-// import { EntryRepository } from './entry.repository';
+describe('EntryRepository', () => {
+  let testDB: TestDB;
+  let entryRepository: EntryRepository;
+  let user: UserDbRow;
+  let transaction: Transaction;
 
-// describe('EntryRepository', () => {
-//   let testDB: TestDB;
-//   let entryRepository: EntryRepository;
-//   let user: UserDbRow;
-//   let transaction: TransactionDbRow;
+  const transactionManager = {
+    getCurrentTransaction: () => testDB.db,
+    run: vi.fn((cb: () => unknown) => {
+      return cb();
+    }),
+  };
 
-//   const transactionManager = {
-//     getCurrentTransaction: () => testDB.db,
-//     run: vi.fn((cb: () => unknown) => {
-//       return cb();
-//     }),
-//   };
+  beforeEach(async () => {
+    testDB = new TestDB();
+    await testDB.setupTestDb();
 
-//   beforeEach(async () => {
-//     testDB = new TestDB();
-//     await testDB.setupTestDb();
+    user = await testDB.createUser();
 
-//     user = await testDB.createUser();
-//     transaction = await testDB.createTransaction(user.id);
+    const transactionBuilder = TransactionBuilder.create(
+      User.fromPersistence(user),
+    );
 
-//     entryRepository = new EntryRepository(
-//       transactionManager as unknown as TransactionManager,
-//     );
-//   });
+    const entriesData = [
+      {
+        description: 'First Entry',
+        operations: [
+          { accountKey: 'USD', amount: '10000', description: '1' },
+          { accountKey: 'USD', amount: '-10000', description: '2' },
+        ],
+      },
+      {
+        description: 'Second Entry',
+        operations: [
+          { accountKey: 'USD', amount: '10000', description: '1' },
+          { accountKey: 'USD', amount: '-10000', description: '2' },
+        ],
+      },
+    ];
 
-//   describe('create', () => {
-//     it('should create an entry successfully', async () => {
-//       const userId = user.id;
-//       const transactionId = transaction.id;
+    const data = transactionBuilder
+      .withAccounts(['USD', 'EUR'])
+      .withEntries(entriesData)
+      .withSystemAccounts()
+      .build();
 
-//       const createdAt = Timestamp.create().valueOf();
-//       const updatedAt = Timestamp.create().valueOf();
-//       const id = Id.create().valueOf();
+    transaction = data.transaction;
 
-//       const entryInput: EntryDbRow = {
-//         createdAt,
-//         description: 'Test Entry',
-//         id,
-//         isTombstone: false,
-//         transactionId,
-//         updatedAt,
-//         userId,
-//       };
+    await testDB.insertTransaction(transaction.toSnapshot());
 
-//       const entry = await entryRepository.create(entryInput);
+    entryRepository = new EntryRepository(
+      transactionManager as unknown as TransactionManager,
+    );
+  });
 
-//       expect(entry).toEqual(entryInput);
-//     });
-//   });
+  describe('save', () => {
+    it.skip('should create a new entry if it does not exist', async () => {
+      const entries = transaction
+        .getEntries()
+        .map((entry) => EntryMapper.toDBRow(entry));
 
-//   describe('getByTransactionId', () => {
-//     it('should retrieve entries by transaction ID', async () => {
-//       const entry1 = await testDB.createEntry(user.id, {
-//         transactionId: transaction.id,
-//       });
-//       const entry2 = await testDB.createEntry(user.id, {
-//         transactionId: transaction.id,
-//       });
+      const fetchedEntriesBeforeSaving = await Promise.all(
+        entries.map((entry) => testDB.getEntryById(entry.id)),
+      );
 
-//       const entries = await entryRepository.getByTransactionId(
-//         user.id,
-//         transaction.id,
-//       );
+      const transactionWithRelations = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
 
-//       expect(entries).toHaveLength(2);
-//       expect(entries).toEqual(
-//         expect.arrayContaining([
-//           expect.objectContaining({ id: entry1.id }),
-//           expect.objectContaining({ id: entry2.id }),
-//         ]),
-//       );
-//     });
+      expect(transactionWithRelations?.entries).toHaveLength(0);
 
-//     it('should return an empty array if no entries found for the transaction ID', async () => {
-//       const anotherTransaction = await testDB.createTransaction(user.id);
+      expect(fetchedEntriesBeforeSaving.every((e) => e === null)).toBe(true);
 
-//       const entries = await entryRepository.getByTransactionId(
-//         user.id,
-//         anotherTransaction.id,
-//       );
+      await entryRepository.save(
+        user.id,
+        entries,
+        new Map<UUID, EntrySnapshot>(),
+      );
 
-//       expect(entries).toHaveLength(0);
-//     });
+      const fetchedEntries = await Promise.all(
+        entries.map((entry) => testDB.getEntryById(entry.id)),
+      );
 
-//     it('should not retrieve entries for a different user', async () => {
-//       const anotherUser = await testDB.createUser();
+      fetchedEntries.forEach((fetchedEntry, index) => {
+        expect(fetchedEntry).toBeDefined();
+        compareEntities<EntryDbRow>(entries[index], fetchedEntry!);
+      });
+    });
 
-//       const entries = await entryRepository.getByTransactionId(
-//         anotherUser.id,
-//         transaction.id,
-//       );
+    it.skip('should update an existing entry and do not touch other entries', async () => {
+      const entries = transaction
+        .getEntries()
+        .map((entry) => EntryMapper.toDBRow(entry));
 
-//       expect(entries).toHaveLength(0);
-//     });
+      const entriesSnapshots = new Map<UUID, EntrySnapshot>();
 
-//     it('should return an empty array when a non-existent transaction ID is provided', async () => {
-//       const nonExistentTransactionId = Id.create().valueOf();
+      await entryRepository.save(user.id, entries, entriesSnapshots);
 
-//       const entries = await entryRepository.getByTransactionId(
-//         user.id,
-//         nonExistentTransactionId,
-//       );
+      const entryToUpdate = entries[0];
+      const entryToUpdateId = entryToUpdate.id;
 
-//       expect(entries).toHaveLength(0);
-//     });
-//   });
+      const entryToUpdateData = {
+        ...entryToUpdate,
+        description: 'Updated Entry',
+      };
 
-//   describe('softDeleteByTransactionId', () => {
-//     it('should mark entries as tombstone by transaction ID', async () => {
-//       const createdEntries = await Promise.all([
-//         testDB.createEntry(user.id, {
-//           transactionId: transaction.id,
-//         }),
-//         testDB.createEntry(user.id, {
-//           transactionId: transaction.id,
-//         }),
-//       ]);
+      const snapshot = transaction.toSnapshot();
 
-//       const voidedEntries = await entryRepository.voidByTransactionId(
-//         user.id,
-//         transaction.id,
-//       );
+      snapshot?.entries.forEach((entrySnapshot) => {
+        entriesSnapshots.set(entrySnapshot.id, entrySnapshot);
+      });
 
-//       expect(voidedEntries).toHaveLength(createdEntries.length);
-//       expect(voidedEntries).toEqual(
-//         expect.arrayContaining([
-//           expect.objectContaining({
-//             id: createdEntries[0].id,
-//             isTombstone: true,
-//           }),
-//           expect.objectContaining({
-//             id: createdEntries[1].id,
-//             isTombstone: true,
-//           }),
-//         ]),
-//       );
+      await entryRepository.save(
+        user.id,
+        [entryToUpdateData],
+        entriesSnapshots,
+      );
 
-//       const entries = await entryRepository.getByTransactionId(
-//         user.id,
-//         transaction.id,
-//       );
+      const fetchedEntries = await Promise.all(
+        entries.map((entry) => testDB.getEntryById(entry.id)),
+      );
 
-//       expect(entries).toHaveLength(createdEntries.length);
+      entries.forEach((entry) => {
+        const expectedEntry =
+          entry.id === entryToUpdateId ? entryToUpdateData : entry;
 
-//       const deletedEntry1 = await testDB.getEntryById(createdEntries[0].id);
-//       const deletedEntry2 = await testDB.getEntryById(createdEntries[1].id);
+        const fetchedEntry = fetchedEntries.find((e) => e?.id === entry.id);
 
-//       expect(deletedEntry1?.isTombstone).toBe(true);
-//       expect(deletedEntry2?.isTombstone).toBe(true);
-//     });
+        expect(fetchedEntry).toBeDefined();
+        compareEntities<EntryDbRow>(expectedEntry, fetchedEntry!, [
+          'updatedAt',
+        ]);
+      });
+    });
 
-//     it('should do nothing if no entries exist for the given transaction ID', async () => {
-//       const anotherTransaction = await testDB.createTransaction(user.id);
+    it.skip('should soft delete an entry and do not touch other entries', async () => {
+      const entries = transaction
+        .getEntries()
+        .map((entry) => EntryMapper.toDBRow(entry));
 
-//       await entryRepository.voidByTransactionId(user.id, anotherTransaction.id);
+      const entriesSnapshots = new Map<UUID, EntrySnapshot>();
 
-//       const entries = await entryRepository.getByTransactionId(
-//         user.id,
-//         anotherTransaction.id,
-//       );
+      await entryRepository.save(user.id, entries, entriesSnapshots);
 
-//       expect(entries).toEqual([]);
-//     });
-//   });
+      const entryToDelete = entries[0];
+      const entryToDeleteId = entryToDelete.id;
 
-//   describe('update', () => {
-//     it('should update an existing entry', async () => {
-//       const createdEntry = await testDB.createEntry(user.id, {
-//         description: 'Old Description',
-//         transactionId: transaction.id,
-//       });
+      const snapshot = transaction.toSnapshot();
 
-//       const updatedEntryData: EntryDbRow = {
-//         ...createdEntry,
-//         createdAt: Timestamp.create().valueOf(),
-//         description: 'Updated Description',
-//         isTombstone: true,
-//         updatedAt: Timestamp.create().valueOf(),
-//       };
+      snapshot?.entries.forEach((entrySnapshot) => {
+        entriesSnapshots.set(entrySnapshot.id, entrySnapshot);
+      });
 
-//       const updatedEntry = await entryRepository.update(
-//         user.id,
-//         updatedEntryData,
-//       );
+      const entryToDeleteData = {
+        ...entryToDelete,
+        isTombstone: true,
+      };
 
-//       expect(updatedEntry.description).toBe('Updated Description');
+      await entryRepository.save(
+        user.id,
+        [entryToDeleteData],
+        entriesSnapshots,
+      );
 
-//       const fetchedEntry = await testDB.getEntryById(createdEntry.id);
-//       expect(fetchedEntry?.description).toBe('Updated Description');
+      const fetchedEntries = await Promise.all(
+        entries.map((entry) => testDB.getEntryById(entry.id)),
+      );
 
-//       compareEntities<EntryDbRow>(createdEntry, updatedEntry, [
-//         'description',
-//         'updatedAt',
-//       ]);
-//     });
-//   });
+      entries.forEach((entry) => {
+        const expectedEntry =
+          entry.id === entryToDeleteId ? entryToDeleteData : entry;
 
-//   describe('voidByIds', () => {
-//     it('should mark entries as tombstone by their IDs', async () => {
-//       const createdEntries = await Promise.all([
-//         testDB.createEntry(user.id, {
-//           transactionId: transaction.id,
-//         }),
-//         testDB.createEntry(user.id, {
-//           transactionId: transaction.id,
-//         }),
-//       ]);
+        const fetchedEntry = fetchedEntries.find((e) => e?.id === entry.id);
 
-//       const entryIds = createdEntries.map((entry) => entry.id);
+        expect(fetchedEntry).toBeDefined();
+        compareEntities<EntryDbRow>(expectedEntry, fetchedEntry!, [
+          'updatedAt',
+        ]);
+      });
+    });
 
-//       const voidedEntries = await entryRepository.voidByIds(user.id, entryIds);
+    it('should create, update and delete entries in a single save operation', async () => {
+      const entries = transaction
+        .getEntries()
+        .map((entry) => EntryMapper.toDBRow(entry));
 
-//       expect(voidedEntries).toHaveLength(createdEntries.length);
+      const entriesSnapshots = new Map<UUID, EntrySnapshot>();
 
-//       voidedEntries.forEach((entry) => {
-//         expect(entry.isTombstone).toBe(true);
+      await entryRepository.save(user.id, entries, entriesSnapshots);
 
-//         const wasCreatedEntry = createdEntries.find((e) => e.id === entry.id);
-//         expect(wasCreatedEntry).toBeDefined();
-//         expect(entry.description).toBe(wasCreatedEntry?.description);
-//       });
+      const entryToUpdate = entries[0];
+      const entryToDelete = entries[1];
 
-//       for (const createdEntry of createdEntries) {
-//         const deletedEntry = await testDB.getEntryById(createdEntry.id);
+      const entryToUpdateData = {
+        ...entryToUpdate,
+        description: 'Updated Entry',
+      };
 
-//         if (!deletedEntry) {
-//           throw new Error('Deleted entry should exist');
-//         }
+      const entryToDeleteData = {
+        ...entryToDelete,
+        isTombstone: true,
+      };
 
-//         compareEntities<EntryDbRow>(createdEntry, deletedEntry, [
-//           'isTombstone',
-//           'updatedAt',
-//         ]);
-//       }
-//     });
-//   });
-// });
+      const newEntryData: EntryDbRow = {
+        createdAt: Timestamp.create().valueOf(),
+        description: 'New Entry',
+        id: Id.create().valueOf(),
+        isTombstone: false,
+        transactionId: transaction.getId().valueOf(),
+        updatedAt: Timestamp.create().valueOf(),
+        userId: user.id,
+        version: 0,
+      };
 
-describe('Placeholder test', () => {
-  it('should pass', () => {
-    // Placeholder test to ensure the test suite runs
+      const snapshot = transaction.toSnapshot();
+
+      snapshot?.entries.forEach((entrySnapshot) => {
+        entriesSnapshots.set(entrySnapshot.id, entrySnapshot);
+      });
+
+      await entryRepository.save(
+        user.id,
+        [entryToUpdateData, entryToDeleteData, newEntryData],
+        entriesSnapshots,
+      );
+
+      const fetchedEntries = await Promise.all([
+        ...entries.map((entry) => testDB.getEntryById(entry.id)),
+        testDB.getEntryById(newEntryData.id),
+      ]);
+
+      entries.forEach((entry) => {
+        const expectedEntry =
+          entry.id === entryToUpdateData.id
+            ? entryToUpdateData
+            : entry.id === entryToDeleteData.id
+              ? entryToDeleteData
+              : entry;
+
+        const fetchedEntry = fetchedEntries.find((e) => e?.id === entry.id);
+
+        expect(fetchedEntry).toBeDefined();
+        compareEntities<EntryDbRow>(expectedEntry, fetchedEntry!, [
+          'updatedAt',
+        ]);
+      });
+
+      const fetchedNewEntry = fetchedEntries.find(
+        (e) => e?.id === newEntryData.id,
+      );
+
+      expect(fetchedNewEntry).toBeDefined();
+      compareEntities<EntryDbRow>(newEntryData, fetchedNewEntry!, [
+        'updatedAt',
+      ]);
+    });
   });
 });
