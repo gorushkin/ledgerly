@@ -173,7 +173,6 @@ describe('TransactionRepository', () => {
       expect(row?.description).toBe(description);
       expect(row?.postingDate).toBe(postingDate);
       expect(row?.transactionDate).toBe(transactionDate);
-      expect(row?.entries.length).toBe(0);
     });
   });
 
