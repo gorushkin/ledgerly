@@ -1,7 +1,8 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { EntryRepositoryInterface } from 'src/application';
 import { entriesTable, EntryDbInsert, EntryDbRow } from 'src/db/schema';
+import { Timestamp } from 'src/domain/domain-core';
 import { EntrySnapshot } from 'src/domain/entries/types';
 
 import { BaseRepository } from '../BaseRepository';
@@ -35,14 +36,42 @@ export class EntryRepository
   ): Promise<EntryDbRow[]> {
     return this.executeDatabaseOperation(
       async () => {
-        const updatedEntries: EntryDbRow[] = [];
-
-        for (const entry of entries) {
-          const updatedEntry = await this.update(userId, entry);
-          updatedEntries.push(updatedEntry);
+        if (entries.length === 0) {
+          return [];
         }
 
-        return updatedEntries;
+        const entryIds = entries.map((e) => e.id);
+        const updatedAt = Timestamp.create().valueOf();
+
+        const descriptionCases = entries.map(
+          (entry) => sql`WHEN ${entry.id} THEN ${entry.description}`,
+        );
+
+        await this.db
+          .update(entriesTable)
+          .set({
+            description: sql`CASE ${entriesTable.id} ${sql.join(descriptionCases, sql.raw(' '))} END`,
+            updatedAt,
+          })
+          .where(
+            and(
+              inArray(entriesTable.id, entryIds),
+              eq(entriesTable.userId, userId),
+            ),
+          )
+          .run();
+
+        // Fetch and return updated entries
+        return this.db
+          .select()
+          .from(entriesTable)
+          .where(
+            and(
+              inArray(entriesTable.id, entryIds),
+              eq(entriesTable.userId, userId),
+            ),
+          )
+          .all();
       },
       'EntryRepository.bulkUpdate',
       {

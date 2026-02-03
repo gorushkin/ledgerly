@@ -46,8 +46,15 @@ describe('EntryRepository', () => {
       {
         description: 'Second Entry',
         operations: [
-          { accountKey: 'USD', amount: '10000', description: '1' },
-          { accountKey: 'USD', amount: '-10000', description: '2' },
+          { accountKey: 'USD', amount: '20000', description: '1' },
+          { accountKey: 'USD', amount: '-20000', description: '2' },
+        ],
+      },
+      {
+        description: 'Third Entry',
+        operations: [
+          { accountKey: 'USD', amount: '20000', description: '1' },
+          { accountKey: 'USD', amount: '-20000', description: '2' },
         ],
       },
     ];
@@ -68,7 +75,7 @@ describe('EntryRepository', () => {
   });
 
   describe('save', () => {
-    it.skip('should create a new entry if it does not exist', async () => {
+    it('should create a new entry if it does not exist', async () => {
       const entries = transaction
         .getEntries()
         .map((entry) => EntryMapper.toDBRow(entry));
@@ -101,7 +108,7 @@ describe('EntryRepository', () => {
       });
     });
 
-    it.skip('should update an existing entry and do not touch other entries', async () => {
+    it('should update an existing entry and do not touch other entries', async () => {
       const entries = transaction
         .getEntries()
         .map((entry) => EntryMapper.toDBRow(entry));
@@ -110,13 +117,19 @@ describe('EntryRepository', () => {
 
       await entryRepository.save(user.id, entries, entriesSnapshots);
 
-      const entryToUpdate = entries[0];
-      const entryToUpdateId = entryToUpdate.id;
+      const entriesToUpdate = [entries[0], entries[1]];
+      const entryToUpdateId = entriesToUpdate.map((e) => e.id);
 
-      const entryToUpdateData = {
-        ...entryToUpdate,
-        description: 'Updated Entry',
-      };
+      const entriesToUpdateData = [
+        {
+          ...entriesToUpdate[0],
+          description: 'Updated Entry One',
+        },
+        {
+          ...entriesToUpdate[1],
+          description: 'Updated Entry Two',
+        },
+      ];
 
       const snapshot = transaction.toSnapshot();
 
@@ -126,7 +139,7 @@ describe('EntryRepository', () => {
 
       await entryRepository.save(
         user.id,
-        [entryToUpdateData],
+        entriesToUpdateData,
         entriesSnapshots,
       );
 
@@ -135,10 +148,15 @@ describe('EntryRepository', () => {
       );
 
       entries.forEach((entry) => {
-        const expectedEntry =
-          entry.id === entryToUpdateId ? entryToUpdateData : entry;
+        const expectedEntry = entryToUpdateId.includes(entry.id)
+          ? entriesToUpdateData.find((e) => e.id === entry.id)
+          : entry;
 
         const fetchedEntry = fetchedEntries.find((e) => e?.id === entry.id);
+
+        if (!expectedEntry) {
+          throw new Error('Expected entry not found');
+        }
 
         expect(fetchedEntry).toBeDefined();
         compareEntities<EntryDbRow>(expectedEntry, fetchedEntry!, [
@@ -147,7 +165,7 @@ describe('EntryRepository', () => {
       });
     });
 
-    it.skip('should soft delete an entry and do not touch other entries', async () => {
+    it('should soft delete an entry and do not touch other entries', async () => {
       const entries = transaction
         .getEntries()
         .map((entry) => EntryMapper.toDBRow(entry));
