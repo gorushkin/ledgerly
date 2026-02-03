@@ -47,7 +47,7 @@ export class EntryRepository
           (entry) => sql`WHEN ${entry.id} THEN ${entry.description}`,
         );
 
-        await this.db
+        return await this.db
           .update(entriesTable)
           .set({
             description: sql`CASE ${entriesTable.id} ${sql.join(descriptionCases, sql.raw(' '))} END`,
@@ -59,18 +59,7 @@ export class EntryRepository
               eq(entriesTable.userId, userId),
             ),
           )
-          .run();
-
-        // Fetch and return updated entries
-        return this.db
-          .select()
-          .from(entriesTable)
-          .where(
-            and(
-              inArray(entriesTable.id, entryIds),
-              eq(entriesTable.userId, userId),
-            ),
-          )
+          .returning()
           .all();
       },
       'EntryRepository.bulkUpdate',

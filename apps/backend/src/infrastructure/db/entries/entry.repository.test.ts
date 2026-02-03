@@ -286,5 +286,46 @@ describe('EntryRepository', () => {
         'updatedAt',
       ]);
     });
+
+    it('should update multiple entries with different descriptions in bulk', async () => {
+      const entries = transaction
+        .getEntries()
+        .map((entry) => EntryMapper.toDBRow(entry));
+
+      const entriesSnapshots = new Map<UUID, EntrySnapshot>();
+
+      await entryRepository.save(user.id, entries, entriesSnapshots);
+
+      const snapshot = transaction.toSnapshot();
+
+      snapshot?.entries.forEach((entrySnapshot) => {
+        entriesSnapshots.set(entrySnapshot.id, entrySnapshot);
+      });
+
+      const updatedEntries = entries.map((entry, index) => ({
+        ...entry,
+        description: `Bulk Updated Entry ${index + 1}`,
+      }));
+
+      await entryRepository.save(user.id, updatedEntries, entriesSnapshots);
+
+      const fetchedEntries = await Promise.all(
+        entries.map((entry) => testDB.getEntryById(entry.id)),
+      );
+
+      updatedEntries.forEach((expectedEntry, index) => {
+        const fetchedEntry = fetchedEntries.find(
+          (e) => e?.id === expectedEntry.id,
+        );
+
+        expect(fetchedEntry).toBeDefined();
+        expect(fetchedEntry?.description).toBe(
+          `Bulk Updated Entry ${index + 1}`,
+        );
+        compareEntities<EntryDbRow>(expectedEntry, fetchedEntry!, [
+          'updatedAt',
+        ]);
+      });
+    });
   });
 });
