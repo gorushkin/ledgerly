@@ -176,7 +176,7 @@ export class TransactionRepository
 
         return transactionDbRow;
       },
-      'TransactionRepository.getById',
+      'TransactionRepository.getTransactionSnapshot',
       {
         field: 'transactionId',
         tableName: 'transactions',
