@@ -112,6 +112,7 @@ export type TransactionBuilderResult = {
   };
   entryData: CreateEntryRequestDTO[];
   getSystemAccountByCurrency: (currencyCode: string) => Account;
+  accounts: Account[];
 };
 
 export class TransactionBuilder {
@@ -304,7 +305,17 @@ export class TransactionBuilder {
       return entry;
     });
 
+    const accounts: Account[] = [];
+    Array.from(this.accounts.values()).forEach((account) => {
+      accounts.push(account);
+    });
+
+    Array.from(this.systemAccounts.values()).forEach((account) => {
+      accounts.push(account);
+    });
+
     return {
+      accounts,
       accountsMap: this.accountsMap,
       entries,
       entryContext: {

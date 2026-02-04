@@ -11,31 +11,13 @@ export class EntryRepository
   extends BaseRepository
   implements EntryRepositoryInterface
 {
-  private update(userId: UUID, entry: EntryDbInsert): Promise<EntryDbRow> {
-    return this.executeDatabaseOperation(
-      async () => {
-        const safeData = this.getSafeUpdate(entry, ['description']);
-
-        return this.db
-          .update(entriesTable)
-          .set({ ...safeData, ...this.updateTimestamp })
-          .where(
-            and(eq(entriesTable.id, entry.id), eq(entriesTable.userId, userId)),
-          )
-          .returning()
-          .get();
-      },
-      'EntryRepository.update',
-      { field: 'entry', tableName: 'entries', value: entry.id },
-    );
-  }
-
   private bulkUpdate(
     userId: UUID,
     entries: EntryDbInsert[],
   ): Promise<EntryDbRow[]> {
     return this.executeDatabaseOperation(
       async () => {
+        // TODO: add updating field validations to allow only specific fields to be updated in bulk update and throw error if other fields are being updated. For now we allow only description to be updated in bulk update.
         if (entries.length === 0) {
           return [];
         }

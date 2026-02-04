@@ -1,301 +1,303 @@
-// import { UUID } from '@ledgerly/shared/types';
-// import {
-//   AccountDbRow,
-//   EntryDbRow,
-//   OperationDbRow,
-//   UserDbRow,
-// } from 'src/db/schema';
-// import { compareEntities } from 'src/db/test-utils';
-// import { Amount, Id, Timestamp } from 'src/domain/domain-core';
-// import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { UUID } from '@ledgerly/shared/types';
+import { OperationMapper } from 'src/application';
+import { OperationDbRow, UserDbRow } from 'src/db/schema';
+import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
+import { Transaction, User } from 'src/domain';
+import { Amount } from 'src/domain/domain-core';
+import { OperationSnapshot } from 'src/domain/operations/types';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { expect, it, describe } from 'vitest';
+import { TestDB } from '../../../db/test-db';
+import { TransactionManager } from '../TransactionManager';
 
-// import { TestDB } from '../../../db/test-db';
-// import { TransactionManager } from '../TransactionManager';
+import { OperationRepository } from './operation.repository';
 
-// import { OperationRepository } from './operation.repository';
+describe('OperationRepository', () => {
+  let testDB: TestDB;
+  let user: UserDbRow;
 
-// describe('OperationRepository', () => {
-//   let testDB: TestDB;
-//   let operationRepository: OperationRepository;
+  let transaction: Transaction;
 
-//   const transactionManager = {
-//     getCurrentTransaction: () => testDB.db,
-//     run: vi.fn((cb: () => unknown) => {
-//       return cb();
-//     }),
-//   };
+  const transactionManager = {
+    getCurrentTransaction: () => testDB.db,
+    run: vi.fn((cb: () => unknown) => {
+      return cb();
+    }),
+  };
+  let expectedOperationsCount: number;
 
-//   let user: UserDbRow;
-//   let entry: EntryDbRow;
-//   let anotherEntry: EntryDbRow;
-//   let account1: AccountDbRow;
-//   let account2: AccountDbRow;
+  const operationRepository = new OperationRepository(
+    transactionManager as unknown as TransactionManager,
+  );
 
-//   beforeEach(async () => {
-//     testDB = new TestDB();
-//     await testDB.setupTestDb();
+  beforeEach(async () => {
+    testDB = new TestDB();
+    await testDB.setupTestDb();
+    user = await testDB.createUser();
 
-//     operationRepository = new OperationRepository(
-//       transactionManager as unknown as TransactionManager,
-//     );
+    const transactionBuilder = TransactionBuilder.create(
+      User.fromPersistence(user),
+    );
 
-//     user = await testDB.createUser();
+    const entriesData = [
+      {
+        description: 'First Entry',
+        operations: [
+          { accountKey: 'USD', amount: '10000', description: '1' },
+          { accountKey: 'EUR', amount: '-10000', description: '2' },
+        ],
+      },
+      {
+        description: 'Second Entry',
+        operations: [
+          { accountKey: 'USD', amount: '20000', description: '1' },
+          { accountKey: 'USD', amount: '-20000', description: '2' },
+        ],
+      },
+      {
+        description: 'Third Entry',
+        operations: [
+          { accountKey: 'USD', amount: '20000', description: '1' },
+          { accountKey: 'USD', amount: '-20000', description: '2' },
+        ],
+      },
+    ];
 
-//     account1 = await testDB.createAccount(user.id, { name: 'Account 1' });
-//     account2 = await testDB.createAccount(user.id, { name: 'Account 2' });
+    expectedOperationsCount = entriesData.reduce((ac, item) => {
+      let isDifferent = false;
 
-//     entry = await testDB.createEntry(user.id);
-//     anotherEntry = await testDB.createEntry(user.id);
-//   });
+      let prevAccountKey: string | null = null;
 
-//   describe('create', () => {
-//     it('should create an operation successfully', async () => {
-//       const accountId = account1.id;
-//       const userId = user.id;
-//       const entryId = entry.id;
-//       const amount = Amount.create('1000');
-//       const id = Id.create().valueOf();
-//       const createdAt = Timestamp.create().valueOf();
-//       const updatedAt = Timestamp.create().valueOf();
-//       const isSystem = false;
-//       const isTombstone = false;
-//       const description = 'Test operation';
+      for (const op of item.operations) {
+        if (prevAccountKey && op.accountKey !== prevAccountKey) {
+          isDifferent = true;
+          break;
+        }
+        prevAccountKey = op.accountKey;
+      }
 
-//       const expectedResult: OperationDbRow = {
-//         accountId,
-//         amount: amount.valueOf(),
-//         createdAt,
-//         description,
-//         entryId,
-//         id,
-//         isSystem,
-//         isTombstone,
-//         updatedAt,
-//         userId,
-//       };
+      return ac + (isDifferent ? 4 : 2);
+    }, 0);
 
-//       const result = await operationRepository.create({
-//         accountId,
-//         amount: amount.valueOf(),
-//         createdAt,
-//         description,
-//         entryId,
-//         id,
-//         isSystem,
-//         isTombstone,
-//         updatedAt,
-//         userId,
-//       });
+    const data = transactionBuilder
+      .withAccounts(['USD', 'EUR'])
+      .withEntries(entriesData)
+      .withSystemAccounts()
+      .build();
 
-//       expect(result).toEqual(expectedResult);
-//     });
-//   });
+    transaction = data.transaction;
 
-//   describe('getByEntryId', () => {
-//     let operation1: OperationDbRow;
-//     let operation2: OperationDbRow;
+    await Promise.all(
+      data.accounts.map((account) =>
+        testDB.insertAccount(account.toPersistence()),
+      ),
+    );
 
-//     beforeEach(async () => {
-//       operation1 = await testDB.createOperation(user.id, {
-//         accountId: account1.id,
-//         amount: Amount.create('500').valueOf(),
-//         description: 'Operation for entry',
-//         entryId: entry.id,
-//       });
+    await testDB.insertTransaction(transaction.toSnapshot());
 
-//       operation2 = await testDB.createOperation(user.id, {
-//         accountId: account2.id,
-//         amount: Amount.create('300').valueOf(),
-//         description: 'Another operation for entry',
-//         entryId: entry.id,
-//       });
-//     });
+    const entries = transaction.getEntries();
 
-//     it('should retrieve operations by entry ID', async () => {
-//       const operations = await operationRepository.getByEntryId(
-//         user.id,
-//         entry.id,
-//       );
+    await Promise.all(
+      entries.map((entry) => testDB.insertEntry(entry.toSnapshot())),
+    );
+  });
 
-//       expect(operations).toHaveLength(2);
-//       expect(operations).toEqual(
-//         expect.arrayContaining([
-//           expect.objectContaining({ id: operation1.id }),
-//           expect.objectContaining({ id: operation2.id }),
-//         ]),
-//       );
-//     });
+  describe('save', () => {
+    it('should insert operations successfully if snapshot is empty', async () => {
+      const fetchedTransactionRelationsBeforeSaving =
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf());
 
-//     it('should return an empty array if no operations found for the entry ID', async () => {
-//       const anotherEntry = await testDB.createEntry(user.id);
+      const operationsCountBeforeSaving =
+        fetchedTransactionRelationsBeforeSaving?.entries
+          .map((e) => e.operations)
+          .flat();
 
-//       const operations = await operationRepository.getByEntryId(
-//         user.id,
-//         anotherEntry.id,
-//       );
+      expect(operationsCountBeforeSaving).toHaveLength(0);
 
-//       expect(operations).toHaveLength(0);
-//     });
+      const operations = transaction
+        .getEntries()
+        .flatMap((entry) =>
+          entry
+            .getOperations()
+            .map((operation) => OperationMapper.toDBRow(operation)),
+        );
 
-//     it('should not retrieve operations for a different user', async () => {
-//       const anotherUser = await testDB.createUser();
+      await operationRepository.save(user.id, operations, new Map());
 
-//       const operations = await operationRepository.getByEntryId(
-//         anotherUser.id,
-//         entry.id,
-//       );
+      const fetchedTransactionRelationsAfterSaving =
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf());
 
-//       expect(operations).toHaveLength(0);
-//     });
+      const operationsCountAfterSaving =
+        fetchedTransactionRelationsAfterSaving?.entries
+          .map((e) => e.operations)
+          .flat();
 
-//     it('should return an empty array if entry ID does not exist', async () => {
-//       const operations = await operationRepository.getByEntryId(
-//         user.id,
-//         Id.create().valueOf(),
-//       );
+      expect(operationsCountAfterSaving).toHaveLength(expectedOperationsCount);
 
-//       expect(operations).toHaveLength(0);
-//     });
-//   });
+      const ops = fetchedTransactionRelationsAfterSaving?.entries
+        .map((e) => e.operations)
+        .flat();
 
-//   describe('softDeleteByEntryIds', () => {
-//     it('should soft delete operations by entry ID', async () => {
-//       const operation = await testDB.createOperation(user.id, {
-//         accountId: account1.id,
-//         amount: Amount.create('700').valueOf(),
-//         description: 'Operation to be soft deleted',
-//         entryId: entry.id,
-//       });
+      ops?.forEach((op, index) => {
+        const originalOp = operations[index];
 
-//       const voidedOperations = await operationRepository.voidByEntryIds(
-//         user.id,
-//         [entry.id],
-//       );
+        expect(op).toEqual(expect.objectContaining(originalOp));
+      });
+    });
 
-//       expect(voidedOperations).toHaveLength(1);
+    it('should update and delete operations successfully based on the snapshot', async () => {
+      const operations = transaction
+        .getEntries()
+        .flatMap((entry) =>
+          entry
+            .getOperations()
+            .map((operation) => OperationMapper.toDBRow(operation)),
+        );
 
-//       expect(voidedOperations[0]).toEqual(
-//         expect.objectContaining({
-//           id: operation.id,
-//           isTombstone: true,
-//         }),
-//       );
+      await Promise.all(
+        operations.map((operation) => testDB.insertOperation(operation)),
+      );
 
-//       const fetchedOperations = await operationRepository.getByEntryId(
-//         user.id,
-//         entry.id,
-//       );
+      const transactionWithRelations = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
 
-//       expect(fetchedOperations).toHaveLength(1);
-//       expect(fetchedOperations[0].isTombstone).toBe(true);
-//     });
+      const operationsSnapshot = new Map<UUID, OperationSnapshot>();
 
-//     it('should return an empty array if no operations to soft delete for the entry ID', async () => {
-//       const anotherEntry = await testDB.createEntry(user.id);
+      transactionWithRelations?.entries.forEach((entry) => {
+        entry.operations.forEach((operationSnapshot) => {
+          operationsSnapshot.set(operationSnapshot.id, operationSnapshot);
+        });
+      });
 
-//       const voidedOperations = await operationRepository.voidByEntryIds(
-//         user.id,
-//         [anotherEntry.id],
-//       );
+      const createdOperations =
+        transactionWithRelations?.entries.flatMap((e) => e.operations).flat() ??
+        [];
 
-//       expect(voidedOperations).toHaveLength(0);
-//     });
-//   });
+      createdOperations.forEach((createdOp, index) => {
+        const originalOp = operations[index];
 
-//   describe('voidByEntryIds', () => {
-//     it('should soft delete operations by a single entry ID', async () => {
-//       const entryForDeletingData = [
-//         {
-//           accountId: account2.id,
-//           amount: Amount.create('400').valueOf(),
-//           description: 'Operation to be soft deleted by single entry ID',
-//           entryId: entry.id,
-//         },
-//         {
-//           accountId: account1.id,
-//           amount: Amount.create('600').valueOf(),
-//           description: 'Another operation for the same entry',
-//           entryId: entry.id,
-//         },
-//       ];
+        expect(createdOp).toEqual(expect.objectContaining(originalOp));
+      });
 
-//       const operationsToBeDeleted = await Promise.all(
-//         entryForDeletingData.map((opData) =>
-//           testDB.createOperation(user.id, opData),
-//         ),
-//       );
+      const operationsToUpdate = [operations[0], operations[1]];
+      const operationsToDelete = [operations[2], operations[3]];
 
-//       const operationsBeforeVoiding = new Map<UUID, OperationDbRow>();
+      const operationsToUpdatedIds = operationsToUpdate.map((op) => op.id);
+      const operationsToDeleteIds = operationsToDelete.map((op) => op.id);
 
-//       operationsToBeDeleted.forEach((op) =>
-//         operationsBeforeVoiding.set(op.id, op),
-//       );
+      const operationsToUpdateData = [
+        {
+          ...operationsToUpdate[0],
+          amount: Amount.create('5000').valueOf(),
+          description: 'Updated Operation One',
+        },
+        {
+          ...operationsToUpdate[1],
+          amount: Amount.create('-5000').valueOf(),
+          description: 'Updated Operation Two',
+        },
+      ];
 
-//       const thirdOperation = await testDB.createOperation(user.id, {
-//         accountId: account1.id,
-//         amount: Amount.create('600').valueOf(),
-//         description: 'Another operation for the same entry',
-//         entryId: anotherEntry.id,
-//       });
+      const operationsToDeleteData = [
+        {
+          ...operationsToDelete[0],
+          isTombstone: true,
+        },
+        {
+          ...operationsToDelete[1],
+          isTombstone: true,
+        },
+      ];
 
-//       const voidedOperations = await operationRepository.voidByEntryId(
-//         user.id,
-//         entry.id,
-//       );
+      await operationRepository.save(
+        user.id,
+        [...operationsToUpdateData, ...operationsToDeleteData],
+        operationsSnapshot,
+      );
 
-//       voidedOperations.forEach((voidedOp) => {
-//         const originalOp = operationsBeforeVoiding.get(voidedOp.id);
+      const operationsAfterSaving = (
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf())
+      )?.entries
+        .map((e) => e.operations)
+        .flat();
 
-//         if (!originalOp) {
-//           throw new Error(
-//             `Operation with ID ${voidedOp.id} was not expected to be voided.`,
-//           );
-//         }
+      const checkedOperations = new Set<UUID>();
 
-//         expect(voidedOp.isTombstone).toBe(true);
+      const getMappedOperation = (
+        id: UUID,
+      ): {
+        operation: OperationDbRow | undefined;
+        result: 'updated' | 'deleted' | 'untouched';
+      } | null => {
+        if (checkedOperations.has(id)) {
+          return null;
+        }
 
-//         compareEntities(originalOp, voidedOp, ['updatedAt', 'isTombstone']);
-//       });
+        checkedOperations.add(id);
 
-//       const unVoidedOperation = await testDB.getOperationById(
-//         thirdOperation.id,
-//       );
+        if (operationsToUpdatedIds.includes(id)) {
+          return {
+            operation: operationsToUpdateData.find((o) => o.id === id),
+            result: 'updated',
+          };
+        }
 
-//       expect(unVoidedOperation?.isTombstone).toBe(false);
+        if (operationsToDeleteIds.includes(id)) {
+          return {
+            operation: operationsToDeleteData.find((o) => o.id === id),
+            result: 'deleted',
+          };
+        }
 
-//       const voidedOperationsDBrows = await testDB.getOperationsByEntryId(
-//         user.id,
-//         entry.id,
-//       );
+        return {
+          operation: operations.find((o) => o.id === id),
+          result: 'untouched',
+        };
+      };
 
-//       expect(voidedOperationsDBrows).toHaveLength(voidedOperations.length);
+      const updateOps: OperationDbRow[] = [];
+      const deleteOps: OperationDbRow[] = [];
+      const untouchedOps: OperationDbRow[] = [];
 
-//       const fetchedOperations = await operationRepository.getByEntryId(
-//         user.id,
-//         entry.id,
-//       );
+      operationsAfterSaving?.forEach((op) => {
+        const mappedOp = getMappedOperation(op.id);
 
-//       fetchedOperations.forEach((fetchedOp) => {
-//         expect(fetchedOp.isTombstone).toBe(true);
+        expect(mappedOp).toBeDefined();
 
-//         const originalOp = operationsBeforeVoiding.get(fetchedOp.id);
+        if (!mappedOp?.operation) {
+          throw new Error('Unreachable code');
+        }
 
-//         if (!originalOp) {
-//           throw new Error(
-//             `Operation with ID ${fetchedOp.id} was not expected to be voided.`,
-//           );
-//         }
+        if (mappedOp?.result === 'untouched') {
+          compareEntities<OperationDbRow>(op, mappedOp.operation);
+          untouchedOps.push(op);
+          return;
+        }
 
-//         compareEntities(originalOp, fetchedOp, ['isTombstone', 'updatedAt']);
-//       });
-//     });
-//   });
-// });
+        if (mappedOp?.result === 'updated') {
+          compareEntities<OperationDbRow>(op, mappedOp.operation, [
+            'updatedAt',
+          ]);
+          updateOps.push(op);
+          return;
+        }
 
-describe('Placeholder test', () => {
-  it('should pass', () => {
-    expect(true).toBe(true);
+        if (mappedOp?.result === 'deleted') {
+          compareEntities<OperationDbRow>(op, mappedOp.operation, [
+            'updatedAt',
+          ]);
+          deleteOps.push(op);
+        }
+      });
+
+      expect(updateOps).toHaveLength(operationsToUpdateData.length);
+      expect(deleteOps).toHaveLength(operationsToDeleteData.length);
+      expect(untouchedOps).toHaveLength(
+        expectedOperationsCount -
+          operationsToUpdateData.length -
+          operationsToDeleteData.length,
+      );
+    });
   });
 });
