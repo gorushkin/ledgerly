@@ -76,6 +76,10 @@ describe('OperationRepository', () => {
         prevAccountKey = op.accountKey;
       }
 
+      // When all operations in an entry share the same currency, we expect 2
+      // operations (standard double-entry). When currencies differ, multi-currency
+      // support adds 2 extra trading-account operations (one per currency), for a
+      // total of 4 operations.
       return ac + (isDifferent ? 4 : 2);
     }, 0);
 
