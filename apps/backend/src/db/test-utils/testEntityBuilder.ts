@@ -5,9 +5,9 @@ import {
   CreateTransactionRequestDTO,
   EntityNotFoundError,
 } from 'src/application';
-import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { Account, AccountType, Entry, Transaction, User } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
+import { TransactionBuildContext } from 'src/domain/transactions/types';
 
 type OperationDataForTransaction = {
   accountKey: string;
@@ -24,7 +24,7 @@ type OperationDataForEntry = {
 export class EntryBuilder {
   constructor(
     public transaction: Transaction,
-    public entryContext: EntryContext,
+    public entryContext: TransactionBuildContext,
   ) {}
   description = '';
   operationsData: OperationDataForEntry[] = [];
@@ -97,9 +97,11 @@ export class EntryBuilder {
 
 export type TransactionBuilderResult = {
   accountsMap: Map<UUID, Account>;
+  accounts: Account[];
   entries: Entry[];
-  entryContext: EntryContext;
+  entryContext: TransactionBuildContext;
   getAccountByKey: (key: string) => Account;
+  getSystemAccountByCurrency: (currency: string) => Account;
   systemAccounts: Map<CurrencyCode, Account>;
   transaction: Transaction;
   user: User;
@@ -111,8 +113,6 @@ export type TransactionBuilderResult = {
     userId: UUID;
   };
   entryData: CreateEntryRequestDTO[];
-  getSystemAccountByCurrency: (currencyCode: string) => Account;
-  accounts: Account[];
 };
 
 export class TransactionBuilder {
@@ -283,12 +283,12 @@ export class TransactionBuilder {
     return account;
   }
 
-  getSystemAccountByCurrency(currencyCode: string): Account {
-    const account = this.systemAccounts.get(currencyCode as CurrencyCode);
+  getSystemAccountByCurrency(currency: string): Account {
+    const account = this.systemAccounts.get(currency as CurrencyCode);
 
     if (!account) {
       throw new EntityNotFoundError(
-        `System account with currency ${currencyCode} not found`,
+        `System account with currency ${currency} not found`,
       );
     }
     return account;
@@ -305,17 +305,8 @@ export class TransactionBuilder {
       return entry;
     });
 
-    const accounts: Account[] = [];
-    Array.from(this.accounts.values()).forEach((account) => {
-      accounts.push(account);
-    });
-
-    Array.from(this.systemAccounts.values()).forEach((account) => {
-      accounts.push(account);
-    });
-
     return {
-      accounts,
+      accounts: Array.from(this.accountsMap.values()),
       accountsMap: this.accountsMap,
       entries,
       entryContext: {

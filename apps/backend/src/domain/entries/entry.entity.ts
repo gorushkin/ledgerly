@@ -1,5 +1,4 @@
 import { CurrencyCode, IsoDatetimeString, UUID } from '@ledgerly/shared/types';
-import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { EntryDbRow, EntryWithOperations } from 'src/db/schemas/entries';
 
 import { Account } from '../accounts';
@@ -21,6 +20,7 @@ import {
   MissingOperationsError,
 } from '../domain.errors';
 import { Operation } from '../operations';
+import { TransactionBuildContext } from '../transactions/types';
 
 import {
   EntryDraft,
@@ -228,7 +228,7 @@ export class Entry {
     userId: Id,
     transactionId: Id,
     entryData: EntryDraft,
-    entryContext: EntryContext,
+    entryContext: TransactionBuildContext,
   ): Entry {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
@@ -442,7 +442,7 @@ export class Entry {
     };
   }
 
-  updateEntry(entryData: EntryUpdate, entryContext: EntryContext) {
+  updateEntry(entryData: EntryUpdate, entryContext: TransactionBuildContext) {
     this.description = entryData.description;
 
     if (entryData.operations) {

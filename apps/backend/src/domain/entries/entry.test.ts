@@ -1,5 +1,4 @@
 import { CreateEntryRequestDTO } from 'src/application';
-import { EntryContext } from 'src/application/services/EntriesService/entries.updater';
 import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils';
 import {
@@ -15,6 +14,7 @@ import {
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Amount, Id } from '../domain-core';
+import { TransactionBuildContext } from '../transactions/types';
 
 import { Entry } from './entry.entity';
 
@@ -26,7 +26,7 @@ describe('Entry Domain Entity', () => {
   let entryData: CreateEntryRequestDTO;
 
   let createEntryRequests: CreateEntryRequestDTO[];
-  let entryContext: EntryContext;
+  let entryContext: TransactionBuildContext;
   let transaction: Transaction;
 
   let usdAccount: Account;
