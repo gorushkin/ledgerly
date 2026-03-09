@@ -6,8 +6,12 @@ import {
 } from '@ledgerly/shared/types';
 
 import { Account } from '../accounts';
-import { EntryDraft, EntrySnapshot, EntryUpdate } from '../entries/types';
-import { OperationSnapshot } from '../operations/types';
+import { Currency } from '../domain-core';
+import {
+  OperationDraft,
+  OperationSnapshot,
+  OperationUpdate,
+} from '../operations/types';
 
 export type TransactionUpdateData = {
   description?: string;
@@ -24,18 +28,19 @@ export type CreateTransactionProps = {
   description: string;
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
-  entries: EntryDraft[];
+  operations: OperationDraft[];
+  currency: Currency;
 };
 
-export type EntriesPatch = {
-  create: EntryDraft[];
-  update: EntryUpdate[];
+export type OperationsPatch = {
+  create: OperationDraft[];
+  update: OperationUpdate[];
   delete: UUID[];
 } | null;
 
 export type UpdateTransactionProps = {
-  entries: EntriesPatch;
   metadata?: TransactionUpdateData;
+  operations?: OperationsPatch;
 };
 
 export type TransactionSnapshot = {
@@ -47,12 +52,11 @@ export type TransactionSnapshot = {
   transactionDate: IsoDateString;
   updatedAt: IsoDatetimeString;
   userId: UUID;
-  entries: EntrySnapshot[];
+  operations: OperationSnapshot[];
   version: number;
+  currency: CurrencyCode;
 };
 
 export type TransactionWithEntriesAndOperations = TransactionSnapshot & {
-  entries: (EntrySnapshot & {
-    operations: OperationSnapshot[];
-  })[];
+  operations: OperationSnapshot[];
 };

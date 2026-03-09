@@ -1,17 +1,20 @@
 import { IsoDateString, IsoDatetimeString, UUID } from '@ledgerly/shared/types';
+import { Currency } from 'src/domain/domain-core';
 
 import {
   CreateEntryRequestDTO,
   EntryResponseDTO,
   UpdateEntryRequestDTO,
 } from './entry.dto';
+import { CreateOperationRequestDTO } from './operation.dto';
 
 // Request DTOs for creation
 export type CreateTransactionRequestDTO = {
   description: string;
-  entries: CreateEntryRequestDTO[];
+  operations: CreateOperationRequestDTO[];
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
+  currency: Currency;
 };
 
 // Request DTOs for updating

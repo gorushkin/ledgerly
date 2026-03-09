@@ -1,105 +1,32 @@
 import { UUID, CurrencyCode, IsoDateString } from '@ledgerly/shared/types';
 import {
-  CreateEntryRequestDTO,
   CreateOperationRequestDTO,
   CreateTransactionRequestDTO,
   EntityNotFoundError,
 } from 'src/application';
-import { Account, AccountType, Entry, Transaction, User } from 'src/domain';
+import { Account, AccountType, Operation, Transaction, User } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
 
 type OperationDataForTransaction = {
   accountKey: string;
   amount: string;
+  value?: string;
   description?: string;
 };
 
-type OperationDataForEntry = {
-  account: Account;
-  amount: Amount;
+export type TransactionProps = {
+  user?: User;
+  postingDate?: string;
+  transactionDate?: string;
   description?: string;
+  currencyCode: string;
 };
-
-export class EntryBuilder {
-  constructor(
-    public transaction: Transaction,
-    public entryContext: TransactionBuildContext,
-  ) {}
-  description = '';
-  operationsData: OperationDataForEntry[] = [];
-  user: User | null = null;
-  entry: Entry | null = null;
-
-  validateUser(): asserts this is { user: User } {
-    if (!this.user) {
-      throw new Error('User must be set before creating transaction');
-    }
-  }
-
-  withDescription(desc: string): this {
-    this.description = desc;
-    return this;
-  }
-
-  withUser(user: User): this {
-    this.user = user;
-    return this;
-  }
-
-  withOperation({
-    account,
-    amount,
-    description = '',
-  }: OperationDataForEntry): this {
-    this.operationsData.push({
-      account,
-      amount,
-      description,
-    });
-    return this;
-  }
-
-  build() {
-    if (!this.user) {
-      throw new Error('User must be set before building Entry');
-    }
-
-    if (this.operationsData.length !== 2) {
-      throw new Error('At least one operation must be added to the entry');
-    }
-
-    const operations: CreateEntryRequestDTO['operations'] =
-      this.operationsData.map((op) => {
-        const operationData: CreateOperationRequestDTO = {
-          accountId: op.account.getId().valueOf(),
-          amount: op.amount.valueOf(),
-          description: op.description ?? 'Test Operation',
-        };
-        return operationData;
-      }) as [CreateOperationRequestDTO, CreateOperationRequestDTO];
-
-    const entryData: CreateEntryRequestDTO = {
-      description: this.description,
-      operations,
-    };
-
-    this.entry ??= Entry.create(
-      this.user.getId(),
-      this.transaction.getId(),
-      entryData,
-      this.entryContext,
-    );
-
-    return this.entry;
-  }
-}
 
 export type TransactionBuilderResult = {
   accountsMap: Map<UUID, Account>;
   accounts: Account[];
-  entries: Entry[];
-  entryContext: TransactionBuildContext;
+  transactionContext: TransactionBuildContext;
   getAccountByKey: (key: string) => Account;
   getSystemAccountByCurrency: (currency: string) => Account;
   systemAccounts: Map<CurrencyCode, Account>;
@@ -112,20 +39,22 @@ export type TransactionBuilderResult = {
     transactionDate: IsoDateString;
     userId: UUID;
   };
-  entryData: CreateEntryRequestDTO[];
+  operationsData: OperationDataForTransaction[];
+  operations: Operation[];
 };
 
 export class TransactionBuilder {
-  private entryBuilders: EntryBuilder[] = [];
+  operations: Operation[] = [];
+  operationsData: OperationDataForTransaction[] = [];
   postingDate: IsoDateString = DateValue.restore('2023-01-01').valueOf();
   transactionDate: IsoDateString = DateValue.restore('2023-01-01').valueOf();
   description = 'Test Transaction';
-
   user: User | null = null;
   accounts = new Map<string, Account>();
   accountsMap = new Map<UUID, Account>();
   systemAccounts = new Map<CurrencyCode, Account>();
   transaction: Transaction | null = null;
+  transactionCurrency: Currency = Currency.create('USD');
 
   static create(user?: User): TransactionBuilder {
     const builder = new TransactionBuilder();
@@ -158,12 +87,7 @@ export class TransactionBuilder {
     return this;
   }
 
-  withSettings(settings: {
-    user?: User;
-    postingDate?: string;
-    transactionDate?: string;
-    description?: string;
-  }): this {
+  withSettings(settings: TransactionProps): this {
     if (settings.user) {
       this.user = settings.user;
     }
@@ -176,6 +100,11 @@ export class TransactionBuilder {
     if (settings.description) {
       this.description = settings.description;
     }
+
+    if (settings.currencyCode) {
+      this.transactionCurrency = Currency.create(settings.currencyCode);
+    }
+
     return this;
   }
 
@@ -195,7 +124,8 @@ export class TransactionBuilder {
       this.accounts.set(currencyCode, account);
       this.accountsMap.set(account.getId().valueOf(), account);
     }
-    return this;
+
+    return this.withSystemAccounts();
   }
 
   withSystemAccounts(): this {
@@ -226,8 +156,9 @@ export class TransactionBuilder {
     this.transaction = Transaction.create(
       this.user.getId(),
       {
+        currency: this.transactionCurrency,
         description: 'Test Transaction',
-        entries: [],
+        operations: [],
         postingDate: DateValue.restore('2023-01-01').valueOf(),
         transactionDate: DateValue.restore('2023-01-01').valueOf(),
       },
@@ -238,39 +169,29 @@ export class TransactionBuilder {
     );
   }
 
-  withEntry(
-    description: string,
-    operations: OperationDataForTransaction[] = [],
-  ): this {
+  withOperations(operationsData: OperationDataForTransaction[]): this {
     this.validateUser();
     this.ensureTransaction();
 
-    const builder = new EntryBuilder(this.transaction, {
-      accountsMap: this.accountsMap,
-      systemAccountsMap: this.systemAccounts,
-    })
-      .withUser(this.user)
-      .withDescription(description);
+    this.operationsData.push(...operationsData);
 
-    operations.forEach((op) => {
+    const operations = operationsData.map((op) => {
       const account = this.getAccountByKey(op.accountKey);
       const amount = Amount.create(op.amount);
-      builder.withOperation({ ...op, account, amount });
+      const value = op.value ? Amount.create(op.value) : amount;
+
+      return Operation.create(
+        this.user.getId(),
+        account,
+        this.transaction,
+        amount,
+        value,
+        op.description ?? 'Test Operation',
+      );
     });
 
-    this.entryBuilders.push(builder);
-    return this;
-  }
+    this.operations.push(...operations);
 
-  withEntries(
-    entries: {
-      description: string;
-      operations: OperationDataForTransaction[];
-    }[],
-  ): this {
-    entries.forEach((entry) => {
-      this.withEntry(entry.description, entry.operations);
-    });
     return this;
   }
 
@@ -299,38 +220,33 @@ export class TransactionBuilder {
 
     this.validateUser();
 
-    const entries = this.entryBuilders.map((builder) => {
-      const entry = builder.build();
-      this.transaction.attachEntries([entry]);
-      return entry;
-    });
+    const operations = this.operationsData.map<CreateOperationRequestDTO>(
+      (op) => {
+        const amount = Amount.create(op.amount).valueOf();
+        const value = op.value ? Amount.create(op.value).valueOf() : amount;
+
+        return {
+          accountId: this.getAccountByKey(op.accountKey).getId().valueOf(),
+          amount,
+          description: op.description ?? 'Test Operation',
+          value,
+        };
+      },
+    );
 
     return {
       accounts: Array.from(this.accountsMap.values()),
       accountsMap: this.accountsMap,
-      entries,
-      entryContext: {
+      getAccountByKey: this.getAccountByKey.bind(this),
+      getSystemAccountByCurrency: this.getSystemAccountByCurrency.bind(this),
+      operations: this.operations,
+      operationsData: this.operationsData,
+      systemAccounts: this.systemAccounts,
+      transaction: this.transaction,
+      transactionContext: {
         accountsMap: this.accountsMap,
         systemAccountsMap: this.systemAccounts,
       },
-      entryData: entries.map((entry) => {
-        const operations = entry
-          .getOperations()
-          .filter((op) => !op.isSystem)
-          .map((op) => ({
-            accountId: op.getAccountId().valueOf(),
-            amount: op.amount.valueOf(),
-            description: op.description ?? 'Test Operation',
-          })) as [CreateOperationRequestDTO, CreateOperationRequestDTO];
-        return {
-          description: entry.description,
-          operations,
-        };
-      }),
-      getAccountByKey: this.getAccountByKey.bind(this),
-      getSystemAccountByCurrency: this.getSystemAccountByCurrency.bind(this),
-      systemAccounts: this.systemAccounts,
-      transaction: this.transaction,
       transactionData: {
         description: this.description,
         postingDate: this.postingDate,
@@ -338,21 +254,9 @@ export class TransactionBuilder {
         userId: this.user.getId().valueOf(),
       },
       transactionDTO: {
+        currency: Currency.create('USD'),
         description: this.description,
-        entries: entries.map((entry) => {
-          const operations = entry
-            .getOperations()
-            .filter((op) => !op.isSystem)
-            .map((op) => ({
-              accountId: op.getAccountId().valueOf(),
-              amount: op.amount.valueOf(),
-              description: op.description ?? 'Test Operation',
-            })) as [CreateOperationRequestDTO, CreateOperationRequestDTO];
-          return {
-            description: entry.description,
-            operations,
-          };
-        }),
+        operations,
         postingDate: this.postingDate,
         transactionDate: this.transactionDate,
       },

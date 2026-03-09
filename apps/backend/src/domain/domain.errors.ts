@@ -1,7 +1,7 @@
 import { BaseError } from 'src/shared/errors/BaseError';
 
 import { Amount } from './domain-core';
-import { Entry } from './entries';
+import { Transaction } from './transactions';
 
 /**
  * Base class for all domain layer errors.
@@ -10,15 +10,15 @@ import { Entry } from './entries';
 export class DomainError extends BaseError {}
 
 /**
- * Thrown when an entry's operations don't balance (sum !== 0).
+ * Thrown when a transaction's operations don't balance (sum !== 0).
  */
-export class UnbalancedEntryError extends DomainError {
+export class UnbalancedTransactionError extends DomainError {
   constructor(
-    public readonly entry: Entry,
+    public readonly transaction: Transaction,
     public readonly difference: Amount,
   ) {
     super(
-      `Entry with id ${entry.getId().valueOf()} has unbalanced operations. Difference: ${difference.valueOf()}`,
+      `Transaction with id ${transaction.getId().valueOf()} has unbalanced operations. Difference: ${difference.valueOf()}`,
     );
   }
 }
@@ -42,11 +42,11 @@ export class DeletedEntityOperationError extends DomainError {
 }
 
 /**
- * Thrown when an operation doesn't belong to the expected entry.
+ * Thrown when an operation doesn't belong to the expected transaction.
  */
 export class OperationOwnershipError extends DomainError {
   constructor() {
-    super('Operation does not belong to this entry');
+    super('Operation does not belong to this transaction');
   }
 }
 
@@ -60,44 +60,73 @@ export class MissingOperationsError extends DomainError {
 }
 
 /**
- * Thrown when the same entry ID appears in multiple patch arrays simultaneously.
+ * Thrown when the same operation ID appears in multiple patch arrays simultaneously.
  */
-export class ConflictingEntryIdsError extends DomainError {
+export class ConflictingOperationIdsError extends DomainError {
   constructor(
     public readonly conflictingIds: string[],
     public readonly conflictType: string,
   ) {
     super(
-      `Entry IDs cannot appear in multiple operations. ${conflictType}: ${conflictingIds.join(', ')}`,
+      `Operation IDs cannot appear in multiple operations. ${conflictType}: ${conflictingIds.join(', ')}`,
     );
   }
 }
 
 /**
- * Thrown when attempting to update/delete an entry that doesn't belong to the transaction.
+ * Thrown when attempting to update/delete an operation that doesn't belong to the transaction.
  */
-export class EntryNotFoundInTransactionError extends DomainError {
+export class OperationNotFoundInTransactionError extends DomainError {
   constructor(
-    public readonly entryId: string,
+    public readonly operationId: string,
     public readonly transactionId: string,
   ) {
     super(
-      `Entry with id ${entryId} does not belong to transaction ${transactionId}`,
+      `Operation with id ${operationId} does not belong to transaction ${transactionId}`,
     );
   }
 }
 
 /**
  * Thrown when attempting to attach an entry that doesn't belong to this transaction.
- * This indicates a programming error - entries should be created with correct transactionId.
+ * This indicates a programming error - operations should be created with correct transactionId.
  */
-export class EntryDoesNotBelongToTransactionError extends DomainError {
+export class OperationDoesNotBelongToTransactionError extends DomainError {
   constructor(
-    public readonly entryId: string,
+    public readonly operationId: string,
     public readonly transactionId: string,
   ) {
     super(
-      `Entry with id ${entryId} was created with wrong transactionId. Expected: ${transactionId}`,
+      `Operation with id ${operationId} was created with wrong transactionId. Expected: ${transactionId}`,
+    );
+  }
+}
+
+/**
+ * Thrown when an account required for an operation is not found in the transaction build context.
+ */
+export class AccountNotFoundInContextError extends DomainError {
+  constructor(
+    public readonly accountId: string,
+    public readonly operationId: string,
+  ) {
+    super(
+      `Account with ID ${accountId} not found in context for operation ${operationId}`,
+    );
+  }
+}
+
+/**
+ * Thrown when an operation belongs to a different user than the transaction it's being attached to.
+ * This indicates a programming error - operations should be created with the same userId as the transaction.
+ */
+export class OperationUserMismatchError extends DomainError {
+  constructor(
+    public readonly operationId: string,
+    public readonly transactionId: string,
+  ) {
+    super(
+      `Operation ${operationId} does not belong to the same user as transaction ${transactionId}`,
     );
   }
 }

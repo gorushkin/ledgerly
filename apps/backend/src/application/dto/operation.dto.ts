@@ -5,6 +5,7 @@ import { IsoDatetimeString, MoneyString, UUID } from '@ledgerly/shared/types';
 export type CreateOperationRequestDTO = {
   accountId: UUID;
   amount: MoneyString;
+  value: MoneyString;
   description: string;
 };
 

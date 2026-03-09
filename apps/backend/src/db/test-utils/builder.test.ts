@@ -11,8 +11,7 @@ describe('TransactionBuilder', () => {
     transactionBuilder
       .withUser(user)
       .withAccounts(['USD', 'EUR'])
-      .withSystemAccounts()
-      .withEntry('First Entry', [
+      .withOperations([
         { accountKey: 'USD', amount: '10000', description: '1' },
         {
           accountKey: 'USD',

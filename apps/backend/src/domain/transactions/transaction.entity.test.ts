@@ -1,16 +1,10 @@
-import { IsoDateString, MoneyString, UUID } from '@ledgerly/shared/types';
-import { CreateEntryRequestDTO } from 'src/application';
-import { CreateTransactionRequestDTO } from 'src/application/dto/transaction.dto';
 import { createUser } from 'src/db/createTestUser';
 import {
+  compareEntities,
   TransactionBuilder,
   TransactionBuilderResult,
 } from 'src/db/test-utils';
-import {
-  ConflictingEntryIdsError,
-  EntryNotFoundInTransactionError,
-  MissingTransactionContextError,
-} from 'src/domain/domain.errors';
+import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
 import {
   afterEach,
   beforeAll,
@@ -21,34 +15,55 @@ import {
   vi,
 } from 'vitest';
 
-import { Amount } from '../domain-core';
-import { Entry } from '../entries';
-import { EntryDraft, EntryUpdate } from '../entries/types';
+import { Amount, DateValue } from '../domain-core';
+import { UnbalancedTransactionError } from '../domain.errors';
+import {
+  OperationDraft,
+  OperationSnapshot,
+  OperationUpdate,
+} from '../operations/types';
 import { User } from '../users/user.entity';
 
 import { Transaction } from './transaction.entity';
-import { TransactionBuildContext } from './types';
+
+const areOperationsEqual = (
+  ops1: OperationSnapshot[],
+  ops2: OperationSnapshot[],
+) => {
+  if (ops1.length !== ops2.length) {
+    return false;
+  }
+
+  for (let i = 0; i < ops1.length; i++) {
+    const op1 = ops1[i];
+    const op2 = ops2[i];
+
+    compareEntities(op1, op2);
+  }
+};
 
 describe('Transaction Domain Entity', () => {
   let user: User;
-  let entryContext: TransactionBuildContext;
-  let entries: CreateEntryRequestDTO[];
-  let transactionDTO: CreateTransactionRequestDTO;
+
   let data: TransactionBuilderResult;
 
-  const transactionData = {
-    description: 'Test transaction',
+  const transactionData: TransactionProps = {
+    currencyCode: 'USD',
+    description: 'Buy groceries',
     postingDate: '2024-01-01',
     transactionDate: '2024-01-01',
   };
 
-  const entriesData = [
+  const operationsData = [
     {
-      description: 'First Entry',
-      operations: [
-        { accountKey: 'USD', amount: '10000', description: '1' },
-        { accountKey: 'USD', amount: '-10000', description: '2' },
-      ],
+      accountKey: 'USD',
+      amount: '10000',
+      description: 'groceries Account',
+    },
+    {
+      accountKey: 'USD',
+      amount: '-10000',
+      description: 'Wallet adjustment',
     },
   ];
 
@@ -60,13 +75,8 @@ describe('Transaction Domain Entity', () => {
     data = transactionBuilder
       .withSettings(transactionData)
       .withAccounts(['USD', 'EUR', 'RUB', 'TRY'])
-      .withSystemAccounts()
-      .withEntries(entriesData)
+      .withOperations(operationsData)
       .build();
-
-    entries = data.transactionDTO.entries;
-    entryContext = data.entryContext;
-    transactionDTO = data.transactionDTO;
   });
 
   beforeEach(() => {
@@ -78,11 +88,11 @@ describe('Transaction Domain Entity', () => {
   });
 
   describe('Creation and Restoration', () => {
-    it('should create a valid transaction with entries', () => {
+    it('should create a valid transaction with operation', () => {
       const transaction = Transaction.create(
         user.getId(),
-        transactionDTO,
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
 
       expect(transaction).toBeInstanceOf(Transaction);
@@ -98,32 +108,24 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.getUpdatedAt()).toBeDefined();
       expect(transaction.isDeleted()).toBe(false);
 
-      const transactionEntries = transaction.getEntries();
+      expect(transaction.currency.valueOf()).toBe(transactionData.currencyCode);
 
-      expect(transactionEntries).toHaveLength(entries.length);
+      const transactionOperations = transaction.getOperations();
 
-      transactionEntries.forEach((entry, index) => {
-        const matchedEntryData = entriesData[index];
+      expect(transactionOperations).toHaveLength(operationsData.length);
 
-        expect(entry).toBeInstanceOf(Entry);
-        expect(entry.description).toBe(matchedEntryData.description);
-
-        const entryOperations = entry.getOperations();
-
-        entryOperations.forEach((op, opIndex) => {
-          const matchedOp = matchedEntryData.operations[opIndex];
-
-          expect(op.amount.valueOf()).toBe(matchedOp.amount);
-          expect(op.description).toBe(matchedOp.description);
-        });
+      transactionOperations.forEach((op, index) => {
+        const matchedOpData = operationsData[index];
+        expect(op.amount.valueOf()).toBe(matchedOpData.amount);
+        expect(op.description).toBe(matchedOpData.description);
       });
     });
 
     it('should serialize and deserialize correctly', () => {
       const transaction = Transaction.create(
         user.getId(),
-        transactionDTO,
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
 
       const transactionSnapshot = transaction.toSnapshot();
@@ -141,817 +143,470 @@ describe('Transaction Domain Entity', () => {
   });
 
   describe('Updating Transaction data', () => {
-    it('Should update only description', () => {
+    it('Should update only description, increment version and update timestamps', () => {
       const transaction = Transaction.create(
         user.getId(),
-        transactionDTO,
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
 
       const description = 'Updated transaction description';
-
       const originalSnapshot = transaction.toSnapshot();
 
+      vi.advanceTimersByTime(5000);
+
       transaction.applyUpdate(
-        { entries: null, metadata: { description } },
-        entryContext,
+        { metadata: { description } },
+        data.transactionContext,
       );
 
       const updatedSnapshot = transaction.toSnapshot();
+
+      expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
+        new Date(updatedSnapshot.updatedAt).getTime(),
+      );
 
       expect(updatedSnapshot.description).toBe(description);
-
-      expect(originalSnapshot.entries).toEqual(updatedSnapshot.entries);
       expect(originalSnapshot.postingDate).toBe(updatedSnapshot.postingDate);
       expect(originalSnapshot.transactionDate).toBe(
         updatedSnapshot.transactionDate,
       );
+
+      areOperationsEqual(
+        originalSnapshot.operations,
+        updatedSnapshot.operations,
+      );
     });
 
-    it('Should update only postingDate', () => {
+    it('Should update only postingDate, increment version and update timestamps', () => {
       const transaction = Transaction.create(
         user.getId(),
-        transactionDTO,
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
 
-      const postingDate = '2024-02-15' as IsoDateString;
+      const postingDate = DateValue.restore('2024-02-15').valueOf();
 
       const originalSnapshot = transaction.toSnapshot();
 
+      vi.advanceTimersByTime(5000);
+
       transaction.applyUpdate(
-        { entries: null, metadata: { postingDate } },
-        entryContext,
+        { metadata: { postingDate } },
+        data.transactionContext,
       );
 
       const updatedSnapshot = transaction.toSnapshot();
+
+      expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
+        new Date(updatedSnapshot.updatedAt).getTime(),
+      );
 
       expect(updatedSnapshot.postingDate).toBe(postingDate);
-
-      expect(originalSnapshot.entries).toEqual(updatedSnapshot.entries);
       expect(originalSnapshot.description).toBe(updatedSnapshot.description);
       expect(originalSnapshot.transactionDate).toBe(
         updatedSnapshot.transactionDate,
       );
+
+      areOperationsEqual(
+        originalSnapshot.operations,
+        updatedSnapshot.operations,
+      );
     });
 
-    it('Should update only transactionDate', () => {
+    it('Should update only transactionDate, increment version and update timestamps', () => {
       const transaction = Transaction.create(
         user.getId(),
-        transactionDTO,
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
 
-      const transactionDate = '2024-03-10' as IsoDateString;
+      const transactionDate = DateValue.restore('2024-03-10').valueOf();
 
       const originalSnapshot = transaction.toSnapshot();
 
-      transaction.applyUpdate(
-        { entries: null, metadata: { transactionDate } },
-        entryContext,
-      );
+      vi.advanceTimersByTime(5000);
 
+      transaction.applyUpdate(
+        { metadata: { transactionDate } },
+        data.transactionContext,
+      );
       const updatedSnapshot = transaction.toSnapshot();
 
-      expect(updatedSnapshot.transactionDate).toBe(transactionDate);
+      expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
+        new Date(updatedSnapshot.updatedAt).getTime(),
+      );
 
-      expect(originalSnapshot.entries).toEqual(updatedSnapshot.entries);
+      expect(updatedSnapshot.transactionDate).toBe(transactionDate);
       expect(originalSnapshot.description).toBe(updatedSnapshot.description);
       expect(originalSnapshot.postingDate).toBe(updatedSnapshot.postingDate);
+
+      areOperationsEqual(
+        originalSnapshot.operations,
+        updatedSnapshot.operations,
+      );
     });
 
-    it('Should update all fields at once and increase version', () => {
+    it('Should update all fields at once, increment version and update timestamps', () => {
       const transaction = Transaction.create(
         user.getId(),
-        transactionDTO,
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
 
       const originalSnapshot = transaction.toSnapshot();
 
       const description = 'Fully updated transaction';
-      const postingDate = '2024-04-01' as IsoDateString;
-      const transactionDate = '2024-04-05' as IsoDateString;
+      const postingDate = DateValue.restore('2024-04-01').valueOf();
+      const transactionDate = DateValue.restore('2024-04-05').valueOf();
+
+      vi.advanceTimersByTime(5000);
 
       transaction.applyUpdate(
         {
-          entries: null,
           metadata: { description, postingDate, transactionDate },
         },
-        entryContext,
+        data.transactionContext,
       );
 
       const updatedSnapshot = transaction.toSnapshot();
 
+      expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
+        new Date(updatedSnapshot.updatedAt).getTime(),
+      );
+
       expect(updatedSnapshot.description).toBe(description);
       expect(updatedSnapshot.postingDate).toBe(postingDate);
       expect(updatedSnapshot.transactionDate).toBe(transactionDate);
-      expect(originalSnapshot.entries).toEqual(updatedSnapshot.entries);
       expect(originalSnapshot.version + 1).toBe(updatedSnapshot.version);
+
+      areOperationsEqual(
+        originalSnapshot.operations,
+        updatedSnapshot.operations,
+      );
     });
   });
 
-  describe('Manage Entries', () => {
-    it('Should add a new entry', () => {
-      const usdAccount = data.getAccountByKey('USD');
-      const tryAccount = data.getAccountByKey('TRY');
-      const eurAccount = data.getAccountByKey('EUR');
-
-      const entryDataInitial: EntryDraft = {
-        description: 'Entry initial',
-        operations: [
-          {
-            accountId: eurAccount.getId().valueOf(),
-            amount: Amount.create('5000').toPersistence(),
-            description: 'Entry initial Op 1',
-          },
-          {
-            accountId: tryAccount.getId().valueOf(),
-            amount: Amount.create('-5000').toPersistence(),
-            description: 'Entry initial Op 2',
-          },
-        ],
-      };
-
+  describe('Manage Operations', () => {
+    it('Should add a new operation and increase version', () => {
       const transaction = Transaction.create(
         user.getId(),
-        { ...transactionDTO, entries: [entryDataInitial] },
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
 
-      const newEntryData: EntryDraft = {
-        description: 'New Entry',
-        operations: [
-          {
-            accountId: usdAccount.getId().valueOf(),
-            amount: Amount.create('5000').toPersistence(),
-            description: 'New Entry Op 1',
-          },
-          {
-            accountId: tryAccount.getId().valueOf(),
-            amount: Amount.create('-5000').toPersistence(),
-            description: 'New Entry Op 2',
-          },
-        ],
+      const originalSnapshot = transaction.toSnapshot();
+
+      const prevOperations: OperationUpdate[] = transaction
+        .getOperations()
+        .map((op) => ({
+          accountId: op.getAccountId().valueOf(),
+          amount: op.amount.valueOf(),
+          description: op.description,
+          id: op.getId().valueOf(),
+          value: op.value.valueOf(),
+        }));
+
+      const newOperationData1: OperationDraft = {
+        accountId: data.getAccountByKey('USD').getId().valueOf(),
+        amount: Amount.create('5000').valueOf(),
+        description: 'New Operation',
+        value: Amount.create('5000').valueOf(),
       };
 
-      const transactionEntriesData = [entryDataInitial, newEntryData];
+      const newOperationData2: OperationDraft = {
+        accountId: data.getAccountByKey('USD').getId().valueOf(),
+        amount: Amount.create('-5000').valueOf(),
+        description: 'New Operation',
+        value: Amount.create('-5000').valueOf(),
+      };
+
+      const operationsToAdd = [newOperationData1, newOperationData2];
+
+      vi.advanceTimersByTime(5000);
 
       transaction.applyUpdate(
         {
-          entries: {
-            create: [newEntryData],
+          operations: {
+            create: operationsToAdd,
             delete: [],
             update: [],
           },
         },
-        entryContext,
+        data.transactionContext,
       );
 
-      const snapshot = transaction.toSnapshot();
+      const updatedSnapshot = transaction.toSnapshot();
 
-      transactionEntriesData.forEach((entryData, index) => {
-        const matchedEntry = snapshot.entries[index];
+      expect(transaction.getOperations()).toHaveLength(
+        prevOperations.length + operationsToAdd.length,
+      );
 
-        expect(matchedEntry).toBeDefined();
+      expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
+        new Date(updatedSnapshot.updatedAt).getTime(),
+      );
 
-        entryData.operations.forEach((op, opIndex) => {
-          expect(matchedEntry.operations[opIndex]).toBeDefined();
+      expect(updatedSnapshot.version).toBe(originalSnapshot.version + 1);
 
-          const matchedOp = matchedEntry.operations[opIndex];
+      updatedSnapshot.operations.forEach((op) => {
+        const matchedPrevOp = prevOperations.find(
+          (prevOp) => op.id === prevOp.id,
+        );
 
-          expect(matchedOp.accountId).toBe(op.accountId);
-          expect(matchedOp.amount).toBe(op.amount);
-          expect(matchedOp.description).toBe(op.description);
-        });
+        if (matchedPrevOp) {
+          expect(op.accountId).toBe(matchedPrevOp.accountId);
+          expect(op.amount).toBe(matchedPrevOp.amount);
+          expect(op.description).toBe(matchedPrevOp.description);
+          expect(op.value).toBe(matchedPrevOp.value);
+          return;
+        }
+
+        const matchedNewOp = operationsToAdd.find(
+          (newOp) =>
+            newOp.accountId === op.accountId &&
+            newOp.amount === op.amount &&
+            newOp.description === op.description &&
+            newOp.value === op.value,
+        );
+
+        expect(matchedNewOp).toBeDefined();
+        expect(op.accountId).toBe(matchedNewOp?.accountId);
+        expect(op.amount).toBe(matchedNewOp?.amount);
+        expect(op.description).toBe(matchedNewOp?.description);
+        expect(op.value).toBe(matchedNewOp?.value);
       });
     });
 
-    it('Should update an entry description only and increment version', () => {
-      const tryAccount = data.getAccountByKey('TRY');
-      const eurAccount = data.getAccountByKey('EUR');
-
-      const entryDataInitial: EntryDraft = {
-        description: 'Entry initial',
-        operations: [
-          {
-            accountId: eurAccount.getId().valueOf(),
-            amount: Amount.create('5000').toPersistence(),
-            description: 'Entry initial Op 1',
-          },
-          {
-            accountId: tryAccount.getId().valueOf(),
-            amount: Amount.create('-5000').toPersistence(),
-            description: 'Entry initial Op 2',
-          },
-        ],
-      };
-
+    it('Should update an existing operation and increase version', () => {
       const transaction = Transaction.create(
         user.getId(),
-        { ...transactionDTO, entries: [entryDataInitial] },
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
 
-      const entryToUpdate = transaction.toSnapshot().entries[0];
+      const originalSnapshot = transaction.toSnapshot();
 
-      const newEntryData: EntryUpdate = {
-        description: 'New Entry description',
-        id: entryToUpdate.id,
-      };
+      const prevOperations: OperationUpdate[] = transaction
+        .getOperations()
+        .map((op) => ({
+          accountId: op.getAccountId().valueOf(),
+          amount: op.amount.valueOf(),
+          description: op.description,
+          id: op.getId().valueOf(),
+          value: op.value.valueOf(),
+        }));
+
+      const [operationToUpdate1, operationToUpdate2] = prevOperations;
+
+      const updatedOperationData: OperationUpdate[] = [
+        {
+          accountId: operationToUpdate1.accountId,
+          amount: Amount.create('20000').valueOf(),
+          description: 'Updated Operation',
+          id: operationToUpdate1.id,
+          value: Amount.create('20000').valueOf(),
+        },
+        {
+          accountId: operationToUpdate2.accountId,
+          amount: Amount.create('-20000').valueOf(),
+          description: 'Updated Operation',
+          id: operationToUpdate2.id,
+          value: Amount.create('-20000').valueOf(),
+        },
+      ];
+
+      vi.advanceTimersByTime(5000);
 
       transaction.applyUpdate(
         {
-          entries: {
+          operations: {
             create: [],
             delete: [],
-            update: [newEntryData],
+            update: updatedOperationData,
           },
         },
-        entryContext,
+        data.transactionContext,
       );
 
-      const snapshot = transaction.toSnapshot();
+      const updatedSnapshot = transaction.toSnapshot();
 
-      snapshot.entries.forEach((entry) => {
-        expect(entry.id).toBe(entryToUpdate.id);
-        expect(entry.description).toBe(newEntryData.description);
-        expect(entry.version).toBe(entryToUpdate.version + 1);
+      expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
+        new Date(updatedSnapshot.updatedAt).getTime(),
+      );
 
-        entry.operations.forEach((op, opIndex) => {
-          const originalOp = entryToUpdate.operations[opIndex];
+      expect(transaction.getOperations()).toHaveLength(prevOperations.length);
 
-          expect(op.accountId).toBe(originalOp.accountId);
-          expect(op.amount).toBe(originalOp.amount);
-          expect(op.description).toBe(originalOp.description);
-        });
+      expect(updatedSnapshot.version).toBe(originalSnapshot.version + 1);
+
+      updatedSnapshot.operations.forEach((op) => {
+        const matchedPrevOp = updatedOperationData.find(
+          (prevOp) => op.id === prevOp.id,
+        );
+
+        expect(matchedPrevOp).toBeDefined();
+
+        expect(op.accountId).toBe(matchedPrevOp?.accountId);
+        expect(op.amount).toBe(matchedPrevOp?.amount);
+        expect(op.description).toBe(matchedPrevOp?.description);
+        expect(op.value).toBe(matchedPrevOp?.value);
       });
     });
 
-    it('Should update entry operations and increment version', () => {
-      const tryAccount = data.getAccountByKey('TRY');
-      const eurAccount = data.getAccountByKey('EUR');
-
-      const entryDataInitial: EntryDraft = {
-        description: 'Entry initial',
-        operations: [
-          {
-            accountId: eurAccount.getId().valueOf(),
-            amount: Amount.create('5000').toPersistence(),
-            description: 'Entry initial Op 1',
-          },
-          {
-            accountId: tryAccount.getId().valueOf(),
-            amount: Amount.create('-5000').toPersistence(),
-            description: 'Entry initial Op 2',
-          },
-        ],
-      };
-
+    it('Should delete an existing operation and increase version', () => {
       const transaction = Transaction.create(
         user.getId(),
-        { ...transactionDTO, entries: [entryDataInitial] },
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
 
-      const entryToUpdate = transaction.toSnapshot().entries[0];
+      const originalSnapshot = transaction.toSnapshot();
 
-      const newEntryData: EntryUpdate = {
-        description: 'New Entry description',
-        id: entryToUpdate.id,
-        operations: [
-          {
-            accountId: eurAccount.getId().valueOf(),
-            amount: Amount.create('5000').toPersistence(),
-            description: 'Updated Op 1',
-          },
-          {
-            accountId: tryAccount.getId().valueOf(),
-            amount: Amount.create('-7000').toPersistence(),
-            description: 'Updated Op 2',
-          },
-        ],
-      };
+      const operationToDeleteSnapshot = originalSnapshot.operations[0];
+
+      vi.advanceTimersByTime(5000);
 
       transaction.applyUpdate(
         {
-          entries: {
+          operations: {
             create: [],
-            delete: [],
-            update: [newEntryData],
+            delete: [operationToDeleteSnapshot.id],
+            update: [],
           },
         },
-        entryContext,
+        data.transactionContext,
       );
 
-      const snapshot = transaction.toSnapshot();
+      const updatedSnapshot = transaction.toSnapshot();
 
-      snapshot.entries.forEach((entry) => {
-        expect(entry.id).toBe(entryToUpdate.id);
-        expect(entry.description).toBe(newEntryData.description);
-        expect(entry.version).toBe(entryToUpdate.version + 1);
-        entry.operations.forEach((op, opIndex) => {
-          if (op.isSystem) {
-            return;
-          }
+      expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
+        new Date(updatedSnapshot.updatedAt).getTime(),
+      );
 
-          const matchedOp = newEntryData.operations?.[opIndex];
+      const operationsAfterDelete = transaction.getOperations();
 
-          expect(matchedOp).toBeDefined();
+      const deletedOperation = operationsAfterDelete.find(
+        (op) => op.getId().valueOf() === operationToDeleteSnapshot.id,
+      );
 
-          expect(op.accountId).toBe(matchedOp?.accountId);
-          expect(op.amount).toBe(matchedOp?.amount);
-          expect(op.description).toBe(matchedOp?.description);
-        });
+      expect(deletedOperation).toBeDefined();
+
+      expect(deletedOperation?.isDeleted()).toBe(true);
+
+      const deletedOperationSnapshot = updatedSnapshot.operations.find(
+        (op) => op.id === operationToDeleteSnapshot.id,
+      );
+
+      expect(deletedOperationSnapshot).toBeDefined();
+
+      compareEntities(deletedOperationSnapshot!, operationToDeleteSnapshot, [
+        'isTombstone',
+        'updatedAt',
+      ]);
+
+      updatedSnapshot.operations.forEach((op) => {
+        const matchedPrevOp = originalSnapshot.operations.find(
+          (prevOp) => op.id === prevOp.id,
+        );
+
+        expect(matchedPrevOp).toBeDefined();
+
+        if (matchedPrevOp?.id === operationToDeleteSnapshot.id) {
+          expect(op.isTombstone).toBe(true);
+          compareEntities(matchedPrevOp, op, ['isTombstone', 'updatedAt']);
+          return;
+        }
+
+        compareEntities(op, matchedPrevOp!);
       });
     });
   });
 
   describe('Deletion', () => {
-    it('should mark transaction as deleted and all related entries and operations', () => {
-      const tryAccount = data.getAccountByKey('TRY');
-      const eurAccount = data.getAccountByKey('EUR');
-
-      const entryDataInitial: EntryDraft = {
-        description: 'Entry initial',
-        operations: [
-          {
-            accountId: eurAccount.getId().valueOf(),
-            amount: Amount.create('5000').toPersistence(),
-            description: 'Entry initial Op 1',
-          },
-          {
-            accountId: tryAccount.getId().valueOf(),
-            amount: Amount.create('-5000').toPersistence(),
-            description: 'Entry initial Op 2',
-          },
-        ],
-      };
-
+    it('should mark transaction as deleted and all related operations, increase version and update timestamps', () => {
       const transaction = Transaction.create(
         user.getId(),
-        { ...transactionDTO, entries: [entryDataInitial] },
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
 
-      const versionBeforeDelete = transaction.toSnapshot().version;
+      const originalSnapshot = transaction.toSnapshot();
+
+      vi.advanceTimersByTime(5000);
 
       transaction.markAsDeleted();
 
+      const updatedSnapshot = transaction.toSnapshot();
+
+      expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
+        new Date(updatedSnapshot.updatedAt).getTime(),
+      );
+
+      expect(updatedSnapshot.version).toBe(originalSnapshot.version + 1);
+
       expect(transaction.isDeleted()).toBe(true);
 
-      const entries = transaction.getEntries();
+      const operations = transaction.getOperations();
 
-      entries.forEach((entry) => {
-        expect(entry.isDeleted()).toBe(true);
-
-        entry.getOperations().forEach((op) => {
-          expect(op.isDeleted()).toBe(true);
-        });
+      operations.forEach((operation) => {
+        expect(operation.isDeleted()).toBe(true);
       });
-
-      expect(transaction.toSnapshot().version).toBe(versionBeforeDelete + 1);
     });
 
-    it('Should delete an entry from transaction', () => {
-      const tryAccount = data.getAccountByKey('TRY');
-      const eurAccount = data.getAccountByKey('EUR');
-
-      const entryData: EntryDraft[] = [
-        {
-          description: 'Entry One',
-          operations: [
-            {
-              accountId: eurAccount.getId().valueOf(),
-              amount: Amount.create('5000').toPersistence(),
-              description: 'Entry initial Op 1',
-            },
-            {
-              accountId: tryAccount.getId().valueOf(),
-              amount: Amount.create('-5000').toPersistence(),
-              description: 'Entry initial Op 2',
-            },
-          ],
-        },
-        {
-          description: 'Entry Two',
-          operations: [
-            {
-              accountId: eurAccount.getId().valueOf(),
-              amount: Amount.create('8000').toPersistence(),
-              description: 'Entry initial Op 1',
-            },
-            {
-              accountId: tryAccount.getId().valueOf(),
-              amount: Amount.create('-8000').toPersistence(),
-              description: 'Entry initial Op 2',
-            },
-          ],
-        },
-      ];
-
+    it('Should not increase version if transaction is already deleted', () => {
       const transaction = Transaction.create(
         user.getId(),
-        { ...transactionDTO, entries: entryData },
-        entryContext,
+        data.transactionDTO,
+        data.transactionContext,
       );
+      transaction.markAsDeleted();
 
-      transaction.getEntries().forEach((entry, index) => {
-        const matchedEntryData = entryData[index];
+      const originalSnapshot = transaction.toSnapshot();
 
-        expect(entry).toBeDefined();
-        expect(entry.description).toBe(matchedEntryData.description);
-      });
+      transaction.markAsDeleted();
 
-      const entryToDelete = transaction.toSnapshot().entries[0];
-      const entryVersionBeforeDelete = entryToDelete.version;
+      const updatedSnapshot = transaction.toSnapshot();
 
-      const transactionVersionBeforeEdit = transaction.toSnapshot().version;
-
-      transaction.applyUpdate(
-        {
-          entries: {
-            create: [],
-            delete: [entryToDelete.id],
-            update: [],
-          },
-        },
-        entryContext,
-      );
-
-      transaction.getEntries().forEach((entry) => {
-        if (entry.getId().valueOf() === entryToDelete.id) {
-          expect(entry.isDeleted()).toBe(true);
-          expect(entry.toSnapshot().version).toBe(entryVersionBeforeDelete + 1);
-          const operations = entry.getOperations();
-
-          operations.forEach((op) => {
-            expect(op.isDeleted()).toBe(true);
-          });
-
-          return;
-        }
-
-        expect(entry.isDeleted()).toBe(false);
-        expect(entry.toSnapshot().version).toBe(0);
-
-        const operations = entry.getOperations();
-        operations.forEach((op) => {
-          expect(op.isDeleted()).toBe(false);
-        });
-      });
-
-      expect(transaction.isDeleted()).toBe(false);
-      expect(transaction.toSnapshot().version).toBe(
-        transactionVersionBeforeEdit + 1,
-      );
+      expect(transaction.isDeleted()).toBe(true);
+      expect(updatedSnapshot.version).toBe(originalSnapshot.version);
+      expect(updatedSnapshot.updatedAt).toBe(originalSnapshot.updatedAt);
     });
   });
 
-  // it.skip('should update description via update method and touch updatedAt', () => {
-  //   const transaction = Transaction.create(user, transactionDTO, entryContext);
-
-  //   const originalUpdatedAt = transaction.getUpdatedAt();
-
-  //   vi.advanceTimersByTime(5);
-
-  //   transaction.update({ description: 'Updated description' });
-
-  //   expect(transaction.description).toBe('Updated description');
-
-  //   expect(transaction.getUpdatedAt().toDate().getTime()).toBeGreaterThan(
-  //     originalUpdatedAt.toDate().getTime(),
-  //   );
-
-  //   expect(originalUpdatedAt).not.toEqual(transaction.getUpdatedAt());
-  // });
-
-  // it.skip('should update postingDate via update method and touch updatedAt', () => {
-  //   const transaction = Transaction.create(user, transactionDTO, entryContext);
-
-  //   const originalUpdatedAt = transaction.getUpdatedAt();
-  //   const newPostingDate = '2024-01-15' as IsoDateString;
-
-  //   vi.advanceTimersByTime(5);
-
-  //   transaction.update({ postingDate: newPostingDate });
-
-  //   expect(transaction.getPostingDate().valueOf()).toBe(newPostingDate);
-  //   expect(originalUpdatedAt).not.toEqual(transaction.getUpdatedAt());
-  //   expect(transaction.getUpdatedAt().toDate().getTime()).toBeGreaterThan(
-  //     originalUpdatedAt.toDate().getTime(),
-  //   );
-  // });
-
-  // it.skip('should update transactionDate via update method and touch updatedAt', () => {
-  //   const transaction = Transaction.create(user, transactionDTO, entryContext);
-
-  //   const originalUpdatedAt = transaction.getUpdatedAt();
-  //   const newTransactionDate = '2024-01-20' as IsoDateString;
-
-  //   vi.advanceTimersByTime(5);
-
-  //   transaction.update({ transactionDate: newTransactionDate });
-
-  //   expect(transaction.getTransactionDate().valueOf()).toBe(newTransactionDate);
-  //   expect(originalUpdatedAt).not.toEqual(transaction.getUpdatedAt());
-  //   expect(transaction.getUpdatedAt().toDate().getTime()).toBeGreaterThan(
-  //     originalUpdatedAt.toDate().getTime(),
-  //   );
-  // });
-
-  // it.skip('should update multiple fields at once via update method', () => {
-  //   const transaction = Transaction.create(user, transactionDTO, entryContext);
-  //   const newDescription = 'New description';
-  //   const newPostingDate = '2024-02-01' as IsoDateString;
-  //   const newTransactionDate = '2024-02-05' as IsoDateString;
-
-  //   transaction.update({
-  //     description: newDescription,
-  //     postingDate: newPostingDate,
-  //     transactionDate: newTransactionDate,
-  //   });
-
-  //   expect(transaction.description).toBe(newDescription);
-  //   expect(transaction.getPostingDate().valueOf()).toBe(newPostingDate);
-  //   expect(transaction.getTransactionDate().valueOf()).toBe(newTransactionDate);
-  // });
-
-  // TODO: fix and enable these tests
-  // describe('Entry Management', () => {
-  //   let transaction: Transaction;
-
-  //   beforeEach(() => {
-  //     transaction = Transaction.create(userId, transactionDTO);
-  //   });
-
-  //   it.skip('should start with empty entries array', () => {
-  //     expect(transaction.getEntries()).toEqual([]);
-  //   });
-
-  //   it.skip('should add entry successfully', () => {
-  //     const transaction = Transaction.create(userId, transactionDTO);
-
-  //     const mockEntry1 = {
-  //       belongsToTransaction: () => true,
-  //       data: 'mock entry data1',
-  //     } as unknown as Entry;
-
-  //     const mockEntry2 = {
-  //       belongsToTransaction: () => true,
-  //       data: 'mock entry data2',
-  //     } as unknown as Entry;
-
-  //     vi.spyOn(Entry, 'create').mockReturnValue(mockEntry1);
-
-  //     transaction.addEntry(mockEntry1);
-  //     transaction.addEntry(mockEntry2);
-
-  //     const entries = transaction.getEntries();
-  //     expect(entries).toHaveLength(2);
-  //     expect(entries[0]).toBe(mockEntry1);
-  //     expect(entries[1]).toBe(mockEntry2);
-  //   });
-
-  //   it.todo('should remove entry successfully', () => {
-  //     // TODO: Implement when Entry.create is available
-  //     // const entry = Entry.create(/* appropriate parameters */);
-  //     // transaction.addEntry(entry);
-  //     // transaction.removeEntry(entry.getId());
-  //     // expect(transaction.getEntries()).toHaveLength(0);
-  //   });
-
-  //   it.todo('should throw error when removing non-existent entry', () => {
-  //     // const nonExistentId = Id.create();
-  //     // expect(() => transaction.removeEntry(nonExistentId)).toThrow('Entry not found in transaction');
-  //   });
-
-  //   it.todo('should validate entry belongs to transaction when adding', () => {
-  //     // TODO: Test that entry validation works correctly
-  //   });
-
-  //   it.skip('should provide read-only access to entries', () => {
-  //     const entries = transaction.getEntries();
-  //     expect(entries).toBeInstanceOf(Array);
-
-  //     // Should return a readonly array
-  //     expect(transaction.getEntries()).toHaveLength(0);
-  //   });
-
-  //   it.todo('should implement balance validation', () => {
-  //     // TODO: Implement isBalanced and validateBalance tests
-  //   });
-  // });
-
-  describe('EntriesPatch Validation', () => {
-    it('should throw error when same ID appears in update and delete arrays', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        transactionDTO,
-        entryContext,
-      );
-
-      const entry = transaction.getEntries()[0];
-      const entryId = entry.getId().valueOf();
-
+  describe('Validation', () => {
+    it('Should validate that sum of operation values is 0', () => {
       expect(() => {
-        transaction.applyUpdate(
-          {
-            entries: {
-              create: [],
-              delete: [entryId],
-              update: [{ description: 'Updated', id: entryId }],
-            },
-          },
-          entryContext,
+        Transaction.create(
+          user.getId(),
+          data.transactionDTO,
+          data.transactionContext,
         );
-      }).toThrow(ConflictingEntryIdsError);
+      }).not.toThrowError(UnbalancedTransactionError);
     });
 
-    it('should throw error when duplicate IDs exist in update array', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        transactionDTO,
-        entryContext,
-      );
-
-      const entry = transaction.getEntries()[0];
-      const entryId = entry.getId().valueOf();
+    it('Should fail validation if sum of operation values is not 0', () => {
+      const usdAccountId = data.getAccountByKey('USD').getId().valueOf();
+      const unbalancedOperationsData = [
+        {
+          accountId: usdAccountId,
+          amount: Amount.create('10000').valueOf(),
+          description: 'groceries Account',
+          value: Amount.create('10000').valueOf(),
+        },
+        {
+          accountId: usdAccountId,
+          amount: Amount.create('10000').valueOf(),
+          description: 'Wallet adjustment',
+          value: Amount.create('10000').valueOf(),
+        },
+      ] satisfies OperationDraft[];
 
       expect(() => {
-        transaction.applyUpdate(
-          {
-            entries: {
-              create: [],
-              delete: [],
-              update: [
-                { description: 'Update 1', id: entryId },
-                { description: 'Update 2', id: entryId },
-              ],
-            },
-          },
-          entryContext,
+        Transaction.create(
+          user.getId(),
+          { ...data.transactionDTO, operations: unbalancedOperationsData },
+          data.transactionContext,
         );
-      }).toThrow(ConflictingEntryIdsError);
-    });
-
-    it('should throw error when duplicate IDs exist in delete array', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        transactionDTO,
-        entryContext,
-      );
-
-      const entry = transaction.getEntries()[0];
-      const entryId = entry.getId().valueOf();
-
-      expect(() => {
-        transaction.applyUpdate(
-          {
-            entries: {
-              create: [],
-              delete: [entryId, entryId],
-              update: [],
-            },
-          },
-          entryContext,
-        );
-      }).toThrow(ConflictingEntryIdsError);
-    });
-
-    it('should successfully apply patch when no conflicts exist', () => {
-      const transactionBuilder = TransactionBuilder.create(user);
-
-      const multiEntryData = transactionBuilder
-        .withSettings(transactionData)
-        .withAccounts(['USD'])
-        .withSystemAccounts()
-        .withEntries([
-          {
-            description: 'Entry 1',
-            operations: [
-              { accountKey: 'USD', amount: '10000', description: '1' },
-              { accountKey: 'USD', amount: '-10000', description: '2' },
-            ],
-          },
-          {
-            description: 'Entry 2',
-            operations: [
-              { accountKey: 'USD', amount: '20000', description: '3' },
-              { accountKey: 'USD', amount: '-20000', description: '4' },
-            ],
-          },
-        ])
-        .build();
-
-      const transaction = Transaction.create(
-        user.getId(),
-        multiEntryData.transactionDTO,
-        multiEntryData.entryContext,
-      );
-
-      const entries = transaction.getEntries();
-      const entryToUpdate = entries[0].getId().valueOf();
-      const entryToDelete = entries[1].getId().valueOf();
-
-      expect(() => {
-        transaction.applyUpdate(
-          {
-            entries: {
-              create: [],
-              delete: [entryToDelete],
-              update: [{ description: 'Updated Entry', id: entryToUpdate }],
-            },
-          },
-          multiEntryData.entryContext,
-        );
-      }).not.toThrow();
-
-      expect(transaction.getEntryById(entryToDelete)?.isDeleted()).toBe(true);
-    });
-
-    it('should throw error when trying to update non-existent entry', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        transactionDTO,
-        entryContext,
-      );
-
-      const nonExistentId = '00000000-0000-0000-0000-000000000000' as UUID;
-
-      expect(() => {
-        transaction.applyUpdate(
-          {
-            entries: {
-              create: [],
-              delete: [],
-              update: [{ description: 'Update', id: nonExistentId }],
-            },
-          },
-          entryContext,
-        );
-      }).toThrow(EntryNotFoundInTransactionError);
-    });
-
-    it('should throw error when TransactionBuildContext is missing for create', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        transactionDTO,
-        entryContext,
-      );
-
-      const account = data.entryContext.accountsMap.values().next().value;
-
-      if (!account) {
-        throw new Error('Account not found');
-      }
-
-      expect(() => {
-        transaction.applyUpdate({
-          entries: {
-            create: [
-              {
-                description: 'New Entry',
-                operations: [
-                  {
-                    accountId: account.getId().valueOf(),
-                    amount: '100.00' as MoneyString,
-                    description: 'op1',
-                  },
-                  {
-                    accountId: account.getId().valueOf(),
-                    amount: '-100.00' as MoneyString,
-                    description: 'op2',
-                  },
-                ],
-              },
-            ],
-            delete: [],
-            update: [],
-          },
-        });
-      }).toThrow(MissingTransactionContextError);
-    });
-
-    it('should throw error when TransactionBuildContext is missing for update', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        transactionDTO,
-        entryContext,
-      );
-
-      const entry = transaction.getEntries()[0];
-      const entryId = entry.getId().valueOf();
-
-      expect(() => {
-        transaction.applyUpdate({
-          entries: {
-            create: [],
-            delete: [],
-            update: [{ description: 'Updated', id: entryId }],
-          },
-        });
-      }).toThrow(MissingTransactionContextError);
+      }).toThrowError(UnbalancedTransactionError);
     });
   });
 });

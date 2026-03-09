@@ -1,10 +1,4 @@
 import { UUID } from '@ledgerly/shared/types';
-import {
-  ConflictingEntryIdsError,
-  EntryDoesNotBelongToTransactionError,
-  EntryNotFoundInTransactionError,
-  MissingTransactionContextError,
-} from 'src/domain/domain.errors';
 
 import {
   EntityIdentity,
@@ -14,9 +8,19 @@ import {
   Timestamp,
   ParentChildRelation,
   DateValue,
+  Amount,
+  Currency,
 } from '../domain-core';
-import { Entry } from '../entries';
-import { EntryDraft, EntryUpdate } from '../entries/types';
+import {
+  AccountNotFoundInContextError,
+  ConflictingOperationIdsError,
+  MissingTransactionContextError,
+  OperationNotFoundInTransactionError,
+  OperationUserMismatchError,
+  UnbalancedTransactionError,
+} from '../domain.errors';
+import { Operation } from '../operations';
+import { OperationDraft, OperationUpdate } from '../operations/types';
 
 import {
   CreateTransactionProps,
@@ -25,36 +29,23 @@ import {
   TransactionWithEntriesAndOperations,
   TransactionSnapshot,
   UpdateTransactionProps,
-  EntriesPatch,
+  OperationsPatch,
 } from './types';
 
 export class Transaction {
-  private readonly identity: EntityIdentity;
-  private timestamps: EntityTimestamps;
-  private softDelete: SoftDelete;
-  private readonly ownership: ParentChildRelation;
-  private postingDate: DateValue;
-  private transactionDate: DateValue;
-  private entries: Entry[] = [];
-
+  private operations: Operation[] = [];
+  private operationsMap = new Map<string, Operation>();
   private constructor(
-    identity: EntityIdentity,
-    timestamps: EntityTimestamps,
-    softDelete: SoftDelete,
-    ownership: ParentChildRelation,
-    postingDate: DateValue,
-    transactionDate: DateValue,
+    private readonly identity: EntityIdentity,
+    private timestamps: EntityTimestamps,
+    private softDelete: SoftDelete,
+    private readonly ownership: ParentChildRelation,
+    private postingDate: DateValue,
+    private transactionDate: DateValue,
+    public currency: Currency,
     public description: string,
     private version = 0,
-  ) {
-    this.identity = identity;
-    this.timestamps = timestamps;
-    this.softDelete = softDelete;
-    this.ownership = ownership;
-    this.postingDate = postingDate;
-    this.transactionDate = transactionDate;
-    this.description = description;
-  }
+  ) {}
 
   static create(
     userId: Id,
@@ -76,40 +67,67 @@ export class Transaction {
       ownership,
       postingDate,
       transactionDate,
+      dto.currency,
       dto.description,
     );
 
-    const entries = transaction.createEntriesFromDrafts(
-      dto.entries,
+    const operations = transaction.createOperationsFromDrafts(
+      dto.operations,
       transactionContext,
     );
 
-    transaction.attachEntries(entries);
-
+    transaction.attachOperations(operations);
     transaction.validate();
 
     return transaction;
   }
 
-  private createEntriesFromDrafts(
-    entriesData: EntryDraft[],
+  private attachOperations(operations: Operation[]): void {
+    operations.forEach((operation) => {
+      const existingOperation = this.operationsMap.get(
+        operation.getId().valueOf(),
+      );
+
+      if (existingOperation) {
+        throw new Error(
+          `Operation with id ${operation.getId().valueOf()} is already attached to transaction ${this.getId().valueOf()}`,
+        );
+      }
+
+      if (!operation.belongsToUser(this.getUserId())) {
+        throw new OperationUserMismatchError(
+          operation.getId().valueOf(),
+          this.getId().valueOf(),
+        );
+      }
+
+      this.operations.push(operation);
+      this.operationsMap.set(operation.getId().valueOf(), operation);
+    });
+  }
+
+  private createOperationsFromDrafts(
+    operationsData: OperationDraft[],
     transactionContext: TransactionBuildContext,
-  ): Entry[] {
-    const entries = entriesData.map((entryDTO) =>
-      Entry.create(
+  ) {
+    const operations = operationsData.map((operationDTO) =>
+      Operation.create(
         this.getUserId(),
-        this.getId(),
-        entryDTO,
-        transactionContext,
+        transactionContext.accountsMap.get(operationDTO.accountId)!,
+        this,
+        Amount.create(operationDTO.value),
+        Amount.create(operationDTO.value),
+        operationDTO.description,
       ),
     );
 
-    return entries;
+    return operations;
   }
 
   static restore(data: TransactionWithEntriesAndOperations): Transaction {
     const {
       createdAt,
+      currency,
       description,
       id,
       isTombstone,
@@ -140,13 +158,16 @@ export class Transaction {
       ownership,
       DateValue.restore(postingDate),
       DateValue.restore(transactionDate),
+      Currency.fromPersistence(currency),
       description,
       version,
     );
 
-    const entries = data.entries.map((entryData) => Entry.restore(entryData));
+    const operations = data.operations.map((operationData) =>
+      Operation.restore(operationData),
+    );
 
-    transaction.attachEntries(entries);
+    transaction.attachOperations(operations);
 
     return transaction;
   }
@@ -168,15 +189,6 @@ export class Transaction {
     this.timestamps = this.timestamps.touch();
   }
 
-  markAsDeleted(): void {
-    this.softDelete = this.softDelete.markAsDeleted();
-
-    const entries = this.getEntries();
-
-    this.deleteEntries(entries.map((entry) => entry.getId().valueOf()));
-    this.markUpdated();
-  }
-
   isDeleted(): boolean {
     return this.softDelete.isDeleted();
   }
@@ -196,10 +208,11 @@ export class Transaction {
   toSnapshot(): TransactionSnapshot {
     return {
       createdAt: this.getCreatedAt().valueOf(),
+      currency: this.currency.valueOf(),
       description: this.description,
-      entries: this.entries.map((entry) => entry.toSnapshot()),
       id: this.getId().valueOf(),
       isTombstone: this.isDeleted(),
+      operations: this.operations.map((operation) => operation.toSnapshot()),
       postingDate: this.postingDate.valueOf(),
       transactionDate: this.transactionDate.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
@@ -248,201 +261,198 @@ export class Transaction {
     return this.transactionDate;
   }
 
-  private addEntries(
-    entriesData: EntryDraft[],
-    transactionContext: TransactionBuildContext,
-  ): void {
-    const entries = this.createEntriesFromDrafts(
-      entriesData,
-      transactionContext,
-    );
-
-    this.attachEntries(entries);
-  }
-
-  private updateEntries(
-    entriesData: EntryUpdate[],
-    transactionContext: TransactionBuildContext,
-  ) {
-    this.validateUpdateIsAllowed();
-
-    entriesData.forEach((entryData) => {
-      const existingEntry = this.getEntryById(entryData.id);
-
-      if (!existingEntry) {
-        throw new EntryNotFoundInTransactionError(
-          entryData.id,
-          this.getId().valueOf(),
-        );
-      }
-
-      existingEntry.updateEntry(entryData, transactionContext);
-    });
-  }
-
-  private deleteEntries(entryIds: UUID[]): void {
-    entryIds.forEach((entryId) => {
-      const entry = this.getEntryById(entryId);
-
-      if (!entry) {
-        throw new EntryNotFoundInTransactionError(
-          entryId,
-          this.getId().valueOf(),
-        );
-      }
-
-      entry.markAsDeleted();
-    });
-  }
-
-  attachEntries(entries: Entry[]): void {
-    entries.forEach((entry) => {
-      if (!entry.belongsToTransaction(this.getId())) {
-        throw new EntryDoesNotBelongToTransactionError(
-          entry.getId().valueOf(),
-          this.getId().valueOf(),
-        );
-      }
-
-      this.entries.push(entry);
-    });
-  }
-
-  getEntries(): Entry[] {
-    return [...this.entries];
-  }
-
-  getEntryById(entryId: UUID): Entry | null {
-    const entry = this.entries.find((e) => e.getId().equals(entryId));
-    return entry ?? null;
+  getOperationById(entryId: UUID): Operation | null {
+    return this.operationsMap.get(entryId) ?? null;
   }
 
   private validate(): void {
-    for (const entry of this.entries) {
-      entry.validateBalance();
+    const totalValue = this.getOperations().reduce((sum, { value }) => {
+      return sum.add(value);
+    }, Amount.create('0'));
+
+    if (!totalValue.isZero()) {
+      throw new UnbalancedTransactionError(this, totalValue);
     }
   }
 
-  getValidationResult(): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
-
-    for (const entry of this.entries) {
-      try {
-        entry.validateBalance();
-      } catch (error) {
-        if (error instanceof Error) {
-          errors.push(
-            `Entry ${entry.getId().toString()} is invalid: ${error.message}`,
-          );
-        } else {
-          errors.push(`Entry ${entry.getId().toString()} is invalid.`);
-        }
-      }
-    }
-
-    return {
-      errors,
-      isValid: errors.length === 0,
-    };
-  }
-
-  private validateEntriesPatch(entries: EntriesPatch): void {
-    if (!entries) {
+  private validateOperationsPatch(operations: OperationsPatch): void {
+    if (!operations) {
       return;
     }
 
-    const deleteIds = new Set(entries.delete);
+    const deleteIds = new Set(operations.delete);
 
     // Check for IDs present in both update and delete
-    const updateDeleteConflicts = entries.update
-      .map((entry) => entry.id)
+    const updateDeleteConflicts = operations.update
+      .map((operation) => operation.id)
       .filter((id) => deleteIds.has(id));
 
     if (updateDeleteConflicts.length > 0) {
-      throw new ConflictingEntryIdsError(
+      throw new ConflictingOperationIdsError(
         updateDeleteConflicts,
         'IDs found in both update and delete arrays',
       );
     }
 
     // Check for duplicate IDs within update array
-    const updateDuplicates = entries.update
-      .map((entry) => entry.id)
+    const updateDuplicates = operations.update
+      .map((operation) => operation.id)
       .filter((id, index, arr) => arr.indexOf(id) !== index);
 
     if (updateDuplicates.length > 0) {
-      throw new ConflictingEntryIdsError(
+      throw new ConflictingOperationIdsError(
         [...new Set(updateDuplicates)],
         'Duplicate IDs in update array',
       );
     }
 
     // Check for duplicate IDs within delete array
-    const deleteDuplicates = entries.delete.filter(
+    const deleteDuplicates = operations.delete.filter(
       (id, index, arr) => arr.indexOf(id) !== index,
     );
 
     if (deleteDuplicates.length > 0) {
-      throw new ConflictingEntryIdsError(
+      throw new ConflictingOperationIdsError(
         [...new Set(deleteDuplicates)],
         'Duplicate IDs in delete array',
       );
     }
   }
 
-  private applyEntriesPatch(
-    entries: EntriesPatch,
-    transactionContext?: TransactionBuildContext,
+  private addOperations(
+    operationsData: OperationDraft[],
+    transactionContext: TransactionBuildContext,
   ) {
+    const operations = this.createOperationsFromDrafts(
+      operationsData,
+      transactionContext,
+    );
+
+    this.attachOperations(operations);
+  }
+
+  private updateOperations(
+    operationsData: OperationUpdate[],
+    transactionContext: TransactionBuildContext,
+  ) {
+    operationsData.forEach((operationData) => {
+      const existingOperation = this.operationsMap.get(operationData.id);
+
+      if (!existingOperation) {
+        throw new OperationNotFoundInTransactionError(
+          operationData.id,
+          this.getId().valueOf(),
+        );
+      }
+
+      const operationAccount = transactionContext.accountsMap.get(
+        operationData.accountId,
+      );
+
+      if (!operationAccount) {
+        throw new AccountNotFoundInContextError(
+          operationData.accountId,
+          operationData.id,
+        );
+      }
+
+      existingOperation.update({
+        account: operationAccount,
+        amount: Amount.create(operationData.amount),
+        description: operationData.description,
+        value: Amount.create(operationData.value),
+      });
+    });
+  }
+
+  private deleteOperations(operationIds: UUID[]): void {
+    operationIds.forEach((operationId) => {
+      const operation = this.operationsMap.get(operationId);
+
+      if (!operation) {
+        throw new OperationNotFoundInTransactionError(
+          operationId,
+          this.getId().valueOf(),
+        );
+      }
+
+      operation.markAsDeleted();
+    });
+  }
+
+  private applyOperationsPatch(
+    operations?: OperationsPatch,
+    transactionContext?: TransactionBuildContext,
+  ): boolean {
     let isUpdated = false;
 
-    if (!entries) {
+    if (!operations) {
       return isUpdated;
     }
 
-    this.validateEntriesPatch(entries);
+    this.validateOperationsPatch(operations);
 
-    if (entries.create.length > 0) {
+    const { create, delete: deleteIds, update } = operations;
+
+    if (create.length > 0) {
       isUpdated = true;
 
       if (!transactionContext) {
-        throw new MissingTransactionContextError('create new entries');
+        throw new MissingTransactionContextError('create new operations');
       }
 
-      this.addEntries(entries.create, transactionContext);
+      this.addOperations(create, transactionContext);
     }
 
-    if (entries.update.length > 0) {
+    if (update.length > 0) {
       isUpdated = true;
 
       if (!transactionContext) {
-        throw new MissingTransactionContextError('update entries');
+        throw new MissingTransactionContextError('update operations');
       }
 
-      this.updateEntries(entries.update, transactionContext);
+      this.updateOperations(update, transactionContext);
     }
 
-    if (entries.delete.length > 0) {
+    if (deleteIds.length > 0) {
       isUpdated = true;
-      this.deleteEntries(entries.delete);
+
+      this.deleteOperations(deleteIds);
     }
 
     return isUpdated;
   }
 
   applyUpdate(
-    { entries, metadata }: UpdateTransactionProps,
+    { metadata, operations }: UpdateTransactionProps,
     transactionContext?: TransactionBuildContext,
   ) {
     const isMetadataUpdated = this.updateMetadataIfChanged(metadata);
 
-    const isEntriesUpdated = this.applyEntriesPatch(
-      entries,
+    const isOperationsUpdated = this.applyOperationsPatch(
+      operations,
       transactionContext,
     );
 
-    if (isMetadataUpdated || isEntriesUpdated) {
+    if (isMetadataUpdated || isOperationsUpdated) {
+      this.validate();
       this.markUpdated();
     }
+  }
+
+  getOperations(): Operation[] {
+    return this.operations;
+  }
+
+  markAsDeleted(): void {
+    if (this.isDeleted()) {
+      return;
+    }
+
+    this.softDelete = this.softDelete.markAsDeleted();
+
+    this.operations.forEach((operation) => operation.markAsDeleted());
+
+    this.markUpdated();
   }
 }

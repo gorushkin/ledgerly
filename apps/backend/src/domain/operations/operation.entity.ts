@@ -1,6 +1,6 @@
 import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
 
-import { Account, Entry } from '..';
+import { Account, Transaction } from '..';
 import {
   Id,
   Timestamp,
@@ -11,26 +11,29 @@ import {
   ParentChildRelation,
 } from '../domain-core';
 
-import { OperationSnapshot } from './types';
+import { OperationSnapshot, UpdateOperationProps } from './types';
 
+// TODO: add versioning to operation entity and implement optimistic concurrency control in repo
 export class Operation {
   private constructor(
     public readonly identity: EntityIdentity,
     public timestamps: EntityTimestamps,
     public softDelete: SoftDelete,
     public readonly ownership: ParentChildRelation,
-    public readonly entryRelation: ParentChildRelation,
-    public readonly accountRelation: ParentChildRelation,
-    public readonly amount: Amount,
-    public readonly description: string,
+    public readonly transactionRelation: ParentChildRelation,
+    public accountRelation: ParentChildRelation,
+    public amount: Amount,
+    public value: Amount,
+    public description: string,
     public readonly isSystem: boolean,
   ) {}
 
   static create(
     userId: Id,
     account: Account,
-    entry: Entry,
+    transaction: Transaction,
     amount: Amount,
+    value: Amount,
     description: string,
   ): Operation {
     const identity = EntityIdentity.create();
@@ -39,8 +42,8 @@ export class Operation {
 
     const ownership = ParentChildRelation.create(userId, identity.getId());
 
-    const entryRelation = ParentChildRelation.create(
-      entry.getId(),
+    const transactionRelation = ParentChildRelation.create(
+      transaction.getId(),
       identity.getId(),
     );
 
@@ -54,26 +57,28 @@ export class Operation {
       timestamps,
       softDelete,
       ownership,
-      entryRelation,
+      transactionRelation,
       accountRelation,
       amount,
+      value,
       description,
       account.isSystem,
     );
   }
 
-  static fromPersistence(data: OperationDbRow): Operation {
+  static restore(data: OperationDbRow): Operation {
     const {
       accountId,
       amount,
       createdAt,
       description,
-      entryId,
       id,
       isSystem,
       isTombstone,
+      transactionId,
       updatedAt,
       userId,
+      value,
     } = data;
 
     const identity = EntityIdentity.fromPersistence(Id.fromPersistence(id));
@@ -89,8 +94,8 @@ export class Operation {
       identity.getId(),
     );
 
-    const entryRelation = ParentChildRelation.create(
-      Id.fromPersistence(entryId),
+    const transactionRelation = ParentChildRelation.create(
+      Id.fromPersistence(transactionId),
       identity.getId(),
     );
 
@@ -104,9 +109,10 @@ export class Operation {
       timestamps,
       softDelete,
       ownership,
-      entryRelation,
+      transactionRelation,
       accountRelation,
       Amount.fromPersistence(amount),
+      Amount.fromPersistence(value),
       description,
       isSystem,
     );
@@ -143,8 +149,8 @@ export class Operation {
     return this.accountRelation.belongsToParent(account.getId());
   }
 
-  belongsToEntry(entry: Entry): boolean {
-    return this.entryRelation.belongsToParent(entry.getId());
+  belongsToTransaction(transaction: Transaction): boolean {
+    return this.transactionRelation.belongsToParent(transaction.getId());
   }
 
   toPersistence(): OperationDbInsert {
@@ -153,12 +159,13 @@ export class Operation {
       amount: this.amount.valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
-      entryId: this.entryRelation.getParentId().valueOf(),
       id: this.id.valueOf(),
       isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
+      transactionId: this.transactionRelation.getParentId().valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
+      value: this.value.valueOf(),
     };
   }
 
@@ -166,8 +173,8 @@ export class Operation {
     return this.identity.getId();
   }
 
-  get entryId(): Id {
-    return this.entryRelation.getParentId();
+  get transactionId(): Id {
+    return this.transactionRelation.getParentId();
   }
 
   toSnapshot(): OperationSnapshot {
@@ -176,12 +183,13 @@ export class Operation {
       amount: this.amount.valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
-      entryId: this.entryId.valueOf(),
       id: this.id.valueOf(),
       isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
+      transactionId: this.transactionRelation.getParentId().valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
+      value: this.value.valueOf(),
     };
   }
 
@@ -192,5 +200,62 @@ export class Operation {
 
   isDeleted(): boolean {
     return this.softDelete.isDeleted();
+  }
+
+  private updateDescription(description: string): boolean {
+    if (this.description === description) {
+      return false;
+    }
+
+    this.description = description;
+    return true;
+  }
+
+  private updateAmount(amount: Amount): boolean {
+    if (this.amount.equals(amount)) {
+      return false;
+    }
+
+    this.amount = amount;
+    return true;
+  }
+
+  private updateValue(value: Amount): boolean {
+    if (this.value.equals(value)) {
+      return false;
+    }
+
+    this.value = value;
+    return true;
+  }
+
+  private updateAccount(account: Account): boolean {
+    if (this.belongsToAccount(account)) {
+      return false;
+    }
+
+    this.accountRelation = ParentChildRelation.create(
+      account.getId(),
+      this.identity.getId(),
+    );
+    return true;
+  }
+
+  update(params: UpdateOperationProps): void {
+    const { account, amount, description, value } = params;
+
+    let isUpdated = false;
+
+    const isDescriptionUpdate = this.updateDescription(description);
+    const isAmountUpdate = this.updateAmount(amount);
+    const isValueUpdate = this.updateValue(value);
+    const isAccountUpdate = account ? this.updateAccount(account) : false;
+
+    isUpdated =
+      isDescriptionUpdate || isAmountUpdate || isValueUpdate || isAccountUpdate;
+
+    if (isUpdated) {
+      this.timestamps = this.timestamps.touch();
+    }
   }
 }
