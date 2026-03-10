@@ -14,9 +14,9 @@ import {
 } from '../operations/types';
 
 export type TransactionUpdateData = {
-  description?: string;
-  postingDate?: IsoDateString;
-  transactionDate?: IsoDateString;
+  description: string;
+  postingDate: IsoDateString;
+  transactionDate: IsoDateString;
 };
 
 export type TransactionBuildContext = {

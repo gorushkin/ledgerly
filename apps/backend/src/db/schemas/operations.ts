@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
+import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
 import { sqliteTable, text, index } from 'drizzle-orm/sqlite-core';
 
 import { accountsTable } from './accounts';
@@ -22,7 +22,7 @@ export const operationsTable = sqliteTable(
       .notNull()
       .references(() => accountsTable.id, { onDelete: 'restrict' })
       .$type<UUID>(),
-    amount: getMoneyColumn('base_amount'),
+    amount: getMoneyColumn('amount'),
     createdAt,
     description,
     id,
@@ -37,7 +37,7 @@ export const operationsTable = sqliteTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: 'cascade' })
       .$type<UUID>(),
-    value: getMoneyColumn('base_amount'),
+    value: getMoneyColumn('value'),
   },
   (t) => [
     index('idx_operations_transaction').on(t.transactionId),
@@ -45,6 +45,14 @@ export const operationsTable = sqliteTable(
     index('idx_operations_user').on(t.userId),
   ],
 );
+
+// TODO: check if relations are needed for operations, or if they can be accessed through entries and transactions instead
+export const operationsRelations = relations(operationsTable, ({ one }) => ({
+  transaction: one(transactionsTable, {
+    fields: [operationsTable.transactionId],
+    references: [transactionsTable.id],
+  }),
+}));
 
 export type OperationDbRow = InferSelectModel<typeof operationsTable>;
 export type OperationDbInsert = InferInsertModel<typeof operationsTable>;

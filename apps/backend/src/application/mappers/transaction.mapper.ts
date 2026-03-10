@@ -3,7 +3,7 @@ import { Transaction } from 'src/domain';
 
 import { TransactionResponseDTO } from '../dto';
 
-import { EntryMapper } from './entry.mapper';
+import { OperationMapper } from './operation.mapper';
 
 export class TransactionMapper {
   static toResponseDTO(transaction: Transaction): TransactionResponseDTO {
@@ -11,11 +11,12 @@ export class TransactionMapper {
 
     return {
       createdAt: snapshot.createdAt,
+      currency: snapshot.currency,
       description: snapshot.description,
-      entries: transaction
-        .getEntries()
-        .map((entry) => EntryMapper.toResponseDTO(entry)),
       id: snapshot.id,
+      operations: transaction
+        .getOperations()
+        .map((operation) => OperationMapper.toResponseDTO(operation)),
       postingDate: snapshot.postingDate,
       transactionDate: snapshot.transactionDate,
       updatedAt: snapshot.updatedAt,
@@ -28,6 +29,7 @@ export class TransactionMapper {
 
     return {
       createdAt: snapshot.createdAt,
+      currency: snapshot.currency,
       description: snapshot.description,
       id: snapshot.id,
       isTombstone: snapshot.isTombstone,

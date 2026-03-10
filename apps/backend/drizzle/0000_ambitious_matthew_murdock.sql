@@ -24,6 +24,7 @@ CREATE TABLE `transactions` (
 	`transaction_date` text NOT NULL,
 	`updated_at` text NOT NULL,
 	`user_id` text NOT NULL,
+	`version` integer NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -36,21 +37,22 @@ CREATE TABLE `currencies` (
 --> statement-breakpoint
 CREATE TABLE `operations` (
 	`account_id` text NOT NULL,
-	`base_amount` text NOT NULL,
+	`amount` text NOT NULL,
 	`created_at` text NOT NULL,
 	`description` text NOT NULL,
-	`entry_id` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
 	`is_system` integer NOT NULL,
 	`is_tombstone` integer NOT NULL,
+	`transaction_id` text NOT NULL,
 	`updated_at` text NOT NULL,
 	`user_id` text NOT NULL,
+	`value` text NOT NULL,
 	FOREIGN KEY (`account_id`) REFERENCES `accounts`(`id`) ON UPDATE no action ON DELETE restrict,
-	FOREIGN KEY (`entry_id`) REFERENCES `entries`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `idx_operations_entry` ON `operations` (`entry_id`);--> statement-breakpoint
+CREATE INDEX `idx_operations_transaction` ON `operations` (`transaction_id`);--> statement-breakpoint
 CREATE INDEX `idx_operations_account` ON `operations` (`account_id`);--> statement-breakpoint
 CREATE INDEX `idx_operations_user` ON `operations` (`user_id`);--> statement-breakpoint
 CREATE TABLE `users` (
@@ -71,18 +73,3 @@ CREATE TABLE `settings` (
 	FOREIGN KEY (`base_currency`) REFERENCES `currencies`(`code`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
---> statement-breakpoint
-CREATE TABLE `entries` (
-	`created_at` text NOT NULL,
-	`description` text NOT NULL,
-	`id` text PRIMARY KEY NOT NULL,
-	`is_tombstone` integer NOT NULL,
-	`transaction_id` text NOT NULL,
-	`updated_at` text NOT NULL,
-	`user_id` text NOT NULL,
-	FOREIGN KEY (`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
-);
---> statement-breakpoint
-CREATE INDEX `idx_entries_tx` ON `entries` (`transaction_id`);--> statement-breakpoint
-CREATE INDEX `idx_entries_user` ON `entries` (`user_id`);

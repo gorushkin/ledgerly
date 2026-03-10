@@ -12,6 +12,7 @@ export const operationCreateSchema = z.object({
   accountId: uuid,
   amount: moneyAmountString,
   description: requiredText,
+  value: moneyAmountString,
 });
 
 export const operationUpdateSchema = z.object({
@@ -20,6 +21,7 @@ export const operationUpdateSchema = z.object({
   description: requiredText,
   entryId: uuid,
   id: uuid,
+  value: moneyAmountString,
 });
 
 export const entryCreateSchema = z.object({
@@ -35,7 +37,7 @@ export const entryUpdateSchema = z.object({
 
 export const transactionCreateSchema = z.object({
   description: requiredText,
-  entries: z.array(entryCreateSchema),
+  operations: z.array(operationCreateSchema),
   postingDate: isoDate,
   transactionDate: isoDate,
 });

@@ -1,11 +1,11 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
-import { CreateEntryRequestDTO } from 'src/application/dto';
+import { OperationRequestDTO } from 'src/application/dto';
 import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
 import { createAccount } from 'src/db/createTestUser';
 import { User } from 'src/domain';
-import { Amount, Currency } from 'src/domain/domain-core';
+import { Amount, Currency, Id } from 'src/domain/domain-core';
 import { createUser } from 'src/interfaces/helpers';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { TransactionContextLoader } from '..';
 import { AccountFactory } from '../..';
@@ -30,6 +30,10 @@ describe('TransactionContextLoader', () => {
     user = await createUser();
   });
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('should return correct context for transaction', async () => {
     const account1 = createAccount(user);
     const account2 = createAccount(user);
@@ -48,36 +52,38 @@ describe('TransactionContextLoader', () => {
       createAccount(user, { currency: Currency.create(currency) }),
     );
 
-    const rawEntries: CreateEntryRequestDTO[] = [
+    const transactionId = Id.create().valueOf();
+
+    const rawOperations: OperationRequestDTO[] = [
       {
-        description: 'Entry 1',
-        operations: [
-          {
-            accountId: account1.getId().valueOf(),
-            amount: Amount.create('100').valueOf(),
-            description: 'Operation 1.1',
-          },
-          {
-            accountId: account2.getId().valueOf(),
-            amount: Amount.create('-100').valueOf(),
-            description: 'Operation 1.2',
-          },
-        ],
+        accountId: account1.getId().valueOf(),
+        amount: Amount.create('100').valueOf(),
+        description: 'Operation 1.1',
+        transactionId,
+        value: Amount.create('100').valueOf(),
       },
       {
-        description: 'Entry 2',
-        operations: [
-          {
-            accountId: account3.getId().valueOf(),
-            amount: Amount.create('100').valueOf(),
-            description: 'Operation 2.1',
-          },
-          {
-            accountId: account4.getId().valueOf(),
-            amount: Amount.create('-100').valueOf(),
-            description: 'Operation 2.2',
-          },
-        ],
+        accountId: account2.getId().valueOf(),
+        amount: Amount.create('-100').valueOf(),
+        description: 'Operation 1.2',
+        transactionId,
+        value: Amount.create('-100').valueOf(),
+      },
+      {
+        accountId: account3.getId().valueOf(),
+        amount: Amount.create('100').valueOf(),
+        description: 'Operation 2.1',
+        transactionId,
+
+        value: Amount.create('100').valueOf(),
+      },
+      {
+        accountId: account4.getId().valueOf(),
+        amount: Amount.create('-100').valueOf(),
+        description: 'Operation 2.2',
+        transactionId,
+
+        value: Amount.create('-100').valueOf(),
       },
     ];
 
@@ -92,7 +98,7 @@ describe('TransactionContextLoader', () => {
     });
 
     const { accountsMap, systemAccountsMap } =
-      await transactionContextLoader.loadContext(user, rawEntries);
+      await transactionContextLoader.loadContext(user, rawOperations);
 
     expect(mockAccountRepository.getByIds).toHaveBeenCalledWith(
       user.getId().valueOf(),
@@ -122,5 +128,57 @@ describe('TransactionContextLoader', () => {
         systemAccount,
       );
     });
+  });
+
+  it('should deduplicate account IDs when same account appears in multiple operations', async () => {
+    const account = createAccount(user);
+    const transactionId = Id.create().valueOf();
+
+    const rawOperations: OperationRequestDTO[] = [
+      {
+        accountId: account.getId().valueOf(),
+        amount: Amount.create('100').valueOf(),
+        description: 'Op 1',
+        transactionId,
+        value: Amount.create('100').valueOf(),
+      },
+      {
+        accountId: account.getId().valueOf(),
+        amount: Amount.create('-100').valueOf(),
+        description: 'Op 2',
+        transactionId,
+        value: Amount.create('-100').valueOf(),
+      },
+    ];
+
+    mockAccountRepository.getByIds.mockResolvedValueOnce([
+      account.toPersistence(),
+    ]);
+
+    mockAccountFactory.findOrCreateSystemAccount.mockResolvedValueOnce(
+      createAccount(user),
+    );
+
+    await transactionContextLoader.loadContext(user, rawOperations);
+
+    // Один аккаунт — один вызов с одним ID, без дубликатов
+    expect(mockAccountRepository.getByIds).toHaveBeenCalledWith(
+      user.getId().valueOf(),
+      [account.getId().valueOf()],
+    );
+    expect(mockAccountFactory.findOrCreateSystemAccount).toHaveBeenCalledTimes(
+      1,
+    );
+  });
+
+  it('should return empty maps when operations list is empty', async () => {
+    mockAccountRepository.getByIds.mockResolvedValueOnce([]);
+
+    const { accountsMap, systemAccountsMap } =
+      await transactionContextLoader.loadContext(user, []);
+
+    expect(accountsMap.size).toBe(0);
+    expect(systemAccountsMap.size).toBe(0);
+    expect(mockAccountFactory.findOrCreateSystemAccount).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@ import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { Account, User } from 'src/domain';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
 
-import { CreateEntryRequestDTO, UpdateEntryRequestDTO } from '../../dto';
+import { OperationRequestDTO } from '../../dto';
 import { AccountRepositoryInterface } from '../../interfaces';
 import { AccountFactory } from '../account.factory';
 
@@ -13,7 +13,7 @@ export class TransactionContextLoader {
   ) {}
   private async preloadAccounts(
     user: User,
-    entries: (CreateEntryRequestDTO | UpdateEntryRequestDTO)[],
+    operations: OperationRequestDTO[],
   ): Promise<{
     accountsMap: Map<UUID, Account>;
     currenciesSet: Set<CurrencyCode>;
@@ -21,10 +21,8 @@ export class TransactionContextLoader {
     const accountIds = new Set<UUID>();
     const currenciesSet = new Set<CurrencyCode>();
 
-    for (const entry of entries) {
-      for (const operation of entry?.operations ?? []) {
-        accountIds.add(operation.accountId);
-      }
+    for (const operation of operations) {
+      accountIds.add(operation.accountId);
     }
 
     const accountRows = await this.accountRepository.getByIds(
@@ -62,11 +60,11 @@ export class TransactionContextLoader {
 
   async loadContext(
     user: User,
-    rawEntries: (CreateEntryRequestDTO | UpdateEntryRequestDTO)[],
+    operations: OperationRequestDTO[],
   ): Promise<TransactionBuildContext> {
     const { accountsMap, currenciesSet } = await this.preloadAccounts(
       user,
-      rawEntries,
+      operations,
     );
 
     const systemAccountsMap = await this.preloadSystemAccounts(

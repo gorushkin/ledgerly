@@ -82,7 +82,7 @@ export class Transaction {
     return transaction;
   }
 
-  private attachOperations(operations: Operation[]): void {
+  attachOperations(operations: Operation[]): void {
     operations.forEach((operation) => {
       const existingOperation = this.operationsMap.get(
         operation.getId().valueOf(),
@@ -225,32 +225,53 @@ export class Transaction {
     this.softDelete.validateUpdateIsAllowed();
   }
 
+  private updateDescription(description: string): boolean {
+    if (this.description === description) {
+      return false;
+    }
+
+    this.description = description;
+    return true;
+  }
+
+  private updatePostingDate(postingDate: DateValue): boolean {
+    if (this.postingDate.isEqualTo(postingDate)) {
+      return false;
+    }
+
+    this.postingDate = postingDate;
+    return true;
+  }
+
+  private updateTransactionDate(transactionDate: DateValue): boolean {
+    if (this.transactionDate.isEqualTo(transactionDate)) {
+      return false;
+    }
+
+    this.transactionDate = transactionDate;
+    return true;
+  }
+
   private updateMetadataIfChanged(metadata?: TransactionUpdateData): boolean {
     this.validateUpdateIsAllowed();
 
-    let isUpdated = false;
-
     if (!metadata) {
-      return isUpdated;
+      return false;
     }
 
-    if (metadata.description !== undefined) {
-      isUpdated = true;
-      this.description = metadata.description;
-    }
+    const isDescriptionUpdated = this.updateDescription(metadata.description);
 
-    if (metadata.postingDate) {
-      isUpdated = true;
+    const isPostingDateUpdated = this.updatePostingDate(
+      DateValue.restore(metadata.postingDate),
+    );
 
-      this.postingDate = DateValue.restore(metadata.postingDate);
-    }
+    const isTransactionDateUpdated = this.updateTransactionDate(
+      DateValue.restore(metadata.transactionDate),
+    );
 
-    if (metadata.transactionDate) {
-      isUpdated = true;
-      this.transactionDate = DateValue.restore(metadata.transactionDate);
-    }
-
-    return isUpdated;
+    return (
+      isDescriptionUpdated || isPostingDateUpdated || isTransactionDateUpdated
+    );
   }
 
   getPostingDate(): DateValue {
@@ -426,7 +447,7 @@ export class Transaction {
   applyUpdate(
     { metadata, operations }: UpdateTransactionProps,
     transactionContext?: TransactionBuildContext,
-  ) {
+  ): boolean {
     const isMetadataUpdated = this.updateMetadataIfChanged(metadata);
 
     const isOperationsUpdated = this.applyOperationsPatch(
@@ -438,6 +459,8 @@ export class Transaction {
       this.validate();
       this.markUpdated();
     }
+
+    return isMetadataUpdated || isOperationsUpdated;
   }
 
   getOperations(): Operation[] {

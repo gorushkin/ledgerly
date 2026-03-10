@@ -6,5 +6,4 @@ export type {
   TransactionManagerInterface,
   TransactionContext,
 } from './TransactionManager.interface';
-export type { EntryRepositoryInterface } from './EntryRepository.interface';
 export type { OperationRepositoryInterface } from './OperationRepository.interface';

@@ -1,7 +1,11 @@
 import { UUID } from '@ledgerly/shared/types';
 import { OperationMapper } from 'src/application';
 import { OperationDbRow, UserDbRow } from 'src/db/schema';
-import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
+import {
+  compareEntities,
+  TransactionBuilder,
+  TransactionBuilderResult,
+} from 'src/db/test-utils';
 import { Transaction, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
@@ -18,13 +22,14 @@ describe('OperationRepository', () => {
 
   let transaction: Transaction;
 
+  let data: TransactionBuilderResult;
+
   const transactionManager = {
     getCurrentTransaction: () => testDB.db,
     run: vi.fn((cb: () => unknown) => {
       return cb();
     }),
   };
-  let expectedOperationsCount: number;
 
   const operationRepository = new OperationRepository(
     transactionManager as unknown as TransactionManager,
@@ -39,54 +44,18 @@ describe('OperationRepository', () => {
       User.fromPersistence(user),
     );
 
-    const entriesData = [
-      {
-        description: 'First Entry',
-        operations: [
-          { accountKey: 'USD', amount: '10000', description: '1' },
-          { accountKey: 'EUR', amount: '-10000', description: '2' },
-        ],
-      },
-      {
-        description: 'Second Entry',
-        operations: [
-          { accountKey: 'USD', amount: '20000', description: '1' },
-          { accountKey: 'USD', amount: '-20000', description: '2' },
-        ],
-      },
-      {
-        description: 'Third Entry',
-        operations: [
-          { accountKey: 'USD', amount: '20000', description: '1' },
-          { accountKey: 'USD', amount: '-20000', description: '2' },
-        ],
-      },
+    const operationsData = [
+      { accountKey: 'USD', amount: '10000', description: '1' },
+      { accountKey: 'EUR', amount: '-10000', description: '2' },
+      { accountKey: 'USD', amount: '20000', description: '1' },
+      { accountKey: 'USD', amount: '-20000', description: '2' },
+      { accountKey: 'USD', amount: '20000', description: '1' },
+      { accountKey: 'USD', amount: '-20000', description: '2' },
     ];
 
-    expectedOperationsCount = entriesData.reduce((ac, item) => {
-      let isDifferent = false;
-
-      let prevAccountKey: string | null = null;
-
-      for (const op of item.operations) {
-        if (prevAccountKey && op.accountKey !== prevAccountKey) {
-          isDifferent = true;
-          break;
-        }
-        prevAccountKey = op.accountKey;
-      }
-
-      // When all operations in an entry share the same currency, we expect 2
-      // operations (standard double-entry). When currencies differ, multi-currency
-      // support adds 2 extra trading-account operations (one per currency), for a
-      // total of 4 operations.
-      return ac + (isDifferent ? 4 : 2);
-    }, 0);
-
-    const data = transactionBuilder
+    data = transactionBuilder
       .withAccounts(['USD', 'EUR'])
-      .withEntries(entriesData)
-      .withSystemAccounts()
+      .withOperations(operationsData)
       .build();
 
     transaction = data.transaction;
@@ -98,12 +67,6 @@ describe('OperationRepository', () => {
     );
 
     await testDB.insertTransaction(transaction.toSnapshot());
-
-    const entries = transaction.getEntries();
-
-    await Promise.all(
-      entries.map((entry) => testDB.insertEntry(entry.toSnapshot())),
-    );
   });
 
   describe('save', () => {
@@ -112,19 +75,13 @@ describe('OperationRepository', () => {
         await testDB.getTransactionWithRelations(transaction.getId().valueOf());
 
       const operationsCountBeforeSaving =
-        fetchedTransactionRelationsBeforeSaving?.entries
-          .map((e) => e.operations)
-          .flat();
+        fetchedTransactionRelationsBeforeSaving?.operations.length;
 
-      expect(operationsCountBeforeSaving).toHaveLength(0);
+      expect(operationsCountBeforeSaving).toBe(0);
 
-      const operations = transaction
-        .getEntries()
-        .flatMap((entry) =>
-          entry
-            .getOperations()
-            .map((operation) => OperationMapper.toDBRow(operation)),
-        );
+      const operations = data.operations.map((operation) =>
+        OperationMapper.toDBRow(operation),
+      );
 
       await operationRepository.save(user.id, operations, new Map());
 
@@ -132,31 +89,22 @@ describe('OperationRepository', () => {
         await testDB.getTransactionWithRelations(transaction.getId().valueOf());
 
       const operationsCountAfterSaving =
-        fetchedTransactionRelationsAfterSaving?.entries
-          .map((e) => e.operations)
-          .flat();
+        fetchedTransactionRelationsAfterSaving?.operations.length;
 
-      expect(operationsCountAfterSaving).toHaveLength(expectedOperationsCount);
+      expect(operationsCountAfterSaving).toBe(data.operations.length);
 
-      const ops = fetchedTransactionRelationsAfterSaving?.entries
-        .map((e) => e.operations)
-        .flat();
+      const ops = fetchedTransactionRelationsAfterSaving?.operations;
 
       ops?.forEach((op, index) => {
         const originalOp = operations[index];
-
         expect(op).toEqual(expect.objectContaining(originalOp));
       });
     });
 
     it('should update and delete operations successfully based on the snapshot', async () => {
-      const operations = transaction
-        .getEntries()
-        .flatMap((entry) =>
-          entry
-            .getOperations()
-            .map((operation) => OperationMapper.toDBRow(operation)),
-        );
+      const operations = data.operations.map((operation) =>
+        OperationMapper.toDBRow(operation),
+      );
 
       await Promise.all(
         operations.map((operation) => testDB.insertOperation(operation)),
@@ -168,15 +116,11 @@ describe('OperationRepository', () => {
 
       const operationsSnapshot = new Map<UUID, OperationSnapshot>();
 
-      transactionWithRelations?.entries.forEach((entry) => {
-        entry.operations.forEach((operationSnapshot) => {
-          operationsSnapshot.set(operationSnapshot.id, operationSnapshot);
-        });
+      transactionWithRelations?.operations.forEach((op) => {
+        operationsSnapshot.set(op.id, op);
       });
 
-      const createdOperations =
-        transactionWithRelations?.entries.flatMap((e) => e.operations).flat() ??
-        [];
+      const createdOperations = transactionWithRelations?.operations ?? [];
 
       createdOperations.forEach((createdOp, index) => {
         const originalOp = operations[index];
@@ -222,9 +166,9 @@ describe('OperationRepository', () => {
 
       const operationsAfterSaving = (
         await testDB.getTransactionWithRelations(transaction.getId().valueOf())
-      )?.entries
-        .map((e) => e.operations)
-        .flat();
+      )?.operations;
+
+      expect(operationsAfterSaving).toBeDefined();
 
       const checkedOperations = new Set<UUID>();
 
@@ -264,6 +208,8 @@ describe('OperationRepository', () => {
       const deleteOps: OperationDbRow[] = [];
       const untouchedOps: OperationDbRow[] = [];
 
+      expect(operationsAfterSaving).toBeDefined();
+
       operationsAfterSaving?.forEach((op) => {
         const mappedOp = getMappedOperation(op.id);
 
@@ -298,10 +244,24 @@ describe('OperationRepository', () => {
       expect(updateOps).toHaveLength(operationsToUpdateData.length);
       expect(deleteOps).toHaveLength(operationsToDeleteData.length);
       expect(untouchedOps).toHaveLength(
-        expectedOperationsCount -
+        data.operations.length -
           operationsToUpdateData.length -
           operationsToDeleteData.length,
       );
     });
+
+    it.todo(
+      'should insert, update and delete operations in a single save call',
+    );
+
+    it.todo(
+      'should update an operation that exists in snapshot and has isTombstone: false with no field changes',
+    );
+
+    it.todo(
+      'should insert an operation with isTombstone: true if it is not present in the snapshot',
+    );
+
+    it.todo('should not affect operations belonging to a different user');
   });
 });

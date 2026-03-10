@@ -25,7 +25,7 @@ export class CreateTransactionUseCase {
     const createdTransaction = await this.transactionManager.run(async () => {
       const context = await this.transactionContextLoader.loadContext(
         user,
-        data.entries,
+        data.operations,
       );
 
       const transaction = Transaction.create(user.getId(), data, context);

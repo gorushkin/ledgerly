@@ -1,12 +1,16 @@
-import { IsoDateString, IsoDatetimeString, UUID } from '@ledgerly/shared/types';
+import {
+  CurrencyCode,
+  IsoDateString,
+  IsoDatetimeString,
+  UUID,
+} from '@ledgerly/shared/types';
 import { Currency } from 'src/domain/domain-core';
 
 import {
-  CreateEntryRequestDTO,
-  EntryResponseDTO,
-  UpdateEntryRequestDTO,
-} from './entry.dto';
-import { CreateOperationRequestDTO } from './operation.dto';
+  CreateOperationRequestDTO,
+  OperationResponseDTO,
+  UpdateOperationRequestDTO,
+} from './operation.dto';
 
 // Request DTOs for creation
 export type CreateTransactionRequestDTO = {
@@ -22,9 +26,9 @@ export type UpdateTransactionRequestDTO = {
   description: string;
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
-  entries?: {
-    create: CreateEntryRequestDTO[];
-    update: UpdateEntryRequestDTO[];
+  operations: {
+    create: CreateOperationRequestDTO[];
+    update: UpdateOperationRequestDTO[];
     delete: UUID[];
   };
 };
@@ -37,5 +41,6 @@ export type TransactionResponseDTO = {
   updatedAt: IsoDatetimeString;
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
-  entries: EntryResponseDTO[];
+  operations: OperationResponseDTO[];
+  currency: CurrencyCode;
 };

@@ -55,6 +55,7 @@ export class TransactionBuilder {
   systemAccounts = new Map<CurrencyCode, Account>();
   transaction: Transaction | null = null;
   transactionCurrency: Currency = Currency.create('USD');
+  addOperations = false;
 
   static create(user?: User): TransactionBuilder {
     const builder = new TransactionBuilder();
@@ -128,7 +129,7 @@ export class TransactionBuilder {
     return this.withSystemAccounts();
   }
 
-  withSystemAccounts(): this {
+  private withSystemAccounts(): this {
     this.validateUser();
 
     for (const [_, account] of this.accounts) {
@@ -143,6 +144,11 @@ export class TransactionBuilder {
       this.systemAccounts.set(systemAccount.currency.valueOf(), systemAccount);
       this.accountsMap.set(systemAccount.getId().valueOf(), systemAccount);
     }
+    return this;
+  }
+
+  attachOperations() {
+    this.addOperations = true;
     return this;
   }
 
@@ -229,10 +235,15 @@ export class TransactionBuilder {
           accountId: this.getAccountByKey(op.accountKey).getId().valueOf(),
           amount,
           description: op.description ?? 'Test Operation',
+          transactionId: this.transaction.getId().valueOf(),
           value,
         };
       },
     );
+
+    if (this.addOperations) {
+      this.transaction.attachOperations(this.operations);
+    }
 
     return {
       accounts: Array.from(this.accountsMap.values()),

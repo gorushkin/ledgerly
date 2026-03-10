@@ -5,8 +5,8 @@ import {
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils/testEntityBuilder';
-import { User, Transaction } from 'src/domain';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { User, Transaction, UnbalancedTransactionError } from 'src/domain';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateTransactionUseCase } from '../CreateTransaction';
 
@@ -32,38 +32,38 @@ describe('CreateTransactionUseCase', () => {
   );
 
   const transactionData = {
+    currencyCode: 'USD',
     description: 'Test transaction',
     postingDate: '2024-01-01',
     transactionDate: '2024-01-01',
-    userId: '123e4567-e89b-12d3-a456-426614174000',
   };
 
-  const entriesData = [
-    {
-      description: 'First Entry',
-      operations: [
-        { accountKey: 'USD', amount: '10000', description: '1' },
-        { accountKey: 'USD', amount: '-10000', description: '2' },
-      ],
-    },
+  const operationsData = [
+    { accountKey: 'USD', amount: '10000', description: '1' },
+    { accountKey: 'USD', amount: '-10000', description: '2' },
   ];
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     user = await createUser();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   describe('execute', () => {
     it('should create a new transaction with entries successfully', async () => {
       const transactionBuilder = TransactionBuilder.create(user);
 
-      const { entryContext, transactionDTO } = transactionBuilder
+      const { transactionContext, transactionDTO } = transactionBuilder
         .withSettings(transactionData)
-        .withAccounts(['USD', 'EUR'])
-        .withSystemAccounts()
-        .withEntries(entriesData)
+        .withAccounts(['USD'])
+        .withOperations(operationsData)
         .build();
 
-      transactionContextLoader.loadContext.mockResolvedValue(entryContext);
+      transactionContextLoader.loadContext.mockResolvedValue(
+        transactionContext,
+      );
 
       const result = await createTransactionUseCase.execute(
         user,
@@ -72,18 +72,13 @@ describe('CreateTransactionUseCase', () => {
 
       expect(result.postingDate).toBe(transactionData.postingDate);
       expect(result.transactionDate).toBe(transactionData.transactionDate);
-      expect(result.entries).toBeDefined();
 
-      transactionDTO.entries.forEach((entry, index) => {
-        const matchedEntry = result.entries[index];
-        expect(matchedEntry).toBeDefined();
-        expect(matchedEntry.description).toBe(entry.description);
-        entry.operations.forEach((operation, opIndex) => {
-          const matchedOperation = matchedEntry.operations[opIndex];
-          expect(matchedOperation.accountId).toBe(operation.accountId);
-          expect(matchedOperation.amount).toBe(operation.amount);
-          expect(matchedOperation.description).toBe(operation.description);
-        });
+      transactionDTO.operations.forEach((operation, index) => {
+        const matchedOperation = result.operations[index];
+
+        expect(matchedOperation.accountId).toBe(operation.accountId);
+        expect(matchedOperation.amount).toBe(operation.amount);
+        expect(matchedOperation.description).toBe(operation.description);
       });
 
       expect(transactionManager.run).toHaveBeenCalled();
@@ -101,31 +96,93 @@ describe('CreateTransactionUseCase', () => {
       expect(savedTransaction.getPostingDate().valueOf()).toBe(
         transactionData.postingDate,
       );
+
       expect(savedTransaction.getTransactionDate().valueOf()).toBe(
         transactionData.transactionDate,
       );
-      expect(savedTransaction.getEntries().length).toBe(
-        transactionDTO.entries.length,
+
+      expect(savedTransaction.getOperations().length).toBe(
+        transactionDTO.operations.length,
       );
 
       expect(savedTransaction.description).toBe(transactionData.description);
 
-      savedTransaction.getEntries().forEach((entry, index) => {
-        const dtoEntry = transactionDTO.entries[index];
-        expect(entry.description).toBe(dtoEntry.description);
+      savedTransaction.getOperations().forEach((operation, index) => {
+        const dtoOperation = transactionDTO.operations[index];
 
-        dtoEntry.operations.forEach((op, opIndex) => {
-          const operation = entry.getOperations()[opIndex];
-          expect(operation.getAccountId().valueOf()).toBe(op.accountId);
-          expect(operation.amount.valueOf()).toBe(op.amount);
-          expect(operation.description).toBe(op.description);
-        });
+        expect(operation.description).toBe(dtoOperation.description);
+        expect(operation.amount.valueOf()).toBe(dtoOperation.amount);
+        expect(operation.value.valueOf()).toBe(dtoOperation.value);
+        expect(operation.getAccountId().valueOf()).toBe(dtoOperation.accountId);
+        expect(operation.getUserId().valueOf()).toBe(user.getId().valueOf());
       });
 
       expect(transactionContextLoader.loadContext).toHaveBeenCalledWith(
         user,
-        transactionDTO.entries,
+        transactionDTO.operations,
       );
+
+      expect(result.id).toBe(savedTransaction.getId().valueOf());
+      expect(result.userId).toBe(user.getId().valueOf());
+      expect(result.currency).toBe(transactionData.currencyCode);
+    });
+
+    it('should propagate error when loadContext fails', async () => {
+      const error = new Error('Account not found');
+      transactionContextLoader.loadContext.mockRejectedValue(error);
+
+      const { transactionDTO } = TransactionBuilder.create(user)
+        .withSettings(transactionData)
+        .withAccounts(['USD'])
+        .build();
+
+      await expect(
+        createTransactionUseCase.execute(user, transactionDTO),
+      ).rejects.toThrow(error);
+    });
+
+    it('should propagate error when rootSave fails', async () => {
+      const dbError = new Error('Database error');
+      mockTransactionRepository.rootSave.mockRejectedValue(dbError);
+
+      const { transactionContext, transactionDTO } = TransactionBuilder.create(
+        user,
+      )
+        .withSettings(transactionData)
+        .withAccounts(['USD'])
+        .withOperations(operationsData)
+        .build();
+
+      transactionContextLoader.loadContext.mockResolvedValue(
+        transactionContext,
+      );
+
+      await expect(
+        createTransactionUseCase.execute(user, transactionDTO),
+      ).rejects.toThrow(dbError);
+    });
+
+    it('should throw UnbalancedTransactionError when operations do not sum to zero', async () => {
+      const unbalancedOperations = [
+        { accountKey: 'USD', amount: '10000', description: '1' },
+        { accountKey: 'USD', amount: '5000', description: '2' },
+      ];
+
+      const { transactionContext, transactionDTO } = TransactionBuilder.create(
+        user,
+      )
+        .withSettings(transactionData)
+        .withAccounts(['USD'])
+        .withOperations(unbalancedOperations)
+        .build();
+
+      transactionContextLoader.loadContext.mockResolvedValue(
+        transactionContext,
+      );
+
+      await expect(
+        createTransactionUseCase.execute(user, transactionDTO),
+      ).rejects.toThrow(UnbalancedTransactionError);
     });
   });
 });

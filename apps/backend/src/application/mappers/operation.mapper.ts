@@ -12,11 +12,12 @@ export class OperationMapper {
       amount: snapshot.amount,
       createdAt: snapshot.createdAt,
       description: snapshot.description,
-      entryId: snapshot.entryId,
       id: snapshot.id,
       isSystem: snapshot.isSystem,
+      transactionId: snapshot.transactionId,
       updatedAt: snapshot.updatedAt,
       userId: snapshot.userId,
+      value: snapshot.value,
     };
   }
 
@@ -27,12 +28,13 @@ export class OperationMapper {
       amount: snapshot.amount,
       createdAt: snapshot.createdAt,
       description: snapshot.description,
-      entryId: snapshot.entryId,
       id: snapshot.id,
       isSystem: snapshot.isSystem,
       isTombstone: snapshot.isTombstone,
+      transactionId: snapshot.transactionId,
       updatedAt: snapshot.updatedAt,
       userId: snapshot.userId,
+      value: snapshot.value,
     };
   }
 }
