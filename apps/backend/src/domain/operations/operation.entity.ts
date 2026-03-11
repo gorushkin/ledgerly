@@ -1,5 +1,3 @@
-import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
-
 import { Account, Transaction } from '..';
 import {
   Id,
@@ -66,7 +64,7 @@ export class Operation {
     );
   }
 
-  static restore(data: OperationDbRow): Operation {
+  static restore(data: OperationSnapshot): Operation {
     const {
       accountId,
       amount,
@@ -151,22 +149,6 @@ export class Operation {
 
   belongsToTransaction(transaction: Transaction): boolean {
     return this.transactionRelation.belongsToParent(transaction.getId());
-  }
-
-  toPersistence(): OperationDbInsert {
-    return {
-      accountId: this.accountRelation.getParentId().valueOf(),
-      amount: this.amount.valueOf(),
-      createdAt: this.getCreatedAt().valueOf(),
-      description: this.description,
-      id: this.id.valueOf(),
-      isSystem: this.isSystem,
-      isTombstone: this.softDelete.getIsTombstone(),
-      transactionId: this.transactionRelation.getParentId().valueOf(),
-      updatedAt: this.getUpdatedAt().valueOf(),
-      userId: this.getUserId().valueOf(),
-      value: this.value.valueOf(),
-    };
   }
 
   get id(): Id {

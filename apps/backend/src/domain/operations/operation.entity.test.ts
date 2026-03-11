@@ -105,7 +105,7 @@ describe('Operation Domain Entity', () => {
     const newAmount = Amount.create('150');
     const newValue = Amount.create('350');
 
-    const operationSnapshot = operation.toPersistence();
+    const operationSnapshot = operation.toSnapshot();
 
     vi.advanceTimersByTime(5000);
 
@@ -117,7 +117,7 @@ describe('Operation Domain Entity', () => {
       value: newValue,
     });
 
-    const updatedSnapshot = operation.toPersistence();
+    const updatedSnapshot = operation.toSnapshot();
 
     expect(operation.description).toEqual(newDescription);
     expect(operation.amount.equals(newAmount)).toBe(true);
@@ -152,7 +152,7 @@ describe('Operation Domain Entity', () => {
       operationData.description,
     );
 
-    const operationSnapshot = operation.toPersistence();
+    const operationSnapshot = operation.toSnapshot();
 
     operation.update({
       account: eurAccount,
@@ -162,7 +162,7 @@ describe('Operation Domain Entity', () => {
       value: operationData.value,
     });
 
-    const updatedSnapshot = operation.toPersistence();
+    const updatedSnapshot = operation.toSnapshot();
 
     expect(operation.getAccountId().valueOf()).toEqual(
       eurAccount.getId().valueOf(),
@@ -193,7 +193,7 @@ describe('Operation Domain Entity', () => {
       operationData.description,
     );
 
-    const operationSnapshot = operation.toPersistence();
+    const operationSnapshot = operation.toSnapshot();
 
     vi.advanceTimersByTime(5000);
 
@@ -205,7 +205,7 @@ describe('Operation Domain Entity', () => {
       value: operationData.value,
     });
 
-    const updatedSnapshot = operation.toPersistence();
+    const updatedSnapshot = operation.toSnapshot();
 
     compareEntities(operationSnapshot, updatedSnapshot);
   });
@@ -226,13 +226,13 @@ describe('Operation Domain Entity', () => {
       operationData.description,
     );
 
-    const operationSnapshot = operation.toPersistence();
+    const operationSnapshot = operation.toSnapshot();
 
     expect(operation.isDeleted()).toBe(false);
 
     operation.markAsDeleted();
 
-    const deletedSnapshot = operation.toPersistence();
+    const deletedSnapshot = operation.toSnapshot();
 
     expect(deletedSnapshot.isTombstone).toBe(true);
 
@@ -258,16 +258,11 @@ describe('Operation Domain Entity', () => {
       'Test operation',
     );
 
-    const persistenceData = operation.toPersistence();
+    const snapshot = operation.toSnapshot();
 
-    const restoredOperation = Operation.restore({
-      ...persistenceData,
-      userId: userId.valueOf(),
-    });
+    const restoredOperation = Operation.restore(snapshot);
 
-    expect(restoredOperation.toPersistence()).toEqual(
-      operation.toPersistence(),
-    );
+    expect(restoredOperation.toSnapshot()).toEqual(operation.toSnapshot());
   });
 
   it('should allow zero amount operations', () => {

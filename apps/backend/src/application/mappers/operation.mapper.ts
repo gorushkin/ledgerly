@@ -4,13 +4,15 @@ import { AccountNotFoundInContextError } from 'src/domain/domain.errors';
 import { Operation } from 'src/domain/operations/operation.entity';
 import {
   CreateOperationProps,
-  OperationDraft,
-  OperationUpdate,
   UpdateOperationProps,
 } from 'src/domain/operations/types';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
 
-import { OperationResponseDTO } from '../dto';
+import {
+  CreateOperationRequestDTO,
+  OperationResponseDTO,
+  UpdateOperationRequestDTO,
+} from '../dto';
 
 export class OperationMapper {
   static toResponseDTO(operation: Operation): OperationResponseDTO {
@@ -48,7 +50,7 @@ export class OperationMapper {
   }
 
   static toCreateOperationProps(
-    dto: OperationDraft,
+    dto: CreateOperationRequestDTO,
     context: TransactionBuildContext,
   ): CreateOperationProps {
     const account = context.accountsMap.get(dto.accountId);
@@ -66,7 +68,7 @@ export class OperationMapper {
   }
 
   static toUpdateOperationProps(
-    dto: OperationUpdate,
+    dto: UpdateOperationRequestDTO,
     context: TransactionBuildContext,
   ): UpdateOperationProps {
     const account = context.accountsMap.get(dto.accountId);

@@ -1,4 +1,5 @@
 import { TransactionMapper } from 'src/application';
+import { UpdateOperationRequestDTO } from 'src/application/dto';
 import { createUser } from 'src/db/createTestUser';
 import {
   compareEntities,
@@ -22,7 +23,6 @@ import {
   CreateOperationProps,
   OperationProps,
   OperationSnapshot,
-  OperationUpdate,
   UpdateOperationProps,
 } from '../operations/types';
 import { User } from '../users/user.entity';
@@ -289,7 +289,7 @@ describe('Transaction Domain Entity', () => {
 
       const originalSnapshot = transaction.toSnapshot();
 
-      const prevOperations: OperationUpdate[] = transaction
+      const prevOperations: UpdateOperationRequestDTO[] = transaction
         .getOperations()
         .map((op) => ({
           accountId: op.getAccountId().valueOf(),

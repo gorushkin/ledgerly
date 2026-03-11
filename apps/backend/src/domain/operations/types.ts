@@ -17,23 +17,6 @@ export type OperationSnapshot = {
   transactionId: UUID;
 };
 
-// TODO: consider moving this type to the service layer
-export type OperationDraft = {
-  accountId: UUID;
-  amount: MoneyString;
-  value: MoneyString;
-  description: string;
-};
-
-// TODO: consider moving this type to the service layer
-export type OperationUpdate = {
-  id: UUID;
-  accountId: UUID;
-  amount: MoneyString;
-  value: MoneyString;
-  description: string;
-};
-
 export type OperationProps = {
   account: Account;
   amount: Amount;
