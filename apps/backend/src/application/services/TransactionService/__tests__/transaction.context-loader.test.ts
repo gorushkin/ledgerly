@@ -3,7 +3,7 @@ import { OperationRequestDTO } from 'src/application/dto';
 import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
 import { createAccount } from 'src/db/createTestUser';
 import { User } from 'src/domain';
-import { Amount, Currency, Id } from 'src/domain/domain-core';
+import { Amount, Currency } from 'src/domain/domain-core';
 import { createUser } from 'src/interfaces/helpers';
 import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 
@@ -52,37 +52,29 @@ describe('TransactionContextLoader', () => {
       createAccount(user, { currency: Currency.create(currency) }),
     );
 
-    const transactionId = Id.create().valueOf();
-
     const rawOperations: OperationRequestDTO[] = [
       {
         accountId: account1.getId().valueOf(),
         amount: Amount.create('100').valueOf(),
         description: 'Operation 1.1',
-        transactionId,
         value: Amount.create('100').valueOf(),
       },
       {
         accountId: account2.getId().valueOf(),
         amount: Amount.create('-100').valueOf(),
         description: 'Operation 1.2',
-        transactionId,
         value: Amount.create('-100').valueOf(),
       },
       {
         accountId: account3.getId().valueOf(),
         amount: Amount.create('100').valueOf(),
         description: 'Operation 2.1',
-        transactionId,
-
         value: Amount.create('100').valueOf(),
       },
       {
         accountId: account4.getId().valueOf(),
         amount: Amount.create('-100').valueOf(),
         description: 'Operation 2.2',
-        transactionId,
-
         value: Amount.create('-100').valueOf(),
       },
     ];
@@ -132,21 +124,18 @@ describe('TransactionContextLoader', () => {
 
   it('should deduplicate account IDs when same account appears in multiple operations', async () => {
     const account = createAccount(user);
-    const transactionId = Id.create().valueOf();
 
     const rawOperations: OperationRequestDTO[] = [
       {
         accountId: account.getId().valueOf(),
         amount: Amount.create('100').valueOf(),
         description: 'Op 1',
-        transactionId,
         value: Amount.create('100').valueOf(),
       },
       {
         accountId: account.getId().valueOf(),
         amount: Amount.create('-100').valueOf(),
         description: 'Op 2',
-        transactionId,
         value: Amount.create('-100').valueOf(),
       },
     ];

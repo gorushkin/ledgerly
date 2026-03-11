@@ -7,7 +7,6 @@ export type OperationRequestDTO = {
   amount: MoneyString;
   value: MoneyString;
   description: string;
-  transactionId: UUID;
 };
 
 export type CreateOperationRequestDTO = OperationRequestDTO;
@@ -15,7 +14,6 @@ export type CreateOperationRequestDTO = OperationRequestDTO;
 // Request DTOs for updating
 
 export type UpdateOperationRequestDTO = OperationRequestDTO & {
-  transactionId: UUID;
   id: UUID;
 };
 

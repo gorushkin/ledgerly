@@ -1,3 +1,4 @@
+import { TransactionMapper } from 'src/application';
 import { createUser } from 'src/db/createTestUser';
 import {
   compareEntities,
@@ -18,13 +19,16 @@ import {
 import { Amount, DateValue } from '../domain-core';
 import { UnbalancedTransactionError } from '../domain.errors';
 import {
-  OperationDraft,
+  CreateOperationProps,
+  OperationProps,
   OperationSnapshot,
   OperationUpdate,
+  UpdateOperationProps,
 } from '../operations/types';
 import { User } from '../users/user.entity';
 
 import { Transaction } from './transaction.entity';
+import { CreateTransactionProps } from './types';
 
 const areOperationsEqual = (
   ops1: OperationSnapshot[],
@@ -47,7 +51,9 @@ describe('Transaction Domain Entity', () => {
 
   let data: TransactionBuilderResult;
 
-  const transactionData: TransactionProps = {
+  let transactionData: CreateTransactionProps;
+
+  const transactionRawData: TransactionProps = {
     currencyCode: 'USD',
     description: 'Buy groceries',
     postingDate: '2024-01-01',
@@ -73,10 +79,15 @@ describe('Transaction Domain Entity', () => {
     const transactionBuilder = TransactionBuilder.create(user);
 
     data = transactionBuilder
-      .withSettings(transactionData)
+      .withSettings(transactionRawData)
       .withAccounts(['USD', 'EUR', 'RUB', 'TRY'])
       .withOperations(operationsData)
       .build();
+
+    transactionData = TransactionMapper.toCreateTransactionProps(
+      data.transactionDTO,
+      data.transactionContext,
+    );
   });
 
   beforeEach(() => {
@@ -89,18 +100,17 @@ describe('Transaction Domain Entity', () => {
 
   describe('Creation and Restoration', () => {
     it('should create a valid transaction with operation', () => {
-      const transaction = Transaction.create(
-        user.getId(),
+      const transactionData = TransactionMapper.toCreateTransactionProps(
         data.transactionDTO,
         data.transactionContext,
       );
 
+      const transaction = Transaction.create(user.getId(), transactionData);
+
       expect(transaction).toBeInstanceOf(Transaction);
       expect(transaction.description).toBe(transactionData.description);
-      expect(transaction.getPostingDate().valueOf()).toEqual(
-        transactionData.postingDate,
-      );
-      expect(transaction.getTransactionDate().valueOf()).toEqual(
+      expect(transaction.getPostingDate()).toEqual(transactionData.postingDate);
+      expect(transaction.getTransactionDate()).toEqual(
         transactionData.transactionDate,
       );
       expect(transaction.getId()).toBeDefined();
@@ -108,7 +118,7 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.getUpdatedAt()).toBeDefined();
       expect(transaction.isDeleted()).toBe(false);
 
-      expect(transaction.currency.valueOf()).toBe(transactionData.currencyCode);
+      expect(transaction.currency).toBe(transactionData.currency);
 
       const transactionOperations = transaction.getOperations();
 
@@ -122,18 +132,14 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should serialize and deserialize correctly', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transaction = Transaction.create(user.getId(), transactionData);
 
       const transactionSnapshot = transaction.toSnapshot();
 
       expect(transactionSnapshot).toMatchObject({
-        description: transactionData.description,
-        postingDate: transactionData.postingDate,
-        transactionDate: transactionData.transactionDate,
+        description: transactionRawData.description,
+        postingDate: transactionRawData.postingDate,
+        transactionDate: transactionRawData.transactionDate,
         userId: user.getId().valueOf(),
       });
 
@@ -144,19 +150,17 @@ describe('Transaction Domain Entity', () => {
 
   describe('Updating Transaction data', () => {
     it('Should update only description, increment version and update timestamps', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transaction = Transaction.create(user.getId(), transactionData);
 
       const description = 'Updated transaction description';
       const originalSnapshot = transaction.toSnapshot();
 
       vi.advanceTimersByTime(5000);
 
+      const metadata = TransactionMapper.toMetadataUpdateData(transaction);
+
       transaction.applyUpdate(
-        { metadata: { description } },
+        { metadata: { ...metadata, description } },
         data.transactionContext,
       );
 
@@ -179,20 +183,18 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('Should update only postingDate, increment version and update timestamps', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transaction = Transaction.create(user.getId(), transactionData);
 
       const postingDate = DateValue.restore('2024-02-15').valueOf();
 
       const originalSnapshot = transaction.toSnapshot();
 
+      const metadata = TransactionMapper.toMetadataUpdateData(transaction);
+
       vi.advanceTimersByTime(5000);
 
       transaction.applyUpdate(
-        { metadata: { postingDate } },
+        { metadata: { ...metadata, postingDate } },
         data.transactionContext,
       );
 
@@ -215,11 +217,7 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('Should update only transactionDate, increment version and update timestamps', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transaction = Transaction.create(user.getId(), transactionData);
 
       const transactionDate = DateValue.restore('2024-03-10').valueOf();
 
@@ -227,8 +225,10 @@ describe('Transaction Domain Entity', () => {
 
       vi.advanceTimersByTime(5000);
 
+      const metadata = TransactionMapper.toMetadataUpdateData(transaction);
+
       transaction.applyUpdate(
-        { metadata: { transactionDate } },
+        { metadata: { ...metadata, transactionDate } },
         data.transactionContext,
       );
       const updatedSnapshot = transaction.toSnapshot();
@@ -248,11 +248,7 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('Should update all fields at once, increment version and update timestamps', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transaction = Transaction.create(user.getId(), transactionData);
 
       const originalSnapshot = transaction.toSnapshot();
 
@@ -289,11 +285,7 @@ describe('Transaction Domain Entity', () => {
 
   describe('Manage Operations', () => {
     it('Should add a new operation and increase version', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transaction = Transaction.create(user.getId(), transactionData);
 
       const originalSnapshot = transaction.toSnapshot();
 
@@ -307,21 +299,27 @@ describe('Transaction Domain Entity', () => {
           value: op.value.valueOf(),
         }));
 
-      const newOperationData1: OperationDraft = {
-        accountId: data.getAccountByKey('USD').getId().valueOf(),
-        amount: Amount.create('5000').valueOf(),
+      const usdAccount = data.getAccountByKey('USD');
+      const eurAccount = data.getAccountByKey('EUR');
+
+      const newOperationData1: CreateOperationProps = {
+        account: usdAccount,
+        amount: Amount.create('5000'),
         description: 'New Operation',
-        value: Amount.create('5000').valueOf(),
+        value: Amount.create('5000'),
       };
 
-      const newOperationData2: OperationDraft = {
-        accountId: data.getAccountByKey('USD').getId().valueOf(),
-        amount: Amount.create('-5000').valueOf(),
+      const newOperationData2: CreateOperationProps = {
+        account: eurAccount,
+        amount: Amount.create('-5000'),
         description: 'New Operation',
-        value: Amount.create('-5000').valueOf(),
+        value: Amount.create('-5000'),
       };
 
-      const operationsToAdd = [newOperationData1, newOperationData2];
+      const operationsToAdd: CreateOperationProps[] = [
+        newOperationData1,
+        newOperationData2,
+      ];
 
       vi.advanceTimersByTime(5000);
 
@@ -363,55 +361,55 @@ describe('Transaction Domain Entity', () => {
 
         const matchedNewOp = operationsToAdd.find(
           (newOp) =>
-            newOp.accountId === op.accountId &&
-            newOp.amount === op.amount &&
+            newOp.account.getId().valueOf() === op.accountId &&
+            newOp.amount.valueOf() === op.amount &&
             newOp.description === op.description &&
-            newOp.value === op.value,
+            newOp.value.valueOf() === op.value,
         );
 
         expect(matchedNewOp).toBeDefined();
-        expect(op.accountId).toBe(matchedNewOp?.accountId);
-        expect(op.amount).toBe(matchedNewOp?.amount);
+        expect(op.accountId).toBe(matchedNewOp?.account.getId().valueOf());
+        expect(op.amount).toBe(matchedNewOp?.amount.valueOf());
         expect(op.description).toBe(matchedNewOp?.description);
-        expect(op.value).toBe(matchedNewOp?.value);
+        expect(op.value).toBe(matchedNewOp?.value.valueOf());
       });
     });
 
     it('Should update an existing operation and increase version', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transaction = Transaction.create(user.getId(), transactionData);
 
       const originalSnapshot = transaction.toSnapshot();
 
-      const prevOperations: OperationUpdate[] = transaction
-        .getOperations()
-        .map((op) => ({
-          accountId: op.getAccountId().valueOf(),
-          amount: op.amount.valueOf(),
-          description: op.description,
-          id: op.getId().valueOf(),
-          value: op.value.valueOf(),
-        }));
+      const prevOperations = transaction.getOperations();
 
       const [operationToUpdate1, operationToUpdate2] = prevOperations;
 
-      const updatedOperationData: OperationUpdate[] = [
+      const account1 = data.accountsMap.get(
+        operationToUpdate1.getAccountId().valueOf(),
+      );
+
+      const account2 = data.accountsMap.get(
+        operationToUpdate2.getAccountId().valueOf(),
+      );
+
+      if (!account1 || !account2) {
+        throw new Error('Test setup failed: Account not found');
+      }
+
+      const updatedOperationData: UpdateOperationProps[] = [
         {
-          accountId: operationToUpdate1.accountId,
-          amount: Amount.create('20000').valueOf(),
+          account: account1,
+          amount: Amount.create('20000'),
           description: 'Updated Operation',
           id: operationToUpdate1.id,
-          value: Amount.create('20000').valueOf(),
+          value: Amount.create('20000'),
         },
         {
-          accountId: operationToUpdate2.accountId,
-          amount: Amount.create('-20000').valueOf(),
+          account: account2,
+          amount: Amount.create('-20000'),
           description: 'Updated Operation',
           id: operationToUpdate2.id,
-          value: Amount.create('-20000').valueOf(),
+          value: Amount.create('-20000'),
         },
       ];
 
@@ -439,29 +437,27 @@ describe('Transaction Domain Entity', () => {
       expect(updatedSnapshot.version).toBe(originalSnapshot.version + 1);
 
       updatedSnapshot.operations.forEach((op) => {
-        const matchedPrevOp = updatedOperationData.find(
-          (prevOp) => op.id === prevOp.id,
+        const matchedPrevOp = updatedOperationData.find((prevOp) =>
+          prevOp.id.equals(op.id),
         );
 
         expect(matchedPrevOp).toBeDefined();
 
-        expect(op.accountId).toBe(matchedPrevOp?.accountId);
-        expect(op.amount).toBe(matchedPrevOp?.amount);
+        expect(op.accountId).toBe(matchedPrevOp?.account.getId().valueOf());
+        expect(op.amount).toBe(matchedPrevOp?.amount.valueOf());
         expect(op.description).toBe(matchedPrevOp?.description);
-        expect(op.value).toBe(matchedPrevOp?.value);
+        expect(op.value).toBe(matchedPrevOp?.value.valueOf());
       });
     });
 
     it('Should delete an existing operation and increase version', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transaction = Transaction.create(user.getId(), transactionData);
 
       const originalSnapshot = transaction.toSnapshot();
 
-      const operationToDeleteSnapshot = originalSnapshot.operations[0];
+      const operationToDelete = transaction.getOperations()[0];
+
+      const operationToDeleteSnapshot = operationToDelete.toSnapshot();
 
       vi.advanceTimersByTime(5000);
 
@@ -469,7 +465,7 @@ describe('Transaction Domain Entity', () => {
         {
           operations: {
             create: [],
-            delete: [operationToDeleteSnapshot.id],
+            delete: [operationToDelete.getId()],
             update: [],
           },
         },
@@ -485,7 +481,7 @@ describe('Transaction Domain Entity', () => {
       const operationsAfterDelete = transaction.getOperations();
 
       const deletedOperation = operationsAfterDelete.find(
-        (op) => op.getId().valueOf() === operationToDeleteSnapshot.id,
+        (op) => op.getId().valueOf() === operationToDelete.getId().valueOf(),
       );
 
       expect(deletedOperation).toBeDefined();
@@ -493,7 +489,7 @@ describe('Transaction Domain Entity', () => {
       expect(deletedOperation?.isDeleted()).toBe(true);
 
       const deletedOperationSnapshot = updatedSnapshot.operations.find(
-        (op) => op.id === operationToDeleteSnapshot.id,
+        (op) => op.id === operationToDelete.getId().valueOf(),
       );
 
       expect(deletedOperationSnapshot).toBeDefined();
@@ -523,11 +519,7 @@ describe('Transaction Domain Entity', () => {
 
   describe('Deletion', () => {
     it('should mark transaction as deleted and all related operations, increase version and update timestamps', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transaction = Transaction.create(user.getId(), transactionData);
 
       const originalSnapshot = transaction.toSnapshot();
 
@@ -553,11 +545,7 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('Should not increase version if transaction is already deleted', () => {
-      const transaction = Transaction.create(
-        user.getId(),
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transaction = Transaction.create(user.getId(), transactionData);
       transaction.markAsDeleted();
 
       const originalSnapshot = transaction.toSnapshot();
@@ -575,37 +563,33 @@ describe('Transaction Domain Entity', () => {
   describe('Validation', () => {
     it('Should validate that sum of operation values is 0', () => {
       expect(() => {
-        Transaction.create(
-          user.getId(),
-          data.transactionDTO,
-          data.transactionContext,
-        );
+        Transaction.create(user.getId(), transactionData);
       }).not.toThrowError(UnbalancedTransactionError);
     });
 
     it('Should fail validation if sum of operation values is not 0', () => {
-      const usdAccountId = data.getAccountByKey('USD').getId().valueOf();
-      const unbalancedOperationsData = [
+      const usdAccount = data.getAccountByKey('USD');
+
+      const unbalancedOperationsData: OperationProps[] = [
         {
-          accountId: usdAccountId,
-          amount: Amount.create('10000').valueOf(),
+          account: usdAccount,
+          amount: Amount.create('10000'),
           description: 'groceries Account',
-          value: Amount.create('10000').valueOf(),
+          value: Amount.create('10000'),
         },
         {
-          accountId: usdAccountId,
-          amount: Amount.create('10000').valueOf(),
+          account: usdAccount,
+          amount: Amount.create('10000'),
           description: 'Wallet adjustment',
-          value: Amount.create('10000').valueOf(),
+          value: Amount.create('10000'),
         },
-      ] satisfies OperationDraft[];
+      ];
 
       expect(() => {
-        Transaction.create(
-          user.getId(),
-          { ...data.transactionDTO, operations: unbalancedOperationsData },
-          data.transactionContext,
-        );
+        Transaction.create(user.getId(), {
+          ...transactionData,
+          operations: unbalancedOperationsData,
+        });
       }).toThrowError(UnbalancedTransactionError);
     });
   });

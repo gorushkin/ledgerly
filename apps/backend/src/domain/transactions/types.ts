@@ -6,11 +6,12 @@ import {
 } from '@ledgerly/shared/types';
 
 import { Account } from '../accounts';
-import { Currency } from '../domain-core';
+import { Currency, DateValue, Id } from '../domain-core';
 import {
-  OperationDraft,
+  CreateOperationProps,
+  OperationProps,
   OperationSnapshot,
-  OperationUpdate,
+  UpdateOperationProps,
 } from '../operations/types';
 
 export type TransactionUpdateData = {
@@ -26,16 +27,16 @@ export type TransactionBuildContext = {
 
 export type CreateTransactionProps = {
   description: string;
-  postingDate: IsoDateString;
-  transactionDate: IsoDateString;
-  operations: OperationDraft[];
+  postingDate: DateValue;
+  transactionDate: DateValue;
+  operations: OperationProps[];
   currency: Currency;
 };
 
 export type OperationsPatch = {
-  create: OperationDraft[];
-  update: OperationUpdate[];
-  delete: UUID[];
+  create: CreateOperationProps[];
+  update: UpdateOperationProps[];
+  delete: Id[];
 } | null;
 
 export type UpdateTransactionProps = {

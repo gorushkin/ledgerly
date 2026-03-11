@@ -159,20 +159,13 @@ export class TransactionBuilder {
       return;
     }
 
-    this.transaction = Transaction.create(
-      this.user.getId(),
-      {
-        currency: this.transactionCurrency,
-        description: 'Test Transaction',
-        operations: [],
-        postingDate: DateValue.restore('2023-01-01').valueOf(),
-        transactionDate: DateValue.restore('2023-01-01').valueOf(),
-      },
-      {
-        accountsMap: this.accountsMap,
-        systemAccountsMap: this.systemAccounts,
-      },
-    );
+    this.transaction = Transaction.create(this.user.getId(), {
+      currency: this.transactionCurrency,
+      description: 'Test Transaction',
+      operations: [],
+      postingDate: DateValue.restore('2023-01-01'),
+      transactionDate: DateValue.restore('2023-01-01'),
+    });
   }
 
   withOperations(operationsData: OperationDataForTransaction[]): this {
@@ -265,7 +258,7 @@ export class TransactionBuilder {
         userId: this.user.getId().valueOf(),
       },
       transactionDTO: {
-        currency: Currency.create('USD'),
+        currencyCode: this.transactionCurrency.valueOf(),
         description: this.description,
         operations,
         postingDate: this.postingDate,

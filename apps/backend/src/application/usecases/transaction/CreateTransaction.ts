@@ -28,7 +28,15 @@ export class CreateTransactionUseCase {
         data.operations,
       );
 
-      const transaction = Transaction.create(user.getId(), data, context);
+      const createTransactionProps = TransactionMapper.toCreateTransactionProps(
+        data,
+        context,
+      );
+
+      const transaction = Transaction.create(
+        user.getId(),
+        createTransactionProps,
+      );
 
       await this.transactionRepository.rootSave(
         user.getId().valueOf(),

@@ -1,20 +1,15 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
 import {
-  EntryMapper,
-  OperationMapper,
   OperationRepositoryInterface,
   TransactionMapper,
   TransactionRepositoryInterface,
 } from 'src/application';
 import {
-  OperationDbRow,
   TransactionDbRow,
   TransactionWithRelations,
   transactionsTable,
 } from 'src/db/schema';
 import { Transaction } from 'src/domain';
-import { OperationSnapshot } from 'src/domain/operations/types';
 
 import { BaseRepository } from '../BaseRepository';
 

@@ -113,6 +113,7 @@ describe('Operation Domain Entity', () => {
       account: usdAccount,
       amount: newAmount,
       description: newDescription,
+      id: operation.id,
       value: newValue,
     });
 
@@ -157,6 +158,7 @@ describe('Operation Domain Entity', () => {
       account: eurAccount,
       amount: operationData.amount,
       description: operationData.description,
+      id: operation.id,
       value: operationData.value,
     });
 
@@ -199,6 +201,7 @@ describe('Operation Domain Entity', () => {
       account: usdAccount,
       amount: operationData.amount,
       description: operationData.description,
+      id: operation.id,
       value: operationData.value,
     });
 

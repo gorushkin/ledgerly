@@ -18,7 +18,6 @@ import {
   TransactionRepository,
   TransactionQueryRepository,
   OperationRepository,
-  EntryRepository,
   CurrencyRepository,
   TransactionManager,
   AccountRepository,
@@ -40,9 +39,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const accountRepository = new AccountRepository(transactionManager);
   const currencyRepository = new CurrencyRepository(transactionManager);
   const operationRepository = new OperationRepository(transactionManager);
-  const entryRepository = new EntryRepository(transactionManager);
   const transactionRepository = new TransactionRepository(
-    entryRepository,
     operationRepository,
     transactionManager,
   );
@@ -56,7 +53,6 @@ export const createContainer = (db: DataBase): AppContainer => {
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
     currency: currencyRepository,
-    entry: entryRepository,
     operation: operationRepository,
     transaction: transactionRepository,
     transactionQuery: transactionQueryRepository,
@@ -111,6 +107,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionManager,
     transactionRepository,
     ensureEntityExistsAndOwned,
+    transactionContextLoader,
   );
 
   const useCases: AppContainer['useCases'] = {

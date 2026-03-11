@@ -9,10 +9,10 @@ import { createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { Operation, Transaction, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
+import { TransactionBuildContext } from 'src/domain/transactions/types';
 import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { UpdateTransactionUseCase } from '../UpdateTransaction';
-import { TransactionBuildContext } from 'src/domain/transactions/types';
 
 vi.mock('src/application/comparers', () => ({
   compareTransaction: vi.fn(),
@@ -152,14 +152,12 @@ describe('UpdateTransactionUseCase', () => {
             accountId: transaction.getOperations()[0].getAccountId().valueOf(),
             amount: Amount.create('500').valueOf(),
             description: 'New Operation Split 1',
-            transactionId: transaction.getId().valueOf(),
             value: Amount.create('500').valueOf(),
           },
           {
             accountId: transaction.getOperations()[0].getAccountId().valueOf(),
             amount: Amount.create('-500').valueOf(),
             description: 'New Operation Split 2',
-            transactionId: transaction.getId().valueOf(),
             value: Amount.create('-500').valueOf(),
           },
         ],
@@ -242,7 +240,7 @@ describe('UpdateTransactionUseCase', () => {
     );
   });
 
-  it.only('should not update transaction if there are changes', async () => {
+  it('should not update transaction if there are changes', async () => {
     const data: UpdateTransactionRequestDTO = {
       description: transaction.description,
       operations: {

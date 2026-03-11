@@ -5,7 +5,6 @@ export {
   TransactionRepository,
 } from './transaction/';
 export { OperationRepository } from './operations';
-export { EntryRepository } from './entries';
 export { AccountRepository } from './accounts';
 export { CurrencyRepository } from './currency';
 export { UserRepository } from './user';

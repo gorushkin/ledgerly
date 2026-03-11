@@ -6,6 +6,7 @@ import {
   isoDate,
   isoDatetime,
   moneyAmountString,
+  currencyCode,
 } from "./baseValidations";
 
 export const operationCreateSchema = z.object({
@@ -19,7 +20,6 @@ export const operationUpdateSchema = z.object({
   accountId: uuid,
   amount: moneyAmountString,
   description: requiredText,
-  entryId: uuid,
   id: uuid,
   value: moneyAmountString,
 });
@@ -36,6 +36,7 @@ export const entryUpdateSchema = z.object({
 });
 
 export const transactionCreateSchema = z.object({
+  currencyCode: currencyCode,
   description: requiredText,
   operations: z.array(operationCreateSchema),
   postingDate: isoDate,
@@ -44,10 +45,10 @@ export const transactionCreateSchema = z.object({
 
 export const transactionUpdateSchema = z.object({
   description: requiredText,
-  entries: z.object({
-    create: z.array(entryCreateSchema),
+  operations: z.object({
+    create: z.array(operationCreateSchema),
     delete: z.array(uuid),
-    update: z.array(entryUpdateSchema),
+    update: z.array(operationUpdateSchema),
   }),
   postingDate: isoDate,
   transactionDate: isoDate,

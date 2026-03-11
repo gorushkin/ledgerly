@@ -17,6 +17,7 @@ CREATE TABLE `accounts` (
 CREATE UNIQUE INDEX `user_id_name_unique_idx` ON `accounts` (`user_id`,`name`);--> statement-breakpoint
 CREATE TABLE `transactions` (
 	`created_at` text NOT NULL,
+	`currency` text NOT NULL,
 	`description` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
 	`is_tombstone` integer NOT NULL,

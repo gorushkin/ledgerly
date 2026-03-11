@@ -1,16 +1,6 @@
-import { REQUIRED_USER_OPERATIONS_PER_ENTRY } from '@ledgerly/shared/constants';
-import {
-  EntryWithOperations,
-  OperationDbRow,
-  TransactionWithRelations,
-} from 'src/db/schema';
+import { OperationDbRow, TransactionWithRelations } from 'src/db/schema';
 
-import {
-  EntryOperationsResponseDTO,
-  EntryResponseDTO,
-  OperationResponseDTO,
-  TransactionResponseDTO,
-} from '../dto';
+import { OperationResponseDTO, TransactionResponseDTO } from '../dto';
 
 // TODO: This mapper is similar to TransactionMapper but works with DB rows directly.
 // Consider refactoring to reduce code duplication.
@@ -18,52 +8,14 @@ export class TransactionViewMapper {
   static toView(transaction: TransactionWithRelations): TransactionResponseDTO {
     return {
       createdAt: transaction.createdAt,
+      currency: transaction.currency,
       description: transaction.description,
-      entries: transaction.entries.map(this.mapEntry.bind(this)),
       id: transaction.id,
+      operations: transaction.operations.map(this.mapOperation.bind(this)),
       postingDate: transaction.postingDate,
       transactionDate: transaction.transactionDate,
       updatedAt: transaction.updatedAt,
       userId: transaction.userId,
-    };
-  }
-
-  /**
-   * Type guard to ensure array has exactly 2 elements and convert to tuple
-   */
-  private static ensureTwoOperations<T>(array: T[], entryId: string): [T, T] {
-    if (array.length !== REQUIRED_USER_OPERATIONS_PER_ENTRY) {
-      throw new Error(
-        `Entry with id ${entryId} must have exactly ${REQUIRED_USER_OPERATIONS_PER_ENTRY} non-system operations, but got ${array.length}.`,
-      );
-    }
-    if (!array[0] || !array[1]) {
-      throw new Error(
-        `Entry with id ${entryId} has undefined operation(s) in the array.`,
-      );
-    }
-    return [array[0], array[1]];
-  }
-
-  private static mapEntry(entry: EntryWithOperations): EntryResponseDTO {
-    const entryOperations = entry.operations
-      .filter((op) => !op.isSystem)
-      .map(this.mapOperation.bind(this));
-
-    const operations: EntryOperationsResponseDTO = this.ensureTwoOperations(
-      entryOperations,
-      entry.id,
-    );
-
-    return {
-      createdAt: entry.createdAt,
-      description: entry.description,
-      id: entry.id,
-      isTombstone: entry.isTombstone,
-      operations,
-      transactionId: entry.transactionId,
-      updatedAt: entry.updatedAt,
-      userId: entry.userId,
     };
   }
 
@@ -73,11 +25,12 @@ export class TransactionViewMapper {
       amount: op.amount,
       createdAt: op.createdAt,
       description: op.description,
-      entryId: op.entryId,
       id: op.id,
       isSystem: op.isSystem,
+      transactionId: op.transactionId,
       updatedAt: op.updatedAt,
       userId: op.userId,
+      value: op.value,
     };
   }
 }

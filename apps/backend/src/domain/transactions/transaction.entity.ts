@@ -12,7 +12,6 @@ import {
   Currency,
 } from '../domain-core';
 import {
-  AccountNotFoundInContextError,
   ConflictingOperationIdsError,
   MissingTransactionContextError,
   OperationNotFoundInTransactionError,
@@ -20,7 +19,7 @@ import {
   UnbalancedTransactionError,
 } from '../domain.errors';
 import { Operation } from '../operations';
-import { OperationDraft, OperationUpdate } from '../operations/types';
+import { OperationProps, UpdateOperationProps } from '../operations/types';
 
 import {
   CreateTransactionProps,
@@ -47,34 +46,24 @@ export class Transaction {
     private version = 0,
   ) {}
 
-  static create(
-    userId: Id,
-    dto: CreateTransactionProps,
-    transactionContext: TransactionBuildContext,
-  ): Transaction {
+  static create(userId: Id, dto: CreateTransactionProps): Transaction {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
     const ownership = ParentChildRelation.create(userId, identity.getId());
-
-    const postingDate = DateValue.restore(dto.postingDate);
-    const transactionDate = DateValue.restore(dto.transactionDate);
 
     const transaction = new Transaction(
       identity,
       timestamps,
       softDelete,
       ownership,
-      postingDate,
-      transactionDate,
+      dto.postingDate,
+      dto.transactionDate,
       dto.currency,
       dto.description,
     );
 
-    const operations = transaction.createOperationsFromDrafts(
-      dto.operations,
-      transactionContext,
-    );
+    const operations = transaction.createOperationsFromDrafts(dto.operations);
 
     transaction.attachOperations(operations);
     transaction.validate();
@@ -106,17 +95,14 @@ export class Transaction {
     });
   }
 
-  private createOperationsFromDrafts(
-    operationsData: OperationDraft[],
-    transactionContext: TransactionBuildContext,
-  ) {
+  private createOperationsFromDrafts(operationsData: OperationProps[]) {
     const operations = operationsData.map((operationDTO) =>
       Operation.create(
         this.getUserId(),
-        transactionContext.accountsMap.get(operationDTO.accountId)!,
+        operationDTO.account,
         this,
-        Amount.create(operationDTO.value),
-        Amount.create(operationDTO.value),
+        operationDTO.amount,
+        operationDTO.value,
         operationDTO.description,
       ),
     );
@@ -310,7 +296,7 @@ export class Transaction {
 
     if (updateDeleteConflicts.length > 0) {
       throw new ConflictingOperationIdsError(
-        updateDeleteConflicts,
+        updateDeleteConflicts.map((id) => id.valueOf()),
         'IDs found in both update and delete arrays',
       );
     }
@@ -322,15 +308,15 @@ export class Transaction {
 
     if (updateDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
-        [...new Set(updateDuplicates)],
+        [...new Set(updateDuplicates.map((id) => id.valueOf()))],
         'Duplicate IDs in update array',
       );
     }
 
     // Check for duplicate IDs within delete array
-    const deleteDuplicates = operations.delete.filter(
-      (id, index, arr) => arr.indexOf(id) !== index,
-    );
+    const deleteDuplicates = operations.delete
+      .filter((id, index, arr) => arr.indexOf(id) !== index)
+      .map((id) => id.valueOf());
 
     if (deleteDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
@@ -340,59 +326,42 @@ export class Transaction {
     }
   }
 
-  private addOperations(
-    operationsData: OperationDraft[],
-    transactionContext: TransactionBuildContext,
-  ) {
-    const operations = this.createOperationsFromDrafts(
-      operationsData,
-      transactionContext,
-    );
+  private addOperations(operationsData: OperationProps[]) {
+    const operations = this.createOperationsFromDrafts(operationsData);
 
     this.attachOperations(operations);
   }
 
-  private updateOperations(
-    operationsData: OperationUpdate[],
-    transactionContext: TransactionBuildContext,
-  ) {
+  private updateOperations(operationsData: UpdateOperationProps[]) {
     operationsData.forEach((operationData) => {
-      const existingOperation = this.operationsMap.get(operationData.id);
+      const operationId = operationData.id.valueOf();
+
+      const existingOperation = this.operationsMap.get(operationId);
 
       if (!existingOperation) {
         throw new OperationNotFoundInTransactionError(
-          operationData.id,
+          operationId,
           this.getId().valueOf(),
         );
       }
 
-      const operationAccount = transactionContext.accountsMap.get(
-        operationData.accountId,
-      );
-
-      if (!operationAccount) {
-        throw new AccountNotFoundInContextError(
-          operationData.accountId,
-          operationData.id,
-        );
-      }
-
       existingOperation.update({
-        account: operationAccount,
-        amount: Amount.create(operationData.amount),
+        account: operationData.account, // operationAccount,
+        amount: operationData.amount,
         description: operationData.description,
-        value: Amount.create(operationData.value),
+        id: operationData.id,
+        value: operationData.value,
       });
     });
   }
 
-  private deleteOperations(operationIds: UUID[]): void {
+  private deleteOperations(operationIds: Id[]): void {
     operationIds.forEach((operationId) => {
-      const operation = this.operationsMap.get(operationId);
+      const operation = this.operationsMap.get(operationId.valueOf());
 
       if (!operation) {
         throw new OperationNotFoundInTransactionError(
-          operationId,
+          operationId.valueOf(),
           this.getId().valueOf(),
         );
       }
@@ -422,7 +391,7 @@ export class Transaction {
         throw new MissingTransactionContextError('create new operations');
       }
 
-      this.addOperations(create, transactionContext);
+      this.addOperations(create);
     }
 
     if (update.length > 0) {
@@ -432,7 +401,7 @@ export class Transaction {
         throw new MissingTransactionContextError('update operations');
       }
 
-      this.updateOperations(update, transactionContext);
+      this.updateOperations(update);
     }
 
     if (deleteIds.length > 0) {

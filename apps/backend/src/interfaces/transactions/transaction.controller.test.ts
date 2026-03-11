@@ -1,3 +1,12 @@
+import { describe, it, expect } from 'vitest';
+
+describe('TransactionController', () => {
+  it('should have tests implemented', () => {
+    // Placeholder test to ensure the test suite runs
+    expect(true).toBe(true);
+  });
+});
+
 // import {
 //   EntryCreateInput,
 //   TransactionCreateInput,

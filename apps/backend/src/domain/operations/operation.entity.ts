@@ -242,6 +242,11 @@ export class Operation {
   }
 
   update(params: UpdateOperationProps): void {
+    if (this.identity.getId().equals(params.id.valueOf()) === false) {
+      // TODO: add proper error handling
+      throw new Error('Operation ID mismatch');
+    }
+
     const { account, amount, description, value } = params;
 
     let isUpdated = false;

@@ -7,10 +7,11 @@ import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { TransactionMapper } from 'src/application/mappers';
+import { OperationMapper, TransactionMapper } from 'src/application/mappers';
 import { TransactionContextLoader } from 'src/application/services';
 import { EnsureEntityExistsAndOwnedFn } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { User } from 'src/domain';
+import { Id } from 'src/domain/domain-core';
 
 export class UpdateTransactionUseCase {
   constructor(
@@ -48,7 +49,15 @@ export class UpdateTransactionUseCase {
             postingDate: data.postingDate,
             transactionDate: data.transactionDate,
           },
-          operations: data.operations,
+          operations: {
+            create: data.operations.create.map((data) =>
+              OperationMapper.toCreateOperationProps(data, transactionContext),
+            ),
+            delete: data.operations.delete.map((id) => Id.fromPersistence(id)),
+            update: data.operations.update.map((data) =>
+              OperationMapper.toUpdateOperationProps(data, transactionContext),
+            ),
+          },
         },
         transactionContext,
       );

@@ -1,5 +1,14 @@
 import { OperationRepoInsert } from 'src/db/schema';
+import { Amount, Id } from 'src/domain/domain-core';
+import { AccountNotFoundInContextError } from 'src/domain/domain.errors';
 import { Operation } from 'src/domain/operations/operation.entity';
+import {
+  CreateOperationProps,
+  OperationDraft,
+  OperationUpdate,
+  UpdateOperationProps,
+} from 'src/domain/operations/types';
+import { TransactionBuildContext } from 'src/domain/transactions/types';
 
 import { OperationResponseDTO } from '../dto';
 
@@ -35,6 +44,43 @@ export class OperationMapper {
       updatedAt: snapshot.updatedAt,
       userId: snapshot.userId,
       value: snapshot.value,
+    };
+  }
+
+  static toCreateOperationProps(
+    dto: OperationDraft,
+    context: TransactionBuildContext,
+  ): CreateOperationProps {
+    const account = context.accountsMap.get(dto.accountId);
+
+    if (!account) {
+      throw new AccountNotFoundInContextError(dto.accountId, 'new-operation');
+    }
+
+    return {
+      account: account,
+      amount: Amount.create(dto.amount),
+      description: dto.description,
+      value: Amount.create(dto.value),
+    };
+  }
+
+  static toUpdateOperationProps(
+    dto: OperationUpdate,
+    context: TransactionBuildContext,
+  ): UpdateOperationProps {
+    const account = context.accountsMap.get(dto.accountId);
+
+    if (!account) {
+      throw new AccountNotFoundInContextError(dto.accountId, dto.id);
+    }
+
+    return {
+      account: account,
+      amount: Amount.create(dto.amount),
+      description: dto.description,
+      id: Id.fromPersistence(dto.id),
+      value: Amount.create(dto.value),
     };
   }
 }

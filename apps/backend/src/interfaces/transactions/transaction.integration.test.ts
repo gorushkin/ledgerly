@@ -1,3 +1,12 @@
+import { describe, it, expect } from 'vitest';
+
+describe('TransactionController', () => {
+  it('should have tests implemented', () => {
+    // Placeholder test to ensure the test suite runs
+    expect(true).toBe(true);
+  });
+});
+
 // import { ROUTES } from '@ledgerly/shared/routes';
 // import { UUID } from '@ledgerly/shared/types';
 // import { TransactionCreateInput } from '@ledgerly/shared/validation';

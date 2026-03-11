@@ -1,7 +1,7 @@
 import { IsoDatetimeString, MoneyString, UUID } from '@ledgerly/shared/types';
 
 import { Account } from '../accounts';
-import { Amount } from '../domain-core';
+import { Amount, Id } from '../domain-core';
 
 export type OperationSnapshot = {
   createdAt: IsoDatetimeString;
@@ -34,9 +34,15 @@ export type OperationUpdate = {
   description: string;
 };
 
-export type UpdateOperationProps = {
-  amount: Amount;
-  value: Amount;
-  description: string;
+export type OperationProps = {
   account: Account;
+  amount: Amount;
+  description: string;
+  value: Amount;
 };
+
+export type UpdateOperationProps = OperationProps & {
+  id: Id;
+};
+
+export type CreateOperationProps = OperationProps;

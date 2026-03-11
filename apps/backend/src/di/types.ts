@@ -15,7 +15,6 @@ import {
   TransactionQueryRepository,
   AccountRepository,
   CurrencyRepository,
-  EntryRepository,
   OperationRepository,
   TransactionRepository,
   UserRepository,
@@ -34,7 +33,6 @@ type Repositories = {
   account: AccountRepository;
   user: UserRepository;
   operation: OperationRepository;
-  entry: EntryRepository;
 };
 
 type Services = {
@@ -70,8 +68,6 @@ type Controllers = {
 
 type Factories = {
   account: AccountFactory;
-  // operation: OperationFactory;
-  // entry: EntryFactory;
 };
 
 export type AppContainer = {
