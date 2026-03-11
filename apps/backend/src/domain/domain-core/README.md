@@ -17,10 +17,13 @@ Value Objects - immutable objects that are described by their attributes, not by
 - **`Id`** - unique identifier
 - **`Timestamp`** - timestamp
 - **`Amount`** - monetary amount
+- **`Money`** - money with currency
 - **`Currency`** - currency
+- **`DateValue`** - date value
 - **`Name`** - name/title
 - **`Email`** - email address with validation
-- **`UserOwnership`** - entity ownership by user
+- **`Password`** - hashed password wrapper
+- **`ParentChildRelation`** - parent-child relationship between entities (e.g. user → account)
 
 ## Usage Principles
 
@@ -37,7 +40,7 @@ class Account {
   private readonly identity: EntityIdentity;
   private readonly timestamps: EntityTimestamps;
   private readonly softDelete: SoftDelete;
-  private readonly ownership: UserOwnership;
+  private readonly ownership: ParentChildRelation;
   
   // Explicit method delegation
   getId(): Id {
@@ -88,15 +91,16 @@ class Account {
     private identity: EntityIdentity,      // ID management
     private timestamps: EntityTimestamps,  // Timestamps
     private softDelete: SoftDelete,        // Soft deletion
-    private ownership: UserOwnership,      // User ownership
+    private ownership: ParentChildRelation, // User ownership
   ) {}
   
   static create(userId: Id, name: string): Account {
+    const identity = EntityIdentity.create();
     return new Account(
-      EntityIdentity.create(),
+      identity,
       EntityTimestamps.create(),
       SoftDelete.create(),
-      UserOwnership.create(userId),
+      ParentChildRelation.create(userId, identity.getId()),
     );
   }
 }
@@ -193,13 +197,13 @@ class Account {
     private identity: EntityIdentity,
     private timestamps: EntityTimestamps,
     private softDelete: SoftDelete,
-    private ownership: UserOwnership,
+    private ownership: ParentChildRelation,
     private name: Name,
   ) {}
   
   // Method delegation
   getId(): Id { return this.identity.getId(); }
   markAsDeleted(): void { this.softDelete.markAsDeleted(); }
-  belongsToUser(userId: Id): boolean { return this.ownership.belongsToUser(userId); }
+  belongsToUser(userId: Id): boolean { return this.ownership.belongsToParent(userId); }
 }
 ```

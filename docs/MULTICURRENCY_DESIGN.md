@@ -12,8 +12,9 @@ Ledgerly uses a **commodity-based** double-entry model:
 
 - Each currency (USD, EUR, RUB) is treated as a separate **commodity**.
 - Transactions may contain multiple currencies.
-- Ledgerly guarantees **per-currency balance** using GnuCash-style **trading accounts**.
 - All operations are **immutable** and represent factual postings.
+
+> **Current implementation state:** The `Entry` wrapper entity has been removed. Operations now belong directly to a transaction. System trading operations and trading accounts are **not yet implemented** — they are planned for a future phase. Balance is currently validated by summing the `value` field across all operations of a transaction (must equal 0).
 
 This model offers the reliability of traditional accounting with the clarity needed for personal finance applications.
 
@@ -38,8 +39,8 @@ RUB: +1000 -1000 = 0
 ### 2.3 Double-Entry for Each Currency
 Every currency forms its own complete double-entry pair.
 
-### 2.4 Trading Accounts
-Ledgerly creates internal trading accounts:
+### 2.4 Trading Accounts *(planned, not yet implemented)*
+The design calls for internal trading accounts:
 
 ```
 System:Trading:USD
@@ -54,10 +55,12 @@ These accounts:
 - exist solely to maintain correct double-entry,
 - cannot be used manually.
 
-### 2.5 Entry Wrapper
-Operations are grouped within **Entries**.  
-Each Entry maintains balance for one currency pair.  
-For multicurrency transactions, multiple Entries are created (one per currency).
+**Current state:** Trading accounts and `isSystem = true` operations are **temporarily deprecated**. They will be introduced in a dedicated multi-currency reconciliation phase.
+
+### 2.5 ~~Entry Wrapper~~ *(removed)*
+~~Operations are grouped within **Entries**.~~
+
+The `Entry` entity has been removed from the data model. Operations now belong directly to a transaction via `transactionId`. Any number of operations is valid — balance is checked at the transaction level by summing `value`.
 
 ### 2.6 Immutable Operations
 Operations cannot be edited.  
@@ -67,43 +70,42 @@ If a transaction changes, **all operations are recreated**.
 
 ## 3. Multicurrency Transaction Model
 
-When a transaction uses multiple currencies, Ledgerly generates **balancing postings** for each currency.
+### Current implementation
 
-### Example  
-Exchange: **100 USD → 1000 RUB**
+Balance is validated at the transaction level: **sum of `value` across all operations must equal zero**. Operations are attached directly to the transaction (no Entry wrapper).
 
-**Transaction:**
+Example — simple expense in RUB:
 ```
-Transaction T1: "Exchange USD to RUB"
-```
+Transaction T1: "Buy groceries"
+  Operations:
+    Assets:Cash        amount=-10000 RUB  value=-10000
+    Expenses:Food      amount=+10000 RUB  value=+10000
 
-**Entry E1 (USD currency pair):**
-```
-Assets:WalletUSD         -100 USD
-System:Trading:USD       +100 USD
+Balance: sum(value) = 0 ✓
 ```
 
-**Entry E2 (RUB currency pair):**
-```
-System:Trading:RUB      -1000 RUB
-Assets:WalletRUB        +1000 RUB
-```
+### Planned: full multicurrency with trading accounts
 
-### Entry Balances:
-```
-Entry E1 (USD): -100 + 100 = 0 ✓
-Entry E2 (RUB): -1000 + 1000 = 0 ✓
-```
+When trading accounts are introduced, Ledgerly will generate **balancing postings** for each currency. Example — exchange 100 USD → 1000 RUB:
 
-Each entry is independently balanced.
+```
+Transaction T2: "Exchange USD to RUB"
+  Operations:
+    Assets:WalletUSD       amount=-100 USD   value=-100   isSystem=false
+    System:Trading:USD     amount=+100 USD   value=+100   isSystem=true
+    System:Trading:RUB     amount=-1000 RUB  value=+100   isSystem=true
+    Assets:WalletRUB       amount=+1000 RUB  value=-100   isSystem=false
+
+Balance: sum(value) = 0 ✓
+```
 
 No FX conversion or base currency is required at this level.
 
 ---
 
-## 4. Trading Accounts Explained
+## 4. Trading Accounts Explained *(planned)*
 
-Trading accounts maintain double-entry correctness for each currency.
+Trading accounts will maintain double-entry correctness for each currency.
 
 Without them:
 
@@ -118,7 +120,9 @@ USD world: 0
 RUB world: 0
 ```
 
-Trading accounts are never displayed to the user.
+Trading accounts will never be displayed to the user.
+
+**Not yet implemented.** Currently, only same-currency or explicitly balanced multi-currency transactions are supported.
 
 ---
 
@@ -127,22 +131,41 @@ Trading accounts are never displayed to the user.
 ### Transaction
 Top-level entity representing a financial event:
 - `id`, `userId`, `description`
+- `currency` (base currency for the transaction — determines `value` denomination)
 - `transactionDate`, `postingDate`
+- `version` (optimistic concurrency)
 - `createdAt`, `updatedAt`, `isTombstone`
-
-### Entry
-Groups operations to maintain per-currency balance:
-- `id`, `transactionId`, `userId`
-- `createdAt`, `updatedAt`, `isTombstone`
-- Contains 2+ operations that must sum to zero
 
 ### Operation
 Individual account posting:
-- `id`, `entryId`, `accountId`, `userId`
-- `amount` (signed integer, in account's currency)
+- `id`, `transactionId`, `accountId`, `userId`
+- `amount` (signed integer, in **account's currency**)
+- `value` (signed integer, in **transaction's currency**)
 - `description` (optional)
 - `isSystem` (true for trading postings)
 - `createdAt`, `updatedAt`, `isTombstone`
+
+#### `amount` vs `value` — GnuCash convention
+
+This follows the standard GnuCash split model:
+
+| Field | Currency | Purpose |
+|-------|----------|---------|
+| `amount` | Account's native currency | How much was posted to this account |
+| `value` | Transaction's currency | The equivalent amount in the transaction's denomination |
+
+For **same-currency** transactions both fields are equal.
+
+For **cross-currency** transactions they differ:
+
+```
+Transaction currency: USD
+  Operation on Assets:WalletRUB
+    amount = -1000  (RUB — account's currency)
+    value  =   -10  (USD — transaction's currency)
+```
+
+**Balance validation** is performed on `value`: the sum of `value` across all operations of a transaction must equal zero, regardless of how many currencies are involved.
 
 Notes:
 - Currency is determined by the account.
@@ -158,40 +181,33 @@ Notes:
 
 **Transaction T1:**
 ```
-Entry E1:
-  Assets:WalletUSD     +100 USD
-  Income:Salary        -100 USD
+  Assets:WalletUSD     amount=+100 USD  value=+100
+  Income:Salary        amount=-100 USD  value=-100
 ```
 
-Entry balance: +100 - 100 = 0 ✓
+Balance: sum(value) = +100 - 100 = 0 ✓
 
-### 6.2 Exchange 100 USD → 1000 RUB
+### 6.2 Exchange 100 USD → 1000 RUB *(requires trading accounts — not yet implemented)*
 
-**Transaction T2:**
+**Transaction T2 (future):**
 ```
-Entry E1 (USD):
-  Assets:WalletUSD        -100 USD
-  System:Trading:USD      +100 USD
-
-Entry E2 (RUB):
-  System:Trading:RUB     -1000 RUB
-  Assets:WalletRUB       +1000 RUB
+  Assets:WalletUSD       amount=-100 USD   value=-100   isSystem=false
+  System:Trading:USD     amount=+100 USD   value=+100   isSystem=true
+  System:Trading:RUB     amount=-1000 RUB  value=+100   isSystem=true
+  Assets:WalletRUB       amount=+1000 RUB  value=-100   isSystem=false
 ```
 
-Entry balances:
-- E1: -100 + 100 = 0 ✓
-- E2: -1000 + 1000 = 0 ✓
+Balance: sum(value) = 0 ✓
 
 ### 6.3 Expense in EUR
 
 **Transaction T3:**
 ```
-Entry E1:
-  Expenses:Coffee         +5 EUR
-  Assets:WalletEUR        -5 EUR
+  Expenses:Coffee      amount=+5 EUR  value=+5
+  Assets:WalletEUR     amount=-5 EUR  value=-5
 ```
 
-Entry balance: +5 - 5 = 0 ✓
+Balance: sum(value) = +5 - 5 = 0 ✓
 
 ---
 
@@ -226,12 +242,18 @@ Currently, Ledgerly stays closer to GnuCash than to PTA.
 
 ## 9. Summary
 
-Ledgerly implements:
+### Current implementation
 
-- **Transaction → Entry → Operation** hierarchy  
-- GnuCash-style trading accounts  
-- per-currency double-entry balancing within entries  
-- immutable ledger operations  
-- invisible system trading accounts  
+- **Transaction → Operation** hierarchy (Entry removed)  
+- Any number of operations per transaction  
+- Balance validated by `sum(value) = 0` across all operations  
+- Immutable ledger operations  
+- `amount` = account currency; `value` = transaction currency (GnuCash convention)  
+
+### Planned
+
+- GnuCash-style trading accounts (`System:Trading:*`)  
+- `isSystem = true` operations for automatic currency reconciliation  
+- Per-currency double-entry balancing  
 
 This foundation ensures correctness, extensibility, and simplicity for all future Ledgerly features.

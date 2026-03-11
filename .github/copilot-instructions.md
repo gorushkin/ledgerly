@@ -10,16 +10,15 @@ Personal finance management system implementing **double-entry bookkeeping** wit
 
 ```
 Transaction (financial event)
-  └── Entry (per-currency balance wrapper)
-      └── Operation (account posting)
+  └── Operation (account posting)
 ```
 
 **Critical Rules:**
 
-- **Double-entry**: Every entry must balance to zero (sum of operations = 0)
-- **Multi-currency**: Each currency gets its own Entry with system trading accounts (`System:Trading:USD`, etc.)
-- **Immutability**: Operations/Entries are never edited—recreate all on transaction updates
-- **Amounts**: Always stored as integers (cents) in account's currency; positive = debit, negative = credit
+- **Double-entry**: Every transaction must balance to zero (sum of all operation `value` fields = 0)
+- **Multi-currency**: Each currency pair uses system trading accounts (`System:Trading:USD`, etc.) with `isSystem` flag on the operation
+- **Immutability**: Operations are never edited—recreate all on transaction updates
+- **Amounts**: `amount` = in account's currency (cents), `value` = in transaction's currency (cents); positive = debit, negative = credit
 
 ### DDD Architecture Layers
 
@@ -34,14 +33,14 @@ presentation/     # Fastify controllers, routes, HTTP errors
 
 - **Composition over inheritance**: Entities use `EntityIdentity`, `EntityTimestamps`, `SoftDelete`, `ParentChildRelation` behaviors (see `domain/domain-core/README.md`)
 - **Value Objects**: Immutable types (`Id`, `Amount`, `Currency`, `DateValue`, `Email`, etc.) validated at creation
-- **Factories**: Create complex aggregates (see `application/services/EntryFactory`, `AccountFactory`, `OperationFactory`)
+- **Factories**: Create complex aggregates (see `AccountFactory` in `application/services/`)
 - **Dependency Injection**: Manual container in `di/container.ts` wires repositories → use cases → controllers
 
 ### Error Hierarchy
 
 Errors inherit from `BaseError` with layer-specific subclasses:
 
-- `DomainError`: Business rule violations (e.g., `UnbalancedEntryError`)
+- `DomainError`: Business rule violations (e.g., `UnbalancedTransactionError`)
 - `ApplicationError`: Use case failures (`EntityNotFoundError`, `UnauthorizedAccessError`, `UserAlreadyExistsError`)
 - `InfrastructureError`: Data layer issues (`RepositoryNotFoundError`, `ForbiddenAccessError`)
 - `HttpApiError`: HTTP-specific (presentation layer only)
@@ -81,12 +80,12 @@ pnpm --filter backend test:ui           # UI mode
 ### Database Migrations
 
 ```bash
-pnpm generate     # Generate migration from schema changes
-pnpm migrate      # Apply migrations
-pnpm push         # Push schema directly (dev only)
+pnpm db:generate     # Generate migration from schema changes
+pnpm db:migrate      # Apply migrations
+pnpm db:push         # Push schema directly (dev only)
 ```
 
-**Migration Pattern:** Always use `pnpm generate` after schema changes in `src/db/schema`. Never edit migrations manually.
+**Migration Pattern:** Always use `pnpm db:generate` after schema changes in `src/db/schema`. Never edit migrations manually.
 
 ### Code Quality
 
@@ -147,7 +146,7 @@ const account = Account.restore(dbRow);
 
 - **Domain docs**: `docs/DOMAIN.md`, `docs/MULTICURRENCY_DESIGN.md`, `docs/ERROR_ARCHITECTURE.md`
 - **Transaction use case**: `apps/backend/src/application/usecases/transaction/CreateTransaction.ts` (shows factory + mapper pattern)
-- **Entry validation**: `apps/backend/src/domain/entries/entry.entity.ts` (balance validation logic)
+- **Transaction validation**: `apps/backend/src/domain/transactions/transaction.entity.ts` (balance validation logic)
 - **DI setup**: `apps/backend/src/di/container.ts` (shows dependency wiring)
 - **Value Objects**: `apps/backend/src/domain/domain-core/README.md`
 
@@ -176,15 +175,15 @@ const account = Account.restore(dbRow);
 
 When creating transactions across currencies:
 
-- **Entry per currency**: Each currency pair gets its own Entry
 - **System accounts**: Automatically created via `AccountFactory.findOrCreateSystemAccount()`
-- **Trading operations**: Set `isSystem: true` for balancing operations between trading accounts
-- Example: See `EntryFactory.createEntriesWithOperations()` in `application/services/entry.factory.ts`
+- **Trading operations**: Set `isSystem: true` on balancing operations between trading accounts
+- **Balance check**: Applied at transaction level—sum of all `value` fields across all operations must equal 0
+- **`amount` vs `value`**: `amount` is in the account's native currency; `value` is in the transaction's base currency
 
 ## Anti-Patterns to Avoid
 
-- ❌ Editing Operations/Entries—always recreate
-- ❌ Mixing currencies in one Entry—use separate Entries + trading accounts
+- ❌ Editing Operations—always recreate all operations on transaction updates
+- ❌ Confusing `amount` and `value`—`amount` is in the account's currency, `value` is in the transaction's currency
 - ❌ Direct database queries outside repositories
 - ❌ Business logic in controllers or repositories
 - ❌ Skipping `transactionManager.run()` for multi-repo operations

@@ -8,45 +8,32 @@ The main entity that represents a financial event. Transactions are built using 
 #### Hierarchy
 ```
 Transaction (financial event)
-  └── Entry (balancing wrapper, groups operations per currency)
-      └── Operation (individual account posting)
+  └── Operation (individual account posting)
 ```
 
+> **Note:** The `Entry` entity has been removed. Operations now belong directly to a transaction via `transactionId`.
+
 #### Key Properties
-- Contains one or more **entries**
-- Each entry must be balanced (sum of operations = 0)
+- Contains one or more **operations** (any count, not required to be a pair)
+- The transaction is balanced when the sum of all operation `value` fields equals zero
 - Supports split transactions
 - Contains metadata (date, description, etc.)
-- Must be balanced overall according to double-entry bookkeeping
-
-### Entry
-Groups related operations within a transaction to maintain per-currency balance.
-
-#### Key Properties
-- Belongs to a transaction (`transactionId`)
-- Belongs to a user (`userId`)
-- Contains minimum 2 operations (debit and credit sides)
-- Sum of all operations must equal zero
-- Handles multi-currency operations through multiple entries with trading operations
-- Can contain 2 operations (simple case) or more (multi-account transactions)
-- Has soft delete support (`isTombstone`)
 
 ### Operation
 Represents a single financial posting affecting an account.
 
 #### Key Properties
-- Links to an entry (`entryId`) and an account (`accountId`)
+- Links to a transaction (`transactionId`) and an account (`accountId`)
 - Belongs to a user (`userId`)
-- Amount is always stored as integer (cents) in the account's currency
-- Positive amount = debit
-  - Increases Asset and Expense accounts
-  - Decreases Liability and Income accounts
-- Negative amount = credit
-  - Decreases Asset and Expense accounts
-  - Increases Liability and Income accounts
-- Trading operations are created automatically for currency conversion (`isSystem = true`)
+- `amount` — signed integer in the **account's native currency** (cents)
+- `value` — signed integer in the **transaction's currency** (cents); used for balance validation
+- For same-currency transactions `amount === value`
+- Positive = debit, Negative = credit
 - Has soft delete support (`isTombstone`)
 - Has optional description field
+- `isSystem` — reserved for future trading operations (see below)
+
+> **Temporarily deprecated:** `isSystem = true` trading operations and system trading accounts are not created at this time. The system currently validates balance by summing `value` across all operations of a transaction (must equal 0). Trading accounts may be introduced later for full multi-currency reconciliation.
 
 ### Account
 Represents different financial accounts with unified structure for all account types.
@@ -63,7 +50,7 @@ Represents different financial accounts with unified structure for all account t
   - For Income/Expense: reporting metric (sum over period), calculated from operations
 - Balance is calculated from operations
 - Has initial balance (`initialBalance`)
-- System accounts have `isSystem = true` (for trading accounts)
+- `isSystem = true` is reserved for future system trading accounts (currently unused)
 - Has soft delete support (`isTombstone`)
 
 ### Currency
@@ -79,23 +66,16 @@ Represents different monetary units used in the system.
 ## Business Rules
 
 ### Double-Entry Bookkeeping
-1. Each transaction must have at least one entry
-2. Each entry must have at least two operations
-3. Sum of all operations within an entry must equal zero
-4. Positive amount represents debit:
-   - Increases Asset and Expense accounts
-   - Decreases Liability, Income, and Equity accounts
-5. Negative amount represents credit:
-   - Decreases Asset and Expense accounts
-   - Increases Liability, Income, and Equity accounts
-6. System-wide balance: sum of all operations across all accounts must equal zero
+1. Each transaction must have at least one operation
+2. Operations can be any count (no minimum of two, no requirement to be a multiple of two)
+3. **Balance rule**: sum of `value` across all operations in a transaction must equal zero
+4. Positive amount = debit, Negative amount = credit
+5. System-wide balance: sum of all operations across all accounts must equal zero
 
 ### Currency Handling
-1. **Income/Expense accounts**: Balance is calculated as the sum of operations within a specified reporting period, used only for reporting
-2. When an entry involves different currencies, trading operations are automatically created
-3. Trading operations balance currency differences within an entry
-4. Currency conversion context is stored in trading operations, not in main operations
-5. Historical conversion rates should be preserved for accurate reporting
+1. Each operation carries both `amount` (account currency) and `value` (transaction currency)
+2. For same-currency operations `amount === value`
+3. **Trading operations** (`isSystem = true`) and system trading accounts are **not currently implemented**; they are reserved for a future multi-currency reconciliation phase
 
 ### Account Balance
 1. **Asset/Liability accounts**: Balance is stored and must match real-world balance
@@ -113,57 +93,31 @@ Represents different monetary units used in the system.
 |----|-------------|-----------------|-------------|--------|
 | T1 | Buy groceries | 2025-09-17 | 2025-09-17 | U1 |
 
-**Entry**
-| id | transactionId | userId |
-|----|---------------|--------|
-| E1 | T1 | U1 |
-
 **Operations**
-| id | entryId | accountId | account | amount (kopeks) |
-|----|---------|-----------|---------|----------------|
-| O1 | E1 | A1 | Asset:Cash | -10000 |
-| O2 | E1 | A2 | Expense:Food | +10000 |
+| id | transactionId | accountId | account | amount (kopeks) | value (kopeks) |
+|----|---------------|-----------|---------|-----------------|----------------|
+| O1 | T1 | A1 | Asset:Cash | -10000 | -10000 |
+| O2 | T1 | A2 | Expense:Food | +10000 | +10000 |
 
-Balance: `-10000 + 10000 = 0` ✓
+Balance: `sum(value) = -10000 + 10000 = 0` ✓
 
 **Note**: Amounts are stored as integers (kopeks/cents) to avoid floating-point precision issues.
 
-### Multi-Currency Transaction with Trading Operations
+### Multi-Currency Transaction (future — trading accounts not yet implemented)
 
 **Scenario**: Buy goods for 9 EUR, pay with cash in USD (10 USD = 1000 cents)
 
-**Transaction**
-| id | description | transactionDate | postingDate | userId |
-|----|-------------|-----------------|-------------|--------|
-| T2 | Buy goods (EUR) | 2025-09-18 | 2025-09-18 | U1 |
+When trading accounts are introduced, the transaction will look like:
 
-**Entry E2 (USD currency pair)**
-| id | transactionId | userId |
-|----|---------------|--------|
-| E2 | T2 | U1 |
+**Operations**
+| id | transactionId | accountId | account | amount (cents) | value (USD cents) | isSystem |
+|----|---------------|-----------|---------|----------------|-------------------|----------|
+| O3 | T2 | A3 | Asset:Cash USD | -1000 | -1000 | false |
+| O4 | T2 | A4 | System:Trading:USD | +1000 | +1000 | true |
+| O5 | T2 | A5 | System:Trading:EUR | -900 | +900 | true |
+| O6 | T2 | A6 | Expense:Goods EUR | +900 | -900 | false |
 
-**Operations for Entry E2**
-| id | entryId | accountId | account | amount (cents) | isSystem |
-|----|---------|-----------|---------|----------------|----------|
-| O3 | E2 | A3 | Asset:Cash USD | -1000 | false |
-| O4 | E2 | A4 | System:Trading:USD | +1000 | true |
-
-Balance (USD): `-1000 + 1000 = 0` ✓
-
-**Entry E3 (EUR currency pair)**
-| id | transactionId | userId |
-|----|---------------|--------|
-| E3 | T2 | U1 |
-
-**Operations for Entry E3**
-| id | entryId | accountId | account | amount (cents) | isSystem |
-|----|---------|-----------|---------|----------------|----------|
-| O5 | E3 | A5 | System:Trading:EUR | -900 | true |
-| O6 | E3 | A6 | Expense:Goods | +900 | false |
-
-Balance (EUR): `-900 + 900 = 0` ✓
-
-Trading operations (`isSystem = true`) balance different currencies across separate entries.
+Balance: `sum(value) = 0` ✓ — currently this phase is not implemented.
 
 ## Technical Implementation
 
@@ -187,21 +141,14 @@ Transaction
 - createdAt: timestamp
 - updatedAt: timestamp
 
-Entry
-- id: UUID
-- transactionId: UUID (FK)
-- isTombstone: boolean
-- userId: UUID (FK)
-- createdAt: timestamp
-- updatedAt: timestamp
-
 Operation
 - id: UUID
-- entryId: UUID (FK)
+- transactionId: UUID (FK)   -- directly linked to Transaction (Entry removed)
 - accountId: UUID (FK)
-- amount: integer (stored in account's currency, in cents)
+- amount: integer             -- in account's native currency (cents)
+- value: integer              -- in transaction's currency (cents); used for balance validation
 - description: string (optional)
-- isSystem: boolean (for trading operations)
+- isSystem: boolean           -- reserved for future trading operations (currently always false)
 - isTombstone: boolean
 - userId: UUID (FK)
 - createdAt: timestamp

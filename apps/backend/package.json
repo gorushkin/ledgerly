@@ -16,7 +16,7 @@
     "migrate": "drizzle-kit migrate --config=drizzle.config.ts",
     "db:seed": "tsx src/db/scripts/seed.ts",
     "studio": "pnpm drizzle-kit studio",
-    "push": "npx drizzle-kit push",
+    "db:push": "npx drizzle-kit push",
     "db:generate": "npx drizzle-kit generate",
     "generateCustom": "drizzle-kit --config=drizzle.config.ts generate --custom --name",
     "drop:tables": "tsx src/db/scripts/drop-tables.ts",

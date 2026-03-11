@@ -6,7 +6,7 @@ Database schema documentation for Ledgerly financial tracker.
 
 Ledgerly uses SQLite with Drizzle ORM for personal finance management. The architecture is built on these principles:
 - **User data isolation** - all data is tied to userId
-- **Double-entry bookkeeping** - operations are grouped within entries and transactions
+- **Double-entry bookkeeping** - operations belong directly to transactions
 - **Multi-currency support** - different currencies with trading accounts
 - **Cascade deletions** - data integrity
 - **Soft deletes** - using `isTombstone` flag
@@ -48,17 +48,10 @@ erDiagram
     TRANSACTIONS {
         uuid id PK
         string description
+        string currency
         date transactionDate
         date postingDate
-        boolean isTombstone
-        uuid userId FK
-        timestamp createdAt
-        timestamp updatedAt
-    }
-    
-    ENTRIES {
-        uuid id PK
-        uuid transactionId FK
+        integer version
         boolean isTombstone
         uuid userId FK
         timestamp createdAt
@@ -67,9 +60,10 @@ erDiagram
     
     OPERATIONS {
         uuid id PK
-        uuid entryId FK
+        uuid transactionId FK
         uuid accountId FK
         integer amount
+        integer value
         string description
         boolean isSystem
         boolean isTombstone
@@ -88,15 +82,13 @@ erDiagram
     %% Main relations
     USERS ||--o{ ACCOUNTS : "owns"
     USERS ||--o{ TRANSACTIONS : "makes"
-    USERS ||--o{ ENTRIES : "creates"
     USERS ||--o{ OPERATIONS : "performs"
     USERS ||--|| SETTINGS : "has"
     
     CURRENCIES ||--o{ ACCOUNTS : "denominated_in"
     CURRENCIES ||--o{ SETTINGS : "base_currency"
     
-    TRANSACTIONS ||--o{ ENTRIES : "contains"
-    ENTRIES ||--o{ OPERATIONS : "groups"
+    TRANSACTIONS ||--o{ OPERATIONS : "contains"
     ACCOUNTS ||--o{ OPERATIONS : "affects"
     
     %% Unique constraints
@@ -120,7 +112,6 @@ Base entity for authentication and authorization.
 **Relations:**
 - `1:N` with `accounts` (cascade delete)
 - `1:N` with `transactions` (cascade delete)
-- `1:N` with `entries` (cascade delete)
 - `1:N` with `operations` (cascade delete)
 - `1:1` with `settings`
 
@@ -186,8 +177,10 @@ Top-level grouping of related financial events.
 |------|-----|----------|-------------|
 | `id` | UUID | Primary key | PK, NOT NULL |
 | `description` | String | Transaction description | NOT NULL |
+| `currency` | String | Base currency of the transaction | NOT NULL (CurrencyCode) |
 | `transactionDate` | Date | Transaction date | NOT NULL |
 | `postingDate` | Date | Posting date | NOT NULL |
+| `version` | Integer | Optimistic concurrency version | NOT NULL, default: 0 |
 | `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
 | `userId` | UUID | Transaction owner | FK → `users.id` |
 | `createdAt` | Timestamp | Creation date | NOT NULL |
@@ -195,38 +188,14 @@ Top-level grouping of related financial events.
 
 **Relations:**
 - `N:1` with `users`
-- `1:N` with `entries` (cascade delete)
+- `1:N` with `operations` (cascade delete)
 
 **Indexes:**
 - `idx_transactions_user_date` on `(userId, transactionDate)`
 
----
-
-### 📦 **Entries**
-Groups operations within a transaction to maintain per-currency balance.
-
-| Field | Type | Description | Constraints |
-|------|-----|----------|-------------|
-| `id` | UUID | Primary key | PK, NOT NULL |
-| `transactionId` | UUID | Parent transaction | FK → `transactions.id` |
-| `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
-| `userId` | UUID | Entry owner | FK → `users.id` |
-| `createdAt` | Timestamp | Creation date | NOT NULL |
-| `updatedAt` | Timestamp | Last update date | NOT NULL |
-
-**Relations:**
-- `N:1` with `transactions`
-- `N:1` with `users`
-- `1:N` with `operations` (cascade delete)
-
-**Business Rules:**
-- Each entry must contain at least 2 operations
-- Sum of all operations within an entry must equal zero (per-currency balance)
-- For multi-currency transactions, trading operations are added automatically
-
-**Indexes:**
-- `idx_entries_tx` on `transactionId`
-- `idx_entries_user` on `userId`
+**Notes:**
+- `currency` is the base/reporting currency for the entire transaction; used to compute `value` on each operation
+- `version` supports optimistic concurrency control—increment on every update
 
 ---
 
@@ -236,9 +205,10 @@ Individual financial postings affecting accounts.
 | Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
 | `id` | UUID | Primary key | PK, NOT NULL |
-| `entryId` | UUID | Parent entry | FK → `entries.id` |
+| `transactionId` | UUID | Parent transaction | FK → `transactions.id` |
 | `accountId` | UUID | Affected account | FK → `accounts.id` |
-| `amount` | Integer | Amount in account's currency (cents) | NOT NULL |
+| `amount` | Integer | Amount in **account's** currency (cents) | NOT NULL |
+| `value` | Integer | Amount in **transaction's** currency (cents) | NOT NULL |
 | `description` | String | Operation description | NULLABLE |
 | `isSystem` | Boolean | System operation flag (for trading ops) | NOT NULL, default: false |
 | `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
@@ -247,18 +217,20 @@ Individual financial postings affecting accounts.
 | `updatedAt` | Timestamp | Last update date | NOT NULL |
 
 **Relations:**
-- `N:1` with `entries`
+- `N:1` with `transactions` (cascade delete)
 - `N:1` with `accounts` (restrict delete)
 - `N:1` with `users`
 
 **Business Rules:**
-- Amount is always in the account's currency
-- Positive amount = debit (increases Asset/Expense, decreases Liability/Income)
-- Negative amount = credit (decreases Asset/Expense, increases Liability/Income)
+- `amount` is always in the account's native currency
+- `value` is in the transaction's base currency (equal to `amount` for same-currency transactions)
+- Positive = debit (increases Asset/Expense, decreases Liability/Income)
+- Negative = credit (decreases Asset/Expense, increases Liability/Income)
 - System operations (trading operations) have `isSystem = true`
+- Balance check: `sum(value)` across all operations in a transaction must equal 0
 
 **Indexes:**
-- `idx_operations_entry` on `entryId`
+- `idx_operations_transaction` on `transactionId`
 - `idx_operations_account` on `accountId`
 - `idx_operations_user` on `userId`
 
@@ -287,19 +259,16 @@ User application settings.
 USERS (root entity)
 ├── ACCOUNTS (financial accounts)
 ├── TRANSACTIONS (financial events)
-│   └── ENTRIES (operation groupings)
-│       └── OPERATIONS (individual postings)
+│   └── OPERATIONS (individual postings)
 └── SETTINGS (user preferences)
 ```
 
 ### Entity Relations
 - **Users ↔ Accounts**: `1:N` with cascade delete
 - **Users ↔ Transactions**: `1:N` with cascade delete
-- **Users ↔ Entries**: `1:N` with cascade delete
 - **Users ↔ Operations**: `1:N` with cascade delete
 - **Users ↔ Settings**: `1:1`
-- **Transactions ↔ Entries**: `1:N` with cascade delete
-- **Entries ↔ Operations**: `1:N` with cascade delete
+- **Transactions ↔ Operations**: `1:N` with cascade delete
 - **Accounts ↔ Operations**: `1:N` (restrict delete)
 - **Currencies ↔ Accounts**: `1:N`
 - **Currencies ↔ Settings**: `1:N`
@@ -314,15 +283,14 @@ USERS (root entity)
 
 ### Data Integrity
 1. **Cascade deletions**: When a user is deleted, all their data is deleted
-2. **Required relations**: Each operation must have an entry and account
+2. **Required relations**: Each operation must have a transaction and account
 3. **Currency constraints**: All accounts reference existing currencies (application-level)
 4. **Soft deletes**: Entities use `isTombstone` flag instead of hard deletes
 
 ### Accounting Principles
-1. **Double-entry bookkeeping**: Operations are grouped in entries to ensure balance
-2. **Per-currency balancing**: Each entry must balance to zero in its currency
-3. **Multi-currency support**: Handled through trading accounts and entries
-4. **Immutable operations**: Operations cannot be edited, only recreated
+1. **Double-entry bookkeeping**: `sum(value)` across all operations in a transaction must equal 0
+2. **Multi-currency support**: Handled through `amount` (account currency) + `value` (transaction currency) and trading accounts
+3. **Immutable operations**: Operations cannot be edited, only recreated on transaction updates
 
 ---
 
@@ -333,7 +301,6 @@ Schemas are defined in the following files:
 - `apps/backend/src/db/schemas/accounts.ts` - Accounts
 - `apps/backend/src/db/schemas/currencies.ts` - Currencies
 - `apps/backend/src/db/schemas/transactions.ts` - Transactions
-- `apps/backend/src/db/schemas/entries.ts` - Entries
 - `apps/backend/src/db/schemas/operations.ts` - Operations
 - `apps/backend/src/db/schemas/settings.ts` - Settings
 
@@ -341,4 +308,4 @@ All schemas are exported through `apps/backend/src/db/schema.ts`.
 
 ---
 
-*Last updated: December 3, 2025*
+*Last updated: March 11, 2026*

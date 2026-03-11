@@ -9,6 +9,10 @@ import {
   currencyCode,
 } from "./baseValidations";
 
+// amount — posting in the account's native currency
+// value  — posting in the transaction's currency (GnuCash convention)
+// For same-currency transactions amount === value.
+// Transaction balance is validated by summing value across all operations (must equal 0).
 export const operationCreateSchema = z.object({
   accountId: uuid,
   amount: moneyAmountString,
@@ -16,6 +20,7 @@ export const operationCreateSchema = z.object({
   value: moneyAmountString,
 });
 
+// See operationCreateSchema for amount/value distinction.
 export const operationUpdateSchema = z.object({
   accountId: uuid,
   amount: moneyAmountString,
