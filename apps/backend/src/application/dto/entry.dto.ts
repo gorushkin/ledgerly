@@ -3,7 +3,6 @@ import { IsoDatetimeString, UUID } from '@ledgerly/shared/types';
 import {
   CreateOperationRequestDTO,
   OperationResponseDTO,
-  UpdateOperationRequestDTO,
 } from './operation.dto';
 
 // Request DTOs for creation
@@ -22,7 +21,8 @@ export type EntryOperationsResponseDTO = [
 
 export type UpdateEntryRequestDTO = {
   id: UUID;
-  operations: [UpdateOperationRequestDTO, UpdateOperationRequestDTO];
+  operations?: [CreateOperationRequestDTO, CreateOperationRequestDTO];
+  description: string;
 };
 
 // Response DTOs

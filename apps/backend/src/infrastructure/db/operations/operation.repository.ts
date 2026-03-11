@@ -6,6 +6,7 @@ import {
   OperationDbRow,
   operationsTable,
 } from 'src/db/schema';
+import { OperationSnapshot } from 'src/domain/operations/types';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -13,80 +14,122 @@ export class OperationRepository
   extends BaseRepository
   implements OperationRepositoryInterface
 {
-  create(operation: OperationDbInsert): Promise<OperationDbRow> {
-    return this.executeDatabaseOperation(
-      async () =>
-        this.db.insert(operationsTable).values(operation).returning().get(),
-      'OperationRepository.create',
-      { field: 'operation', tableName: 'operations', value: operation.id },
-    );
-  }
-
-  getByEntryId(userId: UUID, entryId: UUID): Promise<OperationDbRow[]> {
-    return this.executeDatabaseOperation(
-      async () => {
-        const result = await this.db
-          .select()
-          .from(operationsTable)
-          .where(
-            and(
-              eq(operationsTable.entryId, entryId),
-              eq(operationsTable.userId, userId),
-            ),
-          )
-          .all();
-
-        return result;
-      },
-      'OperationRepository.getByEntryId',
-      { field: 'entryId', tableName: 'operations', value: entryId },
-    );
-  }
-
-  async deleteByEntryIds(userId: UUID, entryIds: UUID[]): Promise<void> {
-    return this.executeDatabaseOperation<void>(
-      async () => {
-        await this.db
-          .delete(operationsTable)
-          .where(
-            and(
-              inArray(operationsTable.entryId, entryIds),
-              eq(operationsTable.userId, userId),
-            ),
-          );
-      },
-      'OperationRepository.deleteByEntryIds',
-      {
-        field: 'entryId',
-        tableName: 'operations',
-        value: entryIds.join(', '),
-      },
-    );
-  }
-
-  async softDeleteByEntryIds(
+  insert(
     userId: UUID,
-    entryIds: UUID[],
+    operations: OperationDbInsert[],
   ): Promise<OperationDbRow[]> {
-    return this.executeDatabaseOperation<OperationDbRow[]>(
-      () => {
+    return this.executeDatabaseOperation(
+      async () => {
+        const operationsWithUser = operations.map((op) => ({
+          ...op,
+          userId,
+        }));
+
         return this.db
-          .update(operationsTable)
-          .set({ isTombstone: true })
-          .where(
-            and(
-              inArray(operationsTable.entryId, entryIds),
-              eq(operationsTable.userId, userId),
-            ),
-          )
+          .insert(operationsTable)
+          .values(operationsWithUser)
           .returning()
           .all();
       },
-      'OperationRepository.softDeleteByEntryIds',
+      'OperationRepository.insert',
       {
-        field: 'entryId',
+        field: 'operationIds',
         tableName: 'operations',
-        value: entryIds.join(', '),
+        value: operations.map((op) => op.id).join(', '),
+      },
+    );
+  }
+
+  update(userId: UUID, operations: OperationDbRow[]): Promise<void> {
+    return this.executeDatabaseOperation(
+      async () => {
+        for (const operation of operations) {
+          await this.db
+            .update(operationsTable)
+            .set({ ...operation, ...this.updateTimestamp })
+            .where(
+              and(
+                eq(operationsTable.id, operation.id),
+                eq(operationsTable.userId, userId),
+              ),
+            );
+        }
+      },
+      'OperationRepository.update',
+      {
+        field: 'operationIds',
+        tableName: 'operations',
+        value: operations.map((op) => op.id).join(', '),
+      },
+    );
+  }
+
+  softDelete(userId: UUID, operationIds: UUID[]): Promise<void> {
+    return this.executeDatabaseOperation(
+      async () => {
+        await this.db
+          .update(operationsTable)
+          .set({ isTombstone: true, ...this.updateTimestamp })
+          .where(
+            and(
+              eq(operationsTable.userId, userId),
+              inArray(operationsTable.id, operationIds),
+            ),
+          );
+      },
+      'OperationRepository.softDelete',
+      {
+        field: 'operationIds',
+        tableName: 'operations',
+        value: operationIds.join(', '),
+      },
+    );
+  }
+
+  async save(
+    userId: UUID,
+    operations: OperationDbRow[],
+    snapshots: Map<UUID, OperationSnapshot>,
+  ): Promise<void> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const operationsToInsert: OperationDbRow[] = [];
+        const operationsToUpdate: OperationDbRow[] = [];
+        const operationsToDelete: UUID[] = [];
+
+        operations.forEach((operation) => {
+          const matchedOperationSnapshot = snapshots.get(operation.id);
+
+          if (!matchedOperationSnapshot) {
+            operationsToInsert.push(operation);
+            return;
+          }
+
+          if (operation.isTombstone) {
+            operationsToDelete.push(operation.id);
+            return;
+          }
+
+          operationsToUpdate.push(operation);
+        });
+
+        if (operationsToInsert.length > 0) {
+          await this.insert(userId, operationsToInsert);
+        }
+
+        if (operationsToUpdate.length > 0) {
+          await this.update(userId, operationsToUpdate);
+        }
+
+        if (operationsToDelete.length > 0) {
+          await this.softDelete(userId, operationsToDelete);
+        }
+      },
+      'OperationRepository.save',
+      {
+        field: 'operationIds',
+        tableName: 'operations',
+        value: '',
       },
     );
   }

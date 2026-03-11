@@ -6,12 +6,27 @@ import {
   isoDate,
   isoDatetime,
   moneyAmountString,
+  currencyCode,
 } from "./baseValidations";
 
+// amount — posting in the account's native currency
+// value  — posting in the transaction's currency (GnuCash convention)
+// For same-currency transactions amount === value.
+// Transaction balance is validated by summing value across all operations (must equal 0).
 export const operationCreateSchema = z.object({
   accountId: uuid,
   amount: moneyAmountString,
   description: requiredText,
+  value: moneyAmountString,
+});
+
+// See operationCreateSchema for amount/value distinction.
+export const operationUpdateSchema = z.object({
+  accountId: uuid,
+  amount: moneyAmountString,
+  description: requiredText,
+  id: uuid,
+  value: moneyAmountString,
 });
 
 export const entryCreateSchema = z.object({
@@ -19,16 +34,27 @@ export const entryCreateSchema = z.object({
   operations: z.tuple([operationCreateSchema, operationCreateSchema]),
 });
 
-export const transactionCreateSchema = z.object({
+export const entryUpdateSchema = z.object({
   description: requiredText,
-  entries: z.array(entryCreateSchema),
+  id: uuid,
+  operations: z.tuple([operationUpdateSchema, operationUpdateSchema]),
+});
+
+export const transactionCreateSchema = z.object({
+  currencyCode: currencyCode,
+  description: requiredText,
+  operations: z.array(operationCreateSchema),
   postingDate: isoDate,
   transactionDate: isoDate,
 });
 
 export const transactionUpdateSchema = z.object({
   description: requiredText,
-  entries: z.array(entryCreateSchema),
+  operations: z.object({
+    create: z.array(operationCreateSchema),
+    delete: z.array(uuid),
+    update: z.array(operationUpdateSchema),
+  }),
   postingDate: isoDate,
   transactionDate: isoDate,
 });

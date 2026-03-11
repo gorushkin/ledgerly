@@ -1,22 +1,25 @@
 import { UUID } from '@ledgerly/shared/types';
-import { TransactionRepositoryInterface } from 'src/application';
+import {
+  EntityNotFoundError,
+  TransactionQueryRepositoryInterface,
+} from 'src/application';
 import { TransactionWithRelations } from 'src/db/schema';
 
 export class GetTransactionByIdUseCase {
   constructor(
-    private readonly transactionRepository: TransactionRepositoryInterface,
+    private readonly transactionQueryRepository: TransactionQueryRepositoryInterface,
   ) {}
   async execute(
     userId: UUID,
     transactionId: UUID,
   ): Promise<TransactionWithRelations> {
-    const transactionRecord = await this.transactionRepository.getById(
+    const transactionRecord = await this.transactionQueryRepository.findById(
       userId,
       transactionId,
     );
 
     if (!transactionRecord) {
-      throw new Error('Transaction not found');
+      throw new EntityNotFoundError('Transaction');
     }
 
     return transactionRecord;

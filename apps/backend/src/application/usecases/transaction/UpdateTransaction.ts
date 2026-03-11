@@ -4,100 +4,72 @@ import {
   UpdateTransactionRequestDTO,
 } from 'src/application/dto';
 import {
-  EntryRepositoryInterface,
-  OperationRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { TransactionMapperInterface } from 'src/application/mappers';
-import { EntryFactory } from 'src/application/services';
+import { OperationMapper, TransactionMapper } from 'src/application/mappers';
+import { TransactionContextLoader } from 'src/application/services';
 import { EnsureEntityExistsAndOwnedFn } from 'src/application/shared/ensureEntityExistsAndOwned';
-import { Transaction, User } from 'src/domain';
+import { User } from 'src/domain';
+import { Id } from 'src/domain/domain-core';
 
 export class UpdateTransactionUseCase {
   constructor(
     protected readonly transactionManager: TransactionManagerInterface,
     protected readonly transactionRepository: TransactionRepositoryInterface,
-    protected readonly entryFactory: EntryFactory,
-    protected readonly entryRepository: EntryRepositoryInterface,
-    protected readonly operationRepository: OperationRepositoryInterface,
     protected readonly ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn,
-    protected readonly transactionMapper: TransactionMapperInterface,
+    protected readonly transactionContextLoader: TransactionContextLoader,
   ) {}
+
   execute(
     user: User,
     transactionId: UUID,
     data: UpdateTransactionRequestDTO,
   ): Promise<TransactionResponseDTO> {
     return this.transactionManager.run(async () => {
-      const transactionDbRow = await this.ensureEntityExistsAndOwned(
+      const transaction = await this.ensureEntityExistsAndOwned(
         user,
         this.transactionRepository.getById.bind(this.transactionRepository),
         transactionId,
         'Transaction',
       );
 
-      const transaction = Transaction.restore(transactionDbRow);
+      const operationsData = [
+        ...data.operations.create,
+        ...data.operations.update,
+      ];
 
-      transaction.update({
-        description: data.description,
-        postingDate: data.postingDate,
-        transactionDate: data.transactionDate,
-      });
+      const transactionContext =
+        await this.transactionContextLoader.loadContext(user, operationsData);
 
-      await this.transactionRepository.update(
-        user.getId().valueOf(),
-        transactionId,
-        transaction.toPersistence(),
+      const isUpdated = transaction.applyUpdate(
+        {
+          metadata: {
+            description: data.description,
+            postingDate: data.postingDate,
+            transactionDate: data.transactionDate,
+          },
+          operations: {
+            create: data.operations.create.map((data) =>
+              OperationMapper.toCreateOperationProps(data, transactionContext),
+            ),
+            delete: data.operations.delete.map((id) => Id.fromPersistence(id)),
+            update: data.operations.update.map((data) =>
+              OperationMapper.toUpdateOperationProps(data, transactionContext),
+            ),
+          },
+        },
+        transactionContext,
       );
-      // TODO: this part is a bit tricky, because we need to handle entries update properly
-      // For now, we will just delete all existing entries and create new ones
-      // let's think about a better approach later
-      // If entries are undefined, treat as 'no update to entries'
-      // we should compare with existing entries and update accordingly
-      if (data.entries === undefined) {
-        return this.transactionMapper.toResponseDTO(
+
+      if (isUpdated) {
+        await this.transactionRepository.rootSave(
+          user.getId().valueOf(),
           transaction,
-          transactionDbRow.entries,
         );
       }
 
-      await this.deleteEntriesByTransactionId(
-        user.getId().valueOf(),
-        transactionId,
-      );
-
-      const entries = await this.entryFactory.createEntriesWithOperations(
-        user,
-        transaction,
-        data.entries,
-      );
-
-      for (const entry of entries) {
-        transaction.addEntry(entry);
-      }
-
-      transaction.validateEntriesBalance();
-
-      return this.transactionMapper.toResponseDTO(transaction);
+      return TransactionMapper.toResponseDTO(transaction);
     });
-  }
-
-  private async deleteEntriesByTransactionId(
-    userId: UUID,
-    transactionId: UUID,
-  ): Promise<void> {
-    const deletedEntries = await this.entryRepository.deleteByTransactionId(
-      userId,
-      transactionId,
-    );
-
-    const entryIds = deletedEntries.map((entry) => entry.id);
-
-    if (entryIds.length === 0) {
-      return;
-    }
-
-    await this.operationRepository.deleteByEntryIds(userId, entryIds);
   }
 }

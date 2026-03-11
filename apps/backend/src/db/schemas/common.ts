@@ -36,3 +36,5 @@ export const getIsoDateString = (column: string) =>
   text(column).notNull().$type<IsoDateString>();
 
 export const isSystem = getBooleanColumn('is_system');
+
+export const version = integer('version').notNull();

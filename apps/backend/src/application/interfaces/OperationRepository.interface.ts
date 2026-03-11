@@ -1,12 +1,11 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationDbInsert, OperationDbRow } from 'src/db/schema';
+import { OperationDbRow } from 'src/db/schema';
+import { OperationSnapshot } from 'src/domain/operations/types';
 
 export type OperationRepositoryInterface = {
-  create(operation: OperationDbInsert): Promise<OperationDbRow>;
-  getByEntryId(userId: UUID, entryId: UUID): Promise<OperationDbRow[]>;
-  softDeleteByEntryIds(
+  save(
     userId: UUID,
-    entryIds: UUID[],
-  ): Promise<OperationDbRow[]>;
-  deleteByEntryIds(userId: UUID, entryIds: UUID[]): Promise<void>;
+    operations: OperationDbRow[],
+    snapshots: Map<UUID, OperationSnapshot>,
+  ): Promise<void>;
 };

@@ -1,41 +1,32 @@
-import { TransactionMapperInterface } from 'src/application';
+import { OperationMapper, TransactionMapper } from 'src/application';
+import { UpdateTransactionRequestDTO } from 'src/application/dto';
 import {
-  EntryResponseDTO,
-  TransactionResponseDTO,
-  UpdateTransactionRequestDTO,
-} from 'src/application/dto';
-import {
-  EntryRepositoryInterface,
-  OperationRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { EntryFactory } from 'src/application/services';
-import {
-  createAccount,
-  createEntry,
-  createOperation,
-  createTransaction,
-  createUser,
-} from 'src/db/createTestUser';
-import { TransactionWithRelations } from 'src/db/schema';
-import { Account, Entry, Operation, Transaction, User } from 'src/domain';
+import { TransactionContextLoader } from 'src/application/services/TransactionService/transaction.context-loader';
+import { createUser } from 'src/db/createTestUser';
+import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
+import { Operation, Transaction, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { TransactionBuildContext } from 'src/domain/transactions/types';
+import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { UpdateTransactionUseCase } from '../UpdateTransaction';
 
+vi.mock('src/application/comparers', () => ({
+  compareTransaction: vi.fn(),
+}));
+
 describe('UpdateTransactionUseCase', () => {
   let user: User;
-  let transaction: Transaction;
-  let entry: Entry;
-  let operationFrom: Operation;
-  let operationTo: Operation;
-  let account: Account;
-  let entries: TransactionWithRelations['entries'];
-  let transactionDBRow: TransactionWithRelations;
 
-  const transactionManager = {
+  let transaction: Transaction;
+  let operations: Operation[];
+
+  let transactionContext: TransactionBuildContext;
+
+  const mockTransactionManager = {
     run: vi.fn((cb: () => unknown) => {
       return cb();
     }),
@@ -46,294 +37,263 @@ describe('UpdateTransactionUseCase', () => {
     getDB: vi.fn().mockReturnValue({
       transaction: <T>(cb: (trx: unknown) => T): T => cb({}),
     }),
-    update: vi.fn(),
+    rootSave: vi.fn(),
   };
 
-  const entryFactory = {
-    createEntriesWithOperations: vi.fn(),
-  };
-
-  const mockEntryRepository = {
-    deleteByTransactionId: vi.fn(),
-  };
-
-  const mockOperationRepository = {
-    deleteByEntryIds: vi.fn(),
+  const mockEntriesService = {
+    updateEntriesWithOperations: vi.fn(),
   };
 
   const mockEnsureEntityExistsAndOwned = vi.fn();
 
-  const transactionMapper = {
-    toResponseDTO: vi.fn(),
+  const mockTransactionContextLoader = {
+    loadContext: vi.fn(),
   };
 
   const updateTransactionUseCase = new UpdateTransactionUseCase(
-    transactionManager as unknown as TransactionManagerInterface,
+    mockTransactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
-    entryFactory as unknown as EntryFactory,
-    mockEntryRepository as unknown as EntryRepositoryInterface,
-    mockOperationRepository as unknown as OperationRepositoryInterface,
     mockEnsureEntityExistsAndOwned,
-    transactionMapper as unknown as TransactionMapperInterface,
+    mockTransactionContextLoader as unknown as TransactionContextLoader,
   );
 
   beforeAll(async () => {
     user = await createUser();
+  });
 
-    account = createAccount(user);
-    transaction = createTransaction(user);
-    entry = createEntry(user, transaction, []);
-    operationFrom = createOperation(
-      user,
-      account,
-      entry,
-      Amount.create('100'),
-      'From Operation',
-    );
-    operationTo = createOperation(
-      user,
-      account,
-      entry,
-      Amount.create('100'),
-      'To Operation',
-    );
+  beforeEach(() => {
+    vi.clearAllMocks();
 
-    entry.addOperations([operationFrom, operationTo]);
-    transaction.addEntry(entry);
+    const transactionBuilder = TransactionBuilder.create(user);
 
-    entries = [
-      {
-        ...entry.toPersistence(),
-        operations: [
-          operationFrom.toPersistence(),
-          operationTo.toPersistence(),
-        ],
-      },
-    ];
+    const data = transactionBuilder
+      .withAccounts(['USD', 'EUR'])
+      .withOperations([
+        {
+          accountKey: 'USD',
+          amount: Amount.create('10000').valueOf(),
+          description: 'From Operation',
+          value: Amount.create('10000').valueOf(),
+        },
+        {
+          accountKey: 'EUR',
+          amount: Amount.create('-10000').valueOf(),
+          description: 'To Operation',
+          value: Amount.create('-10000').valueOf(),
+        },
+      ])
+      .attachOperations()
+      .build();
 
-    transactionDBRow = {
-      ...transaction.toPersistence(),
-      entries,
-    };
+    operations = data.operations;
+
+    const predefinedTransaction = data.transaction;
+
+    transactionContext = data.transactionContext;
+
+    transaction = predefinedTransaction;
   });
 
   it('should update transaction correctly without updating entries', async () => {
-    const updateData: UpdateTransactionRequestDTO = {
+    const data: UpdateTransactionRequestDTO = {
       description: 'Updated Transaction Description',
-      postingDate: transactionDBRow.postingDate,
-      transactionDate: transactionDBRow.transactionDate,
+      operations: { create: [], delete: [], update: [] },
+      postingDate: transaction.getPostingDate().valueOf(),
+      transactionDate: transaction.getTransactionDate().valueOf(),
     };
 
-    const mockedResultWithoutUpdatingEntries: TransactionResponseDTO = {
-      createdAt: transactionDBRow.createdAt,
-      description: transactionDBRow.description,
-      entries: [],
-      id: transactionDBRow.id,
-      postingDate: transactionDBRow.postingDate,
-      transactionDate: transactionDBRow.transactionDate,
-      updatedAt: transactionDBRow.updatedAt,
-      userId: transactionDBRow.userId,
-    };
+    mockEnsureEntityExistsAndOwned.mockResolvedValue(transaction);
 
-    transactionMapper.toResponseDTO.mockReturnValue({
-      ...mockedResultWithoutUpdatingEntries,
-      description: updateData.description,
-    });
-
-    mockEnsureEntityExistsAndOwned.mockResolvedValue(transactionDBRow);
+    mockTransactionContextLoader.loadContext.mockResolvedValue(
+      transactionContext,
+    );
 
     const updatedTransaction = await updateTransactionUseCase.execute(
       user,
-      transactionDBRow.id,
-      updateData,
+      transaction.getId().valueOf(),
+      data,
     );
 
-    expect(updatedTransaction.id).toBe(transactionDBRow.id);
-    expect(updatedTransaction.description).toBe(updateData.description);
-    expect(updatedTransaction.postingDate).toBe(updateData.postingDate);
-    expect(updatedTransaction.transactionDate).toBe(updateData.transactionDate);
-    expect(mockTransactionRepository.update).toHaveBeenCalledWith(
+    updatedTransaction.operations.forEach((opDTO) => {
+      const originalOp = operations.find(
+        (o) => o.getId().valueOf() === opDTO.id,
+      );
+
+      const operationResponse = OperationMapper.toResponseDTO(originalOp!);
+
+      expect(originalOp).toBeDefined();
+
+      compareEntities(opDTO, operationResponse);
+    });
+
+    expect(updatedTransaction.operations).toHaveLength(operations.length);
+
+    expect(updatedTransaction.id).toBe(transaction.getId().valueOf());
+    expect(updatedTransaction.description).toBe(data.description);
+    expect(updatedTransaction.postingDate).toBe(data.postingDate);
+    expect(updatedTransaction.transactionDate).toBe(data.transactionDate);
+
+    expect(mockTransactionRepository.rootSave).toHaveBeenCalledWith(
       user.getId().valueOf(),
-      transactionDBRow.id,
-      expect.objectContaining({
-        description: updateData.description,
-      }),
+      transaction,
     );
+
+    expect(
+      mockEntriesService.updateEntriesWithOperations,
+    ).not.toHaveBeenCalled();
   });
 
   it('should update transaction and its entries correctly', async () => {
-    mockEnsureEntityExistsAndOwned.mockResolvedValue(transactionDBRow);
+    const data: UpdateTransactionRequestDTO = {
+      description: 'Updated Transaction Description',
+      operations: {
+        create: [
+          {
+            accountId: transaction.getOperations()[0].getAccountId().valueOf(),
+            amount: Amount.create('500').valueOf(),
+            description: 'New Operation Split 1',
+            value: Amount.create('500').valueOf(),
+          },
+          {
+            accountId: transaction.getOperations()[0].getAccountId().valueOf(),
+            amount: Amount.create('-500').valueOf(),
+            description: 'New Operation Split 2',
+            value: Amount.create('-500').valueOf(),
+          },
+        ],
+        delete: [],
+        update: [],
+      },
+      postingDate: transaction.getPostingDate().valueOf(),
+      transactionDate: transaction.getTransactionDate().valueOf(),
+    };
 
-    const newEntry = createEntry(user, transaction, []);
+    const initialTransactionSnapshots = transaction
+      .getOperations()
+      .map((op) => op.toSnapshot());
 
-    const newOperationFrom = createOperation(
-      user,
-      account,
-      newEntry,
-      Amount.create('200'),
-      'Updated From Operation',
+    mockTransactionContextLoader.loadContext.mockResolvedValue(
+      transactionContext,
     );
-    const newOperationTo = createOperation(
-      user,
-      account,
-      newEntry,
-      Amount.create('-200'),
-      'Updated To Operation',
-    );
 
-    newEntry.addOperations([newOperationFrom, newOperationTo]);
-
-    const entries = [newEntry];
-
-    entryFactory.createEntriesWithOperations.mockResolvedValue(entries);
-
-    const updateData: UpdateTransactionRequestDTO = {
-      description: 'Updated Transaction Description with Entries',
-      entries: [
-        {
-          description: newEntry.description,
-          operations: [
-            {
-              accountId: newOperationFrom.getAccountId().valueOf(),
-              amount: newOperationFrom.amount.valueOf(),
-              description: newOperationFrom.description,
-            },
-            {
-              accountId: newOperationTo.getAccountId().valueOf(),
-              amount: newOperationTo.amount.valueOf(),
-              description: newOperationTo.description,
-            },
-          ],
-        },
-      ],
-      postingDate: transactionDBRow.postingDate,
-      transactionDate: transactionDBRow.transactionDate,
-    };
-
-    const operationFromResponseDTO: EntryResponseDTO['operations'][0] = {
-      accountId: newOperationFrom.getAccountId().valueOf(),
-      amount: newOperationFrom.amount.valueOf(),
-      createdAt: newOperationFrom.getCreatedAt().valueOf(),
-      description: newOperationFrom.description,
-      entryId: newEntry.getId().valueOf(),
-      id: newOperationFrom.getId().valueOf(),
-      isSystem: newOperationFrom.isSystem,
-      updatedAt: newOperationFrom.getUpdatedAt().valueOf(),
-      userId: newOperationFrom.getUserId().valueOf(),
-    };
-
-    const operationToResponseDTO: EntryResponseDTO['operations'][1] = {
-      accountId: newOperationTo.getAccountId().valueOf(),
-      amount: newOperationTo.amount.valueOf(),
-      createdAt: newOperationTo.getCreatedAt().valueOf(),
-      description: newOperationTo.description,
-      entryId: newEntry.getId().valueOf(),
-      id: newOperationTo.getId().valueOf(),
-      isSystem: newOperationTo.isSystem,
-      updatedAt: newOperationTo.getUpdatedAt().valueOf(),
-      userId: newOperationTo.getUserId().valueOf(),
-    };
-
-    const operations: EntryResponseDTO['operations'] = [
-      operationFromResponseDTO,
-      operationToResponseDTO,
-    ];
-
-    const entryResponseDTO: EntryResponseDTO = {
-      createdAt: newEntry.getCreatedAt().valueOf(),
-      description: newEntry.description,
-      id: newEntry.getId().valueOf(),
-      isTombstone: newEntry.isDeleted(),
-      operations,
-      transactionId: transactionDBRow.id,
-      updatedAt: newEntry.getUpdatedAt().valueOf(),
-      userId: user.getId().valueOf(),
-    };
-
-    const mockedResultWithUpdatingEntries: TransactionResponseDTO = {
-      createdAt: transactionDBRow.createdAt,
-      description: transactionDBRow.description,
-      entries: [entryResponseDTO],
-      id: transactionDBRow.id,
-      postingDate: transactionDBRow.postingDate,
-      transactionDate: transactionDBRow.transactionDate,
-      updatedAt: transactionDBRow.updatedAt,
-      userId: user.getId().valueOf(),
-    };
-
-    transactionMapper.toResponseDTO.mockReturnValue({
-      ...mockedResultWithUpdatingEntries,
-      description: updateData.description,
-    });
-
-    const softDeletedEntries = entries.map((e) => e.toPersistence());
-
-    mockEntryRepository.deleteByTransactionId.mockResolvedValue(
-      softDeletedEntries,
-    );
+    mockEnsureEntityExistsAndOwned.mockResolvedValue(transaction);
 
     const updatedTransaction = await updateTransactionUseCase.execute(
       user,
-      transactionDBRow.id,
-      updateData,
+      transaction.getId().valueOf(),
+      data,
     );
 
-    expect(updatedTransaction.id).toBe(transactionDBRow.id);
-    expect(updatedTransaction.description).toBe(updateData.description);
-    expect(updatedTransaction.postingDate).toBe(updateData.postingDate);
-    expect(updatedTransaction.transactionDate).toBe(updateData.transactionDate);
-
-    expect(updatedTransaction.entries).toHaveLength(entries.length);
-
-    expect(mockTransactionRepository.update).toHaveBeenCalledWith(
-      user.getId().valueOf(),
-      transactionDBRow.id,
-      expect.objectContaining({
-        description: updateData.description,
-      }),
+    expect(updatedTransaction.operations).toHaveLength(
+      initialTransactionSnapshots.length + data.operations.create.length,
     );
 
-    expect(mockEntryRepository.deleteByTransactionId).toHaveBeenCalledWith(
-      user.getId().valueOf(),
-      transactionDBRow.id,
-    );
+    updatedTransaction.operations.forEach((opDTO) => {
+      const originalOp = operations.find(
+        (o) => o.getId().valueOf() === opDTO.id,
+      );
 
-    expect(mockOperationRepository.deleteByEntryIds).toHaveBeenCalledTimes(1);
+      if (originalOp) {
+        const operationResponse = OperationMapper.toResponseDTO(originalOp);
+        compareEntities(opDTO, operationResponse);
+        return;
+      }
 
-    expect(mockOperationRepository.deleteByEntryIds).toHaveBeenCalledWith(
-      user.getId().valueOf(),
-      softDeletedEntries.map((e) => e.id),
-    );
+      const createdOpDTO = data.operations.create.find(
+        (o) =>
+          o.accountId === opDTO.accountId &&
+          o.amount === opDTO.amount &&
+          o.description === opDTO.description,
+      );
 
-    expect(entryFactory.createEntriesWithOperations).toHaveBeenCalledWith(
-      user,
-      expect.any(Transaction),
-      updateData.entries,
-    );
-
-    updatedTransaction.entries.forEach((entry) => {
-      expect(entry).toBeDefined();
-      expect(entry.id).toBe(newEntry.getId().valueOf());
-      expect(entry.operations).toHaveLength(operations.length);
-      expect(entry.createdAt).toBe(newEntry.getCreatedAt().valueOf());
-      expect(entry.isTombstone).toBe(newEntry.isDeleted());
-      expect(entry.transactionId).toBe(transactionDBRow.id);
-      expect(entry.updatedAt).toBe(newEntry.getUpdatedAt().valueOf());
-      expect(entry.userId).toBe(user.getId().valueOf());
-
-      entry.operations.forEach((op, index) => {
-        const expectedOp = operations[index];
-        expect(op).toBeDefined();
-        expect(op.accountId).toBe(expectedOp.accountId);
-        expect(op.amount).toBe(expectedOp.amount);
-        expect(op.createdAt).toBe(expectedOp.createdAt);
-        expect(op.description).toBe(expectedOp.description);
-        expect(op.entryId).toBe(expectedOp.entryId);
-        expect(op.id).toBe(expectedOp.id);
-        expect(op.isSystem).toBe(expectedOp.isSystem);
-        expect(op.updatedAt).toBe(expectedOp.updatedAt);
-        expect(op.userId).toBe(expectedOp.userId);
-      });
+      expect(createdOpDTO).toBeDefined();
+      expect(opDTO.transactionId).toBe(transaction.getId().valueOf());
+      expect(opDTO.id).toBeDefined();
+      expect(opDTO.createdAt).toBeDefined();
+      expect(opDTO.updatedAt).toBeDefined();
+      expect(opDTO.isSystem).toBe(false);
+      expect(opDTO.userId).toBe(user.getId().valueOf());
     });
+
+    expect(updatedTransaction.id).toBe(transaction.getId().valueOf());
+    expect(updatedTransaction.postingDate).toBe(data.postingDate);
+    expect(updatedTransaction.transactionDate).toBe(data.transactionDate);
+    expect(updatedTransaction.description).toBe(data.description);
+
+    expect(mockEnsureEntityExistsAndOwned).toHaveBeenCalledExactlyOnceWith(
+      user,
+      expect.any(Function),
+      transaction.getId().valueOf(),
+      'Transaction',
+    );
+
+    expect(
+      mockTransactionContextLoader.loadContext,
+    ).toHaveBeenCalledExactlyOnceWith(user, [
+      ...data.operations.create,
+      ...data.operations.update,
+    ]);
+
+    expect(mockTransactionRepository.rootSave).toHaveBeenCalledWith(
+      user.getId().valueOf(),
+      transaction,
+    );
+  });
+
+  it('should not update transaction if there are changes', async () => {
+    const data: UpdateTransactionRequestDTO = {
+      description: transaction.description,
+      operations: {
+        create: [],
+        delete: [],
+        update: [],
+      },
+      postingDate: transaction.getPostingDate().valueOf(),
+      transactionDate: transaction.getTransactionDate().valueOf(),
+    };
+
+    mockTransactionContextLoader.loadContext.mockResolvedValue(
+      transactionContext,
+    );
+
+    const initialTransactionResponse =
+      TransactionMapper.toResponseDTO(transaction);
+
+    mockEnsureEntityExistsAndOwned.mockResolvedValue(transaction);
+
+    const updatedTransaction = await updateTransactionUseCase.execute(
+      user,
+      transaction.getId().valueOf(),
+      data,
+    );
+
+    compareEntities(updatedTransaction, initialTransactionResponse);
+
+    expect(mockEnsureEntityExistsAndOwned).toHaveBeenCalledExactlyOnceWith(
+      user,
+      expect.any(Function),
+      transaction.getId().valueOf(),
+      'Transaction',
+    );
+
+    expect(
+      mockTransactionContextLoader.loadContext,
+    ).toHaveBeenCalledExactlyOnceWith(user, []);
+
+    expect(mockTransactionRepository.rootSave).not.toHaveBeenCalled();
+
+    initialTransactionResponse.operations.forEach((opDTO) => {
+      const updatedOpDTO = updatedTransaction.operations.find(
+        (o) => o.id === opDTO.id,
+      );
+
+      expect(updatedOpDTO).toBeDefined();
+
+      compareEntities(updatedOpDTO!, opDTO);
+    });
+
+    expect(updatedTransaction.operations).toHaveLength(
+      initialTransactionResponse.operations.length,
+    );
   });
 });

@@ -3,7 +3,7 @@ import { createUser } from 'src/db/createTestUser';
 import { Account } from 'src/domain/accounts/account.entity';
 import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
+import { AccountRepository } from 'src/infrastructure/db/';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 
 import { UpdateAccountUseCase } from '../updateAccount';

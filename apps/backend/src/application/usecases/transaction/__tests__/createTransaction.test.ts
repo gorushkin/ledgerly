@@ -1,23 +1,12 @@
 import {
-  IsoDatetimeString,
-  UUID,
-} from 'node_modules/@ledgerly/shared/src/types/types';
-import {
-  CreateEntryRequestDTO,
-  CreateTransactionRequestDTO,
-  TransactionResponseDTO,
-} from 'src/application/dto';
-import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import type { TransactionMapperInterface } from 'src/application/mappers';
-import { EntryFactory } from 'src/application/services';
-import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
+import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { createUser } from 'src/db/createTestUser';
-import { Account, Entry, Transaction, User, AccountType } from 'src/domain';
-import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TransactionBuilder } from 'src/db/test-utils/testEntityBuilder';
+import { User, Transaction, UnbalancedTransactionError } from 'src/domain';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateTransactionUseCase } from '../CreateTransaction';
 
@@ -25,159 +14,175 @@ describe('CreateTransactionUseCase', () => {
   let user: User;
 
   const mockTransactionRepository = {
-    create: vi.fn(),
-    getDB: vi.fn().mockReturnValue({
-      transaction: <T>(cb: (trx: unknown) => T): T => cb({}),
-    }),
-  };
-
-  const mockedEntries = [
-    {
-      belongsToTransaction: () => true,
-      getOperations: () => [
-        {
-          amount: Amount.create('100'),
-        },
-        {
-          amount: Amount.create('-100'),
-        },
-      ],
-      validateBalance: vi.fn(),
-    },
-  ] as unknown as Entry[];
-
-  const entryFactory = {
-    createEntriesWithOperations: vi.fn().mockResolvedValue(mockedEntries),
+    rootSave: vi.fn(),
   };
 
   const transactionManager = {
     run: vi.fn((cb: () => unknown) => cb()),
   };
 
-  const transactionMapper = {
-    toResponseDTO: vi.fn(),
+  const transactionContextLoader = {
+    loadContext: vi.fn(),
   };
-
-  const mockedSaveWithIdRetry = vi.fn();
 
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
-    entryFactory as unknown as EntryFactory,
-    mockedSaveWithIdRetry as unknown as SaveWithIdRetryType,
-    transactionMapper as unknown as TransactionMapperInterface,
+    transactionContextLoader as unknown as TransactionContextLoader,
   );
 
-  const postingDate = DateValue.restore('2024-01-01').valueOf();
-  const transactionDate = DateValue.restore('2024-01-02').valueOf();
-  const description = 'Test Transaction';
+  const transactionData = {
+    currencyCode: 'USD',
+    description: 'Test transaction',
+    postingDate: '2024-01-01',
+    transactionDate: '2024-01-01',
+  };
 
-  let usdAccount: Account;
-  let eurAccount: Account;
+  const operationsData = [
+    { accountKey: 'USD', amount: '10000', description: '1' },
+    { accountKey: 'USD', amount: '-10000', description: '2' },
+  ];
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     user = await createUser();
+  });
 
-    usdAccount = Account.create(
-      user,
-      Name.create('Test Account'),
-      'Account for testing',
-      Amount.create('0'),
-      Currency.create('USD'),
-      AccountType.create('asset'),
-    );
-
-    eurAccount = Account.create(
-      user,
-      Name.create('Test Account'),
-      'Account for testing',
-      Amount.create('0'),
-      Currency.create('EUR'),
-      AccountType.create('asset'),
-    );
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   describe('execute', () => {
     it('should create a new transaction with entries successfully', async () => {
-      const mockedResult: TransactionResponseDTO = {
-        createdAt: '2024-01-01T00:00:00.000Z' as unknown as IsoDatetimeString,
-        description,
-        entries: [],
-        id: 'transaction-id-123' as unknown as UUID,
-        postingDate,
-        transactionDate,
-        updatedAt: '2024-01-01T00:00:00.000Z' as unknown as IsoDatetimeString,
-        userId: user.getId().valueOf() as unknown as UUID,
-      };
+      const transactionBuilder = TransactionBuilder.create(user);
 
-      transactionMapper.toResponseDTO.mockResolvedValue(mockedResult);
+      const { transactionContext, transactionDTO } = transactionBuilder
+        .withSettings(transactionData)
+        .withAccounts(['USD'])
+        .withOperations(operationsData)
+        .build();
 
-      const transaction = Transaction.create(
-        user.getId(),
-        description,
-        DateValue.restore(postingDate),
-        DateValue.restore(transactionDate),
+      transactionContextLoader.loadContext.mockResolvedValue(
+        transactionContext,
       );
 
-      mockedSaveWithIdRetry.mockResolvedValue(transaction);
+      const result = await createTransactionUseCase.execute(
+        user,
+        transactionDTO,
+      );
 
-      const entries: CreateEntryRequestDTO[] = [
-        {
-          description: 'Entry 1',
-          operations: [
-            {
-              accountId: usdAccount.getId().valueOf(),
-              amount: Amount.create('100').valueOf(),
-              description: 'Operation 1',
-            },
-            {
-              accountId: eurAccount.getId().valueOf(),
-              amount: Amount.create('100').valueOf(),
-              description: 'Operation 1',
-            },
-          ],
-        },
-      ];
+      expect(result.postingDate).toBe(transactionData.postingDate);
+      expect(result.transactionDate).toBe(transactionData.transactionDate);
 
-      const data: CreateTransactionRequestDTO = {
-        description,
-        entries,
-        postingDate,
-        transactionDate,
-      };
+      transactionDTO.operations.forEach((operation, index) => {
+        const matchedOperation = result.operations[index];
 
-      const result = await createTransactionUseCase.execute(user, data);
-
-      expect(result).toBe(mockedResult);
-
-      expect(result.description).toBe(description);
-      expect(result.postingDate).toBe(postingDate);
-      expect(result.transactionDate).toBe(transactionDate);
-      expect(result.entries).toBeDefined();
+        expect(matchedOperation.accountId).toBe(operation.accountId);
+        expect(matchedOperation.amount).toBe(operation.amount);
+        expect(matchedOperation.description).toBe(operation.description);
+      });
 
       expect(transactionManager.run).toHaveBeenCalled();
 
-      expect(entryFactory.createEntriesWithOperations).toHaveBeenCalledWith(
+      expect(mockTransactionRepository.rootSave).toHaveBeenCalled();
+
+      const savedTransaction = mockTransactionRepository.rootSave.mock
+        .calls[0][1] as unknown as Transaction;
+
+      const savedUserId = mockTransactionRepository.rootSave.mock
+        .calls[0][0] as unknown as User;
+
+      expect(savedUserId).toBe(user.getId().valueOf());
+
+      expect(savedTransaction.getPostingDate().valueOf()).toBe(
+        transactionData.postingDate,
+      );
+
+      expect(savedTransaction.getTransactionDate().valueOf()).toBe(
+        transactionData.transactionDate,
+      );
+
+      expect(savedTransaction.getOperations().length).toBe(
+        transactionDTO.operations.length,
+      );
+
+      expect(savedTransaction.description).toBe(transactionData.description);
+
+      savedTransaction.getOperations().forEach((operation, index) => {
+        const dtoOperation = transactionDTO.operations[index];
+
+        expect(operation.description).toBe(dtoOperation.description);
+        expect(operation.amount.valueOf()).toBe(dtoOperation.amount);
+        expect(operation.value.valueOf()).toBe(dtoOperation.value);
+        expect(operation.getAccountId().valueOf()).toBe(dtoOperation.accountId);
+        expect(operation.getUserId().valueOf()).toBe(user.getId().valueOf());
+      });
+
+      expect(transactionContextLoader.loadContext).toHaveBeenCalledWith(
         user,
-        expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          getId: expect.any(Function),
-        }),
-        data.entries,
+        transactionDTO.operations,
       );
 
-      expect(transactionMapper.toResponseDTO).toHaveBeenCalledWith(
-        expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          getId: expect.any(Function),
-        }),
+      expect(result.id).toBe(savedTransaction.getId().valueOf());
+      expect(result.userId).toBe(user.getId().valueOf());
+      expect(result.currency).toBe(transactionData.currencyCode);
+    });
+
+    it('should propagate error when loadContext fails', async () => {
+      const error = new Error('Account not found');
+      transactionContextLoader.loadContext.mockRejectedValue(error);
+
+      const { transactionDTO } = TransactionBuilder.create(user)
+        .withSettings(transactionData)
+        .withAccounts(['USD'])
+        .build();
+
+      await expect(
+        createTransactionUseCase.execute(user, transactionDTO),
+      ).rejects.toThrow(error);
+    });
+
+    it('should propagate error when rootSave fails', async () => {
+      const dbError = new Error('Database error');
+      mockTransactionRepository.rootSave.mockRejectedValue(dbError);
+
+      const { transactionContext, transactionDTO } = TransactionBuilder.create(
+        user,
+      )
+        .withSettings(transactionData)
+        .withAccounts(['USD'])
+        .withOperations(operationsData)
+        .build();
+
+      transactionContextLoader.loadContext.mockResolvedValue(
+        transactionContext,
       );
 
-      expect(mockedSaveWithIdRetry).toHaveBeenCalled();
-      expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.any(Function),
+      await expect(
+        createTransactionUseCase.execute(user, transactionDTO),
+      ).rejects.toThrow(dbError);
+    });
+
+    it('should throw UnbalancedTransactionError when operations do not sum to zero', async () => {
+      const unbalancedOperations = [
+        { accountKey: 'USD', amount: '10000', description: '1' },
+        { accountKey: 'USD', amount: '5000', description: '2' },
+      ];
+
+      const { transactionContext, transactionDTO } = TransactionBuilder.create(
+        user,
+      )
+        .withSettings(transactionData)
+        .withAccounts(['USD'])
+        .withOperations(unbalancedOperations)
+        .build();
+
+      transactionContextLoader.loadContext.mockResolvedValue(
+        transactionContext,
       );
+
+      await expect(
+        createTransactionUseCase.execute(user, transactionDTO),
+      ).rejects.toThrow(UnbalancedTransactionError);
     });
   });
 });

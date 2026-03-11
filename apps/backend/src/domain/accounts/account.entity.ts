@@ -25,9 +25,10 @@ export class Account {
     timestamps: EntityTimestamps,
     softDelete: SoftDelete,
     ownership: ParentChildRelation,
-    private name: Name,
-    private description: string,
+    public name: Name,
+    public description: string,
     private initialBalance: Amount,
+    // remove currentClearedBalanceLocal from entity and schemas later
     private currentClearedBalanceLocal: Amount,
     public currency: Currency,
     private type: AccountType,
@@ -116,7 +117,12 @@ export class Account {
   }
 
   // Delegation methods for identity
+  // TODO: remove
   getId(): Id {
+    return this.identity.getId();
+  }
+
+  get id(): Id {
     return this.identity.getId();
   }
 
@@ -212,5 +218,9 @@ export class Account {
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.ownership.getParentId().valueOf(),
     };
+  }
+
+  getCurrency(): Currency {
+    return this.currency;
   }
 }

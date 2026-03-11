@@ -1,6 +1,8 @@
-import { UUID } from '@ledgerly/shared/types';
+import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
 import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+
+import { OperationDbRow, operationsTable } from '../schema';
 
 import {
   createdAt,
@@ -9,15 +11,15 @@ import {
   isTombstone,
   id,
   getIsoDateString,
+  version,
 } from './common';
-import { entriesTable } from './entries';
-import type { EntryWithOperations, EntryWithTwoOperations } from './entries';
 import { usersTable } from './users';
 
 export const transactionsTable = sqliteTable(
   'transactions',
   {
     createdAt,
+    currency: text('currency').notNull().$type<CurrencyCode>(),
     description,
     id,
     isTombstone,
@@ -28,15 +30,17 @@ export const transactionsTable = sqliteTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: 'cascade' })
       .$type<UUID>(),
+    version,
   },
 
   (t) => [index('idx_transactions_user_date').on(t.userId, t.transactionDate)],
 );
 
+// TODO: check if relations are needed for operations, or if they can be accessed through entries and transactions instead
 export const transactionsRelations = relations(
   transactionsTable,
   ({ many }) => ({
-    entries: many(entriesTable),
+    operations: many(operationsTable),
   }),
 );
 
@@ -51,10 +55,10 @@ export type TransactionDbUpdate = Partial<
 
 // Type for transaction with nested relations (operations as array)
 export type TransactionWithRelations = TransactionDbRow & {
-  entries: EntryWithOperations[];
+  operations: OperationDbRow[];
 };
 
 // Type for transaction with nested relations (operations as tuple of 2)
 export type TransactionWithTwoOperationsPerEntry = TransactionDbRow & {
-  entries: EntryWithTwoOperations[];
+  operations: OperationDbRow[];
 };

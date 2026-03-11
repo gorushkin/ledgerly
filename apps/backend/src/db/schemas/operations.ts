@@ -12,7 +12,7 @@ import {
   getMoneyColumn,
   isSystem,
 } from './common';
-import { entriesTable } from './entries';
+import { transactionsTable } from './transactions';
 import { usersTable } from './users';
 
 export const operationsTable = sqliteTable(
@@ -22,33 +22,35 @@ export const operationsTable = sqliteTable(
       .notNull()
       .references(() => accountsTable.id, { onDelete: 'restrict' })
       .$type<UUID>(),
-    amount: getMoneyColumn('base_amount'),
+    amount: getMoneyColumn('amount'),
     createdAt,
     description,
-    entryId: text('entry_id')
-      .notNull()
-      .references(() => entriesTable.id, { onDelete: 'cascade' })
-      .$type<UUID>(),
     id,
     isSystem,
     isTombstone,
+    transactionId: text('transaction_id')
+      .notNull()
+      .references(() => transactionsTable.id, { onDelete: 'cascade' })
+      .$type<UUID>(),
     updatedAt,
     userId: text('user_id')
       .notNull()
       .references(() => usersTable.id, { onDelete: 'cascade' })
       .$type<UUID>(),
+    value: getMoneyColumn('value'),
   },
   (t) => [
-    index('idx_operations_entry').on(t.entryId),
+    index('idx_operations_transaction').on(t.transactionId),
     index('idx_operations_account').on(t.accountId),
     index('idx_operations_user').on(t.userId),
   ],
 );
 
+// TODO: check if relations are needed for operations, or if they can be accessed through entries and transactions instead
 export const operationsRelations = relations(operationsTable, ({ one }) => ({
-  entry: one(entriesTable, {
-    fields: [operationsTable.entryId],
-    references: [entriesTable.id],
+  transaction: one(transactionsTable, {
+    fields: [operationsTable.transactionId],
+    references: [transactionsTable.id],
   }),
 }));
 
@@ -56,15 +58,3 @@ export type OperationDbRow = InferSelectModel<typeof operationsTable>;
 export type OperationDbInsert = InferInsertModel<typeof operationsTable>;
 
 export type OperationRepoInsert = OperationDbInsert;
-
-export type OperationDbUpdate = Partial<
-  Omit<
-    OperationDbRow,
-    | 'id'
-    | 'userId'
-    | 'transactionId'
-    | 'createdAt'
-    | 'updatedAt'
-    | 'isTombstone'
-  >
->;

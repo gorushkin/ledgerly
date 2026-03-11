@@ -1,6 +1,6 @@
 import {
   AccountRepositoryInterface,
-  TransactionRepositoryInterface,
+  TransactionQueryRepositoryInterface,
 } from 'src/application/interfaces';
 import { TransactionWithRelations } from 'src/db/schema';
 import { Id } from 'src/domain/domain-core';
@@ -12,8 +12,8 @@ import { GetAllTransactionsUseCase } from '../GetAllTransactions';
 describe('GetAllTransactionsUseCase', () => {
   const userId = Id.create().valueOf();
   const accountId = Id.create().valueOf();
-  const transactionRepository = {
-    getAll: vi.fn(),
+  const transactionQueryRepository = {
+    findAll: vi.fn(),
   };
 
   const accountRepository = {
@@ -21,7 +21,7 @@ describe('GetAllTransactionsUseCase', () => {
   };
 
   const getAllTransactionsUseCase = new GetAllTransactionsUseCase(
-    transactionRepository as unknown as TransactionRepositoryInterface,
+    transactionQueryRepository as unknown as TransactionQueryRepositoryInterface,
     accountRepository as unknown as AccountRepositoryInterface,
   );
 
@@ -32,7 +32,7 @@ describe('GetAllTransactionsUseCase', () => {
   it('should retrieve transactions by account ID', async () => {
     const mockTransactions = [] as TransactionWithRelations[];
 
-    transactionRepository.getAll.mockResolvedValue(mockTransactions);
+    transactionQueryRepository.findAll.mockResolvedValue(mockTransactions);
 
     const result = await getAllTransactionsUseCase.execute(userId, {
       accountId,
@@ -42,23 +42,25 @@ describe('GetAllTransactionsUseCase', () => {
       userId,
       accountId,
     );
-    expect(transactionRepository.getAll).toHaveBeenCalledWith(userId, {
+    expect(transactionQueryRepository.findAll).toHaveBeenCalledWith(userId, {
       accountId,
     });
     expect(result).toBe(mockTransactions);
   });
 
-  it('should return an empty array if no transactions are found', async () => {
-    transactionRepository.getAll.mockResolvedValue([]);
+  it('should retrieve all transactions without account ownership check when accountId is not provided', async () => {
+    const mockTransactions = [] as TransactionWithRelations[];
 
-    const result = await getAllTransactionsUseCase.execute(userId, {
-      accountId,
-    });
+    transactionQueryRepository.findAll.mockResolvedValue(mockTransactions);
 
-    expect(transactionRepository.getAll).toHaveBeenCalledWith(userId, {
-      accountId,
-    });
-    expect(result).toEqual([]);
+    const result = await getAllTransactionsUseCase.execute(userId);
+
+    expect(accountRepository.ensureUserOwnsAccount).not.toHaveBeenCalled();
+    expect(transactionQueryRepository.findAll).toHaveBeenCalledWith(
+      userId,
+      undefined,
+    );
+    expect(result).toBe(mockTransactions);
   });
 
   it('should throw an error if user does not own the account', async () => {
@@ -79,6 +81,6 @@ describe('GetAllTransactionsUseCase', () => {
       accountId,
     );
 
-    expect(transactionRepository.getAll).not.toHaveBeenCalled();
+    expect(transactionQueryRepository.findAll).not.toHaveBeenCalled();
   });
 });

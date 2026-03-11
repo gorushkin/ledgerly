@@ -1,10 +1,14 @@
+import { UUID } from '@ledgerly/shared/types';
+import { OperationMapper } from 'src/application';
+import { OperationDbRow, UserDbRow } from 'src/db/schema';
 import {
-  AccountDbRow,
-  EntryDbRow,
-  OperationDbRow,
-  UserDbRow,
-} from 'src/db/schema';
-import { Amount, Id, Timestamp } from 'src/domain/domain-core';
+  compareEntities,
+  TransactionBuilder,
+  TransactionBuilderResult,
+} from 'src/db/test-utils';
+import { Transaction, User } from 'src/domain';
+import { Amount } from 'src/domain/domain-core';
+import { OperationSnapshot } from 'src/domain/operations/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
@@ -14,7 +18,11 @@ import { OperationRepository } from './operation.repository';
 
 describe('OperationRepository', () => {
   let testDB: TestDB;
-  let operationRepository: OperationRepository;
+  let user: UserDbRow;
+
+  let transaction: Transaction;
+
+  let data: TransactionBuilderResult;
 
   const transactionManager = {
     getCurrentTransaction: () => testDB.db,
@@ -23,212 +31,237 @@ describe('OperationRepository', () => {
     }),
   };
 
-  let user: UserDbRow;
-  let entry: EntryDbRow;
-  let account1: AccountDbRow;
-  let account2: AccountDbRow;
+  const operationRepository = new OperationRepository(
+    transactionManager as unknown as TransactionManager,
+  );
 
   beforeEach(async () => {
     testDB = new TestDB();
     await testDB.setupTestDb();
-
-    operationRepository = new OperationRepository(
-      transactionManager as unknown as TransactionManager,
-    );
-
     user = await testDB.createUser();
 
-    account1 = await testDB.createAccount(user.id, { name: 'Account 1' });
-    account2 = await testDB.createAccount(user.id, { name: 'Account 2' });
+    const transactionBuilder = TransactionBuilder.create(
+      User.fromPersistence(user),
+    );
 
-    entry = await testDB.createEntry(user.id);
+    const operationsData = [
+      { accountKey: 'USD', amount: '10000', description: '1' },
+      { accountKey: 'EUR', amount: '-10000', description: '2' },
+      { accountKey: 'USD', amount: '20000', description: '1' },
+      { accountKey: 'USD', amount: '-20000', description: '2' },
+      { accountKey: 'USD', amount: '20000', description: '1' },
+      { accountKey: 'USD', amount: '-20000', description: '2' },
+    ];
+
+    data = transactionBuilder
+      .withAccounts(['USD', 'EUR'])
+      .withOperations(operationsData)
+      .build();
+
+    transaction = data.transaction;
+
+    await Promise.all(
+      data.accounts.map((account) =>
+        testDB.insertAccount(account.toPersistence()),
+      ),
+    );
+
+    await testDB.insertTransaction(transaction.toSnapshot());
   });
 
-  describe('create', () => {
-    it('should create an operation successfully', async () => {
-      const accountId = account1.id;
-      const userId = user.id;
-      const entryId = entry.id;
-      const amount = Amount.create('1000');
-      const id = Id.create().valueOf();
-      const createdAt = Timestamp.create().valueOf();
-      const updatedAt = Timestamp.create().valueOf();
-      const isSystem = false;
-      const isTombstone = false;
-      const description = 'Test operation';
+  describe('save', () => {
+    it('should insert operations successfully if snapshot is empty', async () => {
+      const fetchedTransactionRelationsBeforeSaving =
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf());
 
-      const expectedResult: OperationDbRow = {
-        accountId,
-        amount: amount.valueOf(),
-        createdAt,
-        description,
-        entryId,
-        id,
-        isSystem,
-        isTombstone,
-        updatedAt,
-        userId,
+      const operationsCountBeforeSaving =
+        fetchedTransactionRelationsBeforeSaving?.operations.length;
+
+      expect(operationsCountBeforeSaving).toBe(0);
+
+      const operations = data.operations.map((operation) =>
+        OperationMapper.toDBRow(operation),
+      );
+
+      await operationRepository.save(user.id, operations, new Map());
+
+      const fetchedTransactionRelationsAfterSaving =
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf());
+
+      const operationsCountAfterSaving =
+        fetchedTransactionRelationsAfterSaving?.operations.length;
+
+      expect(operationsCountAfterSaving).toBe(data.operations.length);
+
+      const ops = fetchedTransactionRelationsAfterSaving?.operations;
+
+      ops?.forEach((op, index) => {
+        const originalOp = operations[index];
+        expect(op).toEqual(expect.objectContaining(originalOp));
+      });
+    });
+
+    it('should update and delete operations successfully based on the snapshot', async () => {
+      const operations = data.operations.map((operation) =>
+        OperationMapper.toDBRow(operation),
+      );
+
+      await Promise.all(
+        operations.map((operation) => testDB.insertOperation(operation)),
+      );
+
+      const transactionWithRelations = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
+
+      const operationsSnapshot = new Map<UUID, OperationSnapshot>();
+
+      transactionWithRelations?.operations.forEach((op) => {
+        operationsSnapshot.set(op.id, op);
+      });
+
+      const createdOperations = transactionWithRelations?.operations ?? [];
+
+      createdOperations.forEach((createdOp, index) => {
+        const originalOp = operations[index];
+
+        expect(createdOp).toEqual(expect.objectContaining(originalOp));
+      });
+
+      const operationsToUpdate = [operations[0], operations[1]];
+      const operationsToDelete = [operations[2], operations[3]];
+
+      const operationsToUpdatedIds = operationsToUpdate.map((op) => op.id);
+      const operationsToDeleteIds = operationsToDelete.map((op) => op.id);
+
+      const operationsToUpdateData = [
+        {
+          ...operationsToUpdate[0],
+          amount: Amount.create('5000').valueOf(),
+          description: 'Updated Operation One',
+        },
+        {
+          ...operationsToUpdate[1],
+          amount: Amount.create('-5000').valueOf(),
+          description: 'Updated Operation Two',
+        },
+      ];
+
+      const operationsToDeleteData = [
+        {
+          ...operationsToDelete[0],
+          isTombstone: true,
+        },
+        {
+          ...operationsToDelete[1],
+          isTombstone: true,
+        },
+      ];
+
+      await operationRepository.save(
+        user.id,
+        [...operationsToUpdateData, ...operationsToDeleteData],
+        operationsSnapshot,
+      );
+
+      const operationsAfterSaving = (
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf())
+      )?.operations;
+
+      expect(operationsAfterSaving).toBeDefined();
+
+      const checkedOperations = new Set<UUID>();
+
+      const getMappedOperation = (
+        id: UUID,
+      ): {
+        operation: OperationDbRow | undefined;
+        result: 'updated' | 'deleted' | 'untouched';
+      } | null => {
+        if (checkedOperations.has(id)) {
+          return null;
+        }
+
+        checkedOperations.add(id);
+
+        if (operationsToUpdatedIds.includes(id)) {
+          return {
+            operation: operationsToUpdateData.find((o) => o.id === id),
+            result: 'updated',
+          };
+        }
+
+        if (operationsToDeleteIds.includes(id)) {
+          return {
+            operation: operationsToDeleteData.find((o) => o.id === id),
+            result: 'deleted',
+          };
+        }
+
+        return {
+          operation: operations.find((o) => o.id === id),
+          result: 'untouched',
+        };
       };
 
-      const result = await operationRepository.create({
-        accountId,
-        amount: amount.valueOf(),
-        createdAt,
-        description,
-        entryId,
-        id,
-        isSystem,
-        isTombstone,
-        updatedAt,
-        userId,
+      const updateOps: OperationDbRow[] = [];
+      const deleteOps: OperationDbRow[] = [];
+      const untouchedOps: OperationDbRow[] = [];
+
+      expect(operationsAfterSaving).toBeDefined();
+
+      operationsAfterSaving?.forEach((op) => {
+        const mappedOp = getMappedOperation(op.id);
+
+        expect(mappedOp).toBeDefined();
+
+        if (!mappedOp?.operation) {
+          throw new Error('Unreachable code');
+        }
+
+        if (mappedOp?.result === 'untouched') {
+          compareEntities<OperationDbRow>(op, mappedOp.operation);
+          untouchedOps.push(op);
+          return;
+        }
+
+        if (mappedOp?.result === 'updated') {
+          compareEntities<OperationDbRow>(op, mappedOp.operation, [
+            'updatedAt',
+          ]);
+          updateOps.push(op);
+          return;
+        }
+
+        if (mappedOp?.result === 'deleted') {
+          compareEntities<OperationDbRow>(op, mappedOp.operation, [
+            'updatedAt',
+          ]);
+          deleteOps.push(op);
+        }
       });
 
-      expect(result).toEqual(expectedResult);
-    });
-  });
-
-  describe('getByEntryId', () => {
-    let operation1: OperationDbRow;
-    let operation2: OperationDbRow;
-
-    beforeEach(async () => {
-      operation1 = await testDB.createOperation(user.id, {
-        accountId: account1.id,
-        amount: Amount.create('500').valueOf(),
-        description: 'Operation for entry',
-        entryId: entry.id,
-      });
-
-      operation2 = await testDB.createOperation(user.id, {
-        accountId: account2.id,
-        amount: Amount.create('300').valueOf(),
-        description: 'Another operation for entry',
-        entryId: entry.id,
-      });
-    });
-
-    it('should retrieve operations by entry ID', async () => {
-      const operations = await operationRepository.getByEntryId(
-        user.id,
-        entry.id,
-      );
-
-      expect(operations).toHaveLength(2);
-      expect(operations).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ id: operation1.id }),
-          expect.objectContaining({ id: operation2.id }),
-        ]),
+      expect(updateOps).toHaveLength(operationsToUpdateData.length);
+      expect(deleteOps).toHaveLength(operationsToDeleteData.length);
+      expect(untouchedOps).toHaveLength(
+        data.operations.length -
+          operationsToUpdateData.length -
+          operationsToDeleteData.length,
       );
     });
 
-    it('should return an empty array if no operations found for the entry ID', async () => {
-      const anotherEntry = await testDB.createEntry(user.id);
+    it.todo(
+      'should insert, update and delete operations in a single save call',
+    );
 
-      const operations = await operationRepository.getByEntryId(
-        user.id,
-        anotherEntry.id,
-      );
+    it.todo(
+      'should update an operation that exists in snapshot and has isTombstone: false with no field changes',
+    );
 
-      expect(operations).toHaveLength(0);
-    });
+    it.todo(
+      'should insert an operation with isTombstone: true if it is not present in the snapshot',
+    );
 
-    it('should not retrieve operations for a different user', async () => {
-      const anotherUser = await testDB.createUser();
-
-      const operations = await operationRepository.getByEntryId(
-        anotherUser.id,
-        entry.id,
-      );
-
-      expect(operations).toHaveLength(0);
-    });
-
-    it('should return an empty array if entry ID does not exist', async () => {
-      const operations = await operationRepository.getByEntryId(
-        user.id,
-        Id.create().valueOf(),
-      );
-
-      expect(operations).toHaveLength(0);
-    });
-  });
-
-  describe('softDeleteByEntryIds', () => {
-    it('should soft delete operations by entry ID', async () => {
-      const operation = await testDB.createOperation(user.id, {
-        accountId: account1.id,
-        amount: Amount.create('700').valueOf(),
-        description: 'Operation to be soft deleted',
-        entryId: entry.id,
-      });
-
-      const softDeletedOperations =
-        await operationRepository.softDeleteByEntryIds(user.id, [entry.id]);
-
-      expect(softDeletedOperations).toHaveLength(1);
-
-      expect(softDeletedOperations[0]).toEqual(
-        expect.objectContaining({
-          id: operation.id,
-          isTombstone: true,
-        }),
-      );
-
-      const fetchedOperations = await operationRepository.getByEntryId(
-        user.id,
-        entry.id,
-      );
-
-      expect(fetchedOperations).toHaveLength(1);
-      expect(fetchedOperations[0].isTombstone).toBe(true);
-    });
-
-    it('should return an empty array if no operations to soft delete for the entry ID', async () => {
-      const anotherEntry = await testDB.createEntry(user.id);
-
-      const softDeletedOperations =
-        await operationRepository.softDeleteByEntryIds(user.id, [
-          anotherEntry.id,
-        ]);
-
-      expect(softDeletedOperations).toHaveLength(0);
-    });
-  });
-
-  describe('deleteByEntryIds', () => {
-    it('should delete operations by entry IDs', async () => {
-      const operations = await Promise.all([
-        testDB.createOperation(user.id, {
-          accountId: account1.id,
-          amount: Amount.create('700').valueOf(),
-          description: 'Operation to be deleted',
-          entryId: entry.id,
-        }),
-
-        testDB.createOperation(user.id, {
-          accountId: account2.id,
-          amount: Amount.create('300').valueOf(),
-          description: 'Another operation to be deleted',
-          entryId: entry.id,
-        }),
-      ]);
-
-      const fetchedOperationsBefore = await operationRepository.getByEntryId(
-        user.id,
-        entry.id,
-      );
-
-      expect(fetchedOperationsBefore).toHaveLength(operations.length);
-
-      await operationRepository.deleteByEntryIds(user.id, [entry.id]);
-
-      const fetchedOperationsAfter = await operationRepository.getByEntryId(
-        user.id,
-        entry.id,
-      );
-
-      expect(fetchedOperationsAfter).toHaveLength(0);
-    });
+    it.todo('should not affect operations belonging to a different user');
   });
 });

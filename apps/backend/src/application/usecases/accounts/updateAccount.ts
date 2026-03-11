@@ -5,7 +5,7 @@ import {
 } from '@ledgerly/shared/types';
 import { Account } from 'src/domain/accounts/account.entity';
 import { User } from 'src/domain/users/user.entity';
-import { AccountRepository } from 'src/infrastructure/db/accounts/account.repository';
+import { AccountRepository } from 'src/infrastructure/db/';
 
 import { AccountUseCaseBase } from './accountBase';
 

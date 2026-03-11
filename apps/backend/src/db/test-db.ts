@@ -17,11 +17,12 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
 import { Amount, Currency, DateValue } from 'src/domain/domain-core';
+import { OperationSnapshot } from 'src/domain/operations/types';
+import { TransactionSnapshot } from 'src/domain/transactions/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { AmountFormatter } from 'src/presentation/formatters';
 
 import {
-  EntryDbRow,
   TransactionDbInsert,
   TransactionDbRow,
   transactionsTable,
@@ -29,6 +30,7 @@ import {
   usersTable,
   UserDbRow,
   TransactionWithRelations,
+  AccountDbInsert,
 } from './schema';
 import * as schema from './schemas';
 
@@ -176,69 +178,19 @@ export class TestDB {
     return user;
   };
 
-  createEntry = async (
-    userId: UUID,
-    params?: {
-      transactionId?: UUID;
-      date?: IsoDateString;
-      description?: string;
-    },
-  ): Promise<EntryDbRow> => {
-    const transactionId =
-      params?.transactionId ??
-      (
-        await this.createTransaction(userId, {
-          description: `Entry Transaction ${this.transactionCounter.getNextName()}`,
-          postingDate: TestDB.isoDateString,
-          transactionDate: TestDB.isoDateString,
-        })
-      ).id;
-
-    const description =
-      params?.description ??
-      `Test Entry ${this.transactionCounter.getNextName()}`;
-
-    const entryData = {
-      ...TestDB.uuid,
-      ...TestDB.createTimestamps,
-      date: params?.date ?? TestDB.isoDateString,
-      description,
-      userId,
-      ...params,
-      isTombstone: false,
-      transactionId,
-    };
-
-    const entry = await this.db
-      .insert(schema.entriesTable)
-      .values(entryData)
-      .returning()
-      .get();
-
-    return entry;
-  };
-
-  getEntryById = async (entryId: UUID): Promise<EntryDbRow | null> => {
-    const entry = await this.db
-      .select()
-      .from(schema.entriesTable)
-      .where(sql`${schema.entriesTable.id} = ${entryId}`)
-      .get();
-
-    return entry ?? null;
-  };
-
   createTransaction = async (
     userId: UUID,
     params?: {
       description: string;
       postingDate: IsoDateString;
       transactionDate: IsoDateString;
+      currencyCode: CurrencyCode;
     },
   ): Promise<TransactionDbRow> => {
     const transactionData: TransactionDbInsert = {
       ...TestDB.uuid,
       ...TestDB.createTimestamps,
+      currency: params?.currencyCode ?? Currency.create('USD').valueOf(),
       description:
         params?.description ??
         `Test Transaction ${this.transactionCounter.getNextName()}`,
@@ -247,6 +199,7 @@ export class TestDB {
       transactionDate: DateValue.create().valueOf(),
       ...params,
       userId,
+      version: 0,
     };
 
     const transaction = await this.db
@@ -274,28 +227,15 @@ export class TestDB {
     transactionId: UUID,
   ): Promise<TransactionWithRelations | null> => {
     const transaction = await this.getTransactionById(transactionId);
+
     if (!transaction) return null;
 
-    const entries = await this.db
+    const operations = await this.db
       .select()
-      .from(schema.entriesTable)
-      .where(sql`${schema.entriesTable.transactionId} = ${transactionId}`);
+      .from(schema.operationsTable)
+      .where(sql`${schema.operationsTable.transactionId} = ${transactionId}`);
 
-    const entriesWithOperations = await Promise.all(
-      entries.map(async (entry) => {
-        const operations = await this.db
-          .select()
-          .from(schema.operationsTable)
-          .where(sql`${schema.operationsTable.entryId} = ${entry.id}`);
-
-        return {
-          ...entry,
-          operations,
-        };
-      }),
-    );
-
-    return { entries: entriesWithOperations, ...transaction };
+    return { operations, ...transaction };
   };
 
   getTransactionInPTAFormat = async (
@@ -304,55 +244,29 @@ export class TestDB {
     const transaction = await this.getTransactionById(transactionId);
     if (!transaction) return null;
 
-    const entries = await this.db
-      .select()
-      .from(schema.entriesTable)
-      .where(sql`${schema.entriesTable.transactionId} = ${transactionId}`);
-
-    const entriesWithOperations = await Promise.all(
-      entries.map(async (entry) => {
-        const operations = await this.db
-          .select()
-          .from(schema.operationsTable)
-          .where(sql`${schema.operationsTable.entryId} = ${entry.id}`);
-
-        const operationsWithAccounts = await Promise.all(
-          operations.map(async (operation) => {
-            const account = await this.db
-              .select()
-              .from(schema.accountsTable)
-              .where(sql`${schema.accountsTable.id} = ${operation.accountId}`)
-              .get();
-
-            return { ...operation, account };
-          }),
-        );
-
-        return {
-          ...entry,
-          operations: operationsWithAccounts,
-        };
-      }),
-    );
+    const operations = await this.db.select().from(schema.operationsTable);
 
     // Format in PTA (Plain Text Accounting) style
     let output = `${transaction.transactionDate} ${transaction.description}\n`;
 
-    for (const entry of entriesWithOperations) {
-      output += `    Entry ID: ${entry.id}\n`;
-      for (const operation of entry.operations) {
-        if (!operation.account) continue;
+    for (const operation of operations) {
+      const account = await this.db
+        .select()
+        .from(schema.accountsTable)
+        .where(sql`${schema.accountsTable.id} = ${operation.accountId}`)
+        .get();
 
-        const formatter = new AmountFormatter();
+      if (!account) continue;
 
-        const amount = Amount.fromPersistence(operation.amount);
-        const userFriendlyAmount = formatter.formatForTable(amount, 'en-US');
-        const accountName = operation.account.name;
-        const currency = operation.account.currency;
-        const systemMarker = operation.isSystem ? ' [system]' : '';
+      const formatter = new AmountFormatter();
 
-        output += `    ${accountName.padEnd(40)} ${operation.description} ${userFriendlyAmount} ${currency}${systemMarker}\n`;
-      }
+      const amount = Amount.fromPersistence(operation.amount);
+      const userFriendlyAmount = formatter.formatForTable(amount, 'en-US');
+      const accountName = account.name;
+      const currency = account.currency;
+      const systemMarker = operation.isSystem ? ' [system]' : '';
+
+      output += `    ${accountName.padEnd(40)} ${operation.description} ${userFriendlyAmount} ${currency}${systemMarker}\n`;
     }
 
     return output;
@@ -410,13 +324,44 @@ export class TestDB {
     return account;
   };
 
+  insertAccount = async (accountData: AccountDbInsert) => {
+    const account = await this.db
+      .insert(accountsTable)
+      .values(accountData)
+      .returning()
+      .get();
+
+    return account;
+  };
+
+  insertOperation = async (operationData: OperationSnapshot) => {
+    const operation = await this.db
+      .insert(schema.operationsTable)
+      .values(operationData)
+      .returning()
+      .get();
+
+    return operation;
+  };
+
+  insertTransaction = async (transactionData: TransactionSnapshot) => {
+    const transaction = await this.db
+      .insert(transactionsTable)
+      .values(transactionData)
+      .returning()
+      .get();
+
+    return transaction;
+  };
+
   createOperation = async (
     userId: UUID,
     params: {
       accountId: UUID;
       description: string;
-      entryId: UUID;
+      transactionId: UUID;
       amount: MoneyString;
+      value: MoneyString;
       isSystem?: boolean;
     },
   ) => {
@@ -459,6 +404,17 @@ export class TestDB {
     return operation ?? null;
   };
 
+  getOperationsByTransactionId = async (userId: UUID, transactionId: UUID) => {
+    const operations = await this.db
+      .select()
+      .from(schema.operationsTable)
+      .where(
+        sql`${schema.operationsTable.transactionId} = ${transactionId} AND ${schema.operationsTable.userId} = ${userId}`,
+      );
+
+    return operations;
+  };
+
   deleteData = async () => {
     await this.db.delete(transactionsTable);
     await this.db.delete(accountsTable);
@@ -492,58 +448,52 @@ export class TestDB {
     const transaction1 = await this.createTransaction(user.id);
     const transaction2 = await this.createTransaction(user.id);
 
-    const entry1Transaction1 = await this.createEntry(user.id, {
-      transactionId: transaction1.id,
-    });
-
-    const entry2Transaction1 = await this.createEntry(user.id, {
-      transactionId: transaction1.id,
-    });
-
-    const entry1Transaction2 = await this.createEntry(user.id, {
-      transactionId: transaction2.id,
-    });
-
     await this.createOperation(user.id, {
       accountId: accountUSD1.id,
       amount: Amount.create('10000').valueOf(),
       description: 'Initial Deposit',
-      entryId: entry1Transaction1.id,
+      transactionId: transaction1.id,
+      value: Amount.create('10000').valueOf(),
     });
 
     await this.createOperation(user.id, {
       accountId: accountUSD2.id,
       amount: Amount.create('-5000').valueOf(),
       description: 'Grocery Shopping',
-      entryId: entry1Transaction1.id,
+      transactionId: transaction1.id,
+      value: Amount.create('-5000').valueOf(),
     });
 
     await this.createOperation(user.id, {
       accountId: accountEUR.id,
       amount: Amount.create('2000').valueOf(),
       description: 'Credit Card Payment',
-      entryId: entry2Transaction1.id,
+      transactionId: transaction1.id,
+      value: Amount.create('2000').valueOf(),
     });
 
     await this.createOperation(user.id, {
       accountId: accountUSD1.id,
       amount: Amount.create('-2000').valueOf(),
       description: 'Utility Bill',
-      entryId: entry2Transaction1.id,
+      transactionId: transaction1.id,
+      value: Amount.create('-2000').valueOf(),
     });
 
     await this.createOperation(user.id, {
       accountId: accountUSD1.id,
       amount: Amount.create('15000').valueOf(),
       description: 'Salary',
-      entryId: entry1Transaction2.id,
+      transactionId: transaction2.id,
+      value: Amount.create('15000').valueOf(),
     });
 
     await this.createOperation(user.id, {
       accountId: accountUSD2.id,
       amount: Amount.create('-15000').valueOf(),
       description: 'Rent Payment',
-      entryId: entry1Transaction2.id,
+      transactionId: transaction2.id,
+      value: Amount.create('-15000').valueOf(),
     });
 
     return {

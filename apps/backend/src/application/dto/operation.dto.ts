@@ -2,29 +2,29 @@ import { IsoDatetimeString, MoneyString, UUID } from '@ledgerly/shared/types';
 
 // Request DTOs for creation
 
-export type CreateOperationRequestDTO = {
+export type OperationRequestDTO = {
   accountId: UUID;
   amount: MoneyString;
+  value: MoneyString;
   description: string;
 };
 
+export type CreateOperationRequestDTO = OperationRequestDTO;
+
 // Request DTOs for updating
 
-export type UpdateOperationRequestDTO = {
-  accountId?: UUID;
-  entryId?: UUID;
+export type UpdateOperationRequestDTO = OperationRequestDTO & {
   id: UUID;
-  amount?: string;
-  description: string;
 };
 
 // Response DTOs
 
 export type OperationResponseDTO = {
   id: UUID;
-  entryId: UUID;
+  transactionId: UUID;
   accountId: UUID;
   amount: MoneyString;
+  value: MoneyString;
   description?: string;
   createdAt: IsoDatetimeString;
   updatedAt: IsoDatetimeString;

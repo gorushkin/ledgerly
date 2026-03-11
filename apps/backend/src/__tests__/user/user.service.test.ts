@@ -5,7 +5,7 @@ import {
 } from 'src/application/application.errors';
 import { Id } from 'src/domain/domain-core';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { UserRepository } from 'src/infrastructure/db/user/user.repository';
+import { UserRepository } from 'src/infrastructure/db/';
 import { UserService } from 'src/services/user.service';
 import { describe, vi, beforeEach, expect, it } from 'vitest';
 

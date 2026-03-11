@@ -14,7 +14,7 @@ import {
 
 export class User {
   private readonly identity: EntityIdentity;
-  private readonly timestamps: EntityTimestamps;
+  private timestamps: EntityTimestamps;
   private constructor(
     identity: EntityIdentity,
     timestamps: EntityTimestamps,
@@ -81,13 +81,13 @@ export class User {
   changeEmail(newEmail: Email): void {
     // Business logic validation could go here
     this._email = newEmail;
-    this.timestamps.touch(); // Update timestamps
+    this.timestamps = this.timestamps.touch();
   }
 
   changeName(newName: Name): void {
     // Business logic validation could go here
     this._name = newName;
-    this.timestamps.touch(); // Update timestamps
+    this.timestamps = this.timestamps.touch();
   }
 
   validatePassword(password: string): Promise<boolean> {

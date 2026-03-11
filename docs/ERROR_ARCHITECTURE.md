@@ -7,7 +7,17 @@ All application errors inherit from a single base class to enable consistent err
 ```
 BaseError (shared/errors)
 ├── DomainError (domain)
-│   └── UnbalancedEntryError
+│   ├── UnbalancedTransactionError
+│   ├── EmptyOperationsError
+│   ├── DeletedEntityOperationError
+│   ├── OperationOwnershipError
+│   ├── MissingOperationsError
+│   ├── ConflictingOperationIdsError
+│   ├── OperationNotFoundInTransactionError
+│   ├── OperationDoesNotBelongToTransactionError
+│   ├── AccountNotFoundInContextError
+│   ├── OperationUserMismatchError
+│   └── MissingTransactionContextError
 ├── ApplicationError (application)
 │   ├── EntityNotFoundError
 │   ├── UnauthorizedAccessError
@@ -16,8 +26,7 @@ BaseError (shared/errors)
 │   └── UserAlreadyExistsError
 ├── InfrastructureError (infrastructure)
 │   ├── RepositoryNotFoundError
-│   ├── ForbiddenAccessError
-│   └── DatabaseError
+│   └── ForbiddenAccessError
 └── HttpApiError (presentation)
     └── AuthErrors
         └── UnauthorizedError
@@ -34,11 +43,15 @@ BaseError (shared/errors)
 ### DomainError (`domain/domain.errors.ts`)
 - **Purpose**: Business rule violations and domain invariants
 - **Examples**: 
-  - `UnbalancedEntryError` - Entry operations don't sum to zero
-- **Characteristics**:
-  - Pure business logic
-  - No infrastructure concerns
-  - No HTTP details
+  - `UnbalancedTransactionError` - Transaction operations don't sum to zero
+  - `EmptyOperationsError` - Attempting to add empty operations array
+  - `DeletedEntityOperationError` - Performing operations on a deleted entity
+  - `OperationOwnershipError` - Operation doesn't belong to expected transaction
+  - `MissingOperationsError` - Validating transaction without operations
+  - `ConflictingOperationIdsError` - Same operation ID in multiple patch arrays
+  - `OperationNotFoundInTransactionError` - Update/delete operation not in transaction
+  - `OperationUserMismatchError` - Operation belongs to different user than transaction
+  - `MissingTransactionContextError` - Build context required but not provided
 
 ### ApplicationError (`application/application.errors.ts`)
 - **Purpose**: Use case failures and authentication/authorization
@@ -59,8 +72,6 @@ BaseError (shared/errors)
 - **Examples**:
   - `RepositoryNotFoundError` - Database record not found
   - `ForbiddenAccessError` - User tries to access resource they don't own
-  - `DatabaseError` - Low-level database errors
-  - `ExternalApiError` - Third-party API failure
 - **Characteristics**:
   - Database errors
   - File system errors
@@ -97,10 +108,9 @@ BaseError (shared/errors)
      * UserAlreadyExistsError → 409
      * EntityNotFoundError → 404
      * UnauthorizedAccessError → 403
-   - InfrastructureError → 404/403/500
+   - InfrastructureError → 404/403
      * RepositoryNotFoundError → 404
      * ForbiddenAccessError → 403
-     * DatabaseError → 500
    - HttpApiError → Uses error.statusCode
 ```
 
@@ -108,12 +118,12 @@ BaseError (shared/errors)
 
 ### Domain Layer
 ```typescript
-// domain/entries/entry.entity.ts
-import { UnbalancedEntryError } from '../domain.errors';
+// domain/transactions/transaction.entity.ts
+import { UnbalancedTransactionError } from '../domain.errors';
 
 validateBalance(): void {
   if (!total.isZero()) {
-    throw new UnbalancedEntryError(this.getId().valueOf(), total);
+    throw new UnbalancedTransactionError(this, total);
   }
 }
 ```

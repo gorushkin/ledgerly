@@ -1,7 +1,7 @@
 import { CurrencyResponseDTO } from 'src/application';
 import { currenciesTable } from 'src/db/schema';
 
-import { BaseRepository } from './BaseRepository';
+import { BaseRepository } from '../BaseRepository';
 
 export class CurrencyRepository extends BaseRepository {
   getAll(): Promise<CurrencyResponseDTO[]> {

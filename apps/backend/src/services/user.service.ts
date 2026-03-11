@@ -5,7 +5,7 @@ import {
 } from '@ledgerly/shared/types';
 import { UserAlreadyExistsError } from 'src/application/application.errors';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { UserRepository } from 'src/infrastructure/db/user/user.repository';
+import { UserRepository } from 'src/infrastructure/db/';
 
 export class UserService {
   constructor(

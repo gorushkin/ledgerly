@@ -1,27 +1,35 @@
-import { TransactionRepositoryInterface } from 'src/application';
 import {
-  EntryWithOperations,
-  OperationDbRow,
-  TransactionWithRelations,
-} from 'src/db/schema';
-import { Amount, DateValue, Id, Timestamp } from 'src/domain/domain-core';
-import { describe, expect, it, vi } from 'vitest';
+  EntityNotFoundError,
+  TransactionQueryRepositoryInterface,
+} from 'src/application';
+import { OperationDbRow, TransactionWithRelations } from 'src/db/schema';
+import {
+  Amount,
+  Currency,
+  DateValue,
+  Id,
+  Timestamp,
+} from 'src/domain/domain-core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetTransactionByIdUseCase } from '../GetTransactionById';
 
 describe('GetTransactionByIdUseCase', () => {
-  const mockTransactionRepository = {
-    getById: vi.fn(),
+  const mockTransactionQueryRepository = {
+    findById: vi.fn(),
   };
 
   const getTransactionByIdUseCase = new GetTransactionByIdUseCase(
-    mockTransactionRepository as unknown as TransactionRepositoryInterface,
+    mockTransactionQueryRepository as unknown as TransactionQueryRepositoryInterface,
   );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should retrieve transaction by ID', async () => {
     const transactionId = Id.create().valueOf();
     const userId = Id.create().valueOf();
-    const entryId = Id.create().valueOf();
     const createdAt = Timestamp.create().valueOf();
     const updatedAt = Timestamp.create().valueOf();
 
@@ -30,12 +38,13 @@ describe('GetTransactionByIdUseCase', () => {
       amount: Amount.create('1000').valueOf(),
       createdAt: Timestamp.create().valueOf(),
       description: 'Operation 1',
-      entryId,
       id: Id.create().valueOf(),
       isSystem: false,
       isTombstone: false,
+      transactionId,
       updatedAt: Timestamp.create().valueOf(),
       userId,
+      value: Amount.create('1000').valueOf(),
     };
 
     const mockOperation2: OperationDbRow = {
@@ -43,38 +52,32 @@ describe('GetTransactionByIdUseCase', () => {
       amount: Amount.create('500').valueOf(),
       createdAt: Timestamp.create().valueOf(),
       description: 'Operation 2',
-      entryId,
       id: Id.create().valueOf(),
       isSystem: false,
       isTombstone: false,
-      updatedAt: Timestamp.create().valueOf(),
-      userId,
-    };
-
-    const mockEntry1: EntryWithOperations = {
-      createdAt: Timestamp.create().valueOf(),
-      description: 'Test Entry',
-      id: entryId,
-      isTombstone: false,
-      operations: [mockOperation1, mockOperation2],
       transactionId,
       updatedAt: Timestamp.create().valueOf(),
       userId,
+      value: Amount.create('500').valueOf(),
     };
 
     const mockTransactionData: TransactionWithRelations = {
       createdAt,
+      currency: Currency.create('USD').valueOf(),
       description: 'Test Transaction',
-      entries: [mockEntry1],
       id: transactionId,
       isTombstone: false,
+      operations: [mockOperation1, mockOperation2],
       postingDate: DateValue.create().valueOf(),
       transactionDate: DateValue.create().valueOf(),
       updatedAt,
       userId,
+      version: 1,
     };
 
-    mockTransactionRepository.getById.mockResolvedValue(mockTransactionData);
+    mockTransactionQueryRepository.findById.mockResolvedValue(
+      mockTransactionData,
+    );
 
     const transaction = await getTransactionByIdUseCase.execute(
       userId,
@@ -84,7 +87,8 @@ describe('GetTransactionByIdUseCase', () => {
     expect(transaction).toBeDefined();
     expect(transaction?.id).toBe(transactionId);
     expect(transaction?.description).toBe('Test Transaction');
-    expect(mockTransactionRepository.getById).toHaveBeenCalledWith(
+    expect(mockTransactionQueryRepository.findById).toHaveBeenCalledTimes(1);
+    expect(mockTransactionQueryRepository.findById).toHaveBeenCalledWith(
       userId,
       transactionId,
     );
@@ -94,10 +98,10 @@ describe('GetTransactionByIdUseCase', () => {
     const transactionId = Id.create().valueOf();
     const userId = Id.create().valueOf();
 
-    mockTransactionRepository.getById.mockResolvedValue(null);
+    mockTransactionQueryRepository.findById.mockResolvedValue(null);
 
     await expect(
       getTransactionByIdUseCase.execute(userId, transactionId),
-    ).rejects.toThrow('Transaction not found');
+    ).rejects.toThrow(EntityNotFoundError);
   });
 });
