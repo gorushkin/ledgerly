@@ -29,17 +29,6 @@ export const operationUpdateSchema = z.object({
   value: moneyAmountString,
 });
 
-export const entryCreateSchema = z.object({
-  description: requiredText,
-  operations: z.tuple([operationCreateSchema, operationCreateSchema]),
-});
-
-export const entryUpdateSchema = z.object({
-  description: requiredText,
-  id: uuid,
-  operations: z.tuple([operationUpdateSchema, operationUpdateSchema]),
-});
-
 export const transactionCreateSchema = z.object({
   currencyCode: currencyCode,
   description: requiredText,
@@ -73,4 +62,3 @@ export const transactionResponseSchema = z.object({
 export type TransactionCreateInput = z.infer<typeof transactionCreateSchema>;
 export type TransactionUpdateInput = z.infer<typeof transactionUpdateSchema>;
 export type TransactionResponse = z.infer<typeof transactionResponseSchema>;
-export type EntryCreateInput = z.infer<typeof entryCreateSchema>;
