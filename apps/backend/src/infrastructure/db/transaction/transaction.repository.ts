@@ -8,7 +8,6 @@ import {
 } from 'src/application';
 import {
   OperationDbRow,
-  TransactionDbRow,
   TransactionWithRelations,
   transactionsTable,
 } from 'src/db/schema';
@@ -41,7 +40,7 @@ export class TransactionRepository
             ),
           );
 
-        await this.saveOperations(transaction);
+        await this.saveOperations(userId, transaction);
       },
       'TransactionRepository.softDelete',
       {
@@ -52,61 +51,46 @@ export class TransactionRepository
     );
   }
 
-  private insert(
+  private async insertTransactionRow(
     userId: UUID,
     transaction: Transaction,
-  ): Promise<TransactionDbRow> {
-    return this.executeDatabaseOperation(
-      async () => {
-        const transactionData = TransactionMapper.toDBRow(transaction);
+  ): Promise<void> {
+    const transactionData = TransactionMapper.toDBRow(transaction);
 
-        return this.db
-          .insert(transactionsTable)
-          .values({ ...transactionData, userId })
-          .returning()
-          .get();
-      },
-      'TransactionRepository.insert',
-      {
-        field: 'transactionId',
-        tableName: 'transactions',
-        value: transaction.getId().valueOf(),
-      },
-    );
+    await this.db
+      .insert(transactionsTable)
+      .values({ ...transactionData, userId });
   }
 
-  private async update(
+  private async updateTransactionRow(
     userId: UUID,
     transaction: Transaction,
-  ): Promise<TransactionDbRow> {
-    return this.executeDatabaseOperation(
-      async () => {
-        const transactionData = TransactionMapper.toDBRow(transaction);
+  ): Promise<void> {
+    const transactionData = TransactionMapper.toDBRow(transaction);
 
-        const safeData = this.getSafeUpdate(transactionData, [
-          'description',
-          'postingDate',
-          'transactionDate',
-          'updatedAt',
-          'currency',
-        ]);
+    const safeData = this.getSafeUpdate(transactionData, [
+      'description',
+      'postingDate',
+      'transactionDate',
+      'updatedAt',
+      'currency',
+    ]);
 
-        return this.db
-          .update(transactionsTable)
-          .set({ ...safeData, userId })
-          .returning()
-          .get();
-      },
-      'TransactionRepository.update',
-      {
-        field: 'transactionId',
-        tableName: 'transactions',
-        value: transaction.getId().valueOf(),
-      },
-    );
+    await this.db
+      .update(transactionsTable)
+      .set({ ...safeData })
+      .where(
+        and(
+          eq(transactionsTable.id, transaction.getId().valueOf()),
+          eq(transactionsTable.userId, userId),
+        ),
+      );
   }
 
-  private async saveOperations(transaction: Transaction): Promise<void> {
+  private async saveOperations(
+    userId: UUID,
+    transaction: Transaction,
+  ): Promise<void> {
     const operations: OperationDbRow[] = [];
 
     const operationsSnapshots = new Map<UUID, OperationSnapshot>();
@@ -116,7 +100,7 @@ export class TransactionRepository
     });
 
     const snapshot = await this.getTransactionSnapshot(
-      transaction.getUserId().valueOf(),
+      userId,
       transaction.getId().valueOf(),
     );
 
@@ -125,19 +109,19 @@ export class TransactionRepository
     });
 
     await this.operationsRepository.save(
-      transaction.getUserId().valueOf(),
+      userId,
       operations,
       operationsSnapshots,
     );
   }
 
-  async save(userId: UUID, transaction: Transaction): Promise<void> {
+  async update(userId: UUID, transaction: Transaction): Promise<void> {
     await this.executeDatabaseOperation(
       async () => {
-        await this.update(userId, transaction);
-        await this.saveOperations(transaction);
+        await this.updateTransactionRow(userId, transaction);
+        await this.saveOperations(userId, transaction);
       },
-      'TransactionRepository.save',
+      'TransactionRepository.update',
       {
         field: 'transactionId',
         tableName: 'transactions',
@@ -178,48 +162,48 @@ export class TransactionRepository
     );
   }
 
-  getById(_userId: UUID, _transactionId: UUID): Promise<Transaction | null> {
-    throw new Error('Method not implemented.');
-    // return this.executeDatabaseOperation(
-    //   async () => {
-    //     const transactionDbRow: TransactionWithRelations | undefined =
-    //       await this.db.query.transactionsTable.findFirst({
-    //         where: and(
-    //           eq(transactionsTable.id, transactionId),
-    //           eq(transactionsTable.userId, userId),
-    //         ),
-    //         with: {
-    //           entries: { with: { operations: true } },
-    //         },
-    //       });
+  async getById(
+    userId: UUID,
+    transactionId: UUID,
+  ): Promise<Transaction | null> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const transactionDbRow: TransactionWithRelations | undefined =
+          await this.db.query.transactionsTable.findFirst({
+            where: and(
+              eq(transactionsTable.id, transactionId),
+              eq(transactionsTable.userId, userId),
+            ),
+            with: {
+              operations: true,
+            },
+          });
 
-    //     if (!transactionDbRow) {
-    //       return null;
-    //     }
+        if (!transactionDbRow) {
+          return null;
+        }
 
-    //     const transaction = Transaction.restore(transactionDbRow);
-
-    //     return transaction;
-    //   },
-    //   'TransactionRepository.getById',
-    //   {
-    //     field: 'transactionId',
-    //     tableName: 'transactions',
-    //     value: transactionId,
-    //   },
-    // );
+        return Transaction.restore(transactionDbRow);
+      },
+      'TransactionRepository.getById',
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transactionId,
+      },
+    );
   }
 
   async create(userId: UUID, transaction: Transaction): Promise<void> {
-    return await this.executeDatabaseOperation(
+    await this.executeDatabaseOperation(
       async () => {
         const operationsDataToInsert = transaction
           .getOperations()
           .map((operation) => OperationMapper.toDBRow(operation));
 
-        await this.operationsRepository.save(userId, operationsDataToInsert);
+        await this.insertTransactionRow(userId, transaction);
 
-        await this.insert(userId, transaction);
+        await this.operationsRepository.save(userId, operationsDataToInsert);
       },
       'TransactionRepository.create',
       {

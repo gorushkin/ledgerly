@@ -34,7 +34,7 @@ describe('UpdateTransactionUseCase', () => {
 
   const mockTransactionRepository = {
     getById: vi.fn(),
-    save: vi.fn(),
+    update: vi.fn(),
   } satisfies Partial<TransactionRepositoryInterface>;
 
   const mockEnsureEntityExistsAndOwned = vi.fn();
@@ -126,7 +126,7 @@ describe('UpdateTransactionUseCase', () => {
     expect(updatedTransaction.postingDate).toBe(data.postingDate);
     expect(updatedTransaction.transactionDate).toBe(data.transactionDate);
 
-    expect(mockTransactionRepository.save).toHaveBeenCalledWith(
+    expect(mockTransactionRepository.update).toHaveBeenCalledWith(
       user.getId().valueOf(),
       transaction,
     );
@@ -223,7 +223,7 @@ describe('UpdateTransactionUseCase', () => {
       ...data.operations.update,
     ]);
 
-    expect(mockTransactionRepository.save).toHaveBeenCalledWith(
+    expect(mockTransactionRepository.update).toHaveBeenCalledWith(
       user.getId().valueOf(),
       transaction,
     );
@@ -269,7 +269,7 @@ describe('UpdateTransactionUseCase', () => {
       mockTransactionContextLoader.loadContext,
     ).toHaveBeenCalledExactlyOnceWith(user, []);
 
-    expect(mockTransactionRepository.save).not.toHaveBeenCalled();
+    expect(mockTransactionRepository.update).not.toHaveBeenCalled();
 
     initialTransactionResponse.operations.forEach((opDTO) => {
       const updatedOpDTO = updatedTransaction.operations.find(

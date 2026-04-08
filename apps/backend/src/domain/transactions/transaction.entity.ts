@@ -25,7 +25,7 @@ import {
   CreateTransactionProps,
   TransactionBuildContext,
   TransactionUpdateData,
-  TransactionWithEntriesAndOperations,
+  TransactionSnapshotWithDetails,
   TransactionSnapshot,
   UpdateTransactionProps,
   OperationsPatch,
@@ -110,7 +110,7 @@ export class Transaction {
     return operations;
   }
 
-  static restore(data: TransactionWithEntriesAndOperations): Transaction {
+  static restore(data: TransactionSnapshotWithDetails): Transaction {
     const {
       createdAt,
       currency,

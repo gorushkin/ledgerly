@@ -159,6 +159,72 @@ describe('TransactionRepository', () => {
     });
   });
 
+  describe('getById', () => {
+    it('should retrieve a transaction by ID with operations', async () => {
+      const transaction = data.transaction;
+
+      const operationsDataToInsert = transaction
+        .getOperations()
+        .map((operation) => {
+          return {
+            accountId: operation.accountRelation.getParentId().valueOf(),
+            amount: operation.amount.valueOf(),
+            description: operation.description,
+            id: operation.getId().valueOf(),
+            isSystem: operation.isSystem,
+            transactionId: operation.transactionId.valueOf(),
+            value: operation.value.valueOf(),
+          };
+        });
+
+      const insertedTransaction = await testDB.createTransactionWithOperations(
+        user.id,
+        {
+          currencyCode: transaction.currency.valueOf(),
+          description: transaction.description,
+          operations: operationsDataToInsert,
+          postingDate: transaction.getPostingDate().valueOf(),
+          transactionDate: transaction.getTransactionDate().valueOf(),
+        },
+      );
+
+      const retrievedTransaction = await transactionRepository.getById(
+        user.id,
+        insertedTransaction.id,
+      );
+
+      expect(retrievedTransaction).not.toBeNull();
+      expect(retrievedTransaction?.description).toBe(transaction.description);
+
+      expect(retrievedTransaction?.getPostingDate().valueOf()).toBe(
+        transaction.getPostingDate().valueOf(),
+      );
+      expect(retrievedTransaction?.getTransactionDate().valueOf()).toBe(
+        transaction.getTransactionDate().valueOf(),
+      );
+
+      const retrievedOperations = retrievedTransaction?.getOperations() ?? [];
+
+      expect(retrievedOperations.length).toBe(operationsDataToInsert.length);
+
+      retrievedOperations.forEach((operation) => {
+        const matchingOperation = insertedTransaction.operations.find(
+          (op) => op.id === operation.getId().valueOf(),
+        );
+
+        expect(matchingOperation).not.toBeUndefined();
+        expect(operation.description).toBe(matchingOperation?.description);
+        expect(operation.amount.valueOf()).toBe(
+          matchingOperation?.amount.valueOf(),
+        );
+        expect(operation.isSystem).toBe(matchingOperation?.isSystem);
+        expect(operation.value.valueOf()).toBe(
+          matchingOperation?.value.valueOf(),
+        );
+      });
+    });
+  });
+
   describe('create', () => {
     it('should create a new transaction', async () => {
       const transaction = data.transaction;
@@ -273,7 +339,7 @@ describe('TransactionRepository', () => {
         'getTransactionSnapshot',
       ).mockResolvedValue(data.transactionWithRelations);
 
-      await transactionRepository.save(user.id, transaction);
+      await transactionRepository.update(user.id, transaction);
 
       const updatedTransaction = await testDB.getTransactionWithRelations(
         transaction.getId().valueOf(),
@@ -319,7 +385,7 @@ describe('TransactionRepository', () => {
       await testDB.insertTransaction(transaction.toSnapshot());
       transaction.markAsDeleted();
 
-      await transactionRepository.save(user.id, transaction);
+      await transactionRepository.update(user.id, transaction);
 
       const updatedTransaction = await testDB.getTransactionWithRelations(
         transaction.getId().valueOf(),
