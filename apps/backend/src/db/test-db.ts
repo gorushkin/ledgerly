@@ -31,6 +31,8 @@ import {
   UserDbRow,
   TransactionWithRelations,
   AccountDbInsert,
+  OperationDbInsert,
+  OperationDbRow,
 } from './schema';
 import * as schema from './schemas';
 
@@ -211,6 +213,78 @@ export class TestDB {
     return transaction;
   };
 
+  createTransactionWithOperations = async (
+    userId: UUID,
+    params?: {
+      description: string;
+      postingDate: IsoDateString;
+      transactionDate: IsoDateString;
+      currencyCode: CurrencyCode;
+      operations: {
+        accountId: UUID;
+        description: string;
+        transactionId: UUID;
+        amount: MoneyString;
+        value: MoneyString;
+        isSystem?: boolean;
+        id: UUID;
+      }[];
+    },
+  ): Promise<TransactionWithRelations> => {
+    const transaction = await this.createTransaction(userId, params);
+
+    const operations: OperationDbRow[] = [];
+
+    for (const operationParams of params?.operations ?? []) {
+      const operation = await this.createOperation(userId, {
+        ...operationParams,
+        transactionId: transaction.id,
+      });
+
+      operations.push(operation);
+    }
+
+    return { ...transaction, operations };
+  };
+
+  createOperation = async (
+    userId: UUID,
+    params?: {
+      accountId: UUID;
+      description: string;
+      transactionId: UUID;
+      id: UUID;
+      amount: MoneyString;
+      value: MoneyString;
+      isSystem?: boolean;
+    },
+  ) => {
+    const operationData: OperationDbInsert = {
+      isSystem: params?.isSystem ?? false,
+      ...TestDB.uuid,
+      ...TestDB.createTimestamps,
+      amount: params?.amount ?? Amount.create('1000').valueOf(),
+      ...params,
+      accountId: params?.accountId ?? (crypto.randomUUID() as UUID),
+      description:
+        params?.description ??
+        `Test Operation ${this.operationCounter.getNextName()}`,
+      id: params?.id ?? (crypto.randomUUID() as UUID),
+      isTombstone: false,
+      transactionId: params?.transactionId ?? (crypto.randomUUID() as UUID),
+      userId,
+      value: params?.value ?? Amount.create('1000').valueOf(),
+    };
+
+    const operation = await this.db
+      .insert(schema.operationsTable)
+      .values(operationData)
+      .returning()
+      .get();
+
+    return operation;
+  };
+
   getTransactionById = async (
     transactionId: UUID,
   ): Promise<TransactionDbRow | null> => {
@@ -344,43 +418,25 @@ export class TestDB {
     return operation;
   };
 
-  insertTransaction = async (transactionData: TransactionSnapshot) => {
+  insertTransaction = async (
+    transactionData: TransactionSnapshot,
+  ): Promise<TransactionWithRelations> => {
     const transaction = await this.db
       .insert(transactionsTable)
       .values(transactionData)
       .returning()
       .get();
 
-    return transaction;
-  };
+    const operations = await Promise.all(
+      transactionData.operations.map((operation) =>
+        this.insertOperation({
+          ...operation,
+          transactionId: transaction.id,
+        }),
+      ),
+    );
 
-  createOperation = async (
-    userId: UUID,
-    params: {
-      accountId: UUID;
-      description: string;
-      transactionId: UUID;
-      amount: MoneyString;
-      value: MoneyString;
-      isSystem?: boolean;
-    },
-  ) => {
-    const operationData = {
-      isSystem: params.isSystem ?? false,
-      ...TestDB.uuid,
-      ...TestDB.createTimestamps,
-      ...params,
-      isTombstone: false,
-      userId,
-    };
-
-    const operation = await this.db
-      .insert(schema.operationsTable)
-      .values(operationData)
-      .returning()
-      .get();
-
-    return operation;
+    return { ...transaction, operations };
   };
 
   getOperationsByAccountId = async (userId: UUID, accountId: UUID) => {
@@ -452,6 +508,7 @@ export class TestDB {
       accountId: accountUSD1.id,
       amount: Amount.create('10000').valueOf(),
       description: 'Initial Deposit',
+      id: transaction1.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction1.id,
       value: Amount.create('10000').valueOf(),
     });
@@ -460,6 +517,7 @@ export class TestDB {
       accountId: accountUSD2.id,
       amount: Amount.create('-5000').valueOf(),
       description: 'Grocery Shopping',
+      id: transaction1.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction1.id,
       value: Amount.create('-5000').valueOf(),
     });
@@ -468,6 +526,7 @@ export class TestDB {
       accountId: accountEUR.id,
       amount: Amount.create('2000').valueOf(),
       description: 'Credit Card Payment',
+      id: transaction1.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction1.id,
       value: Amount.create('2000').valueOf(),
     });
@@ -476,6 +535,7 @@ export class TestDB {
       accountId: accountUSD1.id,
       amount: Amount.create('-2000').valueOf(),
       description: 'Utility Bill',
+      id: transaction1.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction1.id,
       value: Amount.create('-2000').valueOf(),
     });
@@ -484,6 +544,7 @@ export class TestDB {
       accountId: accountUSD1.id,
       amount: Amount.create('15000').valueOf(),
       description: 'Salary',
+      id: transaction2.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction2.id,
       value: Amount.create('15000').valueOf(),
     });
@@ -492,6 +553,7 @@ export class TestDB {
       accountId: accountUSD2.id,
       amount: Amount.create('-15000').valueOf(),
       description: 'Rent Payment',
+      id: transaction2.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction2.id,
       value: Amount.create('-15000').valueOf(),
     });

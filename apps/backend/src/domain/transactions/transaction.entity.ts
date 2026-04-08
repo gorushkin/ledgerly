@@ -43,7 +43,7 @@ export class Transaction {
     private transactionDate: DateValue,
     public currency: Currency,
     public description: string,
-    private version = 0,
+    public version = 0,
   ) {}
 
   static create(userId: Id, dto: CreateTransactionProps): Transaction {

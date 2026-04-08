@@ -1,15 +1,19 @@
 import { UUID } from '@ledgerly/shared/types';
+import { and, eq } from 'drizzle-orm';
 import {
+  OperationMapper,
   OperationRepositoryInterface,
   TransactionMapper,
   TransactionRepositoryInterface,
 } from 'src/application';
 import {
+  OperationDbRow,
   TransactionDbRow,
   TransactionWithRelations,
   transactionsTable,
 } from 'src/db/schema';
 import { Transaction } from 'src/domain';
+import { OperationSnapshot } from 'src/domain/operations/types';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -23,8 +27,29 @@ export class TransactionRepository
   ) {
     super(transactionManager);
   }
-  delete(_userId: UUID, _transactionId: UUID): Promise<void> {
-    throw new Error('Method not implemented.');
+
+  async softDelete(userId: UUID, transaction: Transaction): Promise<void> {
+    return this.executeDatabaseOperation(
+      async () => {
+        await this.db
+          .update(transactionsTable)
+          .set({ isTombstone: true, ...this.updateTimestamp })
+          .where(
+            and(
+              eq(transactionsTable.id, transaction.getId().valueOf()),
+              eq(transactionsTable.userId, userId),
+            ),
+          );
+
+        await this.saveOperations(transaction);
+      },
+      'TransactionRepository.softDelete',
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transaction.getId().valueOf(),
+      },
+    );
   }
 
   private insert(
@@ -50,134 +75,107 @@ export class TransactionRepository
     );
   }
 
-  private update(
-    _userId: UUID,
-    _transaction: Transaction,
+  private async update(
+    userId: UUID,
+    transaction: Transaction,
   ): Promise<TransactionDbRow> {
-    throw new Error('Method not implemented.');
-    // return this.executeDatabaseOperation(
-    //   async () => {
-    //     const transactionData = TransactionMapper.toDBRow(transaction);
+    return this.executeDatabaseOperation(
+      async () => {
+        const transactionData = TransactionMapper.toDBRow(transaction);
 
-    //     return this.db
-    //       .update(transactionsTable)
-    //       .set({ ...transactionData, userId })
-    //       .returning()
-    //       .get();
-    //   },
-    //   'TransactionRepository.update',
-    //   {
-    //     field: 'transactionId',
-    //     tableName: 'transactions',
-    //     value: transaction.getId().valueOf(),
-    //   },
-    // );
+        const safeData = this.getSafeUpdate(transactionData, [
+          'description',
+          'postingDate',
+          'transactionDate',
+          'updatedAt',
+          'currency',
+        ]);
+
+        return this.db
+          .update(transactionsTable)
+          .set({ ...safeData, userId })
+          .returning()
+          .get();
+      },
+      'TransactionRepository.update',
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transaction.getId().valueOf(),
+      },
+    );
   }
 
-  private save(
-    _userId: UUID,
-    _transaction: Transaction,
-    _snapshot: TransactionWithRelations | null,
-  ): Promise<TransactionDbRow> {
-    throw new Error('Method not implemented.');
-    // return this.executeDatabaseOperation(
-    //   async () => {
-    //     if (snapshot) {
-    //       return this.update(userId, transaction);
-    //     }
+  private async saveOperations(transaction: Transaction): Promise<void> {
+    const operations: OperationDbRow[] = [];
 
-    //     return this.insert(userId, transaction);
-    //   },
-    //   'TransactionRepository.save',
-    //   {
-    //     field: 'transactionId',
-    //     tableName: 'transactions',
-    //     value: transaction.getId().valueOf(),
-    //   },
-    // );
+    const operationsSnapshots = new Map<UUID, OperationSnapshot>();
+
+    transaction.getOperations().forEach((operation) => {
+      operations.push(OperationMapper.toDBRow(operation));
+    });
+
+    const snapshot = await this.getTransactionSnapshot(
+      transaction.getUserId().valueOf(),
+      transaction.getId().valueOf(),
+    );
+
+    snapshot?.operations.forEach((operationSnapshot) => {
+      operationsSnapshots.set(operationSnapshot.id, operationSnapshot);
+    });
+
+    await this.operationsRepository.save(
+      transaction.getUserId().valueOf(),
+      operations,
+      operationsSnapshots,
+    );
   }
 
-  rootSave(_userId: UUID, _transaction: Transaction): Promise<void> {
-    throw new Error('Method not implemented.');
-    // await this.executeDatabaseOperation(
-    //   async () => {
-    //     const entries: EntryDbRow[] = [];
-    //     const operations: OperationDbRow[] = [];
-
-    //     const entriesSnapshots = new Map<UUID, EntrySnapshot>();
-    //     const operationsSnapshots = new Map<UUID, OperationSnapshot>();
-
-    //     transaction.getEntries().forEach((entry) => {
-    //       entries.push(EntryMapper.toDBRow(entry));
-
-    //       entry.getOperations().forEach((operation) => {
-    //         operations.push(OperationMapper.toDBRow(operation));
-    //       });
-    //     });
-
-    //     const snapshot = await this.getTransactionSnapshot(
-    //       transaction.getUserId().valueOf(),
-    //       transaction.getId().valueOf(),
-    //     );
-
-    //     snapshot?.entries.forEach((entrySnapshot) => {
-    //       entriesSnapshots.set(entrySnapshot.id, entrySnapshot);
-
-    //       entrySnapshot.operations.forEach((operationSnapshot) => {
-    //         operationsSnapshots.set(operationSnapshot.id, operationSnapshot);
-    //       });
-    //     });
-
-    //     await this.save(userId, transaction, snapshot);
-
-    //     await this.entriesRepository.save(userId, entries, entriesSnapshots);
-
-    //     await this.operationsRepository.save(
-    //       userId,
-    //       operations,
-    //       operationsSnapshots,
-    //     );
-    //   },
-    //   'TransactionRepository.save',
-    //   {
-    //     field: 'transactionId',
-    //     tableName: 'transactions',
-    //     value: transaction.getId().valueOf(),
-    //   },
-    // );
+  async save(userId: UUID, transaction: Transaction): Promise<void> {
+    await this.executeDatabaseOperation(
+      async () => {
+        await this.update(userId, transaction);
+        await this.saveOperations(transaction);
+      },
+      'TransactionRepository.save',
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transaction.getId().valueOf(),
+      },
+    );
   }
 
-  getTransactionSnapshot(
-    _userId: UUID,
-    _transactionId: UUID,
+  async getTransactionSnapshot(
+    userId: UUID,
+    transactionId: UUID,
   ): Promise<TransactionWithRelations | null> {
-    throw new Error('Method not implemented.');
-    // return this.executeDatabaseOperation(
-    //   async () => {
-    //     const transactionDbRow: TransactionWithRelations | undefined =
-    //       await this.db.query.transactionsTable.findFirst({
-    //         where: and(
-    //           eq(transactionsTable.id, transactionId),
-    //           eq(transactionsTable.userId, userId),
-    //         ),
-    //         with: {
-    //           entries: { with: { operations: true } },
-    //         },
-    //       });
+    return this.executeDatabaseOperation(
+      async () => {
+        const transactionDbRow: TransactionWithRelations | undefined =
+          await this.db.query.transactionsTable.findFirst({
+            where: and(
+              eq(transactionsTable.id, transactionId),
+              eq(transactionsTable.userId, userId),
+            ),
+            with: {
+              operations: true,
+            },
+          });
 
-    //     if (!transactionDbRow) {
-    //       return null;
-    //     }
+        if (!transactionDbRow) {
+          return null;
+        }
 
-    //     return transactionDbRow;
-    //   },
-    //   'TransactionRepository.getTransactionSnapshot',
-    //   {
-    //     field: 'transactionId',
-    //     tableName: 'transactions',
-    //     value: transactionId,
-    //   },
-    // );
+        return transactionDbRow;
+      },
+      'TransactionRepository.getTransactionSnapshot',
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transactionId,
+      },
+    );
   }
 
   getById(_userId: UUID, _transactionId: UUID): Promise<Transaction | null> {
@@ -212,40 +210,23 @@ export class TransactionRepository
     // );
   }
 
-  // update(_transaction: Transaction): Promise<void> {
-  // throw new Error('Method not implemented.');
-  // return this.executeDatabaseOperation(
-  //   async () => {
-  //     const safeData = this.getSafeUpdate(transaction, [
-  //       'description',
-  //       'postingDate',
-  //       'transactionDate',
-  //       'updatedAt',
-  //     ]);
+  async create(userId: UUID, transaction: Transaction): Promise<void> {
+    return await this.executeDatabaseOperation(
+      async () => {
+        const operationsDataToInsert = transaction
+          .getOperations()
+          .map((operation) => OperationMapper.toDBRow(operation));
 
-  //     const updated = await this.db
-  //       .update(transactionsTable)
-  //       .set(safeData)
-  //       .where(
-  //         and(
-  //           eq(transactionsTable.id, transactionId),
-  //           eq(transactionsTable.userId, userId),
-  //         ),
-  //       )
-  //       .returning()
-  //       .get();
+        await this.operationsRepository.save(userId, operationsDataToInsert);
 
-  //     return this.ensureEntityExists(
-  //       updated,
-  //       `Transaction with ID ${transactionId} not found`,
-  //     );
-  //   },
-  //   'TransactionRepository.update',
-  //   {
-  //     field: 'transactionId',
-  //     tableName: 'transactions',
-  //     value: transactionId,
-  //   },
-  // );
-  // }
+        await this.insert(userId, transaction);
+      },
+      'TransactionRepository.create',
+      {
+        field: 'transactionId',
+        tableName: 'transactions',
+        value: transaction.getId().valueOf(),
+      },
+    );
+  }
 }

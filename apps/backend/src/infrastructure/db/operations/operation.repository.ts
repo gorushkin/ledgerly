@@ -14,7 +14,7 @@ export class OperationRepository
   extends BaseRepository
   implements OperationRepositoryInterface
 {
-  insert(
+  private insert(
     userId: UUID,
     operations: OperationDbInsert[],
   ): Promise<OperationDbRow[]> {
@@ -40,7 +40,7 @@ export class OperationRepository
     );
   }
 
-  update(userId: UUID, operations: OperationDbRow[]): Promise<void> {
+  private update(userId: UUID, operations: OperationDbRow[]): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
         for (const operation of operations) {
@@ -64,7 +64,7 @@ export class OperationRepository
     );
   }
 
-  softDelete(userId: UUID, operationIds: UUID[]): Promise<void> {
+  private softDelete(userId: UUID, operationIds: UUID[]): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
         await this.db
@@ -89,7 +89,7 @@ export class OperationRepository
   async save(
     userId: UUID,
     operations: OperationDbRow[],
-    snapshots: Map<UUID, OperationSnapshot>,
+    snapshots?: Map<UUID, OperationSnapshot>,
   ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
@@ -98,7 +98,7 @@ export class OperationRepository
         const operationsToDelete: UUID[] = [];
 
         operations.forEach((operation) => {
-          const matchedOperationSnapshot = snapshots.get(operation.id);
+          const matchedOperationSnapshot = snapshots?.get(operation.id);
 
           if (!matchedOperationSnapshot) {
             operationsToInsert.push(operation);

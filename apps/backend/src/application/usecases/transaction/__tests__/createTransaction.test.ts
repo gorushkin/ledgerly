@@ -14,7 +14,7 @@ describe('CreateTransactionUseCase', () => {
   let user: User;
 
   const mockTransactionRepository = {
-    rootSave: vi.fn(),
+    create: vi.fn(),
   };
 
   const transactionManager = {
@@ -83,12 +83,12 @@ describe('CreateTransactionUseCase', () => {
 
       expect(transactionManager.run).toHaveBeenCalled();
 
-      expect(mockTransactionRepository.rootSave).toHaveBeenCalled();
+      expect(mockTransactionRepository.create).toHaveBeenCalled();
 
-      const savedTransaction = mockTransactionRepository.rootSave.mock
+      const savedTransaction = mockTransactionRepository.create.mock
         .calls[0][1] as unknown as Transaction;
 
-      const savedUserId = mockTransactionRepository.rootSave.mock
+      const savedUserId = mockTransactionRepository.create.mock
         .calls[0][0] as unknown as User;
 
       expect(savedUserId).toBe(user.getId().valueOf());
@@ -143,7 +143,7 @@ describe('CreateTransactionUseCase', () => {
 
     it('should propagate error when rootSave fails', async () => {
       const dbError = new Error('Database error');
-      mockTransactionRepository.rootSave.mockRejectedValue(dbError);
+      mockTransactionRepository.create.mockRejectedValue(dbError);
 
       const { transactionContext, transactionDTO } = TransactionBuilder.create(
         user,
