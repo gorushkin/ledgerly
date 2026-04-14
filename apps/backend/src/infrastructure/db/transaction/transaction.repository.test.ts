@@ -97,68 +97,6 @@ describe('TransactionRepository', () => {
     transactionContext = data.transactionContext;
   });
 
-  describe('getTransactionSnapshot', () => {
-    it('should retrieve a transaction snapshot with operations', async () => {
-      const transaction = data.transaction;
-
-      const operationsDataToInsert = transaction
-        .getOperations()
-        .map((operation) => {
-          return {
-            accountId: operation.accountRelation.getParentId().valueOf(),
-            amount: operation.amount.valueOf(),
-            description: operation.description,
-            id: operation.getId().valueOf(),
-            isSystem: operation.isSystem,
-            transactionId: operation.transactionId.valueOf(),
-            value: operation.value.valueOf(),
-          };
-        });
-
-      const insertedTransaction = await testDB.createTransactionWithOperations(
-        user.id,
-        {
-          currencyCode: transaction.currency.valueOf(),
-          description: transaction.description,
-          operations: operationsDataToInsert,
-          postingDate: transaction.getPostingDate().valueOf(),
-          transactionDate: transaction.getTransactionDate().valueOf(),
-        },
-      );
-
-      const snapshot = await transactionRepository.getTransactionSnapshot(
-        user.id,
-        insertedTransaction.id,
-      );
-
-      expect(snapshot).not.toBeNull();
-      expect(snapshot?.description).toBe(transaction.description);
-
-      expect(snapshot?.postingDate).toBe(
-        transaction.getPostingDate().valueOf(),
-      );
-      expect(snapshot?.transactionDate).toBe(
-        transaction.getTransactionDate().valueOf(),
-      );
-
-      const retrievedOperations = snapshot?.operations ?? [];
-
-      expect(retrievedOperations.length).toBe(operationsDataToInsert.length);
-
-      retrievedOperations.forEach((operation) => {
-        const matchingOperation = insertedTransaction.operations.find(
-          (op) => op.id === operation.id,
-        );
-
-        expect(matchingOperation).not.toBeUndefined();
-        expect(operation.description).toBe(matchingOperation?.description);
-        expect(operation.amount).toBe(matchingOperation?.amount);
-        expect(operation.isSystem).toBe(matchingOperation?.isSystem);
-        expect(operation.value).toBe(matchingOperation?.value);
-      });
-    });
-  });
-
   describe('getById', () => {
     it('should retrieve a transaction by ID with operations', async () => {
       const transaction = data.transaction;
@@ -333,11 +271,6 @@ describe('TransactionRepository', () => {
       );
 
       const updatedSnapshot = transaction.toSnapshot();
-
-      vi.spyOn(
-        transactionRepository,
-        'getTransactionSnapshot',
-      ).mockResolvedValue(data.transactionWithRelations);
 
       await transactionRepository.update(user.id, transaction);
 

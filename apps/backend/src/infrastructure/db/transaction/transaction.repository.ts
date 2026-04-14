@@ -129,8 +129,7 @@ export class TransactionRepository
       },
     );
   }
-
-  async getTransactionSnapshot(
+  private async getTransactionSnapshot(
     userId: UUID,
     transactionId: UUID,
   ): Promise<TransactionWithRelations | null> {

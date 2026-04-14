@@ -12,7 +12,7 @@ import {
 } from '@ledgerly/shared/types';
 import { isoDate, isoDatetime } from '@ledgerly/shared/validation';
 import { createClient } from '@libsql/client';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
@@ -253,7 +253,7 @@ export class TestDB {
       accountId: UUID;
       description: string;
       transactionId: UUID;
-      id: UUID;
+      id?: UUID;
       amount: MoneyString;
       value: MoneyString;
       isSystem?: boolean;
@@ -517,7 +517,6 @@ export class TestDB {
       accountId: accountUSD2.id,
       amount: Amount.create('-5000').valueOf(),
       description: 'Grocery Shopping',
-      id: transaction1.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction1.id,
       value: Amount.create('-5000').valueOf(),
     });
@@ -526,7 +525,6 @@ export class TestDB {
       accountId: accountEUR.id,
       amount: Amount.create('2000').valueOf(),
       description: 'Credit Card Payment',
-      id: transaction1.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction1.id,
       value: Amount.create('2000').valueOf(),
     });
@@ -535,7 +533,6 @@ export class TestDB {
       accountId: accountUSD1.id,
       amount: Amount.create('-2000').valueOf(),
       description: 'Utility Bill',
-      id: transaction1.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction1.id,
       value: Amount.create('-2000').valueOf(),
     });
@@ -544,7 +541,6 @@ export class TestDB {
       accountId: accountUSD1.id,
       amount: Amount.create('15000').valueOf(),
       description: 'Salary',
-      id: transaction2.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction2.id,
       value: Amount.create('15000').valueOf(),
     });
@@ -553,7 +549,6 @@ export class TestDB {
       accountId: accountUSD2.id,
       amount: Amount.create('-15000').valueOf(),
       description: 'Rent Payment',
-      id: transaction2.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction2.id,
       value: Amount.create('-15000').valueOf(),
     });
@@ -592,5 +587,16 @@ export class TestDB {
 
   getAllOperations = async () => {
     return this.db.select().from(schema.operationsTable);
+  };
+
+  getAllTransactionByUserId = async (
+    userId: UUID,
+  ): Promise<TransactionWithRelations[]> => {
+    return await this.db.query.transactionsTable.findMany({
+      where: eq(transactionsTable.userId, userId),
+      with: {
+        operations: true,
+      },
+    });
   };
 }
