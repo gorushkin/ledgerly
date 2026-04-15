@@ -6,6 +6,6 @@ export type OperationRepositoryInterface = {
   save(
     userId: UUID,
     operations: OperationDbRow[],
-    snapshots: Map<UUID, OperationSnapshot>,
+    snapshots?: Map<UUID, OperationSnapshot>,
   ): Promise<void>;
 };

@@ -1,383 +1,383 @@
-// import { UUID } from '@ledgerly/shared/types';
-// import {
-//   CreateEntryRequestDTO,
-//   EntryMapper,
-//   OperationMapper,
-// } from 'src/application';
-// import { EntryDbInsert, UserDbRow } from 'src/db/schema';
-// import { TestDB } from 'src/db/test-db';
-// import { TransactionBuilder } from 'src/db/test-utils';
-// import { Account, Entry, Operation, Transaction, User } from 'src/domain';
-// import { Amount, DateValue } from 'src/domain/domain-core';
-// import { Id } from 'src/domain/domain-core/value-objects/Id';
-// import { EntrySnapshot } from 'src/domain/entries/types';
-// import { OperationSnapshot } from 'src/domain/operations/types';
-// import { TransactionBuildContext } from 'src/domain/transactions/types';
-// import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { describe, it } from 'vitest';
-
-// import {
-//   OperationRepository,
-//   EntryRepository,
-//   TransactionManager,
-//   TransactionRepository,
-// } from '../';
-
-// describe('TransactionRepository', () => {
-//   let testDB: TestDB;
-//   let transactionRepository: TransactionRepository;
-//   let user: UserDbRow;
-//   let entryContext: TransactionBuildContext;
-//   let entry1: CreateEntryRequestDTO;
-//   let entry2: CreateEntryRequestDTO;
-//   let usdAccount: Account;
-//   let eurAccount: Account;
-
-//   const postingDate = DateValue.create().valueOf();
-//   const transactionDate = DateValue.create().valueOf();
-//   const description = 'Test transaction';
-
-//   const mockEntriesRepository = {
-//     save: vi.fn(),
-//   };
-
-//   const mockOperationsRepository = {
-//     save: vi.fn(),
-//   };
-
-//   const transactionManager = {
-//     getCurrentTransaction: () => testDB.db,
-//     run: vi.fn((cb: () => unknown) => {
-//       return cb();
-//     }),
-//   };
-
-//   beforeEach(async () => {
-//     testDB = new TestDB();
-
-//     await testDB.setupTestDb();
-
-//     user = await testDB.createUser();
-
-//     const transactionBuilder = TransactionBuilder.create(
-//       User.fromPersistence(user),
-//     );
-
-//     const data = transactionBuilder
-//       .withAccounts(['USD', 'EUR'])
-//       .withSystemAccounts()
-//       .build();
-
-//     usdAccount = data.getAccountByKey('USD');
-//     eurAccount = data.getAccountByKey('EUR');
-
-//     const usdSystemAccount = data.getSystemAccountByCurrency('USD');
-//     const eurSystemAccount = data.getSystemAccountByCurrency('EUR');
-
-//     await testDB.insertAccount(usdAccount.toPersistence());
-//     await testDB.insertAccount(eurAccount.toPersistence());
-//     await testDB.insertAccount(usdSystemAccount.toPersistence());
-//     await testDB.insertAccount(eurSystemAccount.toPersistence());
-
-//     transactionRepository = new TransactionRepository(
-//       mockEntriesRepository as unknown as EntryRepository,
-//       mockOperationsRepository as unknown as OperationRepository,
-//       transactionManager as unknown as TransactionManager,
-//     );
-
-//     entryContext = data.transactionContext;
-
-//     entry1 = {
-//       description: 'Sample Entry 1',
-//       operations: [
-//         {
-//           accountId: usdAccount.getId().valueOf(),
-//           amount: Amount.create('-200').valueOf(),
-//           description: 'Credit operation 1',
-//         },
-//         {
-//           accountId: eurAccount.getId().valueOf(),
-//           amount: Amount.create('100').valueOf(),
-//           description: 'Debit operation 2',
-//         },
-//       ],
-//     };
-
-//     entry2 = {
-//       description: 'Sample Entry 2',
-//       operations: [
-//         {
-//           accountId: usdAccount.getId().valueOf(),
-//           amount: Amount.create('-200').valueOf(),
-//           description: 'Credit operation 3',
-//         },
-//         {
-//           accountId: usdAccount.getId().valueOf(),
-//           amount: Amount.create('200').valueOf(),
-//           description: 'Debit operation 4',
-//         },
-//       ],
-//     };
-//   });
-
-//   describe('create', () => {
-//     it('should create a transaction and trigger entriesRepository.save and operationsRepository.save', async () => {
-//       const userDomain = User.fromPersistence(user);
-
-//       const transaction = Transaction.create(
-//         userDomain.getId(),
-//         {
-//           description,
-//           entries: [entry1, entry2],
-//           postingDate,
-//           transactionDate,
-//         },
-//         entryContext,
-//       );
-
-//       const entriesInsert: EntryDbInsert[] = transaction
-//         .getEntries()
-//         .map((entry) => {
-//           return EntryMapper.toDBRow(entry);
-//         });
-
-//       const operationsToInsert = transaction
-//         .getEntries()
-//         .flatMap((entry) =>
-//           entry
-//             .getOperations()
-//             .map((operation) => OperationMapper.toDBRow(operation)),
-//         );
-
-//       await transactionRepository.rootSave(user.id, transaction);
-
-//       const row = await testDB.getTransactionWithRelations(
-//         transaction.getId().valueOf(),
-//       );
-
-//       expect(mockEntriesRepository.save).toHaveBeenCalledTimes(1);
-
-//       expect(mockEntriesRepository.save).toHaveBeenCalledWith(
-//         user.id,
-//         entriesInsert,
-//         new Map<UUID, EntrySnapshot>(),
-//       );
-
-//       expect(mockOperationsRepository.save).toHaveBeenCalledTimes(1);
-//       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
-//         user.id,
-//         operationsToInsert,
-//         new Map<UUID, OperationSnapshot>(),
-//       );
-
-//       expect(row).not.toBeNull();
-//       expect(row?.description).toBe(description);
-//       expect(row?.postingDate).toBe(postingDate);
-//       expect(row?.transactionDate).toBe(transactionDate);
-//     });
-//   });
-
-//   describe('getById', () => {
-//     it('should retrieve a transaction by ID', async () => {
-//       const transaction = await testDB.createTransaction(user.id);
-
-//       const fetchedTransaction = await transactionRepository.getById(
-//         user.id,
-//         transaction.id,
-//       );
-
-//       expect(fetchedTransaction?.description).toEqual(transaction.description);
-//       expect(fetchedTransaction?.getPostingDate().valueOf()).toEqual(
-//         transaction.postingDate,
-//       );
-//       expect(fetchedTransaction?.getTransactionDate().valueOf()).toEqual(
-//         transaction.transactionDate,
-//       );
-
-//       expect(fetchedTransaction?.getEntries().length).toBe(0);
-//     });
-
-//     it('should return null if transaction not found', async () => {
-//       const fetchedTransaction = await transactionRepository.getById(
-//         user.id,
-//         Id.create().valueOf(),
-//       );
-
-//       expect(fetchedTransaction).toBeNull();
-//     });
-//   });
-
-//   describe('Update transaction', () => {
-//     let transactionId: UUID;
-
-//     let restoredTransaction: Transaction;
-
-//     let addedEntries: Entry[];
-//     let addedOperations: Operation[];
-
-//     let entriesSnapshots: Map<UUID, EntrySnapshot>;
-//     let operationsSnapshots: Map<UUID, OperationSnapshot>;
-
-//     beforeEach(async () => {
-//       const userDomain = User.fromPersistence(user);
-
-//       const transaction = Transaction.create(
-//         userDomain.getId(),
-//         {
-//           description,
-//           entries: [entry1],
-//           postingDate,
-//           transactionDate,
-//         },
-//         entryContext,
-//       );
-
-//       const snapshot = transaction.toSnapshot();
-
-//       entriesSnapshots = new Map<UUID, EntrySnapshot>();
-//       operationsSnapshots = new Map<UUID, OperationSnapshot>();
-
-//       snapshot?.entries.forEach((entrySnapshot) => {
-//         entriesSnapshots.set(entrySnapshot.id, entrySnapshot);
-
-//         entrySnapshot.operations.forEach((operationSnapshot) => {
-//           operationsSnapshots.set(operationSnapshot.id, operationSnapshot);
-//         });
-//       });
-
-//       addedEntries = transaction.getEntries();
-
-//       addedOperations = transaction
-//         .getEntries()
-//         .flatMap((entry) => entry.getOperations());
-
-//       const transactionDBRow = await testDB.insertTransaction(
-//         transaction.toSnapshot(),
-//       );
-
-//       transactionId = transactionDBRow.id;
-
-//       const transactionWithRelations =
-//         await testDB.getTransactionWithRelations(transactionId);
-
-//       if (!transactionWithRelations) {
-//         throw new Error('Failed to retrieve transaction with relations');
-//       }
-
-//       restoredTransaction = Transaction.restore({
-//         createdAt: transactionWithRelations.createdAt,
-//         description: transactionWithRelations.description,
-//         entries: transactionWithRelations.entries,
-//         id: transactionWithRelations.id,
-//         isTombstone: transactionWithRelations.isTombstone,
-//         postingDate: transactionWithRelations.postingDate,
-//         transactionDate: transactionWithRelations.transactionDate,
-//         updatedAt: transactionWithRelations.updatedAt,
-//         userId: transactionWithRelations.userId,
-//         version: transactionWithRelations.version,
-//       });
-//     });
-
-//     it('should update transaction description and dates and trigger entriesRepository.save and operationsRepository.save with empty arrays', async () => {
-//       const transactionDBRowBeforeUpdate =
-//         await testDB.getTransactionWithRelations(transactionId);
-
-//       expect(transactionDBRowBeforeUpdate).not.toBeNull();
-//       expect(transactionDBRowBeforeUpdate?.description).toBe(description);
-
-//       restoredTransaction.applyUpdate({
-//         entries: {
-//           create: [],
-//           delete: [],
-//           update: [],
-//         },
-//         metadata: {
-//           description: 'Updated Description',
-//           postingDate: DateValue.restore('2024-01-01').valueOf(),
-//           transactionDate: DateValue.restore('2024-01-02').valueOf(),
-//         },
-//       });
-
-//       await transactionRepository.rootSave(user.id, restoredTransaction);
-
-//       const transactionDBRowAfterUpdate =
-//         await testDB.getTransactionWithRelations(transactionId);
-
-//       expect(transactionDBRowAfterUpdate).not.toBeNull();
-//       expect(transactionDBRowAfterUpdate?.description).toBe(
-//         'Updated Description',
-//       );
-//       expect(transactionDBRowAfterUpdate?.postingDate).toBe(
-//         DateValue.restore('2024-01-01').valueOf(),
-//       );
-//       expect(transactionDBRowAfterUpdate?.transactionDate).toBe(
-//         DateValue.restore('2024-01-02').valueOf(),
-//       );
-
-//       expect(mockEntriesRepository.save).toHaveBeenCalledWith(
-//         user.id,
-//         [],
-//         new Map<UUID, EntrySnapshot>(),
-//       );
-
-//       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
-//         user.id,
-//         [],
-//         new Map<UUID, OperationSnapshot>(),
-//       );
-//     });
-
-//     it('Should trigger entriesRepository.save and operationsRepository.save with deletions', async () => {
-//       await Promise.all(
-//         addedEntries.map(async (entry) => {
-//           const entrySnapshot = entry.toSnapshot();
-//           await testDB.insertEntry(entrySnapshot);
-
-//           await Promise.all(
-//             entry.getOperations().map(async (operation) => {
-//               const operationSnapshot = operation.toSnapshot();
-//               await testDB.insertOperation(operationSnapshot);
-//             }),
-//           );
-//         }),
-//       );
-
-//       const entriesToDeleteId = addedEntries.map((entry) =>
-//         entry.getId().valueOf(),
-//       );
-
-//       restoredTransaction.attachEntries(addedEntries);
-
-//       restoredTransaction.applyUpdate(
-//         {
-//           entries: {
-//             create: [],
-//             delete: entriesToDeleteId,
-//             update: [],
-//           },
-//           metadata: {},
-//         },
-//         entryContext,
-//       );
-
-//       await transactionRepository.rootSave(user.id, restoredTransaction);
-
-//       expect(mockEntriesRepository.save).toHaveBeenCalledWith(
-//         user.id,
-//         addedEntries.map((entry) => EntryMapper.toDBRow(entry)),
-//         entriesSnapshots,
-//       );
-
-//       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
-//         user.id,
-//         addedOperations.map((operation) => OperationMapper.toDBRow(operation)),
-//         operationsSnapshots,
-//       );
-//     });
-//   });
-// });
+import { UUID } from '@ledgerly/shared/types';
+import { OperationMapper } from 'src/application/mappers/operation.mapper';
+import { OperationDbRow, UserDbRow } from 'src/db/schema';
+import { TestDB } from 'src/db/test-db';
+import {
+  TransactionBuilder,
+  TransactionBuilderResult,
+} from 'src/db/test-utils';
+import { Account, Operation, User } from 'src/domain';
+import { Amount, DateValue } from 'src/domain/domain-core';
+import { OperationSnapshot } from 'src/domain/operations/types';
+import { TransactionBuildContext } from 'src/domain/transactions/types';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  OperationRepository,
+  TransactionManager,
+  TransactionRepository,
+} from '../';
 
 describe('TransactionRepository', () => {
-  it.todo('should have tests implemented');
+  let testDB: TestDB;
+  let transactionRepository: TransactionRepository;
+  let user: UserDbRow;
+  let transactionContext: TransactionBuildContext;
+  let usdAccount: Account;
+  let eurAccount: Account;
+  let data: TransactionBuilderResult;
+  const description = 'Test transaction';
+
+  const mockOperationsRepository = {
+    save: vi.fn(),
+  };
+
+  const transactionManager = {
+    getCurrentTransaction: () => testDB.db,
+    run: vi.fn((cb: () => unknown) => {
+      return cb();
+    }),
+  };
+
+  beforeEach(async () => {
+    testDB = new TestDB();
+
+    await testDB.setupTestDb();
+
+    user = await testDB.createUser();
+
+    const transactionBuilder = TransactionBuilder.create(
+      User.fromPersistence(user),
+    );
+
+    data = transactionBuilder
+      .withAccounts(['USD', 'EUR'])
+      .withOperations([
+        {
+          accountKey: 'USD',
+          amount: '-200',
+          description: 'Credit operation 1',
+        },
+        {
+          accountKey: 'USD',
+          amount: '200',
+          description: 'Debit operation 1',
+        },
+        {
+          accountKey: 'USD',
+          amount: '-100',
+          description: 'Credit operation 2',
+        },
+        {
+          accountKey: 'USD',
+          amount: '100',
+          description: 'Debit operation 2',
+        },
+      ])
+      .withDescription(description)
+      .attachOperations()
+      .build();
+
+    usdAccount = data.getAccountByKey('USD');
+    eurAccount = data.getAccountByKey('EUR');
+
+    const usdSystemAccount = data.getSystemAccountByCurrency('USD');
+    const eurSystemAccount = data.getSystemAccountByCurrency('EUR');
+
+    await testDB.insertAccount(usdAccount.toPersistence());
+    await testDB.insertAccount(eurAccount.toPersistence());
+    await testDB.insertAccount(usdSystemAccount.toPersistence());
+    await testDB.insertAccount(eurSystemAccount.toPersistence());
+
+    transactionRepository = new TransactionRepository(
+      mockOperationsRepository as unknown as OperationRepository,
+      transactionManager as unknown as TransactionManager,
+    );
+
+    transactionContext = data.transactionContext;
+  });
+
+  describe('getById', () => {
+    it('should retrieve a transaction by ID with operations', async () => {
+      const transaction = data.transaction;
+
+      const operationsDataToInsert = transaction
+        .getOperations()
+        .map((operation) => {
+          return {
+            accountId: operation.accountRelation.getParentId().valueOf(),
+            amount: operation.amount.valueOf(),
+            description: operation.description,
+            id: operation.getId().valueOf(),
+            isSystem: operation.isSystem,
+            transactionId: operation.transactionId.valueOf(),
+            value: operation.value.valueOf(),
+          };
+        });
+
+      const insertedTransaction = await testDB.createTransactionWithOperations(
+        user.id,
+        {
+          currencyCode: transaction.currency.valueOf(),
+          description: transaction.description,
+          operations: operationsDataToInsert,
+          postingDate: transaction.getPostingDate().valueOf(),
+          transactionDate: transaction.getTransactionDate().valueOf(),
+        },
+      );
+
+      const retrievedTransaction = await transactionRepository.getById(
+        user.id,
+        insertedTransaction.id,
+      );
+
+      expect(retrievedTransaction).not.toBeNull();
+      expect(retrievedTransaction?.description).toBe(transaction.description);
+
+      expect(retrievedTransaction?.getPostingDate().valueOf()).toBe(
+        transaction.getPostingDate().valueOf(),
+      );
+      expect(retrievedTransaction?.getTransactionDate().valueOf()).toBe(
+        transaction.getTransactionDate().valueOf(),
+      );
+
+      const retrievedOperations = retrievedTransaction?.getOperations() ?? [];
+
+      expect(retrievedOperations.length).toBe(operationsDataToInsert.length);
+
+      retrievedOperations.forEach((operation) => {
+        const matchingOperation = insertedTransaction.operations.find(
+          (op) => op.id === operation.getId().valueOf(),
+        );
+
+        expect(matchingOperation).not.toBeUndefined();
+        expect(operation.description).toBe(matchingOperation?.description);
+        expect(operation.amount.valueOf()).toBe(
+          matchingOperation?.amount.valueOf(),
+        );
+        expect(operation.isSystem).toBe(matchingOperation?.isSystem);
+        expect(operation.value.valueOf()).toBe(
+          matchingOperation?.value.valueOf(),
+        );
+      });
+    });
+  });
+
+  describe('create', () => {
+    it('should create a new transaction', async () => {
+      const transaction = data.transaction;
+
+      await transactionRepository.create(user.id, transaction);
+
+      const createdTransaction = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
+
+      expect(createdTransaction).not.toBeNull();
+
+      expect(createdTransaction?.description).toBe(transaction.description);
+
+      expect(createdTransaction?.postingDate).toBe(
+        transaction.getPostingDate().valueOf(),
+      );
+
+      expect(createdTransaction?.transactionDate).toBe(
+        transaction.getTransactionDate().valueOf(),
+      );
+
+      const expectedSnapshots = transaction
+        .getOperations()
+        .map((op) => op.toSnapshot());
+
+      expect(mockOperationsRepository.save).toHaveBeenCalledWith(
+        user.id,
+        expectedSnapshots,
+      );
+    });
+  });
+
+  describe('save', () => {
+    it('should update transaction metadata and trigger save', async () => {
+      const transaction = data.transaction;
+
+      const initDeletedOperations: Operation[] = [];
+      const initExistedOperations: Operation[] = [];
+
+      transaction.getOperations().forEach((operation) => {
+        if (operation.isDeleted()) {
+          initDeletedOperations.push(operation);
+        } else {
+          initExistedOperations.push(operation);
+        }
+      });
+
+      const operations = transaction.getOperations();
+
+      const newOperationDescription = 'New operation description';
+      const updateOperationDescription = 'Updated operation description';
+
+      const operationsToCreate = [
+        {
+          account: usdAccount,
+          amount: Amount.create('30000'),
+          description: newOperationDescription,
+          value: Amount.create('30000'),
+        },
+        {
+          account: usdAccount,
+          amount: Amount.create('-30000'),
+          description: newOperationDescription,
+          value: Amount.create('-30000'),
+        },
+      ];
+
+      const operationsToUpdate = [
+        {
+          account: usdAccount,
+          amount: Amount.create('-300'),
+          description: updateOperationDescription,
+          id: operations[0].getId(),
+          value: Amount.create('-300'),
+        },
+        {
+          account: usdAccount,
+          amount: Amount.create('300'),
+          description: updateOperationDescription,
+          id: operations[1].getId(),
+          value: Amount.create('300'),
+        },
+      ];
+
+      const operationsToDelete = [operations[2].getId(), operations[3].getId()];
+
+      const metadata = {
+        description: 'Updated description',
+        postingDate: DateValue.create().valueOf(),
+        transactionDate: DateValue.create().valueOf(),
+      };
+
+      await testDB.insertTransaction(transaction.toSnapshot());
+
+      transaction.applyUpdate(
+        {
+          metadata,
+          operations: {
+            create: operationsToCreate,
+            delete: operationsToDelete,
+            update: operationsToUpdate,
+          },
+        },
+        transactionContext,
+      );
+
+      const updatedSnapshot = transaction.toSnapshot();
+
+      await transactionRepository.update(user.id, transaction);
+
+      const updatedTransaction = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
+
+      expect(updatedTransaction).not.toBeNull();
+
+      expect(updatedTransaction?.description).toBe(updatedSnapshot.description);
+
+      expect(updatedTransaction?.postingDate).toBe(updatedSnapshot.postingDate);
+
+      expect(updatedTransaction?.transactionDate).toBe(
+        updatedSnapshot.transactionDate,
+      );
+
+      const expectedOperationsSnapshots = new Map<UUID, OperationSnapshot>();
+
+      data.transactionWithRelations?.operations.forEach((operationSnapshot) => {
+        expectedOperationsSnapshots.set(
+          operationSnapshot.id,
+          operationSnapshot,
+        );
+      });
+
+      const expectedOperations: OperationDbRow[] = [];
+
+      transaction.getOperations().forEach((operation) => {
+        expectedOperations.push(OperationMapper.toDBRow(operation));
+      });
+
+      expect(mockOperationsRepository.save).toHaveBeenCalledWith(
+        user.id,
+        expectedOperations,
+        expectedOperationsSnapshots,
+      );
+    });
+
+    it('should not update isTombstone field when saving', async () => {
+      const transaction = data.transaction;
+
+      const isDeleted = transaction.isDeleted();
+
+      await testDB.insertTransaction(transaction.toSnapshot());
+      transaction.markAsDeleted();
+
+      await transactionRepository.update(user.id, transaction);
+
+      const updatedTransaction = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
+
+      expect(updatedTransaction).not.toBeNull();
+      expect(updatedTransaction?.isTombstone).toBe(isDeleted);
+    });
+  });
+
+  describe('softDelete', () => {
+    it('should soft delete the transaction and its operations', async () => {
+      const transaction = data.transaction;
+
+      await testDB.insertTransaction(transaction.toSnapshot());
+
+      transaction.markAsDeleted();
+
+      await transactionRepository.softDelete(user.id, transaction);
+
+      const deletedTransaction = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
+
+      expect(deletedTransaction).not.toBeNull();
+      expect(deletedTransaction?.isTombstone).toBe(true);
+
+      expect(transaction.description).toBe(deletedTransaction?.description);
+
+      expect(transaction.getPostingDate().valueOf()).toBe(
+        deletedTransaction?.postingDate,
+      );
+
+      expect(transaction.getTransactionDate().valueOf()).toBe(
+        deletedTransaction?.transactionDate,
+      );
+
+      expect(deletedTransaction?.currency).toBe(transaction.currency.valueOf());
+
+      const expectedOperations: OperationDbRow[] = [];
+
+      transaction.getOperations().forEach((operation) => {
+        expectedOperations.push(OperationMapper.toDBRow(operation));
+      });
+
+      const expectedOperationsSnapshots = new Map<UUID, OperationSnapshot>();
+
+      data.transactionWithRelations?.operations.forEach((operationSnapshot) => {
+        expectedOperationsSnapshots.set(
+          operationSnapshot.id,
+          operationSnapshot,
+        );
+      });
+
+      expect(mockOperationsRepository.save).toHaveBeenCalledWith(
+        user.id,
+        expectedOperations,
+        expectedOperationsSnapshots,
+      );
+    });
+  });
 });

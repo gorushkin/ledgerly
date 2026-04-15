@@ -58,6 +58,6 @@ export type TransactionSnapshot = {
   currency: CurrencyCode;
 };
 
-export type TransactionWithEntriesAndOperations = TransactionSnapshot & {
+export type TransactionSnapshotWithDetails = TransactionSnapshot & {
   operations: OperationSnapshot[];
 };

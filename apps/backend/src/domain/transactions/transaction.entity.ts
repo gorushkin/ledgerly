@@ -25,7 +25,7 @@ import {
   CreateTransactionProps,
   TransactionBuildContext,
   TransactionUpdateData,
-  TransactionWithEntriesAndOperations,
+  TransactionSnapshotWithDetails,
   TransactionSnapshot,
   UpdateTransactionProps,
   OperationsPatch,
@@ -43,7 +43,7 @@ export class Transaction {
     private transactionDate: DateValue,
     public currency: Currency,
     public description: string,
-    private version = 0,
+    public version = 0,
   ) {}
 
   static create(userId: Id, dto: CreateTransactionProps): Transaction {
@@ -110,7 +110,7 @@ export class Transaction {
     return operations;
   }
 
-  static restore(data: TransactionWithEntriesAndOperations): Transaction {
+  static restore(data: TransactionSnapshotWithDetails): Transaction {
     const {
       createdAt,
       currency,
@@ -198,7 +198,9 @@ export class Transaction {
       description: this.description,
       id: this.getId().valueOf(),
       isTombstone: this.isDeleted(),
-      operations: this.operations.map((operation) => operation.toSnapshot()),
+      operations: this.operations
+        .filter((operation) => !operation.isDeleted())
+        .map((operation) => operation.toSnapshot()),
       postingDate: this.postingDate.valueOf(),
       transactionDate: this.transactionDate.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
@@ -433,7 +435,7 @@ export class Transaction {
   }
 
   getOperations(): Operation[] {
-    return this.operations;
+    return this.operations.filter((operation) => !operation.isDeleted());
   }
 
   markAsDeleted(): void {

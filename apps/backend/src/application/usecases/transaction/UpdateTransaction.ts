@@ -63,7 +63,7 @@ export class UpdateTransactionUseCase {
       );
 
       if (isUpdated) {
-        await this.transactionRepository.rootSave(
+        await this.transactionRepository.update(
           user.getId().valueOf(),
           transaction,
         );

@@ -8,6 +8,8 @@ import { Account, AccountType, Operation, Transaction, User } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
 
+import { TransactionWithRelations } from '../schema';
+
 type OperationDataForTransaction = {
   accountKey: string;
   amount: string;
@@ -41,6 +43,7 @@ export type TransactionBuilderResult = {
   };
   operationsData: OperationDataForTransaction[];
   operations: Operation[];
+  transactionWithRelations: TransactionWithRelations;
 };
 
 export class TransactionBuilder {
@@ -263,6 +266,31 @@ export class TransactionBuilder {
         operations,
         postingDate: this.postingDate,
         transactionDate: this.transactionDate,
+      },
+      transactionWithRelations: {
+        createdAt: this.transaction.getCreatedAt().valueOf(),
+        currency: this.transactionCurrency.valueOf(),
+        description: this.transaction.description,
+        id: this.transaction.getId().valueOf(),
+        isTombstone: this.transaction.isDeleted(),
+        operations: this.operations.map((operation) => ({
+          accountId: operation.getAccountId().valueOf(),
+          amount: operation.amount.valueOf(),
+          createdAt: operation.getCreatedAt().valueOf(),
+          description: operation.description,
+          id: operation.getId().valueOf(),
+          isSystem: operation.isSystem,
+          isTombstone: operation.isDeleted(),
+          transactionId: operation.transactionId.valueOf(),
+          updatedAt: operation.getUpdatedAt().valueOf(),
+          userId: operation.getUserId().valueOf(),
+          value: operation.value.valueOf(),
+        })),
+        postingDate: this.transaction.getPostingDate().valueOf(),
+        transactionDate: this.transaction.getTransactionDate().valueOf(),
+        updatedAt: this.transaction.getUpdatedAt().valueOf(),
+        userId: this.transaction.getUserId().valueOf(),
+        version: this.transaction.version,
       },
       user: this.user,
     };

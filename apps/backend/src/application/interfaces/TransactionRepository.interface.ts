@@ -4,8 +4,9 @@ import { Transaction } from 'src/domain';
 import { OperationRepositoryInterface } from './OperationRepository.interface';
 
 export type TransactionRepositoryInterface = {
-  rootSave(userId: UUID, transaction: Transaction): Promise<void>;
+  update(userId: UUID, transaction: Transaction): Promise<void>;
+  create(userId: UUID, transaction: Transaction): Promise<void>;
   getById(userId: UUID, transactionId: UUID): Promise<Transaction | null>;
-  delete(userId: UUID, transactionId: UUID): Promise<void>;
+  softDelete(userId: UUID, transaction: Transaction): Promise<void>;
   readonly operationsRepository: OperationRepositoryInterface;
 };

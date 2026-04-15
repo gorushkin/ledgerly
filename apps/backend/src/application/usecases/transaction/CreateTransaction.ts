@@ -38,7 +38,7 @@ export class CreateTransactionUseCase {
         createTransactionProps,
       );
 
-      await this.transactionRepository.rootSave(
+      await this.transactionRepository.create(
         user.getId().valueOf(),
         transaction,
       );

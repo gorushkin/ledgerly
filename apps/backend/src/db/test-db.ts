@@ -12,7 +12,7 @@ import {
 } from '@ledgerly/shared/types';
 import { isoDate, isoDatetime } from '@ledgerly/shared/validation';
 import { createClient } from '@libsql/client';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
@@ -31,6 +31,8 @@ import {
   UserDbRow,
   TransactionWithRelations,
   AccountDbInsert,
+  OperationDbInsert,
+  OperationDbRow,
 } from './schema';
 import * as schema from './schemas';
 
@@ -185,6 +187,7 @@ export class TestDB {
       postingDate: IsoDateString;
       transactionDate: IsoDateString;
       currencyCode: CurrencyCode;
+      isTombstone?: boolean;
     },
   ): Promise<TransactionDbRow> => {
     const transactionData: TransactionDbInsert = {
@@ -194,9 +197,9 @@ export class TestDB {
       description:
         params?.description ??
         `Test Transaction ${this.transactionCounter.getNextName()}`,
-      isTombstone: false,
-      postingDate: DateValue.create().valueOf(),
-      transactionDate: DateValue.create().valueOf(),
+      isTombstone: params?.isTombstone ?? false,
+      postingDate: params?.postingDate ?? DateValue.create().valueOf(),
+      transactionDate: params?.transactionDate ?? DateValue.create().valueOf(),
       ...params,
       userId,
       version: 0,
@@ -209,6 +212,81 @@ export class TestDB {
       .get();
 
     return transaction;
+  };
+
+  createTransactionWithOperations = async (
+    userId: UUID,
+    params?: {
+      description: string;
+      postingDate: IsoDateString;
+      transactionDate: IsoDateString;
+      currencyCode: CurrencyCode;
+      isTombstone?: boolean;
+      operations: {
+        accountId: UUID;
+        description: string;
+        transactionId: UUID;
+        amount: MoneyString;
+        value: MoneyString;
+        isSystem?: boolean;
+        isTombstone?: boolean;
+        id: UUID;
+      }[];
+    },
+  ): Promise<TransactionWithRelations> => {
+    const transaction = await this.createTransaction(userId, params);
+
+    const operations: OperationDbRow[] = [];
+
+    for (const operationParams of params?.operations ?? []) {
+      const operation = await this.createOperation(userId, {
+        ...operationParams,
+        transactionId: transaction.id,
+      });
+
+      operations.push(operation);
+    }
+
+    return { ...transaction, operations };
+  };
+
+  createOperation = async (
+    userId: UUID,
+    params?: {
+      accountId: UUID;
+      description: string;
+      transactionId: UUID;
+      id?: UUID;
+      amount: MoneyString;
+      value: MoneyString;
+      isSystem?: boolean;
+      isTombstone?: boolean;
+    },
+  ) => {
+    const operationData: OperationDbInsert = {
+      isSystem: params?.isSystem ?? false,
+      ...TestDB.uuid,
+      ...TestDB.createTimestamps,
+      amount: params?.amount ?? Amount.create('1000').valueOf(),
+      ...params,
+      accountId: params?.accountId ?? (crypto.randomUUID() as UUID),
+      description:
+        params?.description ??
+        `Test Operation ${this.operationCounter.getNextName()}`,
+      id: params?.id ?? (crypto.randomUUID() as UUID),
+      isTombstone: params?.isTombstone ?? false,
+      transactionId: params?.transactionId ?? (crypto.randomUUID() as UUID),
+      userId,
+      value: params?.value ?? Amount.create('1000').valueOf(),
+    };
+
+    const operation = await this.db
+      .insert(schema.operationsTable)
+      .values(operationData)
+      .returning()
+      .get();
+
+    return operation;
   };
 
   getTransactionById = async (
@@ -344,43 +422,25 @@ export class TestDB {
     return operation;
   };
 
-  insertTransaction = async (transactionData: TransactionSnapshot) => {
+  insertTransaction = async (
+    transactionData: TransactionSnapshot,
+  ): Promise<TransactionWithRelations> => {
     const transaction = await this.db
       .insert(transactionsTable)
       .values(transactionData)
       .returning()
       .get();
 
-    return transaction;
-  };
+    const operations = await Promise.all(
+      transactionData.operations.map((operation) =>
+        this.insertOperation({
+          ...operation,
+          transactionId: transaction.id,
+        }),
+      ),
+    );
 
-  createOperation = async (
-    userId: UUID,
-    params: {
-      accountId: UUID;
-      description: string;
-      transactionId: UUID;
-      amount: MoneyString;
-      value: MoneyString;
-      isSystem?: boolean;
-    },
-  ) => {
-    const operationData = {
-      isSystem: params.isSystem ?? false,
-      ...TestDB.uuid,
-      ...TestDB.createTimestamps,
-      ...params,
-      isTombstone: false,
-      userId,
-    };
-
-    const operation = await this.db
-      .insert(schema.operationsTable)
-      .values(operationData)
-      .returning()
-      .get();
-
-    return operation;
+    return { ...transaction, operations };
   };
 
   getOperationsByAccountId = async (userId: UUID, accountId: UUID) => {
@@ -530,5 +590,16 @@ export class TestDB {
 
   getAllOperations = async () => {
     return this.db.select().from(schema.operationsTable);
+  };
+
+  getAllTransactionByUserId = async (
+    userId: UUID,
+  ): Promise<TransactionWithRelations[]> => {
+    return await this.db.query.transactionsTable.findMany({
+      where: eq(transactionsTable.userId, userId),
+      with: {
+        operations: true,
+      },
+    });
   };
 }
