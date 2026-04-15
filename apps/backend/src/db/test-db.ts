@@ -512,7 +512,6 @@ export class TestDB {
       accountId: accountUSD1.id,
       amount: Amount.create('10000').valueOf(),
       description: 'Initial Deposit',
-      id: transaction1.id, // Using transaction ID as operation ID for simplicity
       transactionId: transaction1.id,
       value: Amount.create('10000').valueOf(),
     });

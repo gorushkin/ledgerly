@@ -93,8 +93,6 @@ export class TransactionRepository
   ): Promise<void> {
     const operations: OperationDbRow[] = [];
 
-    const operationsSnapshots = new Map<UUID, OperationSnapshot>();
-
     transaction.getOperations().forEach((operation) => {
       operations.push(OperationMapper.toDBRow(operation));
     });
@@ -103,6 +101,8 @@ export class TransactionRepository
       userId,
       transaction.getId().valueOf(),
     );
+
+    const operationsSnapshots = new Map<UUID, OperationSnapshot>();
 
     snapshot?.operations.forEach((operationSnapshot) => {
       operationsSnapshots.set(operationSnapshot.id, operationSnapshot);

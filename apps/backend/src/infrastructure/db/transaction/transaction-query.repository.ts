@@ -65,14 +65,14 @@ export class TransactionQueryRepository
             eq(transactionsTable.isTombstone, false),
           ),
           with: {
-            operations: query?.accountId
-              ? {
-                  where: and(
-                    eq(operationsTable.accountId, query.accountId),
-                    eq(operationsTable.isTombstone, false),
-                  ),
-                }
-              : true,
+            operations: {
+              where: and(
+                ...(query?.accountId
+                  ? [eq(operationsTable.accountId, query.accountId)]
+                  : []),
+                eq(operationsTable.isTombstone, false),
+              ),
+            },
           },
         });
 
