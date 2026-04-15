@@ -50,7 +50,7 @@ describe('GetTransactionByIdUseCase', () => {
 
     const mockOperation2: OperationDbRow = {
       accountId: Id.create().valueOf(),
-      amount: Amount.create('500').valueOf(),
+      amount: Amount.create('-1000').valueOf(),
       createdAt: Timestamp.create().valueOf(),
       description: 'Operation 2',
       id: Id.create().valueOf(),
@@ -59,14 +59,14 @@ describe('GetTransactionByIdUseCase', () => {
       transactionId,
       updatedAt: Timestamp.create().valueOf(),
       userId,
-      value: Amount.create('500').valueOf(),
+      value: Amount.create('-1000').valueOf(),
     };
 
     const mockOperation3: OperationDbRow = {
       accountId: Id.create().valueOf(),
-      amount: Amount.create('-500').valueOf(),
+      amount: Amount.create('500').valueOf(),
       createdAt: Timestamp.create().valueOf(),
-      description: 'Operation 2',
+      description: 'Deleted Operation 1',
       id: Id.create().valueOf(),
       isSystem: false,
       isTombstone: true,
@@ -80,14 +80,14 @@ describe('GetTransactionByIdUseCase', () => {
       accountId: Id.create().valueOf(),
       amount: Amount.create('-500').valueOf(),
       createdAt: Timestamp.create().valueOf(),
-      description: 'Operation 2',
+      description: 'Deleted Operation 2',
       id: Id.create().valueOf(),
       isSystem: false,
       isTombstone: true,
       transactionId,
       updatedAt: Timestamp.create().valueOf(),
       userId,
-      value: Amount.create('500').valueOf(),
+      value: Amount.create('-500').valueOf(),
     };
 
     const deletedOperations = [mockOperation3, mockOperation4];

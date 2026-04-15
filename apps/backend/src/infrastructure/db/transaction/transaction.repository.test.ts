@@ -162,6 +162,9 @@ describe('TransactionRepository', () => {
       });
     });
 
+    it.todo('should return null when transaction does not exist');
+    it.todo('should return null when transaction belongs to another user');
+
     it('should not retrieve a tombstone transaction', async () => {
       const transaction = data.transaction;
 
@@ -180,6 +183,8 @@ describe('TransactionRepository', () => {
   });
 
   describe('create', () => {
+    it.todo('should not create a transaction when user does not exist');
+
     it('should create a new transaction', async () => {
       const transaction = data.transaction;
 
@@ -326,6 +331,8 @@ describe('TransactionRepository', () => {
       );
     });
 
+    it.todo('should not update transaction belonging to another user');
+
     it('should not update isTombstone field when saving', async () => {
       const transaction = data.transaction;
 
@@ -346,6 +353,8 @@ describe('TransactionRepository', () => {
   });
 
   describe('softDelete', () => {
+    it.todo('should not soft delete a transaction belonging to another user');
+
     it('should soft delete the transaction and its operations', async () => {
       const transaction = data.transaction;
 
