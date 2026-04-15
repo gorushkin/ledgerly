@@ -149,9 +149,9 @@ export class Transaction {
       version,
     );
 
-    const operations = data.operations.map((operationData) =>
-      Operation.restore(operationData),
-    );
+    const operations = data.operations
+      .filter((operationData) => !operationData.isTombstone)
+      .map((operationData) => Operation.restore(operationData));
 
     transaction.attachOperations(operations);
 

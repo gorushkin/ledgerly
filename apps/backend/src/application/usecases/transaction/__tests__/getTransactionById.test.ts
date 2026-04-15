@@ -1,5 +1,6 @@
 import {
   EntityNotFoundError,
+  TransactionResponseDTO,
   TransactionQueryRepositoryInterface,
 } from 'src/application';
 import { OperationDbRow, TransactionWithRelations } from 'src/db/schema';
@@ -61,13 +62,44 @@ describe('GetTransactionByIdUseCase', () => {
       value: Amount.create('500').valueOf(),
     };
 
+    const mockOperation3: OperationDbRow = {
+      accountId: Id.create().valueOf(),
+      amount: Amount.create('-500').valueOf(),
+      createdAt: Timestamp.create().valueOf(),
+      description: 'Operation 2',
+      id: Id.create().valueOf(),
+      isSystem: false,
+      isTombstone: true,
+      transactionId,
+      updatedAt: Timestamp.create().valueOf(),
+      userId,
+      value: Amount.create('500').valueOf(),
+    };
+
+    const mockOperation4: OperationDbRow = {
+      accountId: Id.create().valueOf(),
+      amount: Amount.create('-500').valueOf(),
+      createdAt: Timestamp.create().valueOf(),
+      description: 'Operation 2',
+      id: Id.create().valueOf(),
+      isSystem: false,
+      isTombstone: true,
+      transactionId,
+      updatedAt: Timestamp.create().valueOf(),
+      userId,
+      value: Amount.create('500').valueOf(),
+    };
+
+    const deletedOperations = [mockOperation3, mockOperation4];
+    const nonDeletedOperations = [mockOperation1, mockOperation2];
+
     const mockTransactionData: TransactionWithRelations = {
       createdAt,
       currency: Currency.create('USD').valueOf(),
       description: 'Test Transaction',
       id: transactionId,
       isTombstone: false,
-      operations: [mockOperation1, mockOperation2],
+      operations: [...deletedOperations, ...nonDeletedOperations],
       postingDate: DateValue.create().valueOf(),
       transactionDate: DateValue.create().valueOf(),
       updatedAt,
@@ -85,8 +117,17 @@ describe('GetTransactionByIdUseCase', () => {
     );
 
     expect(transaction).toBeDefined();
-    expect(transaction?.id).toBe(transactionId);
-    expect(transaction?.description).toBe('Test Transaction');
+    expect(transaction.id).toBe(transactionId);
+    expect(transaction.description).toBe('Test Transaction');
+    expect(transaction).not.toHaveProperty('isTombstone');
+    expect(transaction.operations).toHaveLength(nonDeletedOperations.length);
+
+    transaction.operations.forEach(
+      (operation: TransactionResponseDTO['operations'][number]) => {
+        expect(operation).not.toHaveProperty('isTombstone');
+      },
+    );
+
     expect(mockTransactionQueryRepository.findById).toHaveBeenCalledTimes(1);
     expect(mockTransactionQueryRepository.findById).toHaveBeenCalledWith(
       userId,

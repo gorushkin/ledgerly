@@ -161,6 +161,22 @@ describe('TransactionRepository', () => {
         );
       });
     });
+
+    it('should not retrieve a tombstone transaction', async () => {
+      const transaction = data.transaction;
+
+      await testDB.insertTransaction({
+        ...transaction.toSnapshot(),
+        isTombstone: true,
+      });
+
+      const retrievedTransaction = await transactionRepository.getById(
+        user.id,
+        transaction.getId().valueOf(),
+      );
+
+      expect(retrievedTransaction).toBeNull();
+    });
   });
 
   describe('create', () => {

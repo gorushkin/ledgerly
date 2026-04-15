@@ -1,4 +1,5 @@
 import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
+import { TransactionResponseDTO, TransactionViewMapper } from 'src/application';
 import {
   AccountRepositoryInterface,
   TransactionQueryRepositoryInterface,
@@ -9,7 +10,10 @@ export class GetAllTransactionsUseCase {
     private readonly transactionQueryRepository: TransactionQueryRepositoryInterface,
     private readonly accountRepository: AccountRepositoryInterface,
   ) {}
-  async execute(userId: UUID, query?: TransactionQueryParams) {
+  async execute(
+    userId: UUID,
+    query?: TransactionQueryParams,
+  ): Promise<TransactionResponseDTO[]> {
     if (query?.accountId) {
       await this.accountRepository.ensureUserOwnsAccount(
         userId,
@@ -17,6 +21,13 @@ export class GetAllTransactionsUseCase {
       );
     }
 
-    return this.transactionQueryRepository.findAll(userId, query);
+    const transactions = await this.transactionQueryRepository.findAll(
+      userId,
+      query,
+    );
+
+    return transactions.map((transaction) =>
+      TransactionViewMapper.toView(transaction),
+    );
   }
 }

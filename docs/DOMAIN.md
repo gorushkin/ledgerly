@@ -29,7 +29,7 @@ Represents a single financial posting affecting an account.
 - `value` — signed integer in the **transaction's currency** (cents); used for balance validation
 - For same-currency transactions `amount === value`
 - Positive = debit, Negative = credit
-- Has soft delete support (`isTombstone`)
+- May be soft-deleted in persistence via `isTombstone`, but tombstone operations are currently excluded from the active domain and read contract
 - Has optional description field
 - `isSystem` — reserved for future trading operations (see below)
 
@@ -81,6 +81,16 @@ Represents different monetary units used in the system.
 1. **Asset/Liability accounts**: Balance is stored and must match real-world balance
 2. **Income/Expense accounts**: Balance is calculated as sum of operations, used only for reporting
 3. Global balance rule: sum of all operations across all accounts = 0
+
+### Deletion Semantics (MVP)
+1. Transactions use soft delete via `isTombstone`
+2. Tombstone transactions must not appear in normal read API responses
+3. Operations may also be marked with `isTombstone` in persistence
+4. Tombstone operations are currently treated as archived storage rows only:
+   - they are not part of the active aggregate contract
+   - they are not returned to clients
+   - they are ignored by normal read flows
+5. If deleted operations later need audit/history/restore semantics, the aggregate and repository contracts must be expanded explicitly
 
 ## Examples
 
@@ -186,6 +196,7 @@ Settings
 - **Timestamps**: ISO datetime strings with branded types (`IsoDatetimeString`)
 - **IDs**: UUIDs for all entities
 - **Soft deletion**: Uses `isTombstone` flag instead of hard deletes
+- **MVP operation deletion rule**: deleted operations may remain in storage but are excluded from active domain/read behavior
 - **System entities**: System accounts and operations marked with `isSystem = true`
 
 ## Future Improvements
@@ -210,8 +221,7 @@ Settings
 
 ## Architecture Notes
 1. **Domain-Driven Design (DDD)**: 
-   - Transaction as Aggregate Root containing Entries
-   - Entries contain Operations
+   - Transaction as Aggregate Root containing Operations
    - Strong business invariants enforcement
 2. **Clean Architecture principles**:
    - Domain layer (entities + business rules)
@@ -231,6 +241,8 @@ Settings
    - Minimal business logic in repositories
    - Idempotent operations (return `undefined` instead of throwing errors)
    - User ownership checks in service layer
+   - Read-side returns active data only
+   - MVP write-side does not expose tombstone operations as part of the aggregate contract
 6. **Type safety**:
    - Branded types for dates (`IsoDatetimeString`)
    - Planned branded types for `Money` and `CurrencyCode`
