@@ -11,7 +11,9 @@ export class TransactionViewMapper {
       currency: transaction.currency,
       description: transaction.description,
       id: transaction.id,
-      operations: transaction.operations.map(this.mapOperation.bind(this)),
+      operations: transaction.operations
+        .filter((op) => !op.isTombstone)
+        .map(this.mapOperation.bind(this)),
       postingDate: transaction.postingDate,
       transactionDate: transaction.transactionDate,
       updatedAt: transaction.updatedAt,

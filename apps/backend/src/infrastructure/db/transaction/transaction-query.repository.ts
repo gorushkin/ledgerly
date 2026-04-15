@@ -33,9 +33,12 @@ export class TransactionQueryRepository
           where: and(
             eq(transactionsTable.id, transactionId),
             eq(transactionsTable.userId, userId),
+            eq(transactionsTable.isTombstone, false),
           ),
           with: {
-            operations: true,
+            operations: {
+              where: eq(operationsTable.isTombstone, false),
+            },
           },
         });
 
@@ -57,11 +60,17 @@ export class TransactionQueryRepository
     return this.executeDatabaseOperation(
       async () => {
         const transactions = await this.db.query.transactionsTable.findMany({
-          where: eq(transactionsTable.userId, userId),
+          where: and(
+            eq(transactionsTable.userId, userId),
+            eq(transactionsTable.isTombstone, false),
+          ),
           with: {
             operations: query?.accountId
               ? {
-                  where: eq(operationsTable.accountId, query.accountId),
+                  where: and(
+                    eq(operationsTable.accountId, query.accountId),
+                    eq(operationsTable.isTombstone, false),
+                  ),
                 }
               : true,
           },

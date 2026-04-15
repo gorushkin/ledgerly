@@ -198,7 +198,9 @@ export class Transaction {
       description: this.description,
       id: this.getId().valueOf(),
       isTombstone: this.isDeleted(),
-      operations: this.operations.map((operation) => operation.toSnapshot()),
+      operations: this.operations
+        .filter((operation) => !operation.isDeleted())
+        .map((operation) => operation.toSnapshot()),
       postingDate: this.postingDate.valueOf(),
       transactionDate: this.transactionDate.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
@@ -433,7 +435,7 @@ export class Transaction {
   }
 
   getOperations(): Operation[] {
-    return this.operations;
+    return this.operations.filter((operation) => !operation.isDeleted());
   }
 
   markAsDeleted(): void {

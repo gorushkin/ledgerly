@@ -187,6 +187,7 @@ export class TestDB {
       postingDate: IsoDateString;
       transactionDate: IsoDateString;
       currencyCode: CurrencyCode;
+      isTombstone?: boolean;
     },
   ): Promise<TransactionDbRow> => {
     const transactionData: TransactionDbInsert = {
@@ -196,9 +197,9 @@ export class TestDB {
       description:
         params?.description ??
         `Test Transaction ${this.transactionCounter.getNextName()}`,
-      isTombstone: false,
-      postingDate: DateValue.create().valueOf(),
-      transactionDate: DateValue.create().valueOf(),
+      isTombstone: params?.isTombstone ?? false,
+      postingDate: params?.postingDate ?? DateValue.create().valueOf(),
+      transactionDate: params?.transactionDate ?? DateValue.create().valueOf(),
       ...params,
       userId,
       version: 0,
@@ -220,6 +221,7 @@ export class TestDB {
       postingDate: IsoDateString;
       transactionDate: IsoDateString;
       currencyCode: CurrencyCode;
+      isTombstone?: boolean;
       operations: {
         accountId: UUID;
         description: string;
@@ -227,6 +229,7 @@ export class TestDB {
         amount: MoneyString;
         value: MoneyString;
         isSystem?: boolean;
+        isTombstone?: boolean;
         id: UUID;
       }[];
     },
@@ -257,6 +260,7 @@ export class TestDB {
       amount: MoneyString;
       value: MoneyString;
       isSystem?: boolean;
+      isTombstone?: boolean;
     },
   ) => {
     const operationData: OperationDbInsert = {
@@ -270,7 +274,7 @@ export class TestDB {
         params?.description ??
         `Test Operation ${this.operationCounter.getNextName()}`,
       id: params?.id ?? (crypto.randomUUID() as UUID),
-      isTombstone: false,
+      isTombstone: params?.isTombstone ?? false,
       transactionId: params?.transactionId ?? (crypto.randomUUID() as UUID),
       userId,
       value: params?.value ?? Amount.create('1000').valueOf(),
