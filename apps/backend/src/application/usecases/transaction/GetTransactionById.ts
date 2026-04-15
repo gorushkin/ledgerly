@@ -1,9 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
   EntityNotFoundError,
+  TransactionResponseDTO,
+  TransactionViewMapper,
   TransactionQueryRepositoryInterface,
 } from 'src/application';
-import { TransactionWithRelations } from 'src/db/schema';
 
 export class GetTransactionByIdUseCase {
   constructor(
@@ -12,7 +13,7 @@ export class GetTransactionByIdUseCase {
   async execute(
     userId: UUID,
     transactionId: UUID,
-  ): Promise<TransactionWithRelations> {
+  ): Promise<TransactionResponseDTO> {
     const transactionRecord = await this.transactionQueryRepository.findById(
       userId,
       transactionId,
@@ -22,6 +23,6 @@ export class GetTransactionByIdUseCase {
       throw new EntityNotFoundError('Transaction');
     }
 
-    return transactionRecord;
+    return TransactionViewMapper.toView(transactionRecord);
   }
 }

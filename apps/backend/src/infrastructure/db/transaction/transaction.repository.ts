@@ -172,6 +172,7 @@ export class TransactionRepository
             where: and(
               eq(transactionsTable.id, transactionId),
               eq(transactionsTable.userId, userId),
+              eq(transactionsTable.isTombstone, false),
             ),
             with: {
               operations: true,

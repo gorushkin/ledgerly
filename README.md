@@ -19,6 +19,9 @@ For detailed domain model documentation, see [Domain Documentation](./docs/DOMAI
 - Uses double-entry bookkeeping principles (sum of operations must equal zero)
 - Supports split transactions with multiple operations
 - Each operation tracks amounts in both original and base currencies
+- MVP deletion semantics:
+  - transactions use soft delete (`isTombstone`)
+  - operations may be soft-deleted in storage, but tombstone operations are not part of the domain/read contract and are treated as filtered-out archived rows
 
 ### Accounts
 - Represents different financial accounts (cash, bank accounts, credit cards)
