@@ -285,4 +285,16 @@ describe('UpdateTransactionUseCase', () => {
       initialTransactionResponse.operations.length,
     );
   });
+
+  it.todo('should propagate error when transaction is not found');
+  it.todo('should propagate error when user does not own the transaction');
+  it.todo(
+    'should throw UnbalancedTransactionError when update results in non-zero operation sum',
+  );
+  it.todo(
+    'should throw a version conflict error when optimistic locking version mismatches',
+  );
+  it.todo(
+    'should propagate error when update is called on a deleted transaction',
+  );
 });

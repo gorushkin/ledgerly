@@ -64,6 +64,13 @@ class Counter {
     return this.count.toString();
   }
 }
+export type CreateTransactionProps = {
+  description?: string;
+  postingDate?: IsoDateString;
+  transactionDate?: IsoDateString;
+  currencyCode?: CurrencyCode;
+  isTombstone?: boolean;
+};
 
 export class TestDB {
   db: DataBase;
@@ -182,13 +189,7 @@ export class TestDB {
 
   createTransaction = async (
     userId: UUID,
-    params?: {
-      description: string;
-      postingDate: IsoDateString;
-      transactionDate: IsoDateString;
-      currencyCode: CurrencyCode;
-      isTombstone?: boolean;
-    },
+    params?: CreateTransactionProps,
   ): Promise<TransactionDbRow> => {
     const transactionData: TransactionDbInsert = {
       ...TestDB.uuid,
@@ -253,12 +254,12 @@ export class TestDB {
   createOperation = async (
     userId: UUID,
     params?: {
-      accountId: UUID;
-      description: string;
+      accountId?: UUID;
+      description?: string;
       transactionId: UUID;
       id?: UUID;
-      amount: MoneyString;
-      value: MoneyString;
+      amount?: MoneyString;
+      value?: MoneyString;
       isSystem?: boolean;
       isTombstone?: boolean;
     },

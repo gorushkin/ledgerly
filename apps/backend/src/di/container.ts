@@ -9,6 +9,7 @@ import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAcco
 import { GetAllAccountsUseCase } from 'src/application/usecases/accounts/getAllAccounts';
 import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAccount';
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
+import { DeleteTransactionUseCase } from 'src/application/usecases/transaction/DeleteTransaction';
 import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction/GetAllTransactions';
 import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
 import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
@@ -65,7 +66,6 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const transactionContextLoader = new TransactionContextLoader(
     accountRepository,
-    accountFactory,
   );
 
   const passwordManager = new PasswordManager();
@@ -110,6 +110,12 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionContextLoader,
   );
 
+  const deleteTransactionUseCase = new DeleteTransactionUseCase(
+    transactionManager,
+    transactionRepository,
+    ensureEntityExistsAndOwned,
+  );
+
   const useCases: AppContainer['useCases'] = {
     account: {
       archiveAccount: deleteAccountUseCase,
@@ -124,6 +130,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     },
     transaction: {
       createTransaction: createTransactionUseCase,
+      deleteTransaction: deleteTransactionUseCase,
       getAllTransactions: getAllTransactionsUseCase,
       getTransactionById: getTransactionByIdUseCase,
       updateTransaction: updateTransactionUseCase,
@@ -149,6 +156,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     getTransactionByIdUseCase,
     getAllTransactionsUseCase,
     updateTransactionUseCase,
+    deleteTransactionUseCase,
   );
 
   const controllers: AppContainer['controllers'] = {

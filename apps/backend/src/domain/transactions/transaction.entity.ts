@@ -1,4 +1,11 @@
 import { UUID } from '@ledgerly/shared/types';
+import {
+  ConflictingOperationIdsError,
+  MissingTransactionContextError,
+  OperationNotFoundInTransactionError,
+  OperationUserMismatchError,
+  UnbalancedTransactionError,
+} from 'src/domain/domain.errors';
 
 import {
   EntityIdentity,
@@ -11,13 +18,6 @@ import {
   Amount,
   Currency,
 } from '../domain-core';
-import {
-  ConflictingOperationIdsError,
-  MissingTransactionContextError,
-  OperationNotFoundInTransactionError,
-  OperationUserMismatchError,
-  UnbalancedTransactionError,
-} from '../domain.errors';
 import { Operation } from '../operations';
 import { OperationProps, UpdateOperationProps } from '../operations/types';
 
@@ -280,7 +280,7 @@ export class Transaction {
     }, Amount.create('0'));
 
     if (!totalValue.isZero()) {
-      throw new UnbalancedTransactionError(this, totalValue);
+      throw new UnbalancedTransactionError(this.getId().valueOf(), totalValue);
     }
   }
 

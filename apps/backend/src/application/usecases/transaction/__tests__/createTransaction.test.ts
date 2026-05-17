@@ -5,7 +5,8 @@ import {
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils/testEntityBuilder';
-import { User, Transaction, UnbalancedTransactionError } from 'src/domain';
+import { User, Transaction } from 'src/domain';
+import { UnbalancedTransactionError } from 'src/domain/domain.errors';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateTransactionUseCase } from '../CreateTransaction';

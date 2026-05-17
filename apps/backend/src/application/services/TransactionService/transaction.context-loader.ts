@@ -4,12 +4,10 @@ import { TransactionBuildContext } from 'src/domain/transactions/types';
 
 import { OperationRequestDTO } from '../../dto';
 import { AccountRepositoryInterface } from '../../interfaces';
-import { AccountFactory } from '../account.factory';
 
 export class TransactionContextLoader {
   constructor(
     protected readonly accountRepository: AccountRepositoryInterface,
-    protected readonly accountFactory: AccountFactory,
   ) {}
   private async preloadAccounts(
     user: User,
@@ -40,37 +38,33 @@ export class TransactionContextLoader {
     return { accountsMap, currenciesSet };
   }
 
-  private async preloadSystemAccounts(
-    user: User,
-    currenciesSet: Set<CurrencyCode>,
-  ): Promise<Map<CurrencyCode, Account>> {
-    const systemAccountsMap = new Map<CurrencyCode, Account>();
+  // TODO: return this method when system accounts are needed for some operation type (e.g. currency trading) and implement findOrCreateSystemAccount in AccountFactory
+  // private async preloadSystemAccounts(
+  //   user: User,
+  //   currenciesSet: Set<CurrencyCode>,
+  // ): Promise<Map<CurrencyCode, Account>> {
+  //   const systemAccountsMap = new Map<CurrencyCode, Account>();
 
-    for (const currency of currenciesSet) {
-      const systemAccount = await this.accountFactory.findOrCreateSystemAccount(
-        user,
-        currency,
-      );
+  //   for (const currency of currenciesSet) {
+  //     const systemAccount = await this.accountFactory.findOrCreateSystemAccount(
+  //       user,
+  //       currency,
+  //     );
 
-      systemAccountsMap.set(currency, systemAccount);
-    }
+  //     systemAccountsMap.set(currency, systemAccount);
+  //   }
 
-    return systemAccountsMap;
-  }
+  //   return systemAccountsMap;
+  // }
 
   async loadContext(
     user: User,
     operations: OperationRequestDTO[],
   ): Promise<TransactionBuildContext> {
-    const { accountsMap, currenciesSet } = await this.preloadAccounts(
-      user,
-      operations,
-    );
+    const { accountsMap } = await this.preloadAccounts(user, operations);
 
-    const systemAccountsMap = await this.preloadSystemAccounts(
-      user,
-      currenciesSet,
-    );
+    // TODO: Return system account when it is needed for some operation type (e.g. currency trading) and implement findOrCreateSystemAccount in AccountFactory
+    const systemAccountsMap = new Map<CurrencyCode, Account>();
 
     return { accountsMap, systemAccountsMap };
   }

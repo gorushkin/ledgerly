@@ -11,6 +11,7 @@ import {
   CreateTransactionUseCase,
   GetTransactionByIdUseCase,
   GetAllTransactionsUseCase,
+  DeleteTransactionUseCase,
 } from 'src/application/usecases/transaction/';
 import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
 import { User } from 'src/domain';
@@ -21,6 +22,7 @@ export class TransactionController {
     private readonly getTransactionById: GetTransactionByIdUseCase,
     private readonly getAllTransactions: GetAllTransactionsUseCase,
     private readonly updateTransaction: UpdateTransactionUseCase,
+    private readonly deleteTransaction: DeleteTransactionUseCase,
   ) {}
 
   async create(user: User, requestBody: CreateTransactionRequestDTO) {
@@ -49,5 +51,9 @@ export class TransactionController {
       transactionId,
       transactionUpdateDto,
     );
+  }
+
+  delete(user: User, transactionId: UUID): Promise<void> {
+    return this.deleteTransaction.execute(user, transactionId);
   }
 }

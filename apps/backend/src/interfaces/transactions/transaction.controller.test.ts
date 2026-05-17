@@ -4,6 +4,7 @@ import {
   UpdateTransactionRequestDTO,
 } from 'src/application';
 import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
+import { DeleteTransactionUseCase } from 'src/application/usecases/transaction/DeleteTransaction';
 import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction/GetAllTransactions';
 import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
 import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
@@ -38,6 +39,10 @@ describe('TransactionController', () => {
     execute: vi.fn().mockResolvedValue(mockTransaction),
   };
 
+  const mockDeleteTransactionUseCase = {
+    execute: vi.fn().mockResolvedValue(undefined),
+  };
+
   const operation1: CreateOperationRequestDTO = {
     accountId: Id.create().valueOf(),
     amount: Amount.create('-100').valueOf(),
@@ -59,6 +64,7 @@ describe('TransactionController', () => {
     mockGetTransactionByIdUseCase as unknown as GetTransactionByIdUseCase,
     mockGetAllTransactionsUseCase as unknown as GetAllTransactionsUseCase,
     mockUpdateTransactionUseCase as unknown as UpdateTransactionUseCase,
+    mockDeleteTransactionUseCase as unknown as DeleteTransactionUseCase,
   );
 
   beforeAll(async () => {
@@ -212,6 +218,20 @@ describe('TransactionController', () => {
           invalidRequestBody as unknown as UpdateTransactionRequestDTO,
         ),
       ).rejects.toThrow(ZodError);
+    });
+  });
+
+  describe('delete', () => {
+    it('should call DeleteTransactionUseCase with correct parameters', async () => {
+      const transactionId = Id.create().valueOf();
+      await transactionController.delete(user, transactionId);
+
+      expect(mockDeleteTransactionUseCase.execute).toHaveBeenCalledWith(
+        user,
+        transactionId,
+      );
+
+      expect(mockDeleteTransactionUseCase.execute).toHaveBeenCalledTimes(1);
     });
   });
 });

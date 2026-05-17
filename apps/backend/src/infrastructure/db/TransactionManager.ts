@@ -27,7 +27,10 @@ export class TransactionManager implements TransactionManagerInterface {
         try {
           return await callback({});
         } catch (error) {
-          console.error('Transaction error, rolling back');
+          if (process.env.NODE_ENV !== 'test') {
+            console.error('Transaction error, rolling back');
+          }
+
           throw error;
         }
       });
