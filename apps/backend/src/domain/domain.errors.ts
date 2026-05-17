@@ -1,3 +1,4 @@
+import { UUID } from '@ledgerly/shared/types';
 import { BaseError } from 'src/shared/errors/BaseError';
 
 import { Amount } from './domain-core';
@@ -13,7 +14,7 @@ export class DomainError extends BaseError {}
  */
 export class UnbalancedTransactionError extends DomainError {
   constructor(
-    public readonly transactionId: string,
+    public readonly transactionId: UUID,
     public readonly difference: Amount,
   ) {
     super(
@@ -77,8 +78,8 @@ export class ConflictingOperationIdsError extends DomainError {
  */
 export class OperationNotFoundInTransactionError extends DomainError {
   constructor(
-    public readonly operationId: string,
-    public readonly transactionId: string,
+    public readonly operationId: UUID,
+    public readonly transactionId: UUID,
   ) {
     super(
       `Operation with id ${operationId} does not belong to transaction ${transactionId}`,
@@ -92,8 +93,8 @@ export class OperationNotFoundInTransactionError extends DomainError {
  */
 export class OperationDoesNotBelongToTransactionError extends DomainError {
   constructor(
-    public readonly operationId: string,
-    public readonly transactionId: string,
+    public readonly operationId: UUID,
+    public readonly transactionId: UUID,
   ) {
     super(
       `Operation with id ${operationId} was created with wrong transactionId. Expected: ${transactionId}`,
@@ -121,8 +122,8 @@ export class AccountNotFoundInContextError extends DomainError {
  */
 export class OperationUserMismatchError extends DomainError {
   constructor(
-    public readonly operationId: string,
-    public readonly transactionId: string,
+    public readonly operationId: UUID,
+    public readonly transactionId: UUID,
   ) {
     super(
       `Operation ${operationId} does not belong to the same user as transaction ${transactionId}`,

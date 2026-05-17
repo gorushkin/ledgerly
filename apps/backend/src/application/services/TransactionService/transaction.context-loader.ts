@@ -38,6 +38,7 @@ export class TransactionContextLoader {
     return { accountsMap, currenciesSet };
   }
 
+  // TODO: return this method when system accounts are needed for some operation type (e.g. currency trading) and implement findOrCreateSystemAccount in AccountFactory
   // private async preloadSystemAccounts(
   //   user: User,
   //   currenciesSet: Set<CurrencyCode>,
@@ -62,6 +63,7 @@ export class TransactionContextLoader {
   ): Promise<TransactionBuildContext> {
     const { accountsMap } = await this.preloadAccounts(user, operations);
 
+    // TODO: Return system account when it is needed for some operation type (e.g. currency trading) and implement findOrCreateSystemAccount in AccountFactory
     const systemAccountsMap = new Map<CurrencyCode, Account>();
 
     return { accountsMap, systemAccountsMap };
