@@ -6,6 +6,7 @@ import {
   UserAlreadyExistsError,
   UserNotFoundError,
 } from 'src/application/application.errors';
+import { DomainError } from 'src/domain/domain.errors';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors/index';
 import { ZodError } from 'zod';
@@ -16,6 +17,7 @@ export function errorHandler(
     | HttpApiError
     | ZodError
     | DatabaseError
+    | DomainError
     | EntityNotFoundError
     | UnauthorizedAccessError
     | RepositoryNotFoundError
@@ -34,6 +36,14 @@ export function errorHandler(
     return reply.status(400).send({
       error: true,
       errors: formatted,
+    });
+  }
+
+  // Domain layer errors - business rule violations
+  if (error instanceof DomainError) {
+    return reply.status(400).send({
+      error: true,
+      message: error.message,
     });
   }
 
@@ -90,14 +100,19 @@ export function errorHandler(
   }
 
   if (error instanceof DatabaseError) {
-    console.error('Database error:', error);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Database error:', error);
+    }
     return reply.status(500).send({
       error: true,
       message: 'Database operation failed',
     });
   }
 
-  console.error('Unexpected error:', error);
+  if (process.env.NODE_ENV !== 'test') {
+    console.error('Unexpected error:', error);
+  }
+
   return reply.status(500).send({
     error: true,
     message: 'Internal server error',

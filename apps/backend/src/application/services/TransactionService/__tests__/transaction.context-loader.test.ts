@@ -8,7 +8,6 @@ import { createUser } from 'src/interfaces/helpers';
 import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { TransactionContextLoader } from '..';
-import { AccountFactory } from '../..';
 
 describe('TransactionContextLoader', () => {
   let user: User;
@@ -17,13 +16,8 @@ describe('TransactionContextLoader', () => {
     getByIds: vi.fn(),
   };
 
-  const mockAccountFactory = {
-    findOrCreateSystemAccount: vi.fn(),
-  };
-
   const transactionContextLoader = new TransactionContextLoader(
     mockAccountRepository as unknown as AccountRepositoryInterface,
-    mockAccountFactory as unknown as AccountFactory,
   );
 
   beforeAll(async () => {
@@ -47,10 +41,6 @@ describe('TransactionContextLoader', () => {
     for (const acc of accounts) {
       currenciesSet.add(acc.currency.valueOf());
     }
-
-    const systemAccounts = Array.from(currenciesSet).map((currency) =>
-      createAccount(user, { currency: Currency.create(currency) }),
-    );
 
     const rawOperations: OperationRequestDTO[] = [
       {
@@ -83,42 +73,20 @@ describe('TransactionContextLoader', () => {
       accounts.map((acc) => acc.toPersistence()),
     );
 
-    systemAccounts.forEach((systemAccount) => {
-      mockAccountFactory.findOrCreateSystemAccount.mockResolvedValueOnce(
-        systemAccount,
-      );
-    });
-
-    const { accountsMap, systemAccountsMap } =
-      await transactionContextLoader.loadContext(user, rawOperations);
+    const { accountsMap } = await transactionContextLoader.loadContext(
+      user,
+      rawOperations,
+    );
 
     expect(mockAccountRepository.getByIds).toHaveBeenCalledWith(
       user.getId().valueOf(),
       accounts.map((acc) => acc.getId().valueOf()),
     );
 
-    expect(mockAccountFactory.findOrCreateSystemAccount).toHaveBeenCalledTimes(
-      currenciesSet.size,
-    );
-
-    Array.from(currenciesSet).forEach((currency, index) => {
-      expect(
-        mockAccountFactory.findOrCreateSystemAccount,
-      ).toHaveBeenNthCalledWith(index + 1, user, currency);
-    });
-
     expect(accountsMap.size).toBe(accounts.length);
 
     accounts.forEach((acc) => {
       expect(accountsMap.get(acc.getId().valueOf())).toEqual(acc);
-    });
-
-    expect(systemAccountsMap.size).toBe(systemAccounts.length);
-
-    systemAccounts.forEach((systemAccount) => {
-      expect(systemAccountsMap.get(systemAccount.currency.valueOf())).toEqual(
-        systemAccount,
-      );
     });
   });
 
@@ -144,10 +112,6 @@ describe('TransactionContextLoader', () => {
       account.toPersistence(),
     ]);
 
-    mockAccountFactory.findOrCreateSystemAccount.mockResolvedValueOnce(
-      createAccount(user),
-    );
-
     await transactionContextLoader.loadContext(user, rawOperations);
 
     // Один аккаунт — один вызов с одним ID, без дубликатов
@@ -155,19 +119,16 @@ describe('TransactionContextLoader', () => {
       user.getId().valueOf(),
       [account.getId().valueOf()],
     );
-    expect(mockAccountFactory.findOrCreateSystemAccount).toHaveBeenCalledTimes(
-      1,
-    );
   });
 
   it('should return empty maps when operations list is empty', async () => {
     mockAccountRepository.getByIds.mockResolvedValueOnce([]);
 
-    const { accountsMap, systemAccountsMap } =
-      await transactionContextLoader.loadContext(user, []);
+    const { accountsMap } = await transactionContextLoader.loadContext(
+      user,
+      [],
+    );
 
     expect(accountsMap.size).toBe(0);
-    expect(systemAccountsMap.size).toBe(0);
-    expect(mockAccountFactory.findOrCreateSystemAccount).not.toHaveBeenCalled();
   });
 });

@@ -7,6 +7,7 @@ import {
   TransactionBuilderResult,
 } from 'src/db/test-utils';
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
+import { UnbalancedTransactionError } from 'src/domain/domain.errors';
 import {
   afterEach,
   beforeAll,
@@ -18,7 +19,6 @@ import {
 } from 'vitest';
 
 import { Amount, DateValue } from '../domain-core';
-import { UnbalancedTransactionError } from '../domain.errors';
 import {
   CreateOperationProps,
   OperationProps,
@@ -596,6 +596,57 @@ describe('Transaction Domain Entity', () => {
           operations: unbalancedOperationsData,
         });
       }).toThrowError(UnbalancedTransactionError);
+    });
+
+    describe('Transaction Domain Invariants TODO coverage', () => {
+      it.todo(
+        '[TXN-1] should reject update when resulting operations do not sum to zero',
+      );
+
+      it.todo('[TXN-2] should reject creation with fewer than two operations');
+      it.todo(
+        '[TXN-2] should reject update that leaves fewer than two operations',
+      );
+
+      it.todo(
+        '[TXN-3] should allow repeated account usage when account net effect is non-zero',
+      );
+      it.todo(
+        '[TXN-3] should reject repeated account usage when account net effect is zero',
+      );
+
+      it.todo(
+        '[TXN-4] should reject creation with fewer than two distinct accounts',
+      );
+      it.todo(
+        '[TXN-4] should reject update that leaves fewer than two distinct accounts',
+      );
+
+      it.todo('[TXN-5] should reject creation with zero amount operations');
+      it.todo('[TXN-5] should reject update with zero amount operations');
+
+      it.todo('[TXN-6] should reject missing, NaN, and Infinity amounts');
+
+      it.todo('[TXN-7] should reject missing transaction currency');
+      it.todo('[TXN-7] should reject unknown transaction currency');
+
+      it.todo(
+        '[TXN-8] should reject operations whose accounts do not belong to transaction user',
+      );
+
+      it.todo('[TXN-9] should reject update when expected version mismatches');
+
+      it.todo('[TXN-10] should reject update after transaction is deleted');
+
+      it.todo('[TXN-11] should reject creation without transaction date');
+      it.todo('[TXN-11] should reject update without transaction date');
+
+      it.todo('[TXN-12] should reject creation above operations count limit');
+      it.todo('[TXN-12] should reject update above operations count limit');
+
+      it.todo(
+        '[TXN-13] should reject transactions without both positive and negative operations',
+      );
     });
   });
 

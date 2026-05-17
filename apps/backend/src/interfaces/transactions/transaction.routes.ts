@@ -53,4 +53,12 @@ export const transactionsRoutes = (app: FastifyInstance) => {
       response.send(transaction);
     },
   );
+
+  app.delete('/:id', async (request, response) => {
+    const { id } = uniqueIdSchema.parse(request.params);
+    const user = request.user;
+
+    await transactionController.delete(user, id);
+    response.status(204).send();
+  });
 };

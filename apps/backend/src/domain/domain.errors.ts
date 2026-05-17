@@ -1,7 +1,6 @@
 import { BaseError } from 'src/shared/errors/BaseError';
 
 import { Amount } from './domain-core';
-import { Transaction } from './transactions';
 
 /**
  * Base class for all domain layer errors.
@@ -14,11 +13,11 @@ export class DomainError extends BaseError {}
  */
 export class UnbalancedTransactionError extends DomainError {
   constructor(
-    public readonly transaction: Transaction,
+    public readonly transactionId: string,
     public readonly difference: Amount,
   ) {
     super(
-      `Transaction with id ${transaction.getId().valueOf()} has unbalanced operations. Difference: ${difference.valueOf()}`,
+      `Transaction with id ${transactionId} has unbalanced operations. Difference: ${difference.valueOf()}`,
     );
   }
 }

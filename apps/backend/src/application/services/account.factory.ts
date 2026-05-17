@@ -1,14 +1,9 @@
-import {
-  AccountCreateDTO,
-  AccountResponseDTO,
-  CurrencyCode,
-} from '@ledgerly/shared/types';
+import { AccountCreateDTO, AccountResponseDTO } from '@ledgerly/shared/types';
 import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
 import { AccountRepoInsert } from 'src/db/schema';
 import { AccountType, Account } from 'src/domain/';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 
 import { AccountRepositoryInterface } from '../interfaces';
 
@@ -37,27 +32,27 @@ export class AccountFactory {
     );
   }
 
-  async findOrCreateSystemAccount(
-    user: User,
-    currency: CurrencyCode,
-  ): Promise<Account> {
-    try {
-      const systemAccount = await this.accountRepository.findSystemAccount(
-        user.getId().valueOf(),
-        currency,
-      );
-      return Account.restore(systemAccount);
-    } catch (error) {
-      if (error instanceof RepositoryNotFoundError) {
-        return await this.createAccount(user, {
-          currency,
-          description: `System account for ${currency} currency trading`,
-          initialBalance: Amount.create('0').valueOf(),
-          name: `Trading System Account (${currency})`,
-          type: 'currencyTrading',
-        });
-      }
-      throw error;
-    }
-  }
+  // async findOrCreateSystemAccount(
+  //   user: User,
+  //   currency: CurrencyCode,
+  // ): Promise<Account> {
+  //   try {
+  //     const systemAccount = await this.accountRepository.findSystemAccount(
+  //       user.getId().valueOf(),
+  //       currency,
+  //     );
+  //     return Account.restore(systemAccount);
+  //   } catch (error) {
+  //     if (error instanceof RepositoryNotFoundError) {
+  //       return await this.createAccount(user, {
+  //         currency,
+  //         description: `System account for ${currency} currency trading`,
+  //         initialBalance: Amount.create('0').valueOf(),
+  //         name: `Trading System Account (${currency})`,
+  //         type: 'currencyTrading',
+  //       });
+  //     }
+  //     throw error;
+  //   }
+  // }
 }

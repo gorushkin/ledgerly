@@ -1,791 +1,462 @@
-import { describe, it, expect } from 'vitest';
+import { ROUTES } from '@ledgerly/shared/routes';
+import { MoneyString, UUID } from '@ledgerly/shared/types';
+import {
+  OperationCreateInput,
+  TransactionCreateInput,
+} from '@ledgerly/shared/validation';
+import { TransactionResponseDTO } from 'src/application';
+import {
+  AccountDbRow,
+  OperationDbRow,
+  TransactionDbRow,
+  UserDbRow,
+} from 'src/db/schema';
+import { CreateTransactionProps, TestDB } from 'src/db/test-db';
+import { compareEntities } from 'src/db/test-utils';
+import { Amount, Currency, DateValue, Id } from 'src/domain/domain-core';
+import { createServer } from 'src/presentation/server';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-describe('TransactionController', () => {
-  it('should have tests implemented', () => {
-    // Placeholder test to ensure the test suite runs
-    expect(true).toBe(true);
+const testUser = {
+  email: 'test@example.com',
+  name: 'Test User',
+  password: 'Password123!',
+};
+
+const url = `/api${ROUTES.transactions}`;
+
+describe('Transactions Integration Tests', () => {
+  let testDB: TestDB;
+  let server: ReturnType<typeof createServer>;
+  let authToken: string;
+  let userId: UUID;
+  let user: UserDbRow;
+
+  beforeEach(async () => {
+    testDB = new TestDB();
+    server = createServer(testDB.db);
+    await testDB.setupTestDb();
+
+    await server.ready();
+
+    user = await testDB.createUser(testUser);
+
+    const token = server.jwt.sign({
+      email: user.email,
+      userId: user.id,
+    });
+
+    authToken = token;
+
+    const decoded = server.jwt.decode(token) as unknown as { userId: UUID };
+    userId = Id.fromPersistence(decoded.userId).valueOf();
+  });
+
+  afterEach(async () => {
+    await testDB.cleanupTestDb();
+  });
+
+  describe('POST /api/transactions', () => {
+    let account1: AccountDbRow;
+    let account2: AccountDbRow;
+    let operation1: OperationCreateInput;
+    let operation2: OperationCreateInput;
+
+    beforeEach(async () => {
+      account1 = await testDB.createAccount(userId, {
+        name: 'Checking',
+      });
+
+      account2 = await testDB.createAccount(userId, {
+        name: 'Savings',
+      });
+
+      operation1 = {
+        accountId: account1.id,
+        amount: Amount.create('-100').valueOf(),
+        description: 'Transfer from checking',
+        value: Amount.create('-100').valueOf(),
+      };
+
+      operation2 = {
+        accountId: account2.id,
+        amount: Amount.create('100').valueOf(),
+        description: 'Transfer to savings',
+        value: Amount.create('100').valueOf(),
+      };
+    });
+
+    it('should create a new transaction', async () => {
+      const payload: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'some transaction',
+        operations: [operation1, operation2],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      const transaction = JSON.parse(response.body) as TransactionResponseDTO;
+
+      expect(response.statusCode).toBe(201);
+
+      expect(transaction.description).toBe(payload.description);
+      expect(transaction.postingDate).toBe(payload.postingDate);
+      expect(transaction.transactionDate).toBe(payload.transactionDate);
+      expect(transaction.userId).toBe(userId);
+      expect(transaction.operations.length).toBe(payload.operations.length);
+
+      transaction.operations.forEach((operation, index) => {
+        expect(operation.accountId).toBe(payload.operations[index].accountId);
+        expect(operation.amount).toBe(payload.operations[index].amount);
+        expect(operation.description).toBe(
+          payload.operations[index].description,
+        );
+        expect(operation.value).toBe(payload.operations[index].value);
+      });
+    });
+
+    it('should fail when required fields are missing', async () => {
+      const payload = {
+        description: 'incomplete transaction',
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should fail with invalid amounts', async () => {
+      const payload: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'invalid amount',
+        operations: [
+          operation1,
+          {
+            accountId: account2.id,
+            amount: 'invalid' as unknown as MoneyString,
+            description: 'Transfer to savings',
+            value: 'invalid' as unknown as MoneyString,
+          },
+        ],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should fail for unauthorized access', async () => {
+      const payload: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'unauthorized access',
+        operations: [operation1, operation2],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
+      };
+
+      const response = await server.inject({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('should fail for non-existent accounts', async () => {
+      const payload: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'non-existent account',
+        operations: [
+          { ...operation1, accountId: Id.create().valueOf() },
+          { ...operation2, accountId: Id.create().valueOf() },
+        ],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should fail when operations do not sum to zero (unbalanced transaction)', async () => {
+      const payload: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'unbalanced transaction',
+        operations: [
+          operation1,
+          {
+            ...operation2,
+            value: Amount.create('50').valueOf(),
+          },
+        ],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should fail when using an account that belongs to another user', async () => {
+      // Create a second user and an account for that user
+      const otherUser = await testDB.createUser({
+        email: 'otheruser@example.com',
+        password: 'password123',
+      });
+
+      const otherUserAccount = await testDB.createAccount(otherUser.id, {
+        currency: Currency.create('USD').valueOf(),
+        name: 'Other User Account',
+      });
+
+      const payload: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'unauthorized access',
+        operations: [
+          { ...operation1, accountId: otherUserAccount.id },
+          { ...operation2, accountId: otherUserAccount.id },
+        ],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('GET /api/transactions/:id', () => {
+    let transaction: TransactionDbRow;
+    let operations: OperationDbRow[];
+
+    const operationsMap = new Map<UUID, OperationDbRow>();
+
+    beforeEach(async () => {
+      const accounts = await Promise.all([
+        testDB.createAccount(userId, {
+          currency: Currency.create('USD').valueOf(),
+          name: 'Checking USD',
+        }),
+        testDB.createAccount(userId, {
+          currency: Currency.create('USD').valueOf(),
+          name: 'Savings USD',
+        }),
+        testDB.createAccount(userId, {
+          currency: Currency.create('EUR').valueOf(),
+          name: 'Savings EUR',
+        }),
+      ]);
+
+      transaction = await testDB.createTransaction(userId);
+
+      const transaction1Operations = [
+        {
+          accountId: accounts[0].id,
+          amount: Amount.create('-100').valueOf(),
+          description: 'Transfer from checking',
+          transactionId: transaction.id,
+          value: Amount.create('-100').valueOf(),
+        },
+        {
+          accountId: accounts[1].id,
+          amount: Amount.create('100').valueOf(),
+          description: 'Transfer to savings',
+          transactionId: transaction.id,
+          value: Amount.create('100').valueOf(),
+        },
+      ];
+
+      operations = await Promise.all(
+        transaction1Operations.map(async (op) => {
+          const operation = await testDB.createOperation(userId, {
+            accountId: op.accountId,
+            amount: op.amount,
+            description: op.description,
+            transactionId: op.transactionId,
+            value: op.value,
+          });
+          operationsMap.set(operation.id, operation);
+
+          return operation;
+        }),
+      );
+    });
+
+    it('should retrieve a transaction by ID', async () => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${transaction.id}`,
+      });
+
+      const transactionResponse = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(transactionResponse.id).toBe(transaction.id);
+      expect(transactionResponse.userId).toBe(userId);
+
+      expect(transactionResponse.operations).toHaveLength(operations.length);
+
+      transactionResponse.operations.forEach((op) => {
+        const matchedOp = operationsMap.get(op.id)!;
+        compareEntities(matchedOp, op as typeof matchedOp, ['isTombstone']);
+      });
+    });
+
+    it.todo('should return 404 for a non-existent transaction ID');
+    it.todo('should return 404 when transaction is soft-deleted (tombstone)');
+    it.todo("should return 404 when accessing another user's transaction");
+    it.todo('should return 401 when not authorized');
+  });
+
+  describe('GET /api/transactions', () => {
+    it('should retrieve all transactions for the user', async () => {
+      const accounts = await Promise.all([
+        testDB.createAccount(userId, {
+          currency: Currency.create('USD').valueOf(),
+          name: 'Checking USD',
+        }),
+        testDB.createAccount(userId, {
+          currency: Currency.create('USD').valueOf(),
+          name: 'Savings USD',
+        }),
+        testDB.createAccount(userId, {
+          currency: Currency.create('EUR').valueOf(),
+          name: 'Savings EUR',
+        }),
+      ]);
+
+      const transaction1Params: CreateTransactionProps = {
+        currencyCode: accounts[0].currency,
+        description: 'transaction one',
+        isTombstone: false,
+        postingDate: DateValue.create().valueOf(),
+        transactionDate: DateValue.create().valueOf(),
+      };
+
+      const transaction2Params: CreateTransactionProps = {
+        currencyCode: accounts[1].currency,
+        description: 'transaction two',
+        isTombstone: false,
+        postingDate: DateValue.create().valueOf(),
+        transactionDate: DateValue.create().valueOf(),
+      };
+
+      const transactionData = [transaction1Params, transaction2Params];
+
+      await Promise.all(
+        transactionData.map((tr) => {
+          return testDB.createTransaction(userId, tr);
+        }),
+      );
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const transactions = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO[];
+
+      const userTransactions = transactions.filter(
+        (tx) => tx.userId === userId,
+      );
+
+      expect(userTransactions).toHaveLength(transactionData.length);
+    });
+
+    it.todo('should return 401 when not authorized');
+    it.todo('should return empty array when user has no transactions');
+    it.todo('should not return soft-deleted (tombstone) transactions');
+    it.todo('should return transactions filtered by accountId query param');
+    it.todo('should return 400 for invalid accountId query param (non-UUID)');
+  });
+
+  describe('DELETE /api/transactions/:id', () => {
+    it.todo('should delete an existing transaction and return 204');
+    it.todo('should return 404 when deleting a non-existent transaction');
+    it.todo('should return 404 when deleting an already deleted transaction');
+    it.todo('should return 401 when deleting without authorization');
+    it.todo('should not return deleted transaction in GET /api/transactions');
+    it.todo("should return 404 when deleting another user's transaction");
+  });
+
+  describe('PUT /api/transactions/:id', () => {
+    it.todo(
+      'should update transaction metadata (description, dates) and return 200',
+    );
+    it.todo(
+      'should update transaction by adding new operations and return 200',
+    );
+    it.todo('should update transaction by deleting operations and return 200');
+    it.todo('should return 404 when updating a non-existent transaction');
+    it.todo('should return 404 when updating a soft-deleted transaction');
+    it.todo("should return 404 when updating another user's transaction");
+    it.todo('should return 400 for invalid payload (missing required fields)');
+    it.todo('should return 401 when not authorized');
+    it.todo('should return 409 on optimistic locking conflict (stale version)');
+    it.todo(
+      'should return 400 when resulting operations are unbalanced (sum != 0)',
+    );
   });
 });
-
-// import { ROUTES } from '@ledgerly/shared/routes';
-// import { UUID } from '@ledgerly/shared/types';
-// import { TransactionCreateInput } from '@ledgerly/shared/validation';
-// import { TransactionResponseDTO } from 'src/application';
-// import {
-//   EntryDbRow,
-//   OperationDbRow,
-//   TransactionDbRow,
-//   UserDbRow,
-// } from 'src/db/schema';
-// import { TestDB } from 'src/db/test-db';
-// import { Amount, Currency, DateValue, Id } from 'src/domain/domain-core';
-// import { createServer } from 'src/presentation/server';
-// import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
-// const testUser = {
-//   email: 'test@example.com',
-//   name: 'Test User',
-//   password: 'Password123!',
-// };
-
-// const url = `/api${ROUTES.transactions}`;
-
-// describe('Transactions Integration Tests', () => {
-//   let testDB: TestDB;
-//   let server: ReturnType<typeof createServer>;
-//   let authToken: string;
-//   let userId: UUID;
-//   let user: UserDbRow;
-
-//   beforeEach(async () => {
-//     testDB = new TestDB();
-//     server = createServer(testDB.db);
-//     await testDB.setupTestDb();
-
-//     await server.ready();
-
-//     user = await testDB.createUser(testUser);
-
-//     const token = server.jwt.sign({
-//       email: user.email,
-//       userId: user.id,
-//     });
-
-//     authToken = token;
-
-//     const decoded = server.jwt.decode(token) as unknown as { userId: UUID };
-//     userId = Id.fromPersistence(decoded.userId).valueOf();
-//   });
-
-//   afterEach(async () => {
-//     await testDB.cleanupTestDb();
-//   });
-
-//   describe('POST /api/transactions', () => {
-//     it('should create a new transaction', async () => {
-//       const account1 = await testDB.createAccount(userId, {
-//         name: 'Checking',
-//       });
-
-//       const account2 = await testDB.createAccount(userId, {
-//         name: 'Savings',
-//       });
-
-//       const fromOperation = {
-//         accountId: account1.id,
-//         amount: Amount.create('-100').valueOf(),
-//         description: 'Transfer from checking',
-//       };
-
-//       const toOperation = {
-//         accountId: account2.id,
-//         amount: Amount.create('100').valueOf(),
-//         description: 'Transfer to savings',
-//       };
-
-//       const payload: TransactionCreateInput = {
-//         description: 'some transaction',
-//         entries: [
-//           {
-//             description: 'Transfer between accounts',
-//             operations: [fromOperation, toOperation],
-//           },
-//         ],
-//         postingDate: DateValue.restore('2025-11-07').valueOf(),
-//         transactionDate: DateValue.restore('2025-11-07').valueOf(),
-//       };
-
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'POST',
-//         payload,
-//         url,
-//       });
-
-//       const transaction = JSON.parse(response.body) as TransactionResponseDTO;
-
-//       expect(response.statusCode).toBe(201);
-//       expect(transaction.description).toBe(payload.description);
-//       expect(transaction.postingDate).toBe(payload.postingDate);
-//       expect(transaction.transactionDate).toBe(payload.transactionDate);
-//       expect(transaction.userId).toBe(userId);
-//       expect(transaction.entries.length).toBe(payload.entries.length);
-//       transaction.entries.forEach((entry) => {
-//         expect(entry.userId).toBe(userId);
-//         expect(entry.operations.length).toBe(2);
-//       });
-//     });
-
-//     it('should fail when required fields are missing', async () => {
-//       const payload = {
-//         // missing description, entries, postingDate, transactionDate
-//         description: 'incomplete transaction',
-//       };
-
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'POST',
-//         payload,
-//         url,
-//       });
-
-//       expect(response.statusCode).toBe(400);
-//     });
-
-//     it('should fail with invalid amounts', async () => {
-//       const account1 = await testDB.createAccount(userId, { name: 'Checking' });
-//       const account2 = await testDB.createAccount(userId, { name: 'Savings' });
-
-//       const payload = {
-//         description: 'invalid amount',
-//         entries: [
-//           [
-//             {
-//               accountId: account1.id,
-//               amount: 'not-a-number',
-//               description: 'Invalid amount',
-//             },
-//             {
-//               accountId: account2.id,
-//               amount: '100',
-//               description: 'Valid amount',
-//             },
-//           ],
-//         ],
-//         postingDate: '2025-11-07',
-//         transactionDate: '2025-11-07',
-//       };
-
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'POST',
-//         payload,
-//         url,
-//       });
-
-//       expect(response.statusCode).toBe(400);
-//     });
-
-//     it('should fail for unauthorized access', async () => {
-//       const account1 = await testDB.createAccount(userId, { name: 'Checking' });
-//       const account2 = await testDB.createAccount(userId, { name: 'Savings' });
-
-//       const payload = {
-//         description: 'unauthorized',
-//         entries: [
-//           [
-//             {
-//               accountId: account1.id,
-//               amount: '-100',
-//               description: 'Transfer from checking',
-//             },
-//             {
-//               accountId: account2.id,
-//               amount: '100',
-//               description: 'Transfer to savings',
-//             },
-//           ],
-//         ],
-//         postingDate: '2025-11-07',
-//         transactionDate: '2025-11-07',
-//       };
-
-//       const response = await server.inject({
-//         method: 'POST',
-//         payload,
-//         url,
-//       });
-
-//       expect(response.statusCode).toBe(401);
-//     });
-
-//     it('should fail for non-existent accounts', async () => {
-//       const payload: TransactionCreateInput = {
-//         description: 'non-existent account',
-//         entries: [
-//           {
-//             description: 'Transfer between accounts',
-//             operations: [
-//               {
-//                 accountId: Id.create().valueOf(),
-//                 amount: Amount.create('-100').valueOf(),
-//                 description: 'Transfer from checking',
-//               },
-//               {
-//                 accountId: Id.create().valueOf(),
-//                 amount: Amount.create('100').valueOf(),
-//                 description: 'Transfer to savings',
-//               },
-//             ],
-//           },
-//         ],
-//         postingDate: DateValue.restore('2025-11-07').valueOf(),
-//         transactionDate: DateValue.restore('2025-11-07').valueOf(),
-//       };
-
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'POST',
-//         payload,
-//         url,
-//       });
-
-//       expect(response.statusCode).toBe(404);
-//     });
-
-//     it('should fail for zero amounts', async () => {
-//       const account1 = await testDB.createAccount(userId, { name: 'Checking' });
-//       const account2 = await testDB.createAccount(userId, { name: 'Savings' });
-
-//       const payload = {
-//         description: 'zero amount',
-//         entries: [
-//           [
-//             { accountId: account1.id, amount: '0' },
-//             { accountId: account2.id, amount: '0' },
-//           ],
-//         ],
-//         postingDate: '2025-11-07',
-//         transactionDate: '2025-11-07',
-//       };
-
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'POST',
-//         payload,
-//         url,
-//       });
-
-//       expect(response.statusCode).toBe(400);
-//     });
-
-//     it('should fail when from and to accounts are the same', async () => {
-//       const account1 = await testDB.createAccount(userId, { name: 'Checking' });
-
-//       const payload = {
-//         description: 'same accounts',
-//         entries: [
-//           [
-//             { accountId: account1.id, amount: '-100' },
-//             { accountId: account1.id, amount: '100' },
-//           ],
-//         ],
-//         postingDate: '2025-11-07',
-//         transactionDate: '2025-11-07',
-//       };
-
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'POST',
-//         payload,
-//         url,
-//       });
-
-//       expect(response.statusCode).toBe(400);
-//     });
-//   });
-
-//   describe('GET /api/transactions/:id', () => {
-//     let singleCurrencyTransaction: TransactionDbRow;
-//     let multiCurrencyTransaction: TransactionDbRow;
-//     let singleCurrencyEntries: EntryDbRow[];
-//     let multiCurrencyEntry: EntryDbRow;
-//     const entryOperationsMap: Record<UUID, OperationDbRow[]> = {};
-
-//     const singleCurrencyEntry1operationData = [
-//       {
-//         amount: Amount.create('-100').valueOf(),
-//         description: 'Transfer from checking',
-//         isSystem: false,
-//       },
-//       {
-//         amount: Amount.create('100').valueOf(),
-//         description: 'Transfer to savings',
-//         isSystem: false,
-//       },
-//     ];
-
-//     const singleCurrencyEntry2operationData = [
-//       {
-//         amount: Amount.create('50').valueOf(),
-//         description: 'Deposit to checking',
-//         isSystem: false,
-//       },
-//       {
-//         amount: Amount.create('-50').valueOf(),
-//         description: 'Withdrawal from savings',
-//         isSystem: false,
-//       },
-//     ];
-
-//     beforeEach(async () => {
-//       const accounts = await Promise.all([
-//         testDB.createAccount(userId, {
-//           currency: Currency.create('USD').valueOf(),
-//           name: 'Checking USD',
-//         }),
-//         testDB.createAccount(userId, {
-//           currency: Currency.create('USD').valueOf(),
-//           name: 'Savings USD',
-//         }),
-//         testDB.createAccount(userId, {
-//           currency: Currency.create('EUR').valueOf(),
-//           name: 'Savings EUR',
-//         }),
-//         testDB.createAccount(userId, {
-//           currency: Currency.create('EUR').valueOf(),
-//           isSystem: true,
-//           name: 'System account USD',
-//         }),
-//         testDB.createAccount(userId, {
-//           currency: Currency.create('USD').valueOf(),
-//           isSystem: true,
-//           name: 'System account EUR',
-//         }),
-//       ]);
-
-//       singleCurrencyTransaction = await testDB.createTransaction(userId);
-//       multiCurrencyTransaction = await testDB.createTransaction(userId);
-
-//       singleCurrencyEntries = await Promise.all([
-//         testDB.createEntry(userId, {
-//           transactionId: singleCurrencyTransaction.id,
-//         }),
-//         testDB.createEntry(userId, {
-//           transactionId: singleCurrencyTransaction.id,
-//         }),
-//       ]);
-
-//       multiCurrencyEntry = await testDB.createEntry(userId, {
-//         transactionId: multiCurrencyTransaction.id,
-//       });
-
-//       const singleCurrencyEntry1ops = await Promise.all(
-//         singleCurrencyEntry1operationData.map((opData) => {
-//           return testDB.createOperation(userId, {
-//             accountId: opData.amount.startsWith('-')
-//               ? accounts[0].id
-//               : accounts[1].id,
-//             entryId: singleCurrencyEntries[0].id,
-//             ...opData,
-//           });
-//         }),
-//       );
-
-//       const singleCurrencyEntry2ops = await Promise.all(
-//         singleCurrencyEntry2operationData.map((opData) => {
-//           return testDB.createOperation(userId, {
-//             accountId: opData.amount.startsWith('-')
-//               ? accounts[1].id
-//               : accounts[0].id,
-//             entryId: singleCurrencyEntries[1].id,
-//             ...opData,
-//           });
-//         }),
-//       );
-
-//       const multiCurrencyEntryOperationData = [
-//         {
-//           accountId: accounts[0].id,
-//           amount: Amount.create('50').valueOf(),
-//           description: 'Deposit to checking',
-//           isSystem: false,
-//         },
-//         {
-//           accountId: accounts[1].id,
-//           amount: Amount.create('-100').valueOf(),
-//           description: 'Withdrawal from savings',
-//           isSystem: false,
-//         },
-//         {
-//           accountId: accounts[3].id,
-//           amount: Amount.create('100').valueOf(),
-//           description: 'Deposit to checking',
-//           isSystem: true,
-//         },
-//         {
-//           accountId: accounts[4].id,
-//           amount: Amount.create('-50').valueOf(),
-//           description: 'Withdrawal from savings',
-//           isSystem: true,
-//         },
-//       ];
-
-//       await Promise.all(
-//         multiCurrencyEntryOperationData.map((opData) => {
-//           return testDB.createOperation(userId, {
-//             entryId: multiCurrencyEntry.id,
-//             ...opData,
-//           });
-//         }),
-//       );
-
-//       entryOperationsMap[singleCurrencyEntries[0].id] = singleCurrencyEntry1ops;
-//       entryOperationsMap[singleCurrencyEntries[1].id] = singleCurrencyEntry2ops;
-//     });
-
-//     it('should retrieve a transaction by ID', async () => {
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'GET',
-//         url: `${url}/${singleCurrencyTransaction.id}`,
-//       });
-
-//       const transactionResponse = JSON.parse(
-//         response.body,
-//       ) as TransactionResponseDTO;
-
-//       expect(response.statusCode).toBe(200);
-//       expect(transactionResponse.id).toBe(singleCurrencyTransaction.id);
-//       expect(transactionResponse.userId).toBe(userId);
-//       expect(transactionResponse.entries.length).toBe(
-//         singleCurrencyEntries.length,
-//       );
-
-//       transactionResponse.entries.forEach((entry) => {
-//         expect(entry.userId).toBe(userId);
-//         const originalEntry = singleCurrencyEntries.find(
-//           (e) => e.id === entry.id,
-//         );
-//         expect(originalEntry).toBeDefined();
-//         expect(entry.operations.length).toBe(2);
-//         expect(entry.transactionId).toBe(singleCurrencyTransaction.id);
-//         expect(entry.id).toBe(originalEntry?.id);
-//         expect(entry.createdAt).toBe(originalEntry?.createdAt);
-//         expect(entry.updatedAt).toBe(originalEntry?.updatedAt);
-
-//         entry.operations.forEach((op, index) => {
-//           const originalOp = entryOperationsMap[entry.id][index];
-
-//           expect(op.id).toBe(originalOp.id);
-//           expect(op.userId).toBe(userId);
-//           expect(op.entryId).toBe(entry.id);
-//           expect(op.amount).toBe(originalOp.amount);
-//           expect(op.description).toBe(originalOp.description);
-//           expect(op.createdAt).toBe(originalOp.createdAt);
-//           expect(op.updatedAt).toBe(originalOp.updatedAt);
-//         });
-//       });
-//     });
-
-//     it('should retrieve system operations as well', async () => {
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'GET',
-//         url: `${url}/${multiCurrencyTransaction.id}`,
-//       });
-
-//       const transactionResponse = JSON.parse(
-//         response.body,
-//       ) as TransactionResponseDTO;
-
-//       transactionResponse.entries.forEach((entry) => {
-//         expect(entry.userId).toBe(userId);
-//         expect(entry.transactionId).toBe(multiCurrencyTransaction.id);
-//       });
-
-//       expect(transactionResponse.entries.length).toBe(1);
-//       const entry = transactionResponse.entries[0];
-//       expect(entry.operations.length).toBe(4);
-
-//       const operations = entry.operations;
-
-//       const userOperations = operations.filter((op) => !op.isSystem);
-//       const systemOperations = operations.filter((op) => op.isSystem);
-
-//       expect(userOperations).toHaveLength(2);
-//       expect(systemOperations).toHaveLength(2);
-//     });
-//   });
-
-//   describe('GET /api/transactions', () => {
-//     it('should retrieve all transactions for the user', async () => {
-//       await testDB.seedTestData(user);
-
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'GET',
-//         url,
-//       });
-
-//       expect(response.statusCode).toBe(200);
-
-//       const transactions = JSON.parse(
-//         response.body,
-//       ) as TransactionResponseDTO[];
-
-//       const userTransactions = transactions.filter(
-//         (tx) => tx.userId === userId,
-//       );
-
-//       expect(userTransactions).toHaveLength(2);
-//     });
-
-//     it('should return empty array if user has no transactions', async () => {
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'GET',
-//         url,
-//       });
-
-//       expect(response.statusCode).toBe(200);
-
-//       const transactions = JSON.parse(
-//         response.body,
-//       ) as TransactionResponseDTO[];
-
-//       const userTransactions = transactions.filter(
-//         (tx) => tx.userId === userId,
-//       );
-
-//       expect(userTransactions).toHaveLength(0);
-//     });
-
-//     it('should return filtered transactions based on query params', async () => {
-//       const { account3 } = await testDB.seedTestData(user);
-
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'GET',
-//         url: `${url}?accountId=${account3.id}`,
-//       });
-
-//       expect(response.statusCode).toBe(200);
-
-//       const transactions = JSON.parse(
-//         response.body,
-//       ) as TransactionResponseDTO[];
-
-//       expect(transactions).toHaveLength(1);
-//     });
-
-//     it('should throw 400 for invalid query params', async () => {
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'GET',
-//         url: `${url}?accountId=12`,
-//       });
-
-//       expect(response.statusCode).toBe(400);
-//     });
-
-//     it('should ignore unknown query parameters and return 200', async () => {
-//       const response = await server.inject({
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//         },
-//         method: 'GET',
-//         url: `${url}?someRandomParam=someValue`,
-//       });
-
-//       expect(response.statusCode).toBe(200);
-
-//       const transactions = JSON.parse(
-//         response.body,
-//       ) as TransactionResponseDTO[];
-
-//       expect(transactions).toHaveLength(0);
-//     });
-//   });
-
-//   // describe('PUT /api/transactions/:id', () => {
-//   //   it('should update an existing transaction and all related entries and operations', async () => {
-//   //     const accounts = await Promise.all([
-//   //       testDB.createAccount(userId, {
-//   //         currency: Currency.create('USD').valueOf(),
-//   //         name: 'Account 1 USD',
-//   //       }),
-//   //       testDB.createAccount(userId, {
-//   //         currency: Currency.create('EUR').valueOf(),
-//   //         name: 'Account 2 EUR',
-//   //       }),
-//   //       testDB.createAccount(userId, {
-//   //         currency: Currency.create('USD').valueOf(),
-//   //         name: 'Account 3 USD',
-//   //       }),
-//   //       testDB.createAccount(userId, {
-//   //         currency: Currency.create('EUR').valueOf(),
-//   //         name: 'Account 4 EUR',
-//   //       }),
-//   //     ]);
-
-//   //     const transaction = await testDB.createTransaction(userId, {
-//   //       description: 'Initial description',
-//   //       postingDate: DateValue.restore('2025-11-01').valueOf(),
-//   //       transactionDate: DateValue.restore('2025-11-01').valueOf(),
-//   //     });
-
-//   //     const entries = await Promise.all([
-//   //       testDB.createEntry(userId, {
-//   //         transactionId: transaction.id,
-//   //       }),
-//   //       testDB.createEntry(userId, {
-//   //         transactionId: transaction.id,
-//   //       }),
-//   //     ]);
-
-//   //     const operations = await Promise.all([
-//   //       testDB.createOperation(userId, {
-//   //         accountId: accounts[0].id,
-//   //         amount: Amount.create('-10000').valueOf(),
-//   //         description: 'Initial operation 1 USD',
-//   //         entryId: entries[0].id,
-//   //         isSystem: false,
-//   //       }),
-//   //       testDB.createOperation(userId, {
-//   //         accountId: accounts[1].id,
-//   //         amount: Amount.create('10000').valueOf(),
-//   //         description: 'Initial operation 2 EUR',
-//   //         entryId: entries[0].id,
-//   //         isSystem: false,
-//   //       }),
-//   //       testDB.createOperation(userId, {
-//   //         accountId: accounts[2].id,
-//   //         amount: Amount.create('5000').valueOf(),
-//   //         description: 'Initial operation 3 USD',
-//   //         entryId: entries[1].id,
-//   //         isSystem: false,
-//   //       }),
-//   //       testDB.createOperation(userId, {
-//   //         accountId: accounts[3].id,
-//   //         amount: Amount.create('-5000').valueOf(),
-//   //         description: 'Initial operation 4 EUR',
-//   //         entryId: entries[1].id,
-//   //         isSystem: false,
-//   //       }),
-//   //     ]);
-
-//   //     const payload: TransactionUpdateInput = {
-//   //       description: 'Updated description',
-//   //       entries: [
-//   //         {
-//   //           description: 'Updated Entry 1',
-//   //           operations: [
-//   //             {
-//   //               accountId: Id.fromPersistence(accounts[0].id).valueOf(),
-//   //               amount: Amount.create('-70000').valueOf(),
-//   //               description: 'Updated operation 1',
-//   //             },
-//   //             {
-//   //               accountId: Id.fromPersistence(accounts[1].id).valueOf(),
-//   //               amount: Amount.create('10000').valueOf(),
-//   //               description: 'Updated operation 2',
-//   //             },
-//   //           ],
-//   //         },
-//   //       ],
-//   //       postingDate: DateValue.restore('2025-11-10').valueOf(),
-//   //       transactionDate: DateValue.restore('2025-11-10').valueOf(),
-//   //     };
-
-//   //     const response = await server.inject({
-//   //       headers: {
-//   //         Authorization: `Bearer ${authToken}`,
-//   //       },
-//   //       method: 'PUT',
-//   //       payload,
-//   //       url: `${url}/${transaction.id}`,
-//   //     });
-
-//   //     const updatedTransaction = JSON.parse(
-//   //       response.body,
-//   //     ) as TransactionResponseDTO;
-
-//   //     expect(response.statusCode).toBe(200);
-//   //     expect(updatedTransaction.description).toBe(payload.description);
-//   //     expect(updatedTransaction.postingDate).toBe(payload.postingDate);
-//   //     expect(updatedTransaction.transactionDate).toBe(payload.transactionDate);
-
-//   //     await Promise.all(
-//   //       operations.map((op) =>
-//   //         testDB.getOperationById(op.id).then((fetchedOp) => {
-//   //           expect(fetchedOp).toBeNull();
-//   //         }),
-//   //       ),
-//   //     );
-
-//   //     expect(updatedTransaction.entries.length).toBe(payload.entries.length);
-
-//   //     updatedTransaction.entries.forEach((entry, index) => {
-//   //       expect(entry.operations.length).toBe(
-//   //         payload.entries[index].operations.length,
-//   //       );
-
-//   //       entry.operations.forEach((op, opIndex) => {
-//   //         const payloadOp = payload.entries[index].operations[opIndex];
-//   //         expect(op.accountId).toBe(payloadOp.accountId);
-//   //         expect(op.amount).toBe(payloadOp.amount);
-//   //         expect(op.description).toBe(payloadOp.description);
-//   //       });
-//   //     });
-//   //   });
-
-//   //   it('should return 404 when updating non-existent transaction', async () => {
-//   //     const payload = {
-//   //       description: 'Updated description',
-//   //       entries: [],
-//   //       postingDate: '2025-11-10',
-//   //       transactionDate: '2025-11-10',
-//   //     };
-
-//   //     const response = await server.inject({
-//   //       headers: {
-//   //         Authorization: `Bearer ${authToken}`,
-//   //       },
-//   //       method: 'PUT',
-//   //       payload,
-//   //       url: `${url}/${Id.create().valueOf()}`,
-//   //     });
-
-//   //     expect(response.statusCode).toBe(404);
-//   //   });
-
-//   //   it('should return 400 for invalid update payload', async () => {
-//   //     const transaction = await testDB.createTransaction(userId, {
-//   //       description: 'Initial description',
-//   //       postingDate: DateValue.restore('2025-11-01').valueOf(),
-//   //       transactionDate: DateValue.restore('2025-11-01').valueOf(),
-//   //     });
-
-//   //     const payload = {
-//   //       // missing required fields
-//   //       description: '',
-//   //     };
-
-//   //     const response = await server.inject({
-//   //       headers: {
-//   //         Authorization: `Bearer ${authToken}`,
-//   //       },
-//   //       method: 'PUT',
-//   //       payload,
-//   //       url: `${url}/${transaction.id}`,
-//   //     });
-
-//   //     expect(response.statusCode).toBe(400);
-//   //   });
-//   // });
-// });

@@ -59,6 +59,9 @@ export const transactionResponseSchema = z.object({
   userId: uuid,
 });
 
+export type OperationCreateInput = z.infer<typeof operationCreateSchema>;
+export type OperationUpdateInput = z.infer<typeof operationUpdateSchema>;
+
 export type TransactionCreateInput = z.infer<typeof transactionCreateSchema>;
 export type TransactionUpdateInput = z.infer<typeof transactionUpdateSchema>;
 export type TransactionResponse = z.infer<typeof transactionResponseSchema>;

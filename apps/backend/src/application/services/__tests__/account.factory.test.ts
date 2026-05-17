@@ -4,7 +4,6 @@ import { createUser } from 'src/db/createTestUser';
 import { User } from 'src/domain';
 import { Account, AccountType } from 'src/domain/';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AccountFactory } from '../account.factory';
@@ -75,48 +74,48 @@ describe('CreateAccountUseCase', () => {
     });
   });
 
-  describe('findOrCreateSystemAccount', () => {
-    it('should create a system account if not found', async () => {
-      mockAccountRepository.findSystemAccount.mockRejectedValueOnce(
-        new RepositoryNotFoundError('Not found'),
-      );
+  // describe('findOrCreateSystemAccount', () => {
+  //   it('should create a system account if not found', async () => {
+  //     mockAccountRepository.findSystemAccount.mockRejectedValueOnce(
+  //       new RepositoryNotFoundError('Not found'),
+  //     );
 
-      const mockAccount = Account.create(
-        user,
-        Name.create(`Trading System Account (${currency})`),
-        `System account for ${currency} currency trading`,
-        Amount.create('0'),
-        Currency.create(currency),
-        AccountType.create('currencyTrading'),
-      );
+  //     const mockAccount = Account.create(
+  //       user,
+  //       Name.create(`Trading System Account (${currency})`),
+  //       `System account for ${currency} currency trading`,
+  //       Amount.create('0'),
+  //       Currency.create(currency),
+  //       AccountType.create('currencyTrading'),
+  //     );
 
-      mockedSaveWithIdRetry.mockResolvedValue(mockAccount);
+  //     mockedSaveWithIdRetry.mockResolvedValue(mockAccount);
 
-      const account = await accountFactory.findOrCreateSystemAccount(
-        user,
-        currency,
-      );
+  //     const account = await accountFactory.findOrCreateSystemAccount(
+  //       user,
+  //       currency,
+  //     );
 
-      expect(account).toBeDefined();
-      expect(account).toBeInstanceOf(Account);
+  //     expect(account).toBeDefined();
+  //     expect(account).toBeInstanceOf(Account);
 
-      const accountPersistenceDTO = account.toPersistence();
+  //     const accountPersistenceDTO = account.toPersistence();
 
-      expect(accountPersistenceDTO.name).toBe(
-        `Trading System Account (${currency})`,
-      );
+  //     expect(accountPersistenceDTO.name).toBe(
+  //       `Trading System Account (${currency})`,
+  //     );
 
-      expect(accountPersistenceDTO.description).toBe(
-        `System account for ${currency} currency trading`,
-      );
+  //     expect(accountPersistenceDTO.description).toBe(
+  //       `System account for ${currency} currency trading`,
+  //     );
 
-      expect(accountPersistenceDTO.initialBalance).toBe(
-        Amount.create('0').valueOf(),
-      );
+  //     expect(accountPersistenceDTO.initialBalance).toBe(
+  //       Amount.create('0').valueOf(),
+  //     );
 
-      expect(accountPersistenceDTO.currency).toBe(currency);
-      expect(accountPersistenceDTO.type).toBe('currencyTrading');
-      expect(accountPersistenceDTO.isSystem).toBe(true);
-    });
-  });
+  //     expect(accountPersistenceDTO.currency).toBe(currency);
+  //     expect(accountPersistenceDTO.type).toBe('currencyTrading');
+  //     expect(accountPersistenceDTO.isSystem).toBe(true);
+  //   });
+  // });
 });
