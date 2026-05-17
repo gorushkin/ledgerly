@@ -22,6 +22,20 @@ export const compareEntities = <T extends object>(
   expect(beforeFiltered).toEqual(afterFiltered);
 };
 
+export const compareCommonEntities = <T extends object, U extends object>(
+  before: T,
+  after: U,
+  keysToIgnore: (keyof T & keyof U)[] = [],
+) => {
+  const commonKeys = (Object.keys(before) as (keyof T & keyof U)[]).filter(
+    (key) => key in after && !keysToIgnore.includes(key),
+  );
+
+  commonKeys.forEach((key) => {
+    expect(before[key]).toEqual(after[key as keyof U]);
+  });
+};
+
 export const getEntityDiff = <T extends object>(
   before: T,
   after: T,
