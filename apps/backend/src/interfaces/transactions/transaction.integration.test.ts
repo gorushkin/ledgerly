@@ -363,6 +363,7 @@ describe('Transactions Integration Tests', () => {
 
     it.todo('should return 404 for a non-existent transaction ID');
     it.todo('should return 404 when transaction is soft-deleted (tombstone)');
+    it.todo('should not return soft-deleted (tombstone) operations');
     it.todo("should return 404 when accessing another user's transaction");
     it.todo('should return 401 when not authorized');
   });
@@ -432,6 +433,9 @@ describe('Transactions Integration Tests', () => {
     it.todo('should return 401 when not authorized');
     it.todo('should return empty array when user has no transactions');
     it.todo('should not return soft-deleted (tombstone) transactions');
+    it.todo(
+      'should not return soft-deleted (tombstone) operations in transactions',
+    );
     it.todo('should return transactions filtered by accountId query param');
     it.todo('should return 400 for invalid accountId query param (non-UUID)');
   });

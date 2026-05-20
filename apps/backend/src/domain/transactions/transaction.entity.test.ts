@@ -460,7 +460,7 @@ describe('Transaction Domain Entity', () => {
       });
     });
 
-    it('Should delete an existing operation, filter deleted operations from snapshot and increase version', () => {
+    it('Should delete an existing operation, keep it in snapshot and hide it from active operations', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
 
       const originalSnapshot = transaction.toSnapshot();
@@ -472,10 +472,6 @@ describe('Transaction Domain Entity', () => {
 
       const operationsToDeleteIds = operationsToDelete.map((op) =>
         op.valueOf(),
-      );
-
-      const operationsSnapshotFiltered = originalSnapshot.operations.filter(
-        (op) => !operationsToDeleteIds.includes(op.id),
       );
 
       vi.advanceTimersByTime(5000);
@@ -497,19 +493,26 @@ describe('Transaction Domain Entity', () => {
         new Date(updatedSnapshot.updatedAt).getTime(),
       );
 
-      const deletedOperation = operationsSnapshotFiltered.find((op) =>
+      expect(transaction.getOperations()).toHaveLength(
+        originalSnapshot.operations.length - operationsToDeleteIds.length,
+      );
+
+      const deletedOperationSnapshot = updatedSnapshot.operations.filter((op) =>
         operationsToDeleteIds.includes(op.id),
       );
 
-      expect(deletedOperation).not.toBeDefined();
-
-      const deletedOperationSnapshot = updatedSnapshot.operations.filter(
-        (op) => op.id === operationsToDeleteIds[0],
+      expect(deletedOperationSnapshot).toHaveLength(
+        operationsToDeleteIds.length,
       );
+      deletedOperationSnapshot.forEach((op) => {
+        expect(op.isTombstone).toBe(true);
+      });
 
-      expect(deletedOperationSnapshot).toHaveLength(0);
+      originalSnapshot.operations.forEach((op) => {
+        if (operationsToDeleteIds.includes(op.id)) {
+          return;
+        }
 
-      operationsSnapshotFiltered.forEach((op) => {
         expect(operationsToDeleteIds.includes(op.id)).toBe(false);
 
         const matchedPrevOp = updatedSnapshot.operations.find(

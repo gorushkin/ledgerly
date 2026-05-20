@@ -93,7 +93,7 @@ export class TransactionRepository
   ): Promise<void> {
     const operations: OperationDbRow[] = [];
 
-    transaction.getOperations().forEach((operation) => {
+    transaction.getAllOperations().forEach((operation) => {
       operations.push(OperationMapper.toDBRow(operation));
     });
 
@@ -198,7 +198,7 @@ export class TransactionRepository
     await this.executeDatabaseOperation(
       async () => {
         const operationsDataToInsert = transaction
-          .getOperations()
+          .getAllOperations()
           .map((operation) => OperationMapper.toDBRow(operation));
 
         await this.insertTransactionRow(userId, transaction);

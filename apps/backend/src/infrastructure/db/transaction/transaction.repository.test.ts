@@ -6,7 +6,7 @@ import {
   TransactionBuilder,
   TransactionBuilderResult,
 } from 'src/db/test-utils';
-import { Account, Operation, User } from 'src/domain';
+import { Account, User } from 'src/domain';
 import { Amount, DateValue } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
@@ -40,6 +40,8 @@ describe('TransactionRepository', () => {
   };
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+
     testDB = new TestDB();
 
     await testDB.setupTestDb();
@@ -162,6 +164,10 @@ describe('TransactionRepository', () => {
       });
     });
 
+    it.todo(
+      'should restore all known operations and expose only active operations through getOperations',
+    );
+
     it.todo('should return null when transaction does not exist');
     it.todo('should return null when transaction belongs to another user');
 
@@ -207,7 +213,7 @@ describe('TransactionRepository', () => {
       );
 
       const expectedSnapshots = transaction
-        .getOperations()
+        .getAllOperations()
         .map((op) => op.toSnapshot());
 
       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
@@ -220,17 +226,6 @@ describe('TransactionRepository', () => {
   describe('save', () => {
     it('should update transaction metadata and trigger save', async () => {
       const transaction = data.transaction;
-
-      const initDeletedOperations: Operation[] = [];
-      const initExistedOperations: Operation[] = [];
-
-      transaction.getOperations().forEach((operation) => {
-        if (operation.isDeleted()) {
-          initDeletedOperations.push(operation);
-        } else {
-          initExistedOperations.push(operation);
-        }
-      });
 
       const operations = transaction.getOperations();
 
@@ -320,7 +315,7 @@ describe('TransactionRepository', () => {
 
       const expectedOperations: OperationDbRow[] = [];
 
-      transaction.getOperations().forEach((operation) => {
+      transaction.getAllOperations().forEach((operation) => {
         expectedOperations.push(OperationMapper.toDBRow(operation));
       });
 
@@ -385,7 +380,7 @@ describe('TransactionRepository', () => {
 
       const expectedOperations: OperationDbRow[] = [];
 
-      transaction.getOperations().forEach((operation) => {
+      transaction.getAllOperations().forEach((operation) => {
         expectedOperations.push(OperationMapper.toDBRow(operation));
       });
 

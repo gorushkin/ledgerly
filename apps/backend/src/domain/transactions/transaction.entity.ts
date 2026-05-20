@@ -149,9 +149,9 @@ export class Transaction {
       version,
     );
 
-    const operations = data.operations
-      .filter((operationData) => !operationData.isTombstone)
-      .map((operationData) => Operation.restore(operationData));
+    const operations = data.operations.map((operationData) =>
+      Operation.restore(operationData),
+    );
 
     transaction.attachOperations(operations);
 
@@ -198,9 +198,7 @@ export class Transaction {
       description: this.description,
       id: this.getId().valueOf(),
       isTombstone: this.isDeleted(),
-      operations: this.operations
-        .filter((operation) => !operation.isDeleted())
-        .map((operation) => operation.toSnapshot()),
+      operations: this.operations.map((operation) => operation.toSnapshot()),
       postingDate: this.postingDate.valueOf(),
       transactionDate: this.transactionDate.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
@@ -436,6 +434,10 @@ export class Transaction {
 
   getOperations(): Operation[] {
     return this.operations.filter((operation) => !operation.isDeleted());
+  }
+
+  getAllOperations(): Operation[] {
+    return [...this.operations];
   }
 
   markAsDeleted(): void {
