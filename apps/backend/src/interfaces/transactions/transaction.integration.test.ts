@@ -64,6 +64,23 @@ describe('Transactions Integration Tests', () => {
     await testDB.cleanupTestDb();
   });
 
+  const createAccounts = async () => {
+    return Promise.all([
+      testDB.createAccount(userId, {
+        currency: Currency.create('USD').valueOf(),
+        name: 'Checking USD',
+      }),
+      testDB.createAccount(userId, {
+        currency: Currency.create('USD').valueOf(),
+        name: 'Savings USD',
+      }),
+      testDB.createAccount(userId, {
+        currency: Currency.create('EUR').valueOf(),
+        name: 'Savings EUR',
+      }),
+    ]);
+  };
+
   describe('POST /api/transactions', () => {
     let account1: AccountDbRow;
     let account2: AccountDbRow;
@@ -71,13 +88,7 @@ describe('Transactions Integration Tests', () => {
     let operation2: OperationCreateInput;
 
     beforeEach(async () => {
-      account1 = await testDB.createAccount(userId, {
-        name: 'Checking',
-      });
-
-      account2 = await testDB.createAccount(userId, {
-        name: 'Savings',
-      });
+      [account1, account2] = await createAccounts();
 
       operation1 = {
         accountId: account1.id,
@@ -290,20 +301,7 @@ describe('Transactions Integration Tests', () => {
     const operationsMap = new Map<UUID, OperationDbRow>();
 
     beforeEach(async () => {
-      const accounts = await Promise.all([
-        testDB.createAccount(userId, {
-          currency: Currency.create('USD').valueOf(),
-          name: 'Checking USD',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('USD').valueOf(),
-          name: 'Savings USD',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('EUR').valueOf(),
-          name: 'Savings EUR',
-        }),
-      ]);
+      const accounts = await createAccounts();
 
       transaction = await testDB.createTransaction(userId);
 
@@ -519,24 +517,10 @@ describe('Transactions Integration Tests', () => {
   });
 
   describe('GET /api/transactions', () => {
-    // TODO: consider moving accounts to the top-level describe block if they are needed across multiple test cases
     let accounts: AccountDbRow[];
 
     beforeEach(async () => {
-      accounts = await Promise.all([
-        testDB.createAccount(userId, {
-          currency: Currency.create('USD').valueOf(),
-          name: 'Checking USD',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('USD').valueOf(),
-          name: 'Savings USD',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('EUR').valueOf(),
-          name: 'Savings EUR',
-        }),
-      ]);
+      accounts = await createAccounts();
     });
 
     it('should retrieve all transactions for the user', async () => {
@@ -846,13 +830,7 @@ describe('Transactions Integration Tests', () => {
     let operation2Data: OperationCreateInput;
 
     beforeEach(async () => {
-      account1Data = await testDB.createAccount(userId, {
-        name: 'Checking',
-      });
-
-      account2Data = await testDB.createAccount(userId, {
-        name: 'Savings',
-      });
+      [account1Data, account2Data] = await createAccounts();
 
       operation1Data = {
         accountId: account1Data.id,
