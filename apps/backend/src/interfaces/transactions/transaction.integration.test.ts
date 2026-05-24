@@ -21,6 +21,10 @@ import { Amount, Currency, DateValue, Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/server';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+const parseResponse = <T>(response: { body: string }): T => {
+  return JSON.parse(response.body) as T;
+};
+
 const testUser = {
   email: 'test@example.com',
   name: 'Test User',
@@ -108,7 +112,7 @@ describe('Transactions Integration Tests', () => {
         url,
       });
 
-      const transaction = JSON.parse(response.body) as TransactionResponseDTO;
+      const transaction = parseResponse<TransactionResponseDTO>(response);
 
       expect(response.statusCode).toBe(201);
 
@@ -382,7 +386,19 @@ describe('Transactions Integration Tests', () => {
       });
     });
 
-    it.todo('should return 404 when transaction is soft-deleted (tombstone)');
+    it('should return 404 when transaction is soft-deleted (tombstone)', async () => {
+      await testDB.softDeleteTransaction(transaction.id);
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
 
     it('should not return soft-deleted (tombstone) operations', async () => {
       const createdTransaction = await testDB.createTransaction(userId);
@@ -492,12 +508,22 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
-    it.todo('should return 401 when not authorized');
+    it('should return 401 when not authorized', async () => {
+      const response = await server.inject({
+        method: 'GET',
+        url: `${url}/some-transaction-id`,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
   });
 
   describe('GET /api/transactions', () => {
-    it('should retrieve all transactions for the user', async () => {
-      const accounts = await Promise.all([
+    // TODO: consider moving accounts to the top-level describe block if they are needed across multiple test cases
+    let accounts: AccountDbRow[];
+
+    beforeEach(async () => {
+      accounts = await Promise.all([
         testDB.createAccount(userId, {
           currency: Currency.create('USD').valueOf(),
           name: 'Checking USD',
@@ -511,7 +537,9 @@ describe('Transactions Integration Tests', () => {
           name: 'Savings EUR',
         }),
       ]);
+    });
 
+    it('should retrieve all transactions for the user', async () => {
       const transaction1Params: CreateTransactionProps = {
         currencyCode: accounts[0].currency,
         description: 'transaction one',
@@ -557,13 +585,151 @@ describe('Transactions Integration Tests', () => {
       expect(userTransactions).toHaveLength(transactionData.length);
     });
 
-    it.todo('should return 401 when not authorized');
-    it.todo('should return empty array when user has no transactions');
-    it.todo('should not return soft-deleted (tombstone) transactions');
-    it.todo(
-      'should not return soft-deleted (tombstone) operations in transactions',
-    );
+    it('should return 401 when not authorized', async () => {
+      const response = await server.inject({
+        method: 'GET',
+        url: `${url}/some-transaction-id`,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('should return empty array when user has no transactions', async () => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const transactions = parseResponse<TransactionResponseDTO[]>(response);
+
+      expect(transactions).toHaveLength(0);
+    });
+
+    it('should not return soft-deleted (tombstone) transactions', async () => {
+      const transactionToBeDeleted = await testDB.createTransaction(userId);
+
+      const otherTransaction = await testDB.createTransaction(userId);
+
+      await testDB.softDeleteTransaction(transactionToBeDeleted.id);
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const transactions = parseResponse<TransactionResponseDTO[]>(response);
+
+      const deletedTransaction = transactions.find(
+        (tx) => tx.id === transactionToBeDeleted.id,
+      );
+
+      expect(deletedTransaction).toBeUndefined();
+
+      const otherTransactionExists = transactions.find(
+        (tx) => tx.id === otherTransaction.id,
+      );
+
+      expect(otherTransactionExists).toBeDefined();
+    });
+
+    it('should not return soft-deleted (tombstone) operations in transactions', async () => {
+      const createdTransaction = await testDB.createTransaction(userId);
+
+      const deletedOperationsData = [
+        {
+          accountId: accounts[0].id,
+          amount: Amount.create('-50').valueOf(),
+          description: 'Deleted operation',
+          id: Id.create().valueOf(),
+          isTombstone: true,
+          transactionId: createdTransaction.id,
+          value: Amount.create('-50').valueOf(),
+        },
+        {
+          accountId: accounts[1].id,
+          amount: Amount.create('50').valueOf(),
+          description: 'Deleted operation',
+          id: Id.create().valueOf(),
+          isTombstone: true,
+          transactionId: createdTransaction.id,
+          value: Amount.create('50').valueOf(),
+        },
+      ];
+
+      const activeOperations = [
+        {
+          accountId: accounts[0].id,
+          amount: Amount.create('-50').valueOf(),
+          description: 'Active operation',
+          id: Id.create().valueOf(),
+          transactionId: createdTransaction.id,
+          value: Amount.create('-50').valueOf(),
+        },
+        {
+          accountId: accounts[1].id,
+          amount: Amount.create('50').valueOf(),
+          description: 'Active operation',
+          id: Id.create().valueOf(),
+          transactionId: createdTransaction.id,
+          value: Amount.create('50').valueOf(),
+        },
+      ];
+
+      const operationsData = [...deletedOperationsData, ...activeOperations];
+
+      await Promise.all(
+        operationsData.map((op) => testDB.createOperation(userId, op)),
+      );
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const transactions = parseResponse<TransactionResponseDTO[]>(response);
+
+      const transactionResponse = transactions.find(
+        (tx) => tx.id === createdTransaction.id,
+      );
+
+      expect(transactionResponse).toBeDefined();
+
+      transactionResponse!.operations.forEach((op) => {
+        const isDeleted = deletedOperationsData.some(
+          (deletedOp) => deletedOp.id === op.id,
+        );
+
+        expect(isDeleted).toBe(false);
+
+        const matchedOp = activeOperations.find((o) => o.id === op.id);
+
+        if (!matchedOp) {
+          throw new Error(
+            `Operation with ID ${op.id} not found in active operations`,
+          );
+        }
+
+        compareCommonEntities(matchedOp, op as typeof matchedOp);
+      });
+    });
+
     it.todo('should return transactions filtered by accountId query param');
+
     it.todo('should return 400 for invalid accountId query param (non-UUID)');
   });
 
@@ -932,11 +1098,136 @@ describe('Transactions Integration Tests', () => {
         compareCommonEntities(originalOp, op);
       });
     });
-    it.todo('should return 404 when updating a non-existent transaction');
-    it.todo('should return 404 when updating a soft-deleted transaction');
-    it.todo("should return 404 when updating another user's transaction");
-    it.todo('should return 400 for invalid payload (missing required fields)');
-    it.todo('should return 401 when not authorized');
+
+    it('should return 404 when updating a non-existent transaction', async () => {
+      const nonExistentId = Id.create().valueOf();
+
+      const updatedData: UpdateTransactionRequestDTO = {
+        description: 'Updated description',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        postingDate: DateValue.create().valueOf(),
+        transactionDate: DateValue.create().valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload: updatedData,
+        url: `${url}/${nonExistentId}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when updating a soft-deleted transaction', async () => {
+      const transaction = await testDB.createTransaction(userId);
+
+      await testDB.softDeleteTransaction(transaction.id);
+
+      const updatedData: UpdateTransactionRequestDTO = {
+        description: 'Updated description',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        postingDate: DateValue.create().valueOf(),
+        transactionDate: DateValue.create().valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload: updatedData,
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it("should return 404 when updating another user's transaction", async () => {
+      const another = await testDB.createUser();
+      const transaction = await testDB.createTransaction(another.id);
+
+      const updatedData: UpdateTransactionRequestDTO = {
+        description: 'Updated description',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        postingDate: DateValue.create().valueOf(),
+        transactionDate: DateValue.create().valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload: updatedData,
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 for invalid payload (missing required fields)', async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId);
+
+      const invalidPayload = {
+        description: 'Updated description',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        // Missing postingDate and transactionDate
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload: invalidPayload,
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 401 when not authorized', async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId);
+
+      const updatedData: UpdateTransactionRequestDTO = {
+        description: 'Updated description',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        postingDate: DateValue.create().valueOf(),
+        transactionDate: DateValue.create().valueOf(),
+      };
+
+      const response = await server.inject({
+        method: 'PUT',
+        payload: updatedData,
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
     it.todo('should return 409 on optimistic locking conflict (stale version)');
 
     it('should return 400 when resulting operations are unbalanced (sum != 0)', async () => {
