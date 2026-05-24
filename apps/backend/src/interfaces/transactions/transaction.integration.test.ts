@@ -361,10 +361,137 @@ describe('Transactions Integration Tests', () => {
       });
     });
 
-    it.todo('should return 404 for a non-existent transaction ID');
+    it('should return 404 for a non-existent transaction ID', async () => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${Id.create().valueOf()}`,
+      });
+
+      const body = JSON.parse(response.body) as {
+        error: boolean;
+        message: string;
+      };
+
+      expect(response.statusCode).toBe(404);
+      expect(body).toEqual({
+        error: true,
+        message: 'Transaction not found',
+      });
+    });
+
     it.todo('should return 404 when transaction is soft-deleted (tombstone)');
-    it.todo('should not return soft-deleted (tombstone) operations');
-    it.todo("should return 404 when accessing another user's transaction");
+
+    it('should not return soft-deleted (tombstone) operations', async () => {
+      const createdTransaction = await testDB.createTransaction(userId);
+
+      const deletedOperationsData = [
+        {
+          accountId: operations[0].accountId,
+          amount: Amount.create('-50').valueOf(),
+          description: 'Deleted operation',
+          id: Id.create().valueOf(),
+          isTombstone: true,
+          transactionId: createdTransaction.id,
+          value: Amount.create('-50').valueOf(),
+        },
+        {
+          accountId: operations[1].accountId,
+          amount: Amount.create('50').valueOf(),
+          description: 'Deleted operation',
+          id: Id.create().valueOf(),
+          isTombstone: true,
+          transactionId: createdTransaction.id,
+          value: Amount.create('50').valueOf(),
+        },
+      ];
+
+      const activeOperations = [
+        {
+          accountId: operations[0].accountId,
+          amount: Amount.create('-50').valueOf(),
+          description: 'Active operation',
+          id: Id.create().valueOf(),
+          transactionId: createdTransaction.id,
+          value: Amount.create('-50').valueOf(),
+        },
+        {
+          accountId: operations[1].accountId,
+          amount: Amount.create('50').valueOf(),
+          description: 'Active operation',
+          id: Id.create().valueOf(),
+          transactionId: createdTransaction.id,
+          value: Amount.create('50').valueOf(),
+        },
+      ];
+
+      const operationsData = [...deletedOperationsData, ...activeOperations];
+
+      await Promise.all(
+        operationsData.map((op) => testDB.createOperation(userId, op)),
+      );
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${createdTransaction.id}`,
+      });
+
+      const transactionResponse = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+
+      expect(transactionResponse.operations).toHaveLength(
+        activeOperations.length,
+      );
+
+      deletedOperationsData.forEach((deletedOp) => {
+        expect(
+          transactionResponse.operations.some((op) => op.id === deletedOp.id),
+        ).toBe(false);
+      });
+
+      transactionResponse.operations.forEach((op) => {
+        const isDeleted = deletedOperationsData.some(
+          (deletedOp) => deletedOp.id === op.id,
+        );
+
+        expect(isDeleted).toBe(false);
+
+        const matchedOp = activeOperations.find((o) => o.id === op.id);
+
+        if (!matchedOp) {
+          throw new Error(
+            `Operation with ID ${op.id} not found in active operations`,
+          );
+        }
+
+        compareCommonEntities(matchedOp, op as typeof matchedOp);
+      });
+    });
+
+    it("should return 404 when accessing another user's transaction", async () => {
+      const otherUser = await testDB.createUser();
+
+      const otherUserTransaction = await testDB.createTransaction(otherUser.id);
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${otherUserTransaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
     it.todo('should return 401 when not authorized');
   });
 

@@ -28,3 +28,12 @@ export class ForbiddenAccessError extends InfrastructureError {
     super(message);
   }
 }
+
+/**
+ * Thrown when repository input violates expected persistence invariants.
+ */
+export class RepositoryInvariantError extends InfrastructureError {
+  constructor(message: string) {
+    super(message);
+  }
+}

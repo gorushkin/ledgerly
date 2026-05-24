@@ -218,10 +218,10 @@ export class TestDB {
   createTransactionWithOperations = async (
     userId: UUID,
     params?: {
-      description: string;
-      postingDate: IsoDateString;
-      transactionDate: IsoDateString;
-      currencyCode: CurrencyCode;
+      description?: string;
+      postingDate?: IsoDateString;
+      transactionDate?: IsoDateString;
+      currencyCode?: CurrencyCode;
       isTombstone?: boolean;
       operations: {
         accountId: UUID;

@@ -7,6 +7,7 @@ import {
   operationsTable,
 } from 'src/db/schema';
 import { OperationSnapshot } from 'src/domain/operations/types';
+import { RepositoryInvariantError } from 'src/infrastructure/infrastructure.errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -103,6 +104,12 @@ export class OperationRepository
           if (!matchedOperationSnapshot) {
             operationsToInsert.push(operation);
             return;
+          }
+
+          if (matchedOperationSnapshot.isTombstone) {
+            throw new RepositoryInvariantError(
+              `Operation ${operation.id} is already tombstone in persistence snapshot`,
+            );
           }
 
           if (operation.isTombstone) {

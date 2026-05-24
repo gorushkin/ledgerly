@@ -108,9 +108,15 @@ export class TransactionRepository
       operationsSnapshots.set(operationSnapshot.id, operationSnapshot);
     });
 
+    const operationsToSave = operations.filter((operation) => {
+      const operationSnapshot = operationsSnapshots.get(operation.id);
+
+      return !(operationSnapshot?.isTombstone && operation.isTombstone);
+    });
+
     await this.operationsRepository.save(
       userId,
-      operations,
+      operationsToSave,
       operationsSnapshots,
     );
   }
