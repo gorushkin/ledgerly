@@ -13,10 +13,7 @@ import {
 } from 'src/db/schema';
 import { Transaction } from 'src/domain';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import {
-  RepositoryInvariantError,
-  RepositoryNotFoundError,
-} from 'src/infrastructure/infrastructure.errors';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 
 import { BaseRepository } from '../BaseRepository';
 
