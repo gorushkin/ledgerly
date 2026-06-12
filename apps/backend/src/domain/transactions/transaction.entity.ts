@@ -287,12 +287,12 @@ export class Transaction {
       return;
     }
 
-    const deleteIds = new Set(operations.delete);
+    const deleteIds = new Set(operations.delete.map((id) => id.valueOf()));
 
     // Check for IDs present in both update and delete
     const updateDeleteConflicts = operations.update
       .map((operation) => operation.id)
-      .filter((id) => deleteIds.has(id));
+      .filter((id) => deleteIds.has(id.valueOf()));
 
     if (updateDeleteConflicts.length > 0) {
       throw new ConflictingOperationIdsError(
@@ -303,20 +303,20 @@ export class Transaction {
 
     // Check for duplicate IDs within update array
     const updateDuplicates = operations.update
-      .map((operation) => operation.id)
+      .map((operation) => operation.id.valueOf())
       .filter((id, index, arr) => arr.indexOf(id) !== index);
 
     if (updateDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
-        [...new Set(updateDuplicates.map((id) => id.valueOf()))],
+        [...new Set(updateDuplicates)],
         'Duplicate IDs in update array',
       );
     }
 
     // Check for duplicate IDs within delete array
     const deleteDuplicates = operations.delete
-      .filter((id, index, arr) => arr.indexOf(id) !== index)
-      .map((id) => id.valueOf());
+      .map((id) => id.valueOf())
+      .filter((id, index, arr) => arr.indexOf(id) !== index);
 
     if (deleteDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(

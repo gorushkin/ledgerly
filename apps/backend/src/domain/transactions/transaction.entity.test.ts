@@ -7,7 +7,10 @@ import {
   TransactionBuilderResult,
 } from 'src/db/test-utils';
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
-import { UnbalancedTransactionError } from 'src/domain/domain.errors';
+import {
+  ConflictingOperationIdsError,
+  UnbalancedTransactionError,
+} from 'src/domain/domain.errors';
 import {
   afterEach,
   beforeAll,
@@ -349,6 +352,89 @@ describe('Transaction Domain Entity', () => {
   });
 
   describe('Manage Operations', () => {
+    const toUpdateProps = (
+      transaction: Transaction,
+      operationIndex: number,
+      id: Id,
+    ): UpdateOperationProps => {
+      const operation = transaction.getOperations()[operationIndex];
+      const account = data.accountsMap.get(operation.getAccountId().valueOf());
+
+      if (!account) {
+        throw new Error('Test setup failed: Account not found');
+      }
+
+      return {
+        account,
+        amount: operation.amount,
+        description: operation.description,
+        id,
+        value: operation.value,
+      };
+    };
+
+    it.only('should reject the same operation ID in update and delete when represented by different Id instances', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operationId = transaction.getOperations()[0].getId().valueOf();
+
+      expect(() =>
+        transaction.applyUpdate(
+          {
+            operations: {
+              create: [],
+              delete: [Id.fromPersistence(operationId)],
+              update: [
+                toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+              ],
+            },
+          },
+          data.transactionContext,
+        ),
+      ).toThrow(ConflictingOperationIdsError);
+    });
+
+    it('should reject duplicate update IDs represented by different Id instances', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operationId = transaction.getOperations()[0].getId().valueOf();
+
+      expect(() =>
+        transaction.applyUpdate(
+          {
+            operations: {
+              create: [],
+              delete: [],
+              update: [
+                toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+                toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+              ],
+            },
+          },
+          data.transactionContext,
+        ),
+      ).toThrow(ConflictingOperationIdsError);
+    });
+
+    it('should reject duplicate delete IDs represented by different Id instances', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operationId = transaction.getOperations()[0].getId().valueOf();
+
+      expect(() =>
+        transaction.applyUpdate(
+          {
+            operations: {
+              create: [],
+              delete: [
+                Id.fromPersistence(operationId),
+                Id.fromPersistence(operationId),
+              ],
+              update: [],
+            },
+          },
+          data.transactionContext,
+        ),
+      ).toThrow(ConflictingOperationIdsError);
+    });
+
     it('Should add a new operation and increase version', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
 
