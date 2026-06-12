@@ -373,11 +373,24 @@ describe('Transaction Domain Entity', () => {
       };
     };
 
+    const captureConflictingOperationIdsError = (
+      action: () => void,
+    ): ConflictingOperationIdsError => {
+      try {
+        action();
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConflictingOperationIdsError);
+        return error as ConflictingOperationIdsError;
+      }
+
+      throw new Error('Expected ConflictingOperationIdsError to be thrown');
+    };
+
     it('should reject the same operation ID in update and delete when represented by different Id instances', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
       const operationId = transaction.getOperations()[0].getId().valueOf();
 
-      expect(() =>
+      const error = captureConflictingOperationIdsError(() =>
         transaction.applyUpdate(
           {
             operations: {
@@ -390,14 +403,19 @@ describe('Transaction Domain Entity', () => {
           },
           data.transactionContext,
         ),
-      ).toThrow(ConflictingOperationIdsError);
+      );
+
+      expect(error.conflictingIds).toEqual([operationId]);
+      expect(error.conflictType).toBe(
+        'IDs found in both update and delete arrays',
+      );
     });
 
     it('should reject duplicate update IDs represented by different Id instances', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
       const operationId = transaction.getOperations()[0].getId().valueOf();
 
-      expect(() =>
+      const error = captureConflictingOperationIdsError(() =>
         transaction.applyUpdate(
           {
             operations: {
@@ -411,14 +429,17 @@ describe('Transaction Domain Entity', () => {
           },
           data.transactionContext,
         ),
-      ).toThrow(ConflictingOperationIdsError);
+      );
+
+      expect(error.conflictingIds).toEqual([operationId]);
+      expect(error.conflictType).toBe('Duplicate IDs in update array');
     });
 
     it('should reject duplicate delete IDs represented by different Id instances', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
       const operationId = transaction.getOperations()[0].getId().valueOf();
 
-      expect(() =>
+      const error = captureConflictingOperationIdsError(() =>
         transaction.applyUpdate(
           {
             operations: {
@@ -432,7 +453,10 @@ describe('Transaction Domain Entity', () => {
           },
           data.transactionContext,
         ),
-      ).toThrow(ConflictingOperationIdsError);
+      );
+
+      expect(error.conflictingIds).toEqual([operationId]);
+      expect(error.conflictType).toBe('Duplicate IDs in delete array');
     });
 
     it('Should add a new operation and increase version', () => {
