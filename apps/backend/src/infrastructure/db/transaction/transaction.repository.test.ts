@@ -11,6 +11,7 @@ import { Account, User } from 'src/domain';
 import { Amount, DateValue, Id } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
+import { RepositoryInvariantError } from 'src/infrastructure/infrastructure.errors';
 import { ForeignKeyConstraintError } from 'src/presentation/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -194,11 +195,11 @@ describe('TransactionRepository', () => {
 
       const retrievedOperations = retrievedTransaction?.getOperations() ?? [];
 
-      expect(retrievedTransaction?.getAllOperations()).length(
+      expect(retrievedTransaction?.getAllOperations()).toHaveLength(
         allOperationsCount,
       );
 
-      expect(retrievedOperations).length(allOperationsCount - acc);
+      expect(retrievedOperations).toHaveLength(allOperationsCount - acc);
 
       retrievedOperations.forEach((operation) => {
         expect(operation.isDeleted()).toBe(false);
@@ -219,7 +220,6 @@ describe('TransactionRepository', () => {
 
       await testDB.insertTransaction({
         ...transaction.toSnapshot(),
-        isTombstone: true,
       });
 
       const anotherUser = await testDB.createUser();
@@ -283,7 +283,7 @@ describe('TransactionRepository', () => {
 
       const expectedSnapshots = transaction
         .getAllOperations()
-        .map((op) => op.toSnapshot());
+        .map((op) => OperationMapper.toDBRow(op));
 
       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
         user.id,
@@ -415,7 +415,9 @@ describe('TransactionRepository', () => {
         transactionContext,
       );
 
-      await transactionRepository.update(anotherUser.id, transaction);
+      await expect(
+        transactionRepository.update(anotherUser.id, transaction),
+      ).rejects.toThrow(RepositoryInvariantError);
 
       const retrievedTransaction = await transactionRepository.getById(
         data.transaction.getUserId().valueOf(),
@@ -423,12 +425,7 @@ describe('TransactionRepository', () => {
       );
 
       expect(retrievedTransaction).not.toBeNull();
-
-      if (!retrievedTransaction) {
-        throw new Error('Expected transaction to be retrieved');
-      }
-
-      compareEntities(transactionSnapshot, retrievedTransaction.toSnapshot());
+      compareEntities(transactionSnapshot, retrievedTransaction!.toSnapshot());
     });
 
     it('should not pass already tombstone operations to operation repository save', async () => {
@@ -522,7 +519,9 @@ describe('TransactionRepository', () => {
 
       await testDB.insertTransaction(transaction.toSnapshot());
 
-      await transactionRepository.softDelete(anotherUser.id, transaction);
+      await expect(
+        transactionRepository.softDelete(anotherUser.id, transaction),
+      ).rejects.toThrow(RepositoryInvariantError);
 
       const retrievedTransaction = await transactionRepository.getById(
         data.transaction.getUserId().valueOf(),

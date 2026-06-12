@@ -13,6 +13,7 @@ import {
 } from 'src/db/schema';
 import { Transaction } from 'src/domain';
 import { OperationSnapshot } from 'src/domain/operations/types';
+import { RepositoryInvariantError } from 'src/infrastructure/infrastructure.errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -102,9 +103,15 @@ export class TransactionRepository
       transaction.getId().valueOf(),
     );
 
+    if (!snapshot) {
+      throw new RepositoryInvariantError(
+        `Transaction ${transaction.getId().valueOf()} snapshot not found for user ${userId}`,
+      );
+    }
+
     const operationsSnapshots = new Map<UUID, OperationSnapshot>();
 
-    snapshot?.operations.forEach((operationSnapshot) => {
+    snapshot.operations.forEach((operationSnapshot) => {
       operationsSnapshots.set(operationSnapshot.id, operationSnapshot);
     });
 

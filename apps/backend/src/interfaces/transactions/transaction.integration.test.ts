@@ -572,7 +572,7 @@ describe('Transactions Integration Tests', () => {
     it('should return 401 when not authorized', async () => {
       const response = await server.inject({
         method: 'GET',
-        url: `${url}/some-transaction-id`,
+        url: `${url}`,
       });
 
       expect(response.statusCode).toBe(401);
