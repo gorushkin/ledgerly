@@ -373,7 +373,7 @@ describe('Transaction Domain Entity', () => {
       };
     };
 
-    it.only('should reject the same operation ID in update and delete when represented by different Id instances', () => {
+    it('should reject the same operation ID in update and delete when represented by different Id instances', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
       const operationId = transaction.getOperations()[0].getId().valueOf();
 
