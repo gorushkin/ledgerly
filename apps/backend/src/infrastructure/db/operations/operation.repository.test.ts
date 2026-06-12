@@ -9,6 +9,7 @@ import {
 import { Transaction, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
+import { RepositoryInvariantError } from 'src/infrastructure/infrastructure.errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
@@ -256,6 +257,78 @@ describe('OperationRepository', () => {
 
     it.todo(
       'should update an operation that exists in snapshot and has isTombstone: false with no field changes',
+    );
+
+    it('should reject saving an operation that is already tombstone in the snapshot', async () => {
+      const operations = data.operations.map((operation) =>
+        OperationMapper.toDBRow(operation),
+      );
+
+      await Promise.all(
+        operations.map((operation) => testDB.insertOperation(operation)),
+      );
+
+      const transactionWithRelationsBeforeDelete =
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf());
+
+      const operationsSnapshot = new Map<UUID, OperationSnapshot>();
+
+      transactionWithRelationsBeforeDelete?.operations.forEach((op) => {
+        operationsSnapshot.set(op.id, op);
+      });
+
+      const operationToDelete = operations[0];
+
+      await operationRepository.save(
+        user.id,
+        [
+          {
+            ...operationToDelete,
+            isTombstone: true,
+          },
+        ],
+        operationsSnapshot,
+      );
+
+      const transactionWithRelationsAfterDelete =
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf());
+
+      const tombstoneSnapshot = new Map<UUID, OperationSnapshot>();
+
+      transactionWithRelationsAfterDelete?.operations.forEach((op) => {
+        tombstoneSnapshot.set(op.id, op);
+      });
+
+      const deletedOperation = tombstoneSnapshot.get(operationToDelete.id);
+
+      expect(deletedOperation?.isTombstone).toBe(true);
+
+      await expect(
+        operationRepository.save(
+          user.id,
+          [
+            {
+              ...operationToDelete,
+              isTombstone: true,
+            },
+          ],
+          tombstoneSnapshot,
+        ),
+      ).rejects.toThrow(RepositoryInvariantError);
+
+      const transactionWithRelationsAfterRejectedSave =
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf());
+
+      const operationAfterRejectedSave =
+        transactionWithRelationsAfterRejectedSave?.operations.find(
+          (op) => op.id === operationToDelete.id,
+        );
+
+      expect(operationAfterRejectedSave).toEqual(deletedOperation);
+    });
+
+    it.todo(
+      'should reject updating an operation that is already tombstone in the snapshot',
     );
 
     it.todo(

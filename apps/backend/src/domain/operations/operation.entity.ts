@@ -8,6 +8,7 @@ import {
   SoftDelete,
   ParentChildRelation,
 } from '../domain-core';
+import { DeletedEntityOperationError } from '../domain.errors';
 
 import { OperationSnapshot, UpdateOperationProps } from './types';
 
@@ -227,6 +228,10 @@ export class Operation {
     if (this.identity.getId().equals(params.id.valueOf()) === false) {
       // TODO: add proper error handling
       throw new Error('Operation ID mismatch');
+    }
+
+    if (this.isDeleted()) {
+      throw new DeletedEntityOperationError('operation', 'update');
     }
 
     const { account, amount, description, value } = params;

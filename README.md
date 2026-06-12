@@ -21,7 +21,9 @@ For detailed domain model documentation, see [Domain Documentation](./docs/DOMAI
 - Each operation tracks amounts in both original and base currencies
 - MVP deletion semantics:
   - transactions use soft delete (`isTombstone`)
-  - operations may be soft-deleted in storage, but tombstone operations are not part of the domain/read contract and are treated as filtered-out archived rows
+  - operations may be soft-deleted in storage
+  - transaction aggregates keep raw operations for persistence, including tombstone operations
+  - domain business accessors and read APIs expose active operations only
 
 ### Accounts
 - Represents different financial accounts (cash, bank accounts, credit cards)

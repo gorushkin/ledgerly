@@ -13,6 +13,7 @@ import {
 
 import { Account } from '../accounts';
 import { Amount, Id } from '../domain-core';
+import { DeletedEntityOperationError } from '../domain.errors';
 import { Transaction } from '../transactions';
 import { User } from '../users/user.entity';
 
@@ -208,6 +209,33 @@ describe('Operation Domain Entity', () => {
     const updatedSnapshot = operation.toSnapshot();
 
     compareEntities(operationSnapshot, updatedSnapshot);
+  });
+
+  it('should not update a deleted operation', () => {
+    const operation = Operation.create(
+      userId,
+      usdAccount,
+      transaction,
+      Amount.create('100'),
+      Amount.create('300'),
+      'Test operation',
+    );
+
+    operation.markAsDeleted();
+
+    const deletedSnapshot = operation.toSnapshot();
+
+    expect(() =>
+      operation.update({
+        account: eurAccount,
+        amount: Amount.create('150'),
+        description: 'Updated deleted operation',
+        id: operation.id,
+        value: Amount.create('350'),
+      }),
+    ).toThrow(DeletedEntityOperationError);
+
+    expect(operation.toSnapshot()).toEqual(deletedSnapshot);
   });
 
   it('should mark an operation as deleted', () => {

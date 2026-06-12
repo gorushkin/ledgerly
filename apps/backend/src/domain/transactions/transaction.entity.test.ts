@@ -18,7 +18,8 @@ import {
   vi,
 } from 'vitest';
 
-import { Amount, DateValue } from '../domain-core';
+import { Amount, DateValue, Id } from '../domain-core';
+import { DeletedEntityOperationError } from '../domain.errors';
 import {
   CreateOperationProps,
   OperationProps,
@@ -155,6 +156,60 @@ describe('Transaction Domain Entity', () => {
 
       const restoredTransaction = Transaction.restore(transactionSnapshot);
       expect(restoredTransaction.toSnapshot()).toEqual(transactionSnapshot);
+    });
+
+    it('should restore tombstone operations without allowing them to be updated', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const transactionSnapshot = transaction.toSnapshot();
+      const [operationToDelete, ...activeOperations] =
+        transactionSnapshot.operations;
+
+      const restoredTransaction = Transaction.restore({
+        ...transactionSnapshot,
+        operations: [
+          {
+            ...operationToDelete,
+            isTombstone: true,
+          },
+          ...activeOperations,
+        ],
+      });
+
+      expect(restoredTransaction.getAllOperations()).toHaveLength(
+        transactionSnapshot.operations.length,
+      );
+      expect(restoredTransaction.getOperations()).toHaveLength(
+        activeOperations.length,
+      );
+
+      const operationAccount = data.accountsMap.get(
+        operationToDelete.accountId,
+      );
+
+      if (!operationAccount) {
+        throw new Error('Test setup failed: Account not found');
+      }
+
+      expect(() =>
+        restoredTransaction.applyUpdate(
+          {
+            operations: {
+              create: [],
+              delete: [],
+              update: [
+                {
+                  account: operationAccount,
+                  amount: Amount.create('15000'),
+                  description: 'Updated tombstone operation',
+                  id: Id.fromPersistence(operationToDelete.id),
+                  value: Amount.create('15000'),
+                },
+              ],
+            },
+          },
+          data.transactionContext,
+        ),
+      ).toThrow(DeletedEntityOperationError);
     });
   });
 
@@ -460,7 +515,7 @@ describe('Transaction Domain Entity', () => {
       });
     });
 
-    it('Should delete an existing operation, filter deleted operations from snapshot and increase version', () => {
+    it('Should delete an existing operation, keep it in snapshot and hide it from active operations', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
 
       const originalSnapshot = transaction.toSnapshot();
@@ -472,10 +527,6 @@ describe('Transaction Domain Entity', () => {
 
       const operationsToDeleteIds = operationsToDelete.map((op) =>
         op.valueOf(),
-      );
-
-      const operationsSnapshotFiltered = originalSnapshot.operations.filter(
-        (op) => !operationsToDeleteIds.includes(op.id),
       );
 
       vi.advanceTimersByTime(5000);
@@ -497,19 +548,26 @@ describe('Transaction Domain Entity', () => {
         new Date(updatedSnapshot.updatedAt).getTime(),
       );
 
-      const deletedOperation = operationsSnapshotFiltered.find((op) =>
+      expect(transaction.getOperations()).toHaveLength(
+        originalSnapshot.operations.length - operationsToDeleteIds.length,
+      );
+
+      const deletedOperationSnapshot = updatedSnapshot.operations.filter((op) =>
         operationsToDeleteIds.includes(op.id),
       );
 
-      expect(deletedOperation).not.toBeDefined();
-
-      const deletedOperationSnapshot = updatedSnapshot.operations.filter(
-        (op) => op.id === operationsToDeleteIds[0],
+      expect(deletedOperationSnapshot).toHaveLength(
+        operationsToDeleteIds.length,
       );
+      deletedOperationSnapshot.forEach((op) => {
+        expect(op.isTombstone).toBe(true);
+      });
 
-      expect(deletedOperationSnapshot).toHaveLength(0);
+      originalSnapshot.operations.forEach((op) => {
+        if (operationsToDeleteIds.includes(op.id)) {
+          return;
+        }
 
-      operationsSnapshotFiltered.forEach((op) => {
         expect(operationsToDeleteIds.includes(op.id)).toBe(false);
 
         const matchedPrevOp = updatedSnapshot.operations.find(

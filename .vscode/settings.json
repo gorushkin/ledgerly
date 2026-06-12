@@ -1,0 +1,7 @@
+{
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "Commit message must follow the format: 'LED-XXXXX type(scope): subject'. Extract the ticket number from the current branch name (pattern: LED-XXXXX-description). Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. Scope is optional (e.g. fullscreen, mobile, platform-core). Subject must be in imperative mood, lowercase, no period at the end."
+    }
+  ]
+}

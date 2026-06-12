@@ -1,8 +1,8 @@
 import {
-  EntityNotFoundError,
   TransactionResponseDTO,
   TransactionQueryRepositoryInterface,
 } from 'src/application';
+import { EntityNotFoundError } from 'src/application/application.errors';
 import { OperationDbRow, TransactionWithRelations } from 'src/db/schema';
 import {
   Amount,

@@ -11,7 +11,11 @@ export class ApplicationError extends BaseError {}
  */
 export class EntityNotFoundError extends ApplicationError {
   constructor(entityName: string, description?: string) {
-    super(`${entityName} not found ${description ? `: ${description}` : ''}`);
+    super(
+      description
+        ? `${entityName} not found: ${description}`
+        : `${entityName} not found`,
+    );
   }
 }
 

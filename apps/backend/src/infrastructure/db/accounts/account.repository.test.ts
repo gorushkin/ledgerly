@@ -177,9 +177,6 @@ describe('AccountRepository', () => {
     });
 
     it.todo('should handle UUID collision gracefully');
-
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    it.todo('should handle UUID collision gracefully', async () => {});
   });
 
   describe('getAll', () => {

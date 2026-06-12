@@ -1,10 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
-  EntityNotFoundError,
   TransactionResponseDTO,
   TransactionViewMapper,
   TransactionQueryRepositoryInterface,
 } from 'src/application';
+import { EntityNotFoundError } from 'src/application/application.errors';
 
 export class GetTransactionByIdUseCase {
   constructor(

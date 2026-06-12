@@ -13,6 +13,10 @@ import {
 } from 'src/db/schema';
 import { Transaction } from 'src/domain';
 import { OperationSnapshot } from 'src/domain/operations/types';
+import {
+  RepositoryInvariantError,
+  RepositoryNotFoundError,
+} from 'src/infrastructure/infrastructure.errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -93,7 +97,7 @@ export class TransactionRepository
   ): Promise<void> {
     const operations: OperationDbRow[] = [];
 
-    transaction.getOperations().forEach((operation) => {
+    transaction.getAllOperations().forEach((operation) => {
       operations.push(OperationMapper.toDBRow(operation));
     });
 
@@ -102,15 +106,27 @@ export class TransactionRepository
       transaction.getId().valueOf(),
     );
 
+    if (!snapshot) {
+      throw new RepositoryNotFoundError(
+        `Transaction ${transaction.getId().valueOf()} snapshot not found for user ${userId}`,
+      );
+    }
+
     const operationsSnapshots = new Map<UUID, OperationSnapshot>();
 
-    snapshot?.operations.forEach((operationSnapshot) => {
+    snapshot.operations.forEach((operationSnapshot) => {
       operationsSnapshots.set(operationSnapshot.id, operationSnapshot);
+    });
+
+    const operationsToSave = operations.filter((operation) => {
+      const operationSnapshot = operationsSnapshots.get(operation.id);
+
+      return !(operationSnapshot?.isTombstone && operation.isTombstone);
     });
 
     await this.operationsRepository.save(
       userId,
-      operations,
+      operationsToSave,
       operationsSnapshots,
     );
   }
@@ -198,7 +214,7 @@ export class TransactionRepository
     await this.executeDatabaseOperation(
       async () => {
         const operationsDataToInsert = transaction
-          .getOperations()
+          .getAllOperations()
           .map((operation) => OperationMapper.toDBRow(operation));
 
         await this.insertTransactionRow(userId, transaction);
