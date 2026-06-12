@@ -31,6 +31,22 @@ import {
   OperationsPatch,
 } from './types';
 
+const findDuplicateIds = (ids: UUID[]): UUID[] => {
+  const seenIds = new Set<UUID>();
+  const duplicateIds = new Set<UUID>();
+
+  ids.forEach((id) => {
+    if (seenIds.has(id)) {
+      duplicateIds.add(id);
+      return;
+    }
+
+    seenIds.add(id);
+  });
+
+  return [...duplicateIds];
+};
+
 export class Transaction {
   private operations: Operation[] = [];
   private operationsMap = new Map<string, Operation>();
@@ -287,40 +303,38 @@ export class Transaction {
       return;
     }
 
-    const deleteIds = new Set(operations.delete);
+    const deleteIds = operations.delete.map((id) => id.valueOf());
+    const updateIds = operations.update.map(({ id }) => id.valueOf());
+    const deleteIdSet = new Set(deleteIds);
 
     // Check for IDs present in both update and delete
-    const updateDeleteConflicts = operations.update
-      .map((operation) => operation.id)
-      .filter((id) => deleteIds.has(id));
+    const updateDeleteConflicts = [
+      ...new Set(updateIds.filter((id) => deleteIdSet.has(id))),
+    ];
 
     if (updateDeleteConflicts.length > 0) {
       throw new ConflictingOperationIdsError(
-        updateDeleteConflicts.map((id) => id.valueOf()),
+        updateDeleteConflicts,
         'IDs found in both update and delete arrays',
       );
     }
 
     // Check for duplicate IDs within update array
-    const updateDuplicates = operations.update
-      .map((operation) => operation.id)
-      .filter((id, index, arr) => arr.indexOf(id) !== index);
+    const updateDuplicates = findDuplicateIds(updateIds);
 
     if (updateDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
-        [...new Set(updateDuplicates.map((id) => id.valueOf()))],
+        updateDuplicates,
         'Duplicate IDs in update array',
       );
     }
 
     // Check for duplicate IDs within delete array
-    const deleteDuplicates = operations.delete
-      .filter((id, index, arr) => arr.indexOf(id) !== index)
-      .map((id) => id.valueOf());
+    const deleteDuplicates = findDuplicateIds(deleteIds);
 
     if (deleteDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
-        [...new Set(deleteDuplicates)],
+        deleteDuplicates,
         'Duplicate IDs in delete array',
       );
     }
