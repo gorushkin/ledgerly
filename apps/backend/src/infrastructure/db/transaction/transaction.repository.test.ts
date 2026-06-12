@@ -11,7 +11,7 @@ import { Account, User } from 'src/domain';
 import { Amount, DateValue, Id } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
-import { RepositoryInvariantError } from 'src/infrastructure/infrastructure.errors';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { ForeignKeyConstraintError } from 'src/presentation/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -170,7 +170,7 @@ describe('TransactionRepository', () => {
     it('should restore all known operations and expose only active operations through getOperations', async () => {
       const transaction = data.transaction;
 
-      const allOperationsCount = transaction.getOperations().length;
+      const allOperationsCount = transaction.getAllOperations().length;
 
       const acc = transaction
         .getOperations()
@@ -281,13 +281,13 @@ describe('TransactionRepository', () => {
         transaction.getTransactionDate().valueOf(),
       );
 
-      const expectedSnapshots = transaction
+      const expectedOperations = transaction
         .getAllOperations()
         .map((op) => OperationMapper.toDBRow(op));
 
       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
         user.id,
-        expectedSnapshots,
+        expectedOperations,
       );
     });
   });
@@ -417,7 +417,7 @@ describe('TransactionRepository', () => {
 
       await expect(
         transactionRepository.update(anotherUser.id, transaction),
-      ).rejects.toThrow(RepositoryInvariantError);
+      ).rejects.toThrow(RepositoryNotFoundError);
 
       const retrievedTransaction = await transactionRepository.getById(
         data.transaction.getUserId().valueOf(),
@@ -521,7 +521,7 @@ describe('TransactionRepository', () => {
 
       await expect(
         transactionRepository.softDelete(anotherUser.id, transaction),
-      ).rejects.toThrow(RepositoryInvariantError);
+      ).rejects.toThrow(RepositoryNotFoundError);
 
       const retrievedTransaction = await transactionRepository.getById(
         data.transaction.getUserId().valueOf(),

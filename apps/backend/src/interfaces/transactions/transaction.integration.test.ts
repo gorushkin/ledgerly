@@ -74,10 +74,6 @@ describe('Transactions Integration Tests', () => {
         currency: Currency.create('USD').valueOf(),
         name: 'Savings USD',
       }),
-      testDB.createAccount(userId, {
-        currency: Currency.create('EUR').valueOf(),
-        name: 'Savings EUR',
-      }),
     ]);
   };
 
