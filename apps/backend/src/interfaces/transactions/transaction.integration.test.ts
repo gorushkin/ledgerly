@@ -1326,9 +1326,56 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(401);
     });
 
-    it.todo(
-      '[LED-34] should return 409 on optimistic locking conflict (stale version)',
-    );
+    it('should return 409 on optimistic locking conflict with a stale version', async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId);
+
+      const firstUpdate = createUpdateRequest({
+        description: 'First successful update',
+        postingDate: transaction.postingDate,
+        transactionDate: transaction.transactionDate,
+        version: transaction.version,
+      });
+
+      const firstResponse = await sendUpdateRequest(
+        transaction.id,
+        firstUpdate,
+      );
+
+      expect(firstResponse.statusCode).toBe(200);
+
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(firstResponse);
+
+      expect(updatedTransaction.description).toBe(firstUpdate.description);
+      expect(updatedTransaction.version).toBe(transaction.version + 1);
+
+      const staleUpdate = {
+        ...firstUpdate,
+        description: 'Stale update must not be persisted',
+      };
+
+      const staleResponse = await sendUpdateRequest(
+        transaction.id,
+        staleUpdate,
+      );
+
+      expect(staleResponse.statusCode).toBe(409);
+
+      const errorResponse = parseResponse<{
+        error: boolean;
+        message: string;
+      }>(staleResponse);
+
+      expect(errorResponse.error).toBe(true);
+      expect(errorResponse.message).toContain('version conflict');
+
+      const persistedTransaction = await testDB.getTransactionById(
+        transaction.id,
+      );
+
+      expect(persistedTransaction?.description).toBe(firstUpdate.description);
+      expect(persistedTransaction?.version).toBe(transaction.version + 1);
+    });
 
     it('should return 400 when resulting operations are unbalanced (sum != 0)', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
