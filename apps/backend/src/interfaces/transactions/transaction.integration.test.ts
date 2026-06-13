@@ -825,6 +825,33 @@ describe('Transactions Integration Tests', () => {
     let operation1Data: OperationCreateInput;
     let operation2Data: OperationCreateInput;
 
+    const createUpdateRequest = (
+      overrides: Partial<UpdateTransactionRequestDTO> = {},
+    ): UpdateTransactionRequestDTO => ({
+      description: 'Updated description',
+      operations: {
+        create: [],
+        delete: [],
+        update: [],
+      },
+      postingDate: DateValue.create().valueOf(),
+      transactionDate: DateValue.create().valueOf(),
+      ...overrides,
+    });
+
+    const sendUpdateRequest = (
+      transactionId: UUID,
+      payload: UpdateTransactionRequestDTO,
+    ) =>
+      server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload,
+        url: `${url}/${transactionId}`,
+      });
+
     beforeEach(async () => {
       [account1Data, account2Data] = await createAccounts();
 
@@ -843,7 +870,7 @@ describe('Transactions Integration Tests', () => {
       };
     });
 
-    it('should update transaction metadata (description, dates) and return 200', async () => {
+    it('should update metadata without changing operations', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
       await testDB.createOperation(userId, {
@@ -865,31 +892,16 @@ describe('Transactions Integration Tests', () => {
 
       const operations = transactionWithOperations.operations;
 
-      const updatedData: UpdateTransactionRequestDTO = {
+      const updatedData = createUpdateRequest({
         description: 'Updated description',
-        operations: {
-          create: [],
-          delete: [],
-          update: [],
-        },
-        postingDate: DateValue.create().valueOf(),
-        transactionDate: DateValue.create().valueOf(),
-      };
-
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
       });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(200);
 
-      const updatedTransaction = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO;
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(response);
 
       expect(updatedTransaction.description).toBe(updatedData.description);
       expect(updatedTransaction.postingDate).toBe(updatedData.postingDate);
@@ -910,7 +922,7 @@ describe('Transactions Integration Tests', () => {
       });
     });
 
-    it('should update transaction by adding new operations and return 200', async () => {
+    it('should create operations without changing existing operations', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
       const createdOperations = await Promise.all([
@@ -940,7 +952,7 @@ describe('Transactions Integration Tests', () => {
 
       const operationsToCreate = [newOperationData1, newOperationData2];
 
-      const updatedData: UpdateTransactionRequestDTO = {
+      const updatedData = createUpdateRequest({
         description: transaction.description,
         operations: {
           create: operationsToCreate,
@@ -949,22 +961,14 @@ describe('Transactions Integration Tests', () => {
         },
         postingDate: transaction.postingDate,
         transactionDate: transaction.transactionDate,
-      };
-
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
       });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(200);
 
-      const updatedTransaction = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO;
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(response);
 
       const operationsCount =
         createdOperations.length + operationsToCreate.length;
@@ -1026,7 +1030,7 @@ describe('Transactions Integration Tests', () => {
         },
       ];
 
-      const updatedData: UpdateTransactionRequestDTO = {
+      const updatedData = createUpdateRequest({
         description: transaction.description,
         operations: {
           create: [],
@@ -1035,16 +1039,9 @@ describe('Transactions Integration Tests', () => {
         },
         postingDate: transaction.postingDate,
         transactionDate: transaction.transactionDate,
-      };
-
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
       });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(200);
 
@@ -1107,7 +1104,7 @@ describe('Transactions Integration Tests', () => {
         value: Amount.create('80').valueOf(),
       };
 
-      const updatedData: UpdateTransactionRequestDTO = {
+      const updatedData = createUpdateRequest({
         description: 'Mixed patch transaction',
         operations: {
           create: [operationToCreate],
@@ -1116,16 +1113,9 @@ describe('Transactions Integration Tests', () => {
         },
         postingDate: transaction.postingDate,
         transactionDate: transaction.transactionDate,
-      };
-
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
       });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(200);
 
@@ -1173,7 +1163,7 @@ describe('Transactions Integration Tests', () => {
       );
     });
 
-    it('should update transaction by deleting operations and return 200', async () => {
+    it('should delete operations from the active response', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
       const createdOperations = await Promise.all([
@@ -1197,7 +1187,7 @@ describe('Transactions Integration Tests', () => {
 
       const operationsToDelete = createdOperations.slice(0, 2);
 
-      const updatedData: UpdateTransactionRequestDTO = {
+      const updatedData = createUpdateRequest({
         description: transaction.description,
         operations: {
           create: [],
@@ -1206,22 +1196,14 @@ describe('Transactions Integration Tests', () => {
         },
         postingDate: transaction.postingDate,
         transactionDate: transaction.transactionDate,
-      };
-
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
       });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(200);
 
-      const updatedTransaction = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO;
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(response);
 
       const expectedOperationsCount =
         createdOperations.length - operationsToDelete.length;
@@ -1254,25 +1236,9 @@ describe('Transactions Integration Tests', () => {
     it('should return 404 when updating a non-existent transaction', async () => {
       const nonExistentId = Id.create().valueOf();
 
-      const updatedData: UpdateTransactionRequestDTO = {
-        description: 'Updated description',
-        operations: {
-          create: [],
-          delete: [],
-          update: [],
-        },
-        postingDate: DateValue.create().valueOf(),
-        transactionDate: DateValue.create().valueOf(),
-      };
+      const updatedData = createUpdateRequest();
 
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${nonExistentId}`,
-      });
+      const response = await sendUpdateRequest(nonExistentId, updatedData);
 
       expect(response.statusCode).toBe(404);
     });
@@ -1282,25 +1248,9 @@ describe('Transactions Integration Tests', () => {
 
       await testDB.softDeleteTransaction(transaction.id);
 
-      const updatedData: UpdateTransactionRequestDTO = {
-        description: 'Updated description',
-        operations: {
-          create: [],
-          delete: [],
-          update: [],
-        },
-        postingDate: DateValue.create().valueOf(),
-        transactionDate: DateValue.create().valueOf(),
-      };
+      const updatedData = createUpdateRequest();
 
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
-      });
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(404);
     });
@@ -1309,25 +1259,9 @@ describe('Transactions Integration Tests', () => {
       const another = await testDB.createUser();
       const transaction = await testDB.createTransaction(another.id);
 
-      const updatedData: UpdateTransactionRequestDTO = {
-        description: 'Updated description',
-        operations: {
-          create: [],
-          delete: [],
-          update: [],
-        },
-        postingDate: DateValue.create().valueOf(),
-        transactionDate: DateValue.create().valueOf(),
-      };
+      const updatedData = createUpdateRequest();
 
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
-      });
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(404);
     });
@@ -1360,16 +1294,7 @@ describe('Transactions Integration Tests', () => {
     it('should return 401 when not authorized', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
-      const updatedData: UpdateTransactionRequestDTO = {
-        description: 'Updated description',
-        operations: {
-          create: [],
-          delete: [],
-          update: [],
-        },
-        postingDate: DateValue.create().valueOf(),
-        transactionDate: DateValue.create().valueOf(),
-      };
+      const updatedData = createUpdateRequest();
 
       const response = await server.inject({
         method: 'PUT',
@@ -1380,7 +1305,9 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(401);
     });
 
-    it.todo('should return 409 on optimistic locking conflict (stale version)');
+    it.todo(
+      '[LED-34] should return 409 on optimistic locking conflict (stale version)',
+    );
 
     it('should return 400 when resulting operations are unbalanced (sum != 0)', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
@@ -1395,7 +1322,7 @@ describe('Transactions Integration Tests', () => {
         transactionId: transaction.id,
       });
 
-      const updatedData: UpdateTransactionRequestDTO = {
+      const updatedData = createUpdateRequest({
         description: transaction.description,
         operations: {
           create: [],
@@ -1412,16 +1339,9 @@ describe('Transactions Integration Tests', () => {
         },
         postingDate: transaction.postingDate,
         transactionDate: transaction.transactionDate,
-      };
-
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
       });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(400);
     });

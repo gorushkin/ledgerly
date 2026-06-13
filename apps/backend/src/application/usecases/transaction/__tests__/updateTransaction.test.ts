@@ -455,7 +455,7 @@ describe('UpdateTransactionUseCase', () => {
   it.todo('should propagate error when transaction is not found');
   it.todo('should propagate error when user does not own the transaction');
   it.todo(
-    'should throw a version conflict error when optimistic locking version mismatches',
+    '[LED-34] should throw a version conflict error when optimistic locking version mismatches',
   );
   it.todo(
     'should propagate error when update is called on a deleted transaction',
