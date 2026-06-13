@@ -1,14 +1,18 @@
+import { InvalidVersionError } from 'src/domain/domain.errors';
+
 export class Version {
   private readonly _value: number;
 
   private constructor(value: number) {
-    this._value = Number(value);
+    if (!Number.isInteger(value) || value < 0) {
+      throw new InvalidVersionError(value);
+    }
+
+    this._value = value;
+    Object.freeze(this);
   }
 
   static create(value: number): Version {
-    if (value === undefined || value === null || isNaN(value) || value < 0) {
-      throw new Error('Version must be a non-negative number');
-    }
     return new Version(value);
   }
 
