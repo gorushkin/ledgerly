@@ -13,7 +13,12 @@ import { TransactionContextLoader } from 'src/application/services/TransactionSe
 import { createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { Transaction, User } from 'src/domain';
-import { Amount } from 'src/domain/domain-core';
+import { Amount, Id } from 'src/domain/domain-core';
+import {
+  ConflictingOperationIdsError,
+  OperationNotFoundInTransactionError,
+  UnbalancedTransactionError,
+} from 'src/domain/domain.errors';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -92,6 +97,18 @@ describe('UpdateTransactionUseCase', () => {
 
   const expectVersionIncrementedFrom = (initialVersion: number) => {
     expect(transaction.version).toBe(initialVersion + 1);
+  };
+
+  const expectRejectedWithoutPersistence = async (
+    data: UpdateTransactionRequestDTO,
+    errorType: new (...args: never[]) => Error,
+  ) => {
+    const initialVersion = transaction.version;
+
+    await expect(execute(data)).rejects.toThrow(errorType);
+
+    expect(transaction.version).toBe(initialVersion);
+    expect(mockTransactionRepository.update).not.toHaveBeenCalled();
   };
 
   const expectUpdateDependencies = (data: UpdateTransactionRequestDTO) => {
@@ -346,11 +363,97 @@ describe('UpdateTransactionUseCase', () => {
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
   });
 
+  it('rejects an update for an operation outside the transaction', async () => {
+    const unknownOperationId = Id.create().valueOf();
+
+    const operationToUpdate = {
+      ...createUpdateOperationRequest(0, '10000', 'Unknown operation'),
+      id: unknownOperationId,
+    };
+
+    const data = createRequest({
+      operations: {
+        create: [],
+        delete: [],
+        update: [operationToUpdate],
+      },
+    });
+
+    await expectRejectedWithoutPersistence(
+      data,
+      OperationNotFoundInTransactionError,
+    );
+  });
+
+  it('rejects an update that leaves the transaction unbalanced', async () => {
+    const unbalancedOperation = createUpdateOperationRequest(
+      0,
+      '12000',
+      'Unbalanced operation',
+    );
+
+    const data = createRequest({
+      operations: {
+        create: [],
+        delete: [],
+        update: [unbalancedOperation],
+      },
+    });
+
+    await expectRejectedWithoutPersistence(data, UnbalancedTransactionError);
+  });
+
+  it('rejects the same operation ID in update and delete', async () => {
+    const operationToUpdate = createUpdateOperationRequest(
+      0,
+      '10000',
+      'Conflicting operation',
+    );
+
+    const data = createRequest({
+      operations: {
+        create: [],
+        delete: [operationToUpdate.id],
+        update: [operationToUpdate],
+      },
+    });
+
+    await expectRejectedWithoutPersistence(data, ConflictingOperationIdsError);
+  });
+
+  it('rejects duplicate operation IDs in update', async () => {
+    const operationToUpdate = createUpdateOperationRequest(
+      0,
+      '10000',
+      'Duplicate update',
+    );
+
+    const data = createRequest({
+      operations: {
+        create: [],
+        delete: [],
+        update: [operationToUpdate, { ...operationToUpdate }],
+      },
+    });
+
+    await expectRejectedWithoutPersistence(data, ConflictingOperationIdsError);
+  });
+
+  it('rejects duplicate operation IDs in delete', async () => {
+    const operationId = transaction.getOperations()[0].getId().valueOf();
+    const data = createRequest({
+      operations: {
+        create: [],
+        delete: [operationId, operationId],
+        update: [],
+      },
+    });
+
+    await expectRejectedWithoutPersistence(data, ConflictingOperationIdsError);
+  });
+
   it.todo('should propagate error when transaction is not found');
   it.todo('should propagate error when user does not own the transaction');
-  it.todo(
-    'should throw UnbalancedTransactionError when update results in non-zero operation sum',
-  );
   it.todo(
     'should throw a version conflict error when optimistic locking version mismatches',
   );
