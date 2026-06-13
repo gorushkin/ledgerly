@@ -689,6 +689,10 @@ describe('Transactions Integration Tests', () => {
 
       expect(transactionResponse).toBeDefined();
 
+      expect(transactionResponse?.operations).toHaveLength(
+        activeOperations.length,
+      );
+
       transactionResponse!.operations.forEach((op) => {
         const isDeleted = deletedOperationsData.some(
           (deletedOp) => deletedOp.id === op.id,
@@ -705,6 +709,14 @@ describe('Transactions Integration Tests', () => {
         }
 
         compareCommonEntities(matchedOp, op as typeof matchedOp);
+      });
+
+      activeOperations.forEach((activeOperation) => {
+        expect(
+          transactionResponse?.operations.some(
+            (operation) => operation.id === activeOperation.id,
+          ),
+        ).toBe(true);
       });
     });
 
