@@ -94,6 +94,14 @@ Represents different monetary units used in the system.
    - tombstone operations are not returned to clients and are ignored by normal read flows
 6. Tombstone operations cannot be updated after they are restored into the aggregate
 
+### Concurrency Boundary
+1. `Transaction` is the aggregate root and owns the concurrency boundary for its operations
+2. Every transaction update supplies the expected `Transaction.version`
+3. Changes to transaction metadata or operations increment `Transaction.version` once per aggregate update
+4. The repository updates the transaction with compare-and-update semantics before saving its operations in the same database transaction
+5. `Operation` does not have a separate version because it has no independent write API or use case
+6. Operation-level versioning should be introduced only if operations become independently mutable outside the `Transaction` aggregate
+
 ## Examples
 
 ### Simple Transaction (Grocery Purchase)
@@ -148,6 +156,7 @@ Transaction
 - description: string
 - transactionDate: date (ISO string)
 - postingDate: date (ISO string)
+- version: integer              -- optimistic concurrency token for the aggregate
 - isTombstone: boolean
 - userId: UUID (FK)
 - createdAt: timestamp
