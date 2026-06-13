@@ -90,6 +90,10 @@ describe('UpdateTransactionUseCase', () => {
   const execute = (data: UpdateTransactionRequestDTO) =>
     updateTransactionUseCase.execute(user, transaction.getId().valueOf(), data);
 
+  const expectVersionIncrementedFrom = (initialVersion: number) => {
+    expect(transaction.version).toBe(initialVersion + 1);
+  };
+
   const expectUpdateDependencies = (data: UpdateTransactionRequestDTO) => {
     expect(mockEnsureEntityExistsAndOwned).toHaveBeenCalledExactlyOnceWith(
       user,
@@ -155,6 +159,7 @@ describe('UpdateTransactionUseCase', () => {
       description: 'Updated Transaction Description',
     });
 
+    const initialVersion = transaction.version;
     const result = await execute(data);
 
     expect(result.description).toBe(data.description);
@@ -169,6 +174,7 @@ describe('UpdateTransactionUseCase', () => {
       compareEntities(resultOperation!, initialOperation);
     });
 
+    expectVersionIncrementedFrom(initialVersion);
     expectUpdateDependencies(data);
   });
 
@@ -192,6 +198,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
+    const initialVersion = transaction.version;
     const result = await execute(data);
 
     expect(result.operations).toHaveLength(
@@ -208,6 +215,7 @@ describe('UpdateTransactionUseCase', () => {
       );
     });
 
+    expectVersionIncrementedFrom(initialVersion);
     expectUpdateDependencies(data);
   });
 
@@ -225,6 +233,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
+    const initialVersion = transaction.version;
     const result = await execute(data);
 
     expect(result.operations).toHaveLength(operationsToUpdate.length);
@@ -235,6 +244,7 @@ describe('UpdateTransactionUseCase', () => {
       );
     });
 
+    expectVersionIncrementedFrom(initialVersion);
     expectUpdateDependencies(data);
   });
 
@@ -251,6 +261,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
+    const initialVersion = transaction.version;
     const result = await execute(data);
 
     expect(result.operations).toEqual([]);
@@ -264,6 +275,7 @@ describe('UpdateTransactionUseCase', () => {
       expect(deletedOperation?.isDeleted()).toBe(true);
     });
 
+    expectVersionIncrementedFrom(initialVersion);
     expectUpdateDependencies(data);
   });
 
@@ -294,6 +306,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
+    const initialVersion = transaction.version;
     const result = await execute(data);
 
     expect(result.description).toBe(data.description);
@@ -310,6 +323,7 @@ describe('UpdateTransactionUseCase', () => {
       expect.objectContaining({ id: operationIdToDelete }),
     );
 
+    expectVersionIncrementedFrom(initialVersion);
     expectUpdateDependencies(data);
   });
 
@@ -318,10 +332,12 @@ describe('UpdateTransactionUseCase', () => {
 
     const initialTransactionResponse =
       TransactionMapper.toResponseDTO(transaction);
+    const initialVersion = transaction.version;
 
     const result = await execute(data);
 
     compareEntities(result, initialTransactionResponse);
+    expect(transaction.version).toBe(initialVersion);
 
     expect(
       mockTransactionContextLoader.loadContext,
