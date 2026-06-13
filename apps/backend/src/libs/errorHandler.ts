@@ -73,6 +73,7 @@ export function errorHandler(
 
   if (error instanceof VersionConflictError) {
     return reply.status(409).send({
+      code: error.code,
       error: true,
       message: error.message,
     });

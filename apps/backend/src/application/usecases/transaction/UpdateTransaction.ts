@@ -1,5 +1,8 @@
 import { UUID } from '@ledgerly/shared/types';
-import { VersionConflictError } from 'src/application/application.errors';
+import {
+  EntityNotFoundError,
+  VersionConflictError,
+} from 'src/application/application.errors';
 import {
   TransactionResponseDTO,
   UpdateTransactionRequestDTO,
@@ -72,13 +75,17 @@ export class UpdateTransactionUseCase {
       );
 
       if (isUpdated) {
-        const isPersisted = await this.transactionRepository.update(
+        const result = await this.transactionRepository.update(
           user.getId().valueOf(),
           transaction,
           expectedVersion,
         );
 
-        if (!isPersisted) {
+        if (!result.ok && result.reason === 'NOT_FOUND') {
+          throw new EntityNotFoundError('Transaction');
+        }
+
+        if (!result.ok && result.reason === 'VERSION_CONFLICT') {
           throw new VersionConflictError(
             'Transaction',
             expectedVersion.valueOf(),

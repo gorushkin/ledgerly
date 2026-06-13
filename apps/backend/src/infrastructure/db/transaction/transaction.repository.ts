@@ -5,6 +5,7 @@ import {
   OperationRepositoryInterface,
   TransactionMapper,
   TransactionRepositoryInterface,
+  TransactionUpdateResult,
 } from 'src/application';
 import {
   OperationDbRow,
@@ -87,6 +88,7 @@ export class TransactionRepository
         and(
           eq(transactionsTable.id, transaction.getId().valueOf()),
           eq(transactionsTable.userId, userId),
+          eq(transactionsTable.isTombstone, false),
           eq(transactionsTable.version, expectedVersion.valueOf()),
         ),
       )
@@ -139,7 +141,7 @@ export class TransactionRepository
     userId: UUID,
     transaction: Transaction,
     expectedVersion: Version,
-  ): Promise<boolean> {
+  ): Promise<TransactionUpdateResult> {
     return this.executeDatabaseOperation(
       async () => {
         const isUpdated = await this.updateTransactionRow(
@@ -149,11 +151,20 @@ export class TransactionRepository
         );
 
         if (!isUpdated) {
-          return false;
+          const snapshot = await this.getTransactionSnapshot(
+            userId,
+            transaction.getId().valueOf(),
+          );
+
+          if (!snapshot || snapshot.isTombstone) {
+            return { ok: false, reason: 'NOT_FOUND' };
+          }
+
+          return { ok: false, reason: 'VERSION_CONFLICT' };
         }
 
         await this.saveOperations(userId, transaction);
-        return true;
+        return { ok: true };
       },
       'TransactionRepository.update',
       {

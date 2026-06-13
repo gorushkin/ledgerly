@@ -1,6 +1,9 @@
 import type { UUID } from '@ledgerly/shared/types';
 import { OperationMapper, TransactionMapper } from 'src/application';
-import { VersionConflictError } from 'src/application/application.errors';
+import {
+  EntityNotFoundError,
+  VersionConflictError,
+} from 'src/application/application.errors';
 import {
   CreateOperationRequestDTO,
   UpdateOperationRequestDTO,
@@ -168,7 +171,8 @@ describe('UpdateTransactionUseCase', () => {
     mockTransactionContextLoader.loadContext.mockResolvedValue(
       transactionContext,
     );
-    mockTransactionRepository.update.mockResolvedValue(true);
+
+    mockTransactionRepository.update.mockResolvedValue({ ok: true });
   });
 
   it('updates metadata without changing operations', async () => {
@@ -466,7 +470,14 @@ describe('UpdateTransactionUseCase', () => {
       version: transaction.getVersion().increment().valueOf(),
     });
 
-    await expect(execute(data)).rejects.toThrow(VersionConflictError);
+    const result = execute(data);
+
+    await expect(result).rejects.toThrow(VersionConflictError);
+    await expect(result).rejects.toMatchObject({
+      code: 'VERSION_CONFLICT',
+      expectedVersion: data.version,
+      message: `Transaction version mismatch for expected version ${data.version}`,
+    });
 
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
   });
@@ -476,7 +487,10 @@ describe('UpdateTransactionUseCase', () => {
       description: 'Conflicting update',
     });
 
-    mockTransactionRepository.update.mockResolvedValue(false);
+    mockTransactionRepository.update.mockResolvedValue({
+      ok: false,
+      reason: 'VERSION_CONFLICT',
+    });
 
     await expect(execute(data)).rejects.toThrow(VersionConflictError);
 
@@ -485,6 +499,19 @@ describe('UpdateTransactionUseCase', () => {
       transaction,
       Version.create(data.version),
     );
+  });
+
+  it('throws an entity not found error when the transaction disappears before persistence', async () => {
+    const data = createRequest({
+      description: 'Update deleted concurrently',
+    });
+
+    mockTransactionRepository.update.mockResolvedValue({
+      ok: false,
+      reason: 'NOT_FOUND',
+    });
+
+    await expect(execute(data)).rejects.toThrow(EntityNotFoundError);
   });
   it.todo(
     'should propagate error when update is called on a deleted transaction',

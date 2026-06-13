@@ -369,7 +369,7 @@ describe('TransactionRepository', () => {
       );
 
       expect(updatedTransaction).not.toBeNull();
-      expect(isUpdated).toBe(true);
+      expect(isUpdated).toEqual({ ok: true });
       expect(updatedTransaction?.version).toBe(
         expectedVersion.increment().valueOf(),
       );
@@ -431,7 +431,7 @@ describe('TransactionRepository', () => {
           transaction,
           expectedVersion,
         ),
-      ).resolves.toBe(false);
+      ).resolves.toEqual({ ok: false, reason: 'NOT_FOUND' });
 
       const retrievedTransaction = await transactionRepository.getById(
         data.transaction.getUserId().valueOf(),
@@ -479,11 +479,41 @@ describe('TransactionRepository', () => {
         transactionSnapshot.id,
       );
 
-      expect(isUpdated).toBe(false);
+      expect(isUpdated).toEqual({
+        ok: false,
+        reason: 'VERSION_CONFLICT',
+      });
+
       expect(persistedTransaction?.description).toBe(
         transactionSnapshot.description,
       );
+
       expect(persistedTransaction?.version).toBe(transactionSnapshot.version);
+      expect(mockOperationsRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should report a tombstone transaction as not found', async () => {
+      const transaction = data.transaction;
+      const expectedVersion = transaction.getVersion();
+
+      await testDB.insertTransaction(transaction.toSnapshot());
+      await testDB.softDeleteTransaction(transaction.getId().valueOf());
+
+      transaction.applyUpdate({
+        metadata: {
+          description: 'Update deleted transaction',
+          postingDate: transaction.getPostingDate().valueOf(),
+          transactionDate: transaction.getTransactionDate().valueOf(),
+        },
+      });
+
+      const result = await transactionRepository.update(
+        user.id,
+        transaction,
+        expectedVersion,
+      );
+
+      expect(result).toEqual({ ok: false, reason: 'NOT_FOUND' });
       expect(mockOperationsRepository.save).not.toHaveBeenCalled();
     });
 

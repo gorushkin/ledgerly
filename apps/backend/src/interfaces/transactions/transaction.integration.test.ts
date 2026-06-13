@@ -1362,12 +1362,16 @@ describe('Transactions Integration Tests', () => {
       expect(staleResponse.statusCode).toBe(409);
 
       const errorResponse = parseResponse<{
+        code: string;
         error: boolean;
         message: string;
       }>(staleResponse);
 
+      expect(errorResponse.code).toBe('VERSION_CONFLICT');
       expect(errorResponse.error).toBe(true);
-      expect(errorResponse.message).toContain('version conflict');
+      expect(errorResponse.message).toBe(
+        `Transaction version mismatch for expected version ${transaction.version}`,
+      );
 
       const persistedTransaction = await testDB.getTransactionById(
         transaction.id,
