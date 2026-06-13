@@ -12,7 +12,6 @@ import { DeletedEntityOperationError } from '../domain.errors';
 
 import { OperationSnapshot, UpdateOperationProps } from './types';
 
-// TODO: add versioning to operation entity and implement optimistic concurrency control in repo
 export class Operation {
   private constructor(
     public readonly identity: EntityIdentity,

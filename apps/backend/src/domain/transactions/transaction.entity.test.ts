@@ -569,7 +569,7 @@ describe('Transaction Domain Entity', () => {
       });
     });
 
-    it.skip('Should update an existing operation and increase version', () => {
+    it('should update existing operations and increase the aggregate version once', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
 
       const originalSnapshot = transaction.toSnapshot();
@@ -630,18 +630,35 @@ describe('Transaction Domain Entity', () => {
 
       expect(updatedSnapshot.version).toBe(originalSnapshot.version + 1);
 
-      updatedSnapshot.operations.forEach((op) => {
-        const matchedPrevOp = updatedOperationData.find((prevOp) =>
-          prevOp.id.equals(op.id),
+      updatedOperationData.forEach((operationUpdate) => {
+        const updatedOperation = updatedSnapshot.operations.find(
+          (operation) => operation.id === operationUpdate.id.valueOf(),
         );
 
-        expect(matchedPrevOp).toBeDefined();
-
-        expect(op.accountId).toBe(matchedPrevOp?.account.getId().valueOf());
-        expect(op.amount).toBe(matchedPrevOp?.amount.valueOf());
-        expect(op.description).toBe(matchedPrevOp?.description);
-        expect(op.value).toBe(matchedPrevOp?.value.valueOf());
+        expect(updatedOperation).toBeDefined();
+        expect(updatedOperation?.accountId).toBe(
+          operationUpdate.account.getId().valueOf(),
+        );
+        expect(updatedOperation?.amount).toBe(operationUpdate.amount.valueOf());
+        expect(updatedOperation?.description).toBe(operationUpdate.description);
+        expect(updatedOperation?.value).toBe(operationUpdate.value.valueOf());
       });
+
+      originalSnapshot.operations
+        .filter(
+          (operation) =>
+            !updatedOperationData.some(
+              (operationUpdate) =>
+                operationUpdate.id.valueOf() === operation.id,
+            ),
+        )
+        .forEach((originalOperation) => {
+          const unchangedOperation = updatedSnapshot.operations.find(
+            (operation) => operation.id === originalOperation.id,
+          );
+
+          expect(unchangedOperation).toEqual(originalOperation);
+        });
     });
 
     it('Should delete an existing operation, keep it in snapshot and hide it from active operations', () => {
