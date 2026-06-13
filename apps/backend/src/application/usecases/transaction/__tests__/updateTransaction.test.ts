@@ -96,18 +96,18 @@ describe('UpdateTransactionUseCase', () => {
     updateTransactionUseCase.execute(user, transaction.getId().valueOf(), data);
 
   const expectVersionIncrementedFrom = (initialVersion: number) => {
-    expect(transaction.version).toBe(initialVersion + 1);
+    expect(transaction.getVersion().valueOf()).toBe(initialVersion + 1);
   };
 
   const expectRejectedWithoutPersistence = async (
     data: UpdateTransactionRequestDTO,
     errorType: new (...args: never[]) => Error,
   ) => {
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion();
 
     await expect(execute(data)).rejects.toThrow(errorType);
 
-    expect(transaction.version).toBe(initialVersion);
+    expect(transaction.getVersion()).toBe(initialVersion);
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
   };
 
@@ -176,7 +176,7 @@ describe('UpdateTransactionUseCase', () => {
       description: 'Updated Transaction Description',
     });
 
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
     expect(result.description).toBe(data.description);
@@ -215,7 +215,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
     expect(result.operations).toHaveLength(
@@ -250,7 +250,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
     expect(result.operations).toHaveLength(operationsToUpdate.length);
@@ -278,7 +278,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
     expect(result.operations).toEqual([]);
@@ -323,7 +323,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
     expect(result.description).toBe(data.description);
@@ -349,12 +349,12 @@ describe('UpdateTransactionUseCase', () => {
 
     const initialTransactionResponse =
       TransactionMapper.toResponseDTO(transaction);
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion();
 
     const result = await execute(data);
 
     compareEntities(result, initialTransactionResponse);
-    expect(transaction.version).toBe(initialVersion);
+    expect(transaction.getVersion()).toBe(initialVersion);
 
     expect(
       mockTransactionContextLoader.loadContext,
