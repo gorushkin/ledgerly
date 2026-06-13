@@ -1,5 +1,6 @@
 import type { UUID } from '@ledgerly/shared/types';
 import { OperationMapper, TransactionMapper } from 'src/application';
+import { VersionConflictError } from 'src/application/application.errors';
 import {
   CreateOperationRequestDTO,
   UpdateOperationRequestDTO,
@@ -13,7 +14,7 @@ import { TransactionContextLoader } from 'src/application/services/TransactionSe
 import { createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { Transaction, User } from 'src/domain';
-import { Amount, Id } from 'src/domain/domain-core';
+import { Amount, Id, Version } from 'src/domain/domain-core';
 import {
   ConflictingOperationIdsError,
   OperationNotFoundInTransactionError,
@@ -130,6 +131,7 @@ describe('UpdateTransactionUseCase', () => {
     expect(mockTransactionRepository.update).toHaveBeenCalledExactlyOnceWith(
       user.getId().valueOf(),
       transaction,
+      Version.create(data.version),
     );
   };
 
@@ -166,6 +168,7 @@ describe('UpdateTransactionUseCase', () => {
     mockTransactionContextLoader.loadContext.mockResolvedValue(
       transactionContext,
     );
+    mockTransactionRepository.update.mockResolvedValue(true);
   });
 
   it('updates metadata without changing operations', async () => {
@@ -456,9 +459,33 @@ describe('UpdateTransactionUseCase', () => {
 
   it.todo('should propagate error when transaction is not found');
   it.todo('should propagate error when user does not own the transaction');
-  it.todo(
-    '[LED-34] should throw a version conflict error when optimistic locking version mismatches',
-  );
+
+  it('throws a version conflict error when request version is stale', async () => {
+    const data = createRequest({
+      description: 'Stale update',
+      version: transaction.getVersion().increment().valueOf(),
+    });
+
+    await expect(execute(data)).rejects.toThrow(VersionConflictError);
+
+    expect(mockTransactionRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('throws a version conflict error when the repository detects a concurrent update', async () => {
+    const data = createRequest({
+      description: 'Conflicting update',
+    });
+
+    mockTransactionRepository.update.mockResolvedValue(false);
+
+    await expect(execute(data)).rejects.toThrow(VersionConflictError);
+
+    expect(mockTransactionRepository.update).toHaveBeenCalledExactlyOnceWith(
+      user.getId().valueOf(),
+      transaction,
+      Version.create(data.version),
+    );
+  });
   it.todo(
     'should propagate error when update is called on a deleted transaction',
   );

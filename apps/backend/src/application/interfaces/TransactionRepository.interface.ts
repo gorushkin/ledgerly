@@ -1,10 +1,15 @@
 import { UUID } from '@ledgerly/shared/types';
 import { Transaction } from 'src/domain';
+import { Version } from 'src/domain/domain-core';
 
 import { OperationRepositoryInterface } from './OperationRepository.interface';
 
 export type TransactionRepositoryInterface = {
-  update(userId: UUID, transaction: Transaction): Promise<void>;
+  update(
+    userId: UUID,
+    transaction: Transaction,
+    expectedVersion: Version,
+  ): Promise<boolean>;
   create(userId: UUID, transaction: Transaction): Promise<void>;
   getById(userId: UUID, transactionId: UUID): Promise<Transaction | null>;
   softDelete(userId: UUID, transaction: Transaction): Promise<void>;

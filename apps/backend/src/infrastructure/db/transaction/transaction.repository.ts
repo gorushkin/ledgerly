@@ -12,6 +12,7 @@ import {
   transactionsTable,
 } from 'src/db/schema';
 import { Transaction } from 'src/domain';
+import { Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 
@@ -66,7 +67,8 @@ export class TransactionRepository
   private async updateTransactionRow(
     userId: UUID,
     transaction: Transaction,
-  ): Promise<void> {
+    expectedVersion: Version,
+  ): Promise<boolean> {
     const transactionData = TransactionMapper.toDBRow(transaction);
 
     const safeData = this.getSafeUpdate(transactionData, [
@@ -75,17 +77,22 @@ export class TransactionRepository
       'transactionDate',
       'updatedAt',
       'currency',
+      'version',
     ]);
 
-    await this.db
+    const { rowsAffected } = await this.db
       .update(transactionsTable)
       .set({ ...safeData })
       .where(
         and(
           eq(transactionsTable.id, transaction.getId().valueOf()),
           eq(transactionsTable.userId, userId),
+          eq(transactionsTable.version, expectedVersion.valueOf()),
         ),
-      );
+      )
+      .run();
+
+    return rowsAffected === 1;
   }
 
   private async saveOperations(
@@ -128,11 +135,25 @@ export class TransactionRepository
     );
   }
 
-  async update(userId: UUID, transaction: Transaction): Promise<void> {
-    await this.executeDatabaseOperation(
+  async update(
+    userId: UUID,
+    transaction: Transaction,
+    expectedVersion: Version,
+  ): Promise<boolean> {
+    return this.executeDatabaseOperation(
       async () => {
-        await this.updateTransactionRow(userId, transaction);
+        const isUpdated = await this.updateTransactionRow(
+          userId,
+          transaction,
+          expectedVersion,
+        );
+
+        if (!isUpdated) {
+          return false;
+        }
+
         await this.saveOperations(userId, transaction);
+        return true;
       },
       'TransactionRepository.update',
       {

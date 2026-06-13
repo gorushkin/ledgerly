@@ -54,3 +54,17 @@ export class UserAlreadyExistsError extends ApplicationError {
     super(message);
   }
 }
+
+/**
+ * Thrown when an update uses a stale aggregate version.
+ */
+export class VersionConflictError extends ApplicationError {
+  constructor(
+    public readonly entityName: string,
+    public readonly expectedVersion: number,
+  ) {
+    super(
+      `${entityName} version conflict: expected version ${expectedVersion} is stale`,
+    );
+  }
+}
