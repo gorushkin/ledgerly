@@ -92,6 +92,7 @@ describe('GetAllTransactionsUseCase', () => {
     });
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(mockTransactions[0].id);
+    expect(result[0].version).toBe(mockTransactions[0].version);
     expect(result[0]).not.toHaveProperty('isTombstone');
     result[0].operations.forEach(
       (operation: TransactionResponseDTO['operations'][number]) => {

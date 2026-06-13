@@ -46,6 +46,7 @@ export const transactionUpdateSchema = z.object({
   }),
   postingDate: isoDate,
   transactionDate: isoDate,
+  version: z.number().int().nonnegative(),
 });
 
 export const transactionResponseSchema = z.object({
@@ -57,6 +58,7 @@ export const transactionResponseSchema = z.object({
   transactionDate: isoDate,
   updatedAt: isoDatetime,
   userId: uuid,
+  version: z.number().int().nonnegative(),
 });
 
 export type OperationCreateInput = z.infer<typeof operationCreateSchema>;

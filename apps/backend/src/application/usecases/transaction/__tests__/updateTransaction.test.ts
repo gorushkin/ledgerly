@@ -62,6 +62,7 @@ describe('UpdateTransactionUseCase', () => {
     },
     postingDate: transaction.getPostingDate().valueOf(),
     transactionDate: transaction.getTransactionDate().valueOf(),
+    version: transaction.getVersion().valueOf(),
     ...overrides,
   });
 
@@ -180,6 +181,7 @@ describe('UpdateTransactionUseCase', () => {
     const result = await execute(data);
 
     expect(result.description).toBe(data.description);
+    expect(result.version).toBe(initialVersion + 1);
     expect(result.operations).toHaveLength(initialOperationResponses.length);
 
     initialOperationResponses.forEach((initialOperation) => {

@@ -180,6 +180,7 @@ describe('TransactionController', () => {
         },
         postingDate: DateValue.restore('2024-01-01').valueOf(),
         transactionDate: DateValue.restore('2024-01-02').valueOf(),
+        version: 0,
       };
 
       const result = await transactionController.update(
@@ -195,6 +196,7 @@ describe('TransactionController', () => {
           description: requestBody.description,
           postingDate: requestBody.postingDate,
           transactionDate: requestBody.transactionDate,
+          version: requestBody.version,
         }),
       );
       expect(mockUpdateTransactionUseCase.execute).toHaveBeenCalledTimes(1);
@@ -216,6 +218,28 @@ describe('TransactionController', () => {
           user,
           transactionId,
           invalidRequestBody as unknown as UpdateTransactionRequestDTO,
+        ),
+      ).rejects.toThrow(ZodError);
+    });
+
+    it('should reject an update without version', async () => {
+      const transactionId = Id.create().valueOf();
+      const requestBody = {
+        description: 'Updated Transaction',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      await expect(
+        transactionController.update(
+          user,
+          transactionId,
+          requestBody as unknown as UpdateTransactionRequestDTO,
         ),
       ).rejects.toThrow(ZodError);
     });

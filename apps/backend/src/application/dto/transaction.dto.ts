@@ -25,6 +25,7 @@ export type UpdateTransactionRequestDTO = {
   description: string;
   postingDate: IsoDateString;
   transactionDate: IsoDateString;
+  version: number;
   operations: {
     create: CreateOperationRequestDTO[];
     update: UpdateOperationRequestDTO[];
@@ -42,4 +43,5 @@ export type TransactionResponseDTO = {
   transactionDate: IsoDateString;
   operations: OperationResponseDTO[];
   currency: CurrencyCode;
+  version: number;
 };

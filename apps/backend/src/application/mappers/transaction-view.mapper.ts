@@ -18,6 +18,7 @@ export class TransactionViewMapper {
       transactionDate: transaction.transactionDate,
       updatedAt: transaction.updatedAt,
       userId: transaction.userId,
+      version: transaction.version,
     };
   }
 

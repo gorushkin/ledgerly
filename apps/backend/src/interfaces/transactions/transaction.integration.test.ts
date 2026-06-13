@@ -836,6 +836,7 @@ describe('Transactions Integration Tests', () => {
       },
       postingDate: DateValue.create().valueOf(),
       transactionDate: DateValue.create().valueOf(),
+      version: 0,
       ...overrides,
     });
 
@@ -904,6 +905,7 @@ describe('Transactions Integration Tests', () => {
         parseResponse<TransactionResponseDTO>(response);
 
       expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.version).toBe(updatedData.version + 1);
       expect(updatedTransaction.postingDate).toBe(updatedData.postingDate);
       expect(updatedTransaction.transactionDate).toBe(
         updatedData.transactionDate,
