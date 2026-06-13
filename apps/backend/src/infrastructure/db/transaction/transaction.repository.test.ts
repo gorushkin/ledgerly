@@ -8,7 +8,7 @@ import {
   TransactionBuilderResult,
 } from 'src/db/test-utils';
 import { Account, User } from 'src/domain';
-import { Amount, DateValue, Id } from 'src/domain/domain-core';
+import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
@@ -342,6 +342,7 @@ describe('TransactionRepository', () => {
       };
 
       await testDB.insertTransaction(transaction.toSnapshot());
+      const expectedVersion = transaction.getVersion();
 
       transaction.applyUpdate(
         {
@@ -357,13 +358,21 @@ describe('TransactionRepository', () => {
 
       const updatedSnapshot = transaction.toSnapshot();
 
-      await transactionRepository.update(user.id, transaction);
+      const isUpdated = await transactionRepository.update(
+        user.id,
+        transaction,
+        expectedVersion,
+      );
 
       const updatedTransaction = await testDB.getTransactionWithRelations(
         transaction.getId().valueOf(),
       );
 
       expect(updatedTransaction).not.toBeNull();
+      expect(isUpdated).toEqual({ ok: true });
+      expect(updatedTransaction?.version).toBe(
+        expectedVersion.increment().valueOf(),
+      );
 
       expect(updatedTransaction?.description).toBe(updatedSnapshot.description);
 
@@ -403,6 +412,7 @@ describe('TransactionRepository', () => {
       const anotherUser = await testDB.createUser();
 
       await testDB.insertTransaction(transaction.toSnapshot());
+      const expectedVersion = transaction.getVersion();
 
       transaction.applyUpdate(
         {
@@ -416,8 +426,12 @@ describe('TransactionRepository', () => {
       );
 
       await expect(
-        transactionRepository.update(anotherUser.id, transaction),
-      ).rejects.toThrow(RepositoryNotFoundError);
+        transactionRepository.update(
+          anotherUser.id,
+          transaction,
+          expectedVersion,
+        ),
+      ).resolves.toEqual({ ok: false, reason: 'NOT_FOUND' });
 
       const retrievedTransaction = await transactionRepository.getById(
         data.transaction.getUserId().valueOf(),
@@ -426,6 +440,81 @@ describe('TransactionRepository', () => {
 
       expect(retrievedTransaction).not.toBeNull();
       compareEntities(transactionSnapshot, retrievedTransaction!.toSnapshot());
+    });
+
+    it('should reject a stale version without saving transaction operations', async () => {
+      const transactionSnapshot = {
+        ...data.transaction.toSnapshot(),
+        version: 1,
+      };
+
+      await testDB.insertTransaction(transactionSnapshot);
+
+      const transaction = await transactionRepository.getById(
+        user.id,
+        transactionSnapshot.id,
+      );
+
+      expect(transaction).not.toBeNull();
+
+      if (!transaction) {
+        throw new Error('Expected transaction to be restored');
+      }
+
+      transaction.applyUpdate({
+        metadata: {
+          description: 'Stale update',
+          postingDate: transaction.getPostingDate().valueOf(),
+          transactionDate: transaction.getTransactionDate().valueOf(),
+        },
+      });
+
+      const isUpdated = await transactionRepository.update(
+        user.id,
+        transaction,
+        Version.create(0),
+      );
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transactionSnapshot.id,
+      );
+
+      expect(isUpdated).toEqual({
+        ok: false,
+        reason: 'VERSION_CONFLICT',
+      });
+
+      expect(persistedTransaction?.description).toBe(
+        transactionSnapshot.description,
+      );
+
+      expect(persistedTransaction?.version).toBe(transactionSnapshot.version);
+      expect(mockOperationsRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should report a tombstone transaction as not found', async () => {
+      const transaction = data.transaction;
+      const expectedVersion = transaction.getVersion();
+
+      await testDB.insertTransaction(transaction.toSnapshot());
+      await testDB.softDeleteTransaction(transaction.getId().valueOf());
+
+      transaction.applyUpdate({
+        metadata: {
+          description: 'Update deleted transaction',
+          postingDate: transaction.getPostingDate().valueOf(),
+          transactionDate: transaction.getTransactionDate().valueOf(),
+        },
+      });
+
+      const result = await transactionRepository.update(
+        user.id,
+        transaction,
+        expectedVersion,
+      );
+
+      expect(result).toEqual({ ok: false, reason: 'NOT_FOUND' });
+      expect(mockOperationsRepository.save).not.toHaveBeenCalled();
     });
 
     it('should not pass already tombstone operations to operation repository save', async () => {
@@ -457,6 +546,8 @@ describe('TransactionRepository', () => {
         throw new Error('Expected transaction to be restored');
       }
 
+      const expectedVersion = restoredTransaction.getVersion();
+
       restoredTransaction.applyUpdate({
         metadata: {
           description: 'Updated description',
@@ -465,7 +556,11 @@ describe('TransactionRepository', () => {
         },
       });
 
-      await transactionRepository.update(user.id, restoredTransaction);
+      await transactionRepository.update(
+        user.id,
+        restoredTransaction,
+        expectedVersion,
+      );
 
       const expectedOperationsSnapshots = new Map<UUID, OperationSnapshot>();
 
@@ -498,9 +593,10 @@ describe('TransactionRepository', () => {
       const isDeleted = transaction.isDeleted();
 
       await testDB.insertTransaction(transaction.toSnapshot());
+      const expectedVersion = transaction.getVersion();
       transaction.markAsDeleted();
 
-      await transactionRepository.update(user.id, transaction);
+      await transactionRepository.update(user.id, transaction, expectedVersion);
 
       const updatedTransaction = await testDB.getTransactionWithRelations(
         transaction.getId().valueOf(),

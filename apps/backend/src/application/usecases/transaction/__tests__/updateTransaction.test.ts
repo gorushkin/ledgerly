@@ -1,6 +1,10 @@
 import type { UUID } from '@ledgerly/shared/types';
 import { OperationMapper, TransactionMapper } from 'src/application';
 import {
+  EntityNotFoundError,
+  VersionConflictError,
+} from 'src/application/application.errors';
+import {
   CreateOperationRequestDTO,
   UpdateOperationRequestDTO,
   UpdateTransactionRequestDTO,
@@ -13,7 +17,7 @@ import { TransactionContextLoader } from 'src/application/services/TransactionSe
 import { createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { Transaction, User } from 'src/domain';
-import { Amount, Id } from 'src/domain/domain-core';
+import { Amount, Id, Version } from 'src/domain/domain-core';
 import {
   ConflictingOperationIdsError,
   OperationNotFoundInTransactionError,
@@ -62,6 +66,7 @@ describe('UpdateTransactionUseCase', () => {
     },
     postingDate: transaction.getPostingDate().valueOf(),
     transactionDate: transaction.getTransactionDate().valueOf(),
+    version: transaction.getVersion().valueOf(),
     ...overrides,
   });
 
@@ -96,18 +101,18 @@ describe('UpdateTransactionUseCase', () => {
     updateTransactionUseCase.execute(user, transaction.getId().valueOf(), data);
 
   const expectVersionIncrementedFrom = (initialVersion: number) => {
-    expect(transaction.version).toBe(initialVersion + 1);
+    expect(transaction.getVersion().valueOf()).toBe(initialVersion + 1);
   };
 
   const expectRejectedWithoutPersistence = async (
     data: UpdateTransactionRequestDTO,
     errorType: new (...args: never[]) => Error,
   ) => {
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion();
 
     await expect(execute(data)).rejects.toThrow(errorType);
 
-    expect(transaction.version).toBe(initialVersion);
+    expect(transaction.getVersion()).toBe(initialVersion);
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
   };
 
@@ -129,6 +134,7 @@ describe('UpdateTransactionUseCase', () => {
     expect(mockTransactionRepository.update).toHaveBeenCalledExactlyOnceWith(
       user.getId().valueOf(),
       transaction,
+      Version.create(data.version),
     );
   };
 
@@ -165,6 +171,8 @@ describe('UpdateTransactionUseCase', () => {
     mockTransactionContextLoader.loadContext.mockResolvedValue(
       transactionContext,
     );
+
+    mockTransactionRepository.update.mockResolvedValue({ ok: true });
   });
 
   it('updates metadata without changing operations', async () => {
@@ -176,10 +184,11 @@ describe('UpdateTransactionUseCase', () => {
       description: 'Updated Transaction Description',
     });
 
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
     expect(result.description).toBe(data.description);
+    expect(result.version).toBe(initialVersion + 1);
     expect(result.operations).toHaveLength(initialOperationResponses.length);
 
     initialOperationResponses.forEach((initialOperation) => {
@@ -215,7 +224,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
     expect(result.operations).toHaveLength(
@@ -250,7 +259,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
     expect(result.operations).toHaveLength(operationsToUpdate.length);
@@ -278,7 +287,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
     expect(result.operations).toEqual([]);
@@ -323,7 +332,7 @@ describe('UpdateTransactionUseCase', () => {
       },
     });
 
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
     expect(result.description).toBe(data.description);
@@ -349,12 +358,12 @@ describe('UpdateTransactionUseCase', () => {
 
     const initialTransactionResponse =
       TransactionMapper.toResponseDTO(transaction);
-    const initialVersion = transaction.version;
+    const initialVersion = transaction.getVersion();
 
     const result = await execute(data);
 
     compareEntities(result, initialTransactionResponse);
-    expect(transaction.version).toBe(initialVersion);
+    expect(transaction.getVersion()).toBe(initialVersion);
 
     expect(
       mockTransactionContextLoader.loadContext,
@@ -454,9 +463,56 @@ describe('UpdateTransactionUseCase', () => {
 
   it.todo('should propagate error when transaction is not found');
   it.todo('should propagate error when user does not own the transaction');
-  it.todo(
-    '[LED-34] should throw a version conflict error when optimistic locking version mismatches',
-  );
+
+  it('throws a version conflict error when request version is stale', async () => {
+    const data = createRequest({
+      description: 'Stale update',
+      version: transaction.getVersion().increment().valueOf(),
+    });
+
+    const result = execute(data);
+
+    await expect(result).rejects.toThrow(VersionConflictError);
+    await expect(result).rejects.toMatchObject({
+      code: 'VERSION_CONFLICT',
+      expectedVersion: data.version,
+      message: `Transaction version mismatch for expected version ${data.version}`,
+    });
+
+    expect(mockTransactionRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('throws a version conflict error when the repository detects a concurrent update', async () => {
+    const data = createRequest({
+      description: 'Conflicting update',
+    });
+
+    mockTransactionRepository.update.mockResolvedValue({
+      ok: false,
+      reason: 'VERSION_CONFLICT',
+    });
+
+    await expect(execute(data)).rejects.toThrow(VersionConflictError);
+
+    expect(mockTransactionRepository.update).toHaveBeenCalledExactlyOnceWith(
+      user.getId().valueOf(),
+      transaction,
+      Version.create(data.version),
+    );
+  });
+
+  it('throws an entity not found error when the transaction disappears before persistence', async () => {
+    const data = createRequest({
+      description: 'Update deleted concurrently',
+    });
+
+    mockTransactionRepository.update.mockResolvedValue({
+      ok: false,
+      reason: 'NOT_FOUND',
+    });
+
+    await expect(execute(data)).rejects.toThrow(EntityNotFoundError);
+  });
   it.todo(
     'should propagate error when update is called on a deleted transaction',
   );

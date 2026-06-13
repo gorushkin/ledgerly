@@ -5,6 +5,7 @@ import {
   OperationRepositoryInterface,
   TransactionMapper,
   TransactionRepositoryInterface,
+  TransactionUpdateResult,
 } from 'src/application';
 import {
   OperationDbRow,
@@ -12,6 +13,7 @@ import {
   transactionsTable,
 } from 'src/db/schema';
 import { Transaction } from 'src/domain';
+import { Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 
@@ -66,7 +68,8 @@ export class TransactionRepository
   private async updateTransactionRow(
     userId: UUID,
     transaction: Transaction,
-  ): Promise<void> {
+    expectedVersion: Version,
+  ): Promise<boolean> {
     const transactionData = TransactionMapper.toDBRow(transaction);
 
     const safeData = this.getSafeUpdate(transactionData, [
@@ -75,17 +78,23 @@ export class TransactionRepository
       'transactionDate',
       'updatedAt',
       'currency',
+      'version',
     ]);
 
-    await this.db
+    const { rowsAffected } = await this.db
       .update(transactionsTable)
       .set({ ...safeData })
       .where(
         and(
           eq(transactionsTable.id, transaction.getId().valueOf()),
           eq(transactionsTable.userId, userId),
+          eq(transactionsTable.isTombstone, false),
+          eq(transactionsTable.version, expectedVersion.valueOf()),
         ),
-      );
+      )
+      .run();
+
+    return rowsAffected === 1;
   }
 
   private async saveOperations(
@@ -128,11 +137,34 @@ export class TransactionRepository
     );
   }
 
-  async update(userId: UUID, transaction: Transaction): Promise<void> {
-    await this.executeDatabaseOperation(
+  async update(
+    userId: UUID,
+    transaction: Transaction,
+    expectedVersion: Version,
+  ): Promise<TransactionUpdateResult> {
+    return this.executeDatabaseOperation(
       async () => {
-        await this.updateTransactionRow(userId, transaction);
+        const isUpdated = await this.updateTransactionRow(
+          userId,
+          transaction,
+          expectedVersion,
+        );
+
+        if (!isUpdated) {
+          const snapshot = await this.getTransactionSnapshot(
+            userId,
+            transaction.getId().valueOf(),
+          );
+
+          if (!snapshot || snapshot.isTombstone) {
+            return { ok: false, reason: 'NOT_FOUND' };
+          }
+
+          return { ok: false, reason: 'VERSION_CONFLICT' };
+        }
+
         await this.saveOperations(userId, transaction);
+        return { ok: true };
       },
       'TransactionRepository.update',
       {

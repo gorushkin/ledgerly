@@ -290,7 +290,7 @@ export class TransactionBuilder {
         transactionDate: this.transaction.getTransactionDate().valueOf(),
         updatedAt: this.transaction.getUpdatedAt().valueOf(),
         userId: this.transaction.getUserId().valueOf(),
-        version: this.transaction.version,
+        version: this.transaction.getVersion().valueOf(),
       },
       user: this.user,
     };

@@ -119,6 +119,7 @@ describe('GetTransactionByIdUseCase', () => {
     expect(transaction).toBeDefined();
     expect(transaction.id).toBe(transactionId);
     expect(transaction.description).toBe('Test Transaction');
+    expect(transaction.version).toBe(mockTransactionData.version);
     expect(transaction).not.toHaveProperty('isTombstone');
     expect(transaction.operations).toHaveLength(nonDeletedOperations.length);
 

@@ -130,6 +130,7 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.getId()).toBeDefined();
       expect(transaction.getCreatedAt()).toBeDefined();
       expect(transaction.getUpdatedAt()).toBeDefined();
+      expect(transaction.getVersion().valueOf()).toBe(0);
       expect(transaction.isDeleted()).toBe(false);
 
       expect(transaction.currency).toBe(transactionData.currency);
@@ -159,6 +160,19 @@ describe('Transaction Domain Entity', () => {
 
       const restoredTransaction = Transaction.restore(transactionSnapshot);
       expect(restoredTransaction.toSnapshot()).toEqual(transactionSnapshot);
+    });
+
+    it('should restore the persisted version as a value object', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const transactionSnapshot = transaction.toSnapshot();
+
+      const restoredTransaction = Transaction.restore({
+        ...transactionSnapshot,
+        version: 7,
+      });
+
+      expect(restoredTransaction.getVersion().valueOf()).toBe(7);
+      expect(restoredTransaction.toSnapshot().version).toBe(7);
     });
 
     it('should restore tombstone operations without allowing them to be updated', () => {
@@ -222,6 +236,7 @@ describe('Transaction Domain Entity', () => {
 
       const description = 'Updated transaction description';
       const originalSnapshot = transaction.toSnapshot();
+      const originalVersion = transaction.getVersion();
 
       vi.advanceTimersByTime(5000);
 
@@ -234,6 +249,10 @@ describe('Transaction Domain Entity', () => {
 
       const updatedSnapshot = transaction.toSnapshot();
 
+      expect(transaction.getVersion()).not.toBe(originalVersion);
+      expect(transaction.getVersion().valueOf()).toBe(
+        originalVersion.valueOf() + 1,
+      );
       expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
         new Date(updatedSnapshot.updatedAt).getTime(),
       );

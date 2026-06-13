@@ -54,3 +54,19 @@ export class UserAlreadyExistsError extends ApplicationError {
     super(message);
   }
 }
+
+/**
+ * Thrown when an update cannot be applied because aggregate versions differ.
+ */
+export class VersionConflictError extends ApplicationError {
+  readonly code = 'VERSION_CONFLICT' as const;
+
+  constructor(
+    public readonly entityName: string,
+    public readonly expectedVersion: number,
+  ) {
+    super(
+      `${entityName} version mismatch for expected version ${expectedVersion}`,
+    );
+  }
+}

@@ -17,6 +17,7 @@ import {
   DateValue,
   Amount,
   Currency,
+  Version,
 } from '../domain-core';
 import { Operation } from '../operations';
 import { OperationProps, UpdateOperationProps } from '../operations/types';
@@ -59,7 +60,7 @@ export class Transaction {
     private transactionDate: DateValue,
     public currency: Currency,
     public description: string,
-    public version = 0,
+    private version: Version,
   ) {}
 
   static create(userId: Id, dto: CreateTransactionProps): Transaction {
@@ -77,6 +78,7 @@ export class Transaction {
       dto.transactionDate,
       dto.currency,
       dto.description,
+      Version.create(0),
     );
 
     const operations = transaction.createOperationsFromDrafts(dto.operations);
@@ -162,7 +164,7 @@ export class Transaction {
       DateValue.restore(transactionDate),
       Currency.fromPersistence(currency),
       description,
-      version,
+      Version.restore(version),
     );
 
     const operations = data.operations.map((operationData) =>
@@ -186,8 +188,12 @@ export class Transaction {
     return this.timestamps.getCreatedAt();
   }
 
+  getVersion(): Version {
+    return this.version;
+  }
+
   private markUpdated() {
-    this.version += 1;
+    this.version = this.version.increment();
     this.timestamps = this.timestamps.touch();
   }
 
@@ -219,7 +225,7 @@ export class Transaction {
       transactionDate: this.transactionDate.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
-      version: this.version,
+      version: this.version.valueOf(),
     };
   }
 
