@@ -5,6 +5,9 @@ Personal finance management application designed for individual users to track t
 
 For detailed domain model documentation, see [Domain Documentation](./docs/DOMAIN.md)
 
+Project planning and Jira workflow are documented in
+[Jira Board Documentation](./docs/JIRA_BOARD.md).
+
 ## Core Features
 - Multi-currency support with automatic conversion
 - Double-entry bookkeeping system
