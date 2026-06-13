@@ -995,6 +995,184 @@ describe('Transactions Integration Tests', () => {
       expect(comparedOperationsSet.size).toBe(operationsCount);
     });
 
+    it('should update existing operations and persist their changes', async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId);
+
+      const createdOperations = await Promise.all([
+        testDB.createOperation(userId, {
+          ...operation1Data,
+          transactionId: transaction.id,
+        }),
+        testDB.createOperation(userId, {
+          ...operation2Data,
+          transactionId: transaction.id,
+        }),
+      ]);
+
+      const operationsToUpdate = [
+        {
+          accountId: account1Data.id,
+          amount: Amount.create('-150').valueOf(),
+          description: 'Updated transfer from checking',
+          id: createdOperations[0].id,
+          value: Amount.create('-150').valueOf(),
+        },
+        {
+          accountId: account2Data.id,
+          amount: Amount.create('150').valueOf(),
+          description: 'Updated transfer to savings',
+          id: createdOperations[1].id,
+          value: Amount.create('150').valueOf(),
+        },
+      ];
+
+      const updatedData: UpdateTransactionRequestDTO = {
+        description: transaction.description,
+        operations: {
+          create: [],
+          delete: [],
+          update: operationsToUpdate,
+        },
+        postingDate: transaction.postingDate,
+        transactionDate: transaction.transactionDate,
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload: updatedData,
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(response);
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      expect(updatedTransaction.operations).toHaveLength(
+        operationsToUpdate.length,
+      );
+
+      expect(persistedTransaction).not.toBeNull();
+
+      operationsToUpdate.forEach((operation) => {
+        const responseOperation = updatedTransaction.operations.find(
+          ({ id }) => id === operation.id,
+        );
+        const persistedOperation = persistedTransaction?.operations.find(
+          ({ id }) => id === operation.id,
+        );
+
+        expect(responseOperation).toBeDefined();
+        expect(persistedOperation).toBeDefined();
+        compareCommonEntities(operation, responseOperation!);
+        compareCommonEntities(operation, persistedOperation!);
+      });
+    });
+
+    it('should apply create, update, and delete operations in one request', async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId);
+
+      const createdOperations = await Promise.all([
+        testDB.createOperation(userId, {
+          ...operation1Data,
+          transactionId: transaction.id,
+        }),
+        testDB.createOperation(userId, {
+          ...operation2Data,
+          transactionId: transaction.id,
+        }),
+      ]);
+
+      const operationToUpdate = {
+        accountId: account1Data.id,
+        amount: Amount.create('-80').valueOf(),
+        description: 'Updated existing operation',
+        id: createdOperations[0].id,
+        value: Amount.create('-80').valueOf(),
+      };
+
+      const operationIdToDelete = createdOperations[1].id;
+
+      const operationToCreate: OperationCreateInput = {
+        accountId: account2Data.id,
+        amount: Amount.create('80').valueOf(),
+        description: 'Replacement operation',
+        value: Amount.create('80').valueOf(),
+      };
+
+      const updatedData: UpdateTransactionRequestDTO = {
+        description: 'Mixed patch transaction',
+        operations: {
+          create: [operationToCreate],
+          delete: [operationIdToDelete],
+          update: [operationToUpdate],
+        },
+        postingDate: transaction.postingDate,
+        transactionDate: transaction.transactionDate,
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload: updatedData,
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(response);
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      const updatedOperation = updatedTransaction.operations.find(
+        ({ id }) => id === operationToUpdate.id,
+      );
+
+      const createdOperation = updatedTransaction.operations.find(
+        ({ id }) => id !== operationToUpdate.id && id !== operationIdToDelete,
+      );
+
+      const deletedOperation = persistedTransaction?.operations.find(
+        ({ id }) => id === operationIdToDelete,
+      );
+
+      expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.operations).toHaveLength(2);
+      expect(updatedOperation).toBeDefined();
+      expect(createdOperation).toBeDefined();
+
+      expect(deletedOperation?.isTombstone).toBe(true);
+      compareCommonEntities(operationToUpdate, updatedOperation!);
+      compareCommonEntities(operationToCreate, createdOperation!);
+
+      expect(persistedTransaction?.operations).toContainEqual(
+        expect.objectContaining({
+          ...operationToUpdate,
+          isTombstone: false,
+        }),
+      );
+
+      expect(persistedTransaction?.operations).toContainEqual(
+        expect.objectContaining({
+          ...operationToCreate,
+          id: createdOperation?.id,
+          isTombstone: false,
+        }),
+      );
+    });
+
     it('should update transaction by deleting operations and return 200', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
@@ -1207,7 +1385,7 @@ describe('Transactions Integration Tests', () => {
     it('should return 400 when resulting operations are unbalanced (sum != 0)', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
-      await testDB.createOperation(userId, {
+      const operationToUpdate = await testDB.createOperation(userId, {
         ...operation1Data,
         transactionId: transaction.id,
       });
@@ -1227,7 +1405,7 @@ describe('Transactions Integration Tests', () => {
               accountId: operation1Data.accountId,
               amount: Amount.create('-150').valueOf(),
               description: operation1Data.description,
-              id: operation1Data.accountId,
+              id: operationToUpdate.id,
               value: Amount.create('-150').valueOf(),
             },
           ],
