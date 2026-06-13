@@ -1,4 +1,4 @@
-import { UUID } from '@ledgerly/shared/types';
+import type { UUID } from '@ledgerly/shared/types';
 import { OperationMapper, TransactionMapper } from 'src/application';
 import {
   CreateOperationRequestDTO,

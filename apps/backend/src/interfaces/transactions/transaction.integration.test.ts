@@ -1087,6 +1087,14 @@ describe('Transactions Integration Tests', () => {
         }),
       ]);
 
+      const initialTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      if (!initialTransaction) {
+        throw new Error('Failed to fetch initial transaction state');
+      }
+
       const operationToUpdate = {
         accountId: account1Data.id,
         amount: Amount.create('-80').valueOf(),
@@ -1131,7 +1139,15 @@ describe('Transactions Integration Tests', () => {
       );
 
       const createdOperation = updatedTransaction.operations.find(
-        ({ id }) => id !== operationToUpdate.id && id !== operationIdToDelete,
+        ({ accountId, amount, description, value }) =>
+          accountId === operationToCreate.accountId &&
+          amount === operationToCreate.amount &&
+          description === operationToCreate.description &&
+          value === operationToCreate.value,
+      );
+
+      const deletedOperationInResponse = updatedTransaction.operations.find(
+        ({ id }) => id === operationIdToDelete,
       );
 
       const deletedOperation = persistedTransaction?.operations.find(
@@ -1139,9 +1155,12 @@ describe('Transactions Integration Tests', () => {
       );
 
       expect(updatedTransaction.description).toBe(updatedData.description);
-      expect(updatedTransaction.operations).toHaveLength(2);
+      expect(updatedTransaction.operations).toHaveLength(
+        initialTransaction.operations.length,
+      );
       expect(updatedOperation).toBeDefined();
       expect(createdOperation).toBeDefined();
+      expect(deletedOperationInResponse).toBeUndefined();
 
       expect(deletedOperation?.isTombstone).toBe(true);
       compareCommonEntities(operationToUpdate, updatedOperation!);
