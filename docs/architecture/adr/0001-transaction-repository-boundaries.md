@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-06-14
 - Jira: https://gorushkin.atlassian.net/browse/LED-37
-- PR: TBD
+- PR: https://github.com/gorushkin/ledgerly/pull/196
 
 ## Context
 
@@ -68,5 +68,5 @@ application contracts:
 
 ## Related
 
-- План задачи: `docs/plans/LED-37-transaction-repository-boundaries.md`
+- План задачи: `docs/archive/plans/LED-37-transaction-repository-boundaries.md`
 - Документация домена: `docs/DOMAIN.md`

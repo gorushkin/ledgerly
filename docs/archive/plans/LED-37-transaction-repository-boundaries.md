@@ -2,7 +2,7 @@
 
 Jira: https://gorushkin.atlassian.net/browse/LED-37
 
-Статус документа: выполнено (ожидает PR).
+Статус документа: выполнено.
 
 ## Контекст
 
@@ -98,8 +98,9 @@ schema.
 
 - [x] Добавить короткие комментарии к обоим repository interfaces.
 - [x] Проверить отсутствие DB schema imports в application query contract.
-- [ ] Связать этот документ с Jira-задачей и итоговым pull request.
-      Jira уже добавлена, ссылка на PR будет добавлена после открытия PR для ветки.
+- [x] Связать этот документ с Jira-задачей и итоговым pull request.
+      Jira: https://gorushkin.atlassian.net/browse/LED-37
+      PR: https://github.com/gorushkin/ledgerly/pull/196
 
 ## Критерии завершения
 
