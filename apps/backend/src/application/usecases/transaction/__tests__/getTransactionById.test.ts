@@ -89,11 +89,39 @@ describe('GetTransactionByIdUseCase', () => {
     expect(transaction.id).toBe(transactionId);
     expect(transaction.description).toBe('Test Transaction');
     expect(transaction.version).toBe(mockTransactionData.version);
+    expect(Object.keys(transaction).sort()).toEqual(
+      [
+        'createdAt',
+        'currency',
+        'description',
+        'id',
+        'operations',
+        'postingDate',
+        'transactionDate',
+        'updatedAt',
+        'userId',
+        'version',
+      ].sort(),
+    );
     expect(transaction).not.toHaveProperty('isTombstone');
     expect(transaction.operations).toHaveLength(operations.length);
 
     transaction.operations.forEach(
       (operation: TransactionResponseDTO['operations'][number]) => {
+        expect(Object.keys(operation).sort()).toEqual(
+          [
+            'accountId',
+            'amount',
+            'createdAt',
+            'description',
+            'id',
+            'isSystem',
+            'transactionId',
+            'updatedAt',
+            'userId',
+            'value',
+          ].sort(),
+        );
         expect(operation).not.toHaveProperty('isTombstone');
       },
     );

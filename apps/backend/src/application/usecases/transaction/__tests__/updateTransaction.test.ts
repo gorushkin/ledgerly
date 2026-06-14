@@ -2,6 +2,7 @@ import type { UUID } from '@ledgerly/shared/types';
 import { OperationMapper, TransactionMapper } from 'src/application';
 import {
   EntityNotFoundError,
+  UnauthorizedAccessError,
   VersionConflictError,
 } from 'src/application/application.errors';
 import {
@@ -461,8 +462,35 @@ describe('UpdateTransactionUseCase', () => {
     await expectRejectedWithoutPersistence(data, ConflictingOperationIdsError);
   });
 
-  it.todo('should propagate error when transaction is not found');
-  it.todo('should propagate error when user does not own the transaction');
+  it('propagates an error when the transaction is not found', async () => {
+    const data = createRequest({
+      description: 'Unknown transaction',
+    });
+
+    mockEnsureEntityExistsAndOwned.mockRejectedValue(
+      new EntityNotFoundError('Transaction'),
+    );
+
+    await expect(execute(data)).rejects.toThrow(EntityNotFoundError);
+
+    expect(mockTransactionRepository.update).not.toHaveBeenCalled();
+    expect(mockTransactionContextLoader.loadContext).not.toHaveBeenCalled();
+  });
+
+  it('propagates an error when user does not own the transaction', async () => {
+    const data = createRequest({
+      description: 'Unauthorized transaction update',
+    });
+
+    mockEnsureEntityExistsAndOwned.mockRejectedValue(
+      new UnauthorizedAccessError('Transaction'),
+    );
+
+    await expect(execute(data)).rejects.toThrow(UnauthorizedAccessError);
+
+    expect(mockTransactionRepository.update).not.toHaveBeenCalled();
+    expect(mockTransactionContextLoader.loadContext).not.toHaveBeenCalled();
+  });
 
   it('throws a version conflict error when request version is stale', async () => {
     const data = createRequest({

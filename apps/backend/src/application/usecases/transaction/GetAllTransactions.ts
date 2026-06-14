@@ -1,7 +1,7 @@
 import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
 import {
   TransactionListResponseDTO,
-  TransactionViewMapper,
+  TransactionReadModelResponseMapper,
 } from 'src/application';
 import {
   AccountRepositoryInterface,
@@ -34,7 +34,7 @@ export class GetAllTransactionsUseCase {
 
     return {
       items: items.map((transaction) =>
-        TransactionViewMapper.toView(transaction),
+        TransactionReadModelResponseMapper.toResponseDTO(transaction),
       ),
       pagination: {
         hasNextPage: page < totalPages,

@@ -487,6 +487,67 @@ describe('TransactionQueryRepository', () => {
         expect(transaction).not.toHaveProperty('isTombstone');
       });
     });
+
+    it('should return application read model shape without persistence-only fields', async () => {
+      await createTransaction({
+        description: 'Read model contract',
+        operations: [
+          {
+            account: usdAccount,
+            amount: '-100' as MoneyString,
+            description: 'Contract debit',
+          },
+          {
+            account: eurAccount,
+            amount: '100' as MoneyString,
+            description: 'Contract credit',
+          },
+        ],
+      });
+
+      const result = await transactionQueryRepo.findAll(
+        user.id,
+        DEFAULT_TRANSACTION_QUERY,
+      );
+
+      expect(result.items).toHaveLength(1);
+
+      const transaction = result.items[0];
+
+      expect(Object.keys(transaction).sort()).toEqual(
+        [
+          'createdAt',
+          'currency',
+          'description',
+          'id',
+          'operations',
+          'postingDate',
+          'transactionDate',
+          'updatedAt',
+          'userId',
+          'version',
+        ].sort(),
+      );
+      expect(transaction).not.toHaveProperty('isTombstone');
+
+      transaction.operations.forEach((operation) => {
+        expect(Object.keys(operation).sort()).toEqual(
+          [
+            'accountId',
+            'amount',
+            'createdAt',
+            'description',
+            'id',
+            'isSystem',
+            'transactionId',
+            'updatedAt',
+            'userId',
+            'value',
+          ].sort(),
+        );
+        expect(operation).not.toHaveProperty('isTombstone');
+      });
+    });
   });
 
   describe('findById', () => {

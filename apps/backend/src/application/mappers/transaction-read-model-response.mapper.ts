@@ -1,8 +1,10 @@
 import { OperationResponseDTO, TransactionResponseDTO } from '../dto';
 import { OperationReadModel, TransactionReadModel } from '../read-models';
 
-export class TransactionViewMapper {
-  static toView(transaction: TransactionReadModel): TransactionResponseDTO {
+export class TransactionReadModelResponseMapper {
+  static toResponseDTO(
+    transaction: TransactionReadModel,
+  ): TransactionResponseDTO {
     return {
       createdAt: transaction.createdAt,
       currency: transaction.currency,
