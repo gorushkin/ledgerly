@@ -68,5 +68,6 @@ application contracts:
 
 ## Related
 
+- [ADR 0002: Operation application boundary](./0002-operation-application-boundary.md)
 - План задачи: `docs/archive/plans/LED-37-transaction-repository-boundaries.md`
 - Документация домена: `docs/DOMAIN.md`
