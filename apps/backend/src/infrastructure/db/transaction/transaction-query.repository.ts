@@ -4,17 +4,16 @@ import {
   PaginatedResult,
   TransactionQueryRepositoryInterface,
 } from 'src/application/interfaces';
-import {
-  operationsTable,
-  transactionsTable,
-  TransactionWithRelations,
-} from 'src/db/schema';
+import { TransactionReadModel } from 'src/application/read-models';
+import { operationsTable, transactionsTable } from 'src/db/schema';
 
 import { BaseRepository } from '../BaseRepository';
 
+import { TransactionReadModelMapper } from './transaction-read-model.mapper';
+
 /**
  * Query repository for read-only transaction operations.
- * Returns DTOs optimized for display without full domain model restoration.
+ * Maps persistence rows to application read models.
  */
 export class TransactionQueryRepository
   extends BaseRepository
@@ -29,7 +28,7 @@ export class TransactionQueryRepository
   async findById(
     userId: UUID,
     transactionId: UUID,
-  ): Promise<TransactionWithRelations | null> {
+  ): Promise<TransactionReadModel | null> {
     return this.executeDatabaseOperation(
       async () => {
         const transaction = await this.db.query.transactionsTable.findFirst({
@@ -45,7 +44,9 @@ export class TransactionQueryRepository
           },
         });
 
-        return transaction ?? null;
+        return transaction
+          ? TransactionReadModelMapper.fromPersistence(transaction)
+          : null;
       },
       'TransactionQueryRepository.findById',
       {
@@ -59,7 +60,7 @@ export class TransactionQueryRepository
   async findAll(
     userId: UUID,
     query: TransactionQueryParams,
-  ): Promise<PaginatedResult<TransactionWithRelations>> {
+  ): Promise<PaginatedResult<TransactionReadModel>> {
     return this.executeDatabaseOperation(
       async () => {
         // TODO(LED-60): benchmark EXISTS and single-query count alternatives;
@@ -124,7 +125,9 @@ export class TransactionQueryRepository
           .where(transactionWhereConditions);
 
         return {
-          items,
+          items: items.map((transaction) =>
+            TransactionReadModelMapper.fromPersistence(transaction),
+          ),
           total: countResult.total,
         };
       },

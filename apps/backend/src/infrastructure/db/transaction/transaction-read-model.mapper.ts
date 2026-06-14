@@ -1,8 +1,13 @@
-import { OperationResponseDTO, TransactionResponseDTO } from '../dto';
-import { OperationReadModel, TransactionReadModel } from '../read-models';
+import {
+  OperationReadModel,
+  TransactionReadModel,
+} from 'src/application/read-models';
+import { OperationDbRow, TransactionWithRelations } from 'src/db/schema';
 
-export class TransactionViewMapper {
-  static toView(transaction: TransactionReadModel): TransactionResponseDTO {
+export class TransactionReadModelMapper {
+  static fromPersistence(
+    transaction: TransactionWithRelations,
+  ): TransactionReadModel {
     return {
       createdAt: transaction.createdAt,
       currency: transaction.currency,
@@ -17,9 +22,7 @@ export class TransactionViewMapper {
     };
   }
 
-  private static mapOperation(
-    operation: OperationReadModel,
-  ): OperationResponseDTO {
+  private static mapOperation(operation: OperationDbRow): OperationReadModel {
     return {
       accountId: operation.accountId,
       amount: operation.amount,

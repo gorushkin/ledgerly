@@ -5,7 +5,10 @@ import {
   AccountRepositoryInterface,
   TransactionQueryRepositoryInterface,
 } from 'src/application/interfaces';
-import { OperationDbRow, TransactionWithRelations } from 'src/db/schema';
+import {
+  OperationReadModel,
+  TransactionReadModel,
+} from 'src/application/read-models';
 import {
   Amount,
   Currency,
@@ -41,15 +44,14 @@ describe('GetAllTransactionsUseCase', () => {
   const buildOperation = (
     transactionId: UUID,
     userId: UUID,
-    overrides?: Partial<OperationDbRow>,
-  ): OperationDbRow => ({
+    overrides?: Partial<OperationReadModel>,
+  ): OperationReadModel => ({
     accountId: Id.create().valueOf(),
     amount: Amount.create('100').valueOf(),
     createdAt: Timestamp.create().valueOf(),
     description: 'Operation',
     id: Id.create().valueOf(),
     isSystem: false,
-    isTombstone: false,
     transactionId,
     updatedAt: Timestamp.create().valueOf(),
     userId,
@@ -57,7 +59,7 @@ describe('GetAllTransactionsUseCase', () => {
     ...overrides,
   });
 
-  const buildTransaction = (): TransactionWithRelations => {
+  const buildTransaction = (): TransactionReadModel => {
     const transactionId = Id.create().valueOf();
 
     return {
@@ -65,7 +67,6 @@ describe('GetAllTransactionsUseCase', () => {
       currency: Currency.create('USD').valueOf(),
       description: 'Test transaction',
       id: transactionId,
-      isTombstone: false,
       operations: [buildOperation(transactionId, userId)],
       postingDate: DateValue.restore('2024-01-01').valueOf(),
       transactionDate: DateValue.restore('2024-01-01').valueOf(),

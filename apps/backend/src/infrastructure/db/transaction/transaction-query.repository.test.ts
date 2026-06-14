@@ -484,7 +484,7 @@ describe('TransactionQueryRepository', () => {
       );
 
       result.items.forEach((transaction) => {
-        expect(transaction.isTombstone).toBeFalsy();
+        expect(transaction).not.toHaveProperty('isTombstone');
       });
     });
   });
@@ -638,7 +638,7 @@ describe('TransactionQueryRepository', () => {
       );
 
       transaction?.operations.forEach((op) => {
-        expect(op.isTombstone).toBe(false);
+        expect(op).not.toHaveProperty('isTombstone');
       });
     });
   });
