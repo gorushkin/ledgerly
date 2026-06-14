@@ -62,6 +62,8 @@ export class TransactionQueryRepository
   ): Promise<PaginatedResult<TransactionWithRelations>> {
     return this.executeDatabaseOperation(
       async () => {
+        // TODO(LED-60): benchmark EXISTS and single-query count alternatives;
+        // this account subquery is currently evaluated for both items and total.
         const matchingTransactionIds = query.accountId
           ? inArray(
               transactionsTable.id,
@@ -110,11 +112,12 @@ export class TransactionQueryRepository
           where: transactionWhereConditions,
           with: {
             operations: {
-              where: and(eq(operationsTable.isTombstone, false)),
+              where: eq(operationsTable.isTombstone, false),
             },
           },
         });
 
+        // TODO(LED-60): avoid reevaluating the account filter when counting.
         const [countResult] = await this.db
           .select({ total: count() })
           .from(transactionsTable)

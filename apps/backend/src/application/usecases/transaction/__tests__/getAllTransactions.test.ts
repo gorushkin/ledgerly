@@ -174,6 +174,27 @@ describe('GetAllTransactionsUseCase', () => {
     });
   });
 
+  it('should not report a previous page when there are no results', async () => {
+    transactionQueryRepository.findAll.mockResolvedValue({
+      items: [],
+      total: 0,
+    });
+
+    const result = await getAllTransactionsUseCase.execute(userId, {
+      ...DEFAULT_TRANSACTION_QUERY,
+      page: 2,
+    });
+
+    expect(result.pagination).toEqual({
+      hasNextPage: false,
+      hasPreviousPage: false,
+      page: 2,
+      pageSize: DEFAULT_TRANSACTION_QUERY.pageSize,
+      total: 0,
+      totalPages: 0,
+    });
+  });
+
   it('should throw an error if user does not own the account', async () => {
     accountRepository.ensureUserOwnsAccount.mockRejectedValue(
       new ForbiddenAccessError(

@@ -38,7 +38,7 @@ export class GetAllTransactionsUseCase {
       ),
       pagination: {
         hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
+        hasPreviousPage: totalPages > 0 && page > 1,
         page,
         pageSize,
         total,
