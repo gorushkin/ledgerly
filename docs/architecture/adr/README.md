@@ -33,3 +33,4 @@
 ## Индекс
 
 - [ADR 0001: Transaction repository boundaries](./0001-transaction-repository-boundaries.md)
+- [ADR 0002: Operation application boundary](./0002-operation-application-boundary.md)

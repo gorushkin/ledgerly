@@ -102,6 +102,14 @@ Represents different monetary units used in the system.
 5. `Operation` does not have a separate version because it has no independent write API or use case
 6. Operation-level versioning should be introduced only if operations become independently mutable outside the `Transaction` aggregate
 
+### Operation Application Boundary
+1. `Transaction` is the only application write boundary for its operations
+2. Operations are created, updated, and deleted only through transaction use cases
+3. `Operation` has no independent write API or public application use cases
+4. Operation mappers, domain entities, and persistence collaborators are internal details of the transaction flow
+5. This boundary should be reconsidered only if operations gain an independent lifecycle, authorization model, version, API, or background processing
+6. See [ADR 0002: Operation application boundary](./architecture/adr/0002-operation-application-boundary.md)
+
 ### Transaction List Query
 1. `accountId` selects transactions containing at least one active operation for the account, while the response includes all active operations of each matching transaction
 2. `dateFrom` and `dateTo` filter `transactionDate` inclusively
