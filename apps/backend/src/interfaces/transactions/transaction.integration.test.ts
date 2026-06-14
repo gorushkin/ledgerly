@@ -888,7 +888,24 @@ describe('Transactions Integration Tests', () => {
 
   describe('DELETE /api/transactions/:id', () => {
     it('should delete an existing transaction and return 204', async () => {
+      const [account1, account2] = await createAccounts();
       const transaction = await testDB.createTransaction(userId);
+      const operations = await Promise.all([
+        testDB.createOperation(userId, {
+          accountId: account1.id,
+          amount: Amount.create('-100').valueOf(),
+          description: 'Transfer from checking',
+          transactionId: transaction.id,
+          value: Amount.create('-100').valueOf(),
+        }),
+        testDB.createOperation(userId, {
+          accountId: account2.id,
+          amount: Amount.create('100').valueOf(),
+          description: 'Transfer to savings',
+          transactionId: transaction.id,
+          value: Amount.create('100').valueOf(),
+        }),
+      ]);
 
       const response = await server.inject({
         headers: {
@@ -904,6 +921,22 @@ describe('Transactions Integration Tests', () => {
 
       expect(dbRecord).toBeDefined();
       expect(dbRecord!.isTombstone).toBe(true);
+
+      const persistedOperations = await testDB.getOperationsByTransactionId(
+        userId,
+        transaction.id,
+      );
+
+      expect(persistedOperations).toHaveLength(operations.length);
+
+      operations.forEach(({ id }) => {
+        expect(persistedOperations).toContainEqual(
+          expect.objectContaining({
+            id,
+            isTombstone: true,
+          }),
+        );
+      });
     });
 
     it('should return 404 when deleting a non-existent transaction', async () => {
@@ -1424,7 +1457,126 @@ describe('Transactions Integration Tests', () => {
 
         compareCommonEntities(originalOp, op);
       });
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      expect(persistedTransaction?.version).toBe(transaction.version + 1);
+
+      operationsToDelete.forEach(({ id }) => {
+        expect(persistedTransaction?.operations).toContainEqual(
+          expect.objectContaining({
+            id,
+            isTombstone: true,
+          }),
+        );
+      });
+
+      createdOperations.slice(2).forEach(({ id }) => {
+        expect(persistedTransaction?.operations).toContainEqual(
+          expect.objectContaining({
+            id,
+            isTombstone: false,
+          }),
+        );
+      });
     });
+
+    it.each([
+      {
+        buildOperations: (
+          operationToUpdate: NonNullable<
+            UpdateTransactionRequestDTO['operations']['update'][number]
+          >,
+        ) => ({
+          create: [],
+          delete: [operationToUpdate.id],
+          update: [operationToUpdate],
+        }),
+        name: 'the same operation ID in update and delete',
+      },
+      {
+        buildOperations: (
+          operationToUpdate: NonNullable<
+            UpdateTransactionRequestDTO['operations']['update'][number]
+          >,
+        ) => ({
+          create: [],
+          delete: [],
+          update: [operationToUpdate, { ...operationToUpdate }],
+        }),
+        name: 'duplicate operation IDs in update',
+      },
+      {
+        buildOperations: (
+          operationToUpdate: NonNullable<
+            UpdateTransactionRequestDTO['operations']['update'][number]
+          >,
+        ) => ({
+          create: [],
+          delete: [operationToUpdate.id, operationToUpdate.id],
+          update: [],
+        }),
+        name: 'duplicate operation IDs in delete',
+      },
+    ])(
+      'should reject $name without persisting partial changes',
+      async ({ buildOperations }) => {
+        const transaction =
+          await testDB.createTransactionWithOperations(userId);
+        const createdOperations = await Promise.all([
+          testDB.createOperation(userId, {
+            ...operation1Data,
+            transactionId: transaction.id,
+          }),
+          testDB.createOperation(userId, {
+            ...operation2Data,
+            transactionId: transaction.id,
+          }),
+        ]);
+
+        const operationToUpdate = {
+          accountId: account1Data.id,
+          amount: Amount.create('-100').valueOf(),
+          description: 'Conflicting operation update',
+          id: createdOperations[0].id,
+          value: Amount.create('-100').valueOf(),
+        };
+
+        const payload = createUpdateRequest({
+          description: 'Must not be persisted',
+          operations: buildOperations(operationToUpdate),
+          postingDate: transaction.postingDate,
+          transactionDate: transaction.transactionDate,
+          version: transaction.version,
+        });
+
+        const response = await sendUpdateRequest(transaction.id, payload);
+
+        expect(response.statusCode).toBe(400);
+
+        const persistedTransaction = await testDB.getTransactionWithRelations(
+          transaction.id,
+        );
+
+        expect(persistedTransaction).toEqual(
+          expect.objectContaining({
+            description: transaction.description,
+            version: transaction.version,
+          }),
+        );
+
+        createdOperations.forEach((operation) => {
+          expect(persistedTransaction?.operations).toContainEqual(
+            expect.objectContaining({
+              ...operation,
+              isTombstone: false,
+            }),
+          );
+        });
+      },
+    );
 
     it('should return 404 when updating a non-existent transaction', async () => {
       const nonExistentId = Id.create().valueOf();
