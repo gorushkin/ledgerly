@@ -1,3 +1,4 @@
+import { DEFAULT_TRANSACTION_QUERY } from '@ledgerly/shared/constants';
 import { TransactionCreateInput } from '@ledgerly/shared/validation';
 import {
   CreateOperationRequestDTO,
@@ -22,6 +23,17 @@ describe('TransactionController', () => {
 
   const mockTransaction = { data: 'mockTransaction' };
   const mockTransactions = [{ data: 'mockTransaction' }];
+  const mockTransactionsOutput = {
+    items: mockTransactions,
+    pagination: {
+      hasNextPage: false,
+      hasPreviousPage: false,
+      page: 1,
+      pageSize: 20,
+      total: 1,
+      totalPages: 1,
+    },
+  };
 
   const mockCreateTransactionUseCase = {
     execute: vi.fn().mockResolvedValue(mockTransaction),
@@ -32,7 +44,7 @@ describe('TransactionController', () => {
   };
 
   const mockGetAllTransactionsUseCase = {
-    execute: vi.fn().mockResolvedValue(mockTransactions),
+    execute: vi.fn().mockResolvedValue(mockTransactionsOutput),
   };
 
   const mockUpdateTransactionUseCase = {
@@ -137,21 +149,25 @@ describe('TransactionController', () => {
   describe('getAll', () => {
     it('should call GetAllTransactionsUseCase with correct parameters', async () => {
       const accountId = Id.create().valueOf();
-      mockGetAllTransactionsUseCase.execute.mockResolvedValue([
-        mockTransaction,
-      ]);
+      mockGetAllTransactionsUseCase.execute.mockResolvedValue(
+        mockTransactionsOutput,
+      );
 
       const result = await transactionController.getAll(user, {
+        ...DEFAULT_TRANSACTION_QUERY,
         accountId,
       });
 
       expect(mockGetAllTransactionsUseCase.execute).toHaveBeenCalledWith(
         user.id,
-        { accountId },
+        {
+          ...DEFAULT_TRANSACTION_QUERY,
+          accountId,
+        },
       );
 
       expect(mockGetAllTransactionsUseCase.execute).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(mockTransactions);
+      expect(result).toEqual(mockTransactionsOutput);
     });
   });
 
@@ -180,6 +196,7 @@ describe('TransactionController', () => {
         },
         postingDate: DateValue.restore('2024-01-01').valueOf(),
         transactionDate: DateValue.restore('2024-01-02').valueOf(),
+        version: 0,
       };
 
       const result = await transactionController.update(
@@ -195,6 +212,7 @@ describe('TransactionController', () => {
           description: requestBody.description,
           postingDate: requestBody.postingDate,
           transactionDate: requestBody.transactionDate,
+          version: requestBody.version,
         }),
       );
       expect(mockUpdateTransactionUseCase.execute).toHaveBeenCalledTimes(1);
@@ -216,6 +234,28 @@ describe('TransactionController', () => {
           user,
           transactionId,
           invalidRequestBody as unknown as UpdateTransactionRequestDTO,
+        ),
+      ).rejects.toThrow(ZodError);
+    });
+
+    it('should reject an update without version', async () => {
+      const transactionId = Id.create().valueOf();
+      const requestBody = {
+        description: 'Updated Transaction',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      await expect(
+        transactionController.update(
+          user,
+          transactionId,
+          requestBody as unknown as UpdateTransactionRequestDTO,
         ),
       ).rejects.toThrow(ZodError);
     });

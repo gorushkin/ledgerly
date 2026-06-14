@@ -1,4 +1,8 @@
 import {
+  EntityNotFoundError,
+  UnauthorizedAccessError,
+} from 'src/application/application.errors';
+import {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -78,9 +82,50 @@ describe('DeleteTransactionUseCase', () => {
     );
   });
 
-  it.todo('should propagate error when transaction is not found');
-  it.todo('should propagate error when user does not own the transaction');
-  it.todo(
-    'should be idempotent — calling delete on already-deleted transaction should not re-mark or re-increment version',
-  );
+  it('should propagate error when transaction is not found', async () => {
+    mockEnsureEntityExistsAndOwned.mockRejectedValue(
+      new EntityNotFoundError('Transaction'),
+    );
+
+    await expect(
+      deleteTransactionByIdUseCase.execute(user, transaction.getId().valueOf()),
+    ).rejects.toThrow(EntityNotFoundError);
+
+    expect(mockTransactionRepository.softDelete).not.toHaveBeenCalled();
+  });
+
+  it('should propagate error when user does not own the transaction', async () => {
+    mockEnsureEntityExistsAndOwned.mockRejectedValue(
+      new UnauthorizedAccessError('Transaction'),
+    );
+
+    await expect(
+      deleteTransactionByIdUseCase.execute(user, transaction.getId().valueOf()),
+    ).rejects.toThrow(UnauthorizedAccessError);
+
+    expect(mockTransactionRepository.softDelete).not.toHaveBeenCalled();
+  });
+
+  it('should be idempotent — calling delete on already-deleted transaction should not re-mark or re-increment version', async () => {
+    mockEnsureEntityExistsAndOwned.mockResolvedValue(transaction);
+
+    const initialVersion = transaction.getVersion().valueOf();
+
+    await deleteTransactionByIdUseCase.execute(
+      user,
+      transaction.getId().valueOf(),
+    );
+
+    const versionAfterFirstDelete = transaction.getVersion().valueOf();
+
+    await deleteTransactionByIdUseCase.execute(
+      user,
+      transaction.getId().valueOf(),
+    );
+
+    expect(transaction.isDeleted()).toBe(true);
+    expect(versionAfterFirstDelete).toBe(initialVersion + 1);
+    expect(transaction.getVersion().valueOf()).toBe(versionAfterFirstDelete);
+    expect(mockTransactionRepository.softDelete).toHaveBeenCalledTimes(1);
+  });
 });

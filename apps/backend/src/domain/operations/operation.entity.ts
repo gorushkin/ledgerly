@@ -8,10 +8,10 @@ import {
   SoftDelete,
   ParentChildRelation,
 } from '../domain-core';
+import { DeletedEntityOperationError } from '../domain.errors';
 
 import { OperationSnapshot, UpdateOperationProps } from './types';
 
-// TODO: add versioning to operation entity and implement optimistic concurrency control in repo
 export class Operation {
   private constructor(
     public readonly identity: EntityIdentity,
@@ -227,6 +227,10 @@ export class Operation {
     if (this.identity.getId().equals(params.id.valueOf()) === false) {
       // TODO: add proper error handling
       throw new Error('Operation ID mismatch');
+    }
+
+    if (this.isDeleted()) {
+      throw new DeletedEntityOperationError('operation', 'update');
     }
 
     const { account, amount, description, value } = params;

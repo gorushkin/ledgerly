@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+import {
+  DEFAULT_PAGE,
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE,
+} from "../constants/pagination";
+import {
+  DEFAULT_TRANSACTION_SORT_BY,
+  DEFAULT_TRANSACTION_SORT_ORDER,
+} from "../constants/transactions";
+
 export const requiredText = z.string().default("");
 
 export const defaultText = z.string().default("").optional();
@@ -44,6 +54,29 @@ export const moneyAmountBigint = z
   .transform((val) => BigInt(val))
   .brand<"MoneyBig">();
 
-export const getTransactionsQuerySchema = z.object({
-  accountId: uuid.optional(),
-});
+export const getTransactionsQuerySchema = z
+  .object({
+    accountId: uuid.optional(),
+    dateFrom: isoDate.optional(),
+    dateTo: isoDate.optional(),
+    page: z.coerce.number().int().positive().default(DEFAULT_PAGE),
+    pageSize: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(MAX_PAGE_SIZE)
+      .default(DEFAULT_PAGE_SIZE),
+    sortBy: z
+      .enum(["transactionDate", "postingDate"])
+      .default(DEFAULT_TRANSACTION_SORT_BY),
+    sortOrder: z.enum(["asc", "desc"]).default(DEFAULT_TRANSACTION_SORT_ORDER),
+  })
+  .superRefine(({ dateFrom, dateTo }, context) => {
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "dateFrom must be before or equal to dateTo",
+        path: ["dateTo"],
+      });
+    }
+  });

@@ -1,10 +1,14 @@
+import { DEFAULT_TRANSACTION_QUERY } from '@ledgerly/shared/constants';
 import { UUID } from '@ledgerly/shared/types';
 import { TransactionResponseDTO } from 'src/application/dto';
 import {
   AccountRepositoryInterface,
   TransactionQueryRepositoryInterface,
 } from 'src/application/interfaces';
-import { OperationDbRow, TransactionWithRelations } from 'src/db/schema';
+import {
+  OperationReadModel,
+  TransactionReadModel,
+} from 'src/application/read-models';
 import {
   Amount,
   Currency,
@@ -40,15 +44,14 @@ describe('GetAllTransactionsUseCase', () => {
   const buildOperation = (
     transactionId: UUID,
     userId: UUID,
-    overrides?: Partial<OperationDbRow>,
-  ): OperationDbRow => ({
+    overrides?: Partial<OperationReadModel>,
+  ): OperationReadModel => ({
     accountId: Id.create().valueOf(),
     amount: Amount.create('100').valueOf(),
     createdAt: Timestamp.create().valueOf(),
     description: 'Operation',
     id: Id.create().valueOf(),
     isSystem: false,
-    isTombstone: false,
     transactionId,
     updatedAt: Timestamp.create().valueOf(),
     userId,
@@ -56,7 +59,7 @@ describe('GetAllTransactionsUseCase', () => {
     ...overrides,
   });
 
-  const buildTransaction = (): TransactionWithRelations => {
+  const buildTransaction = (): TransactionReadModel => {
     const transactionId = Id.create().valueOf();
 
     return {
@@ -64,7 +67,6 @@ describe('GetAllTransactionsUseCase', () => {
       currency: Currency.create('USD').valueOf(),
       description: 'Test transaction',
       id: transactionId,
-      isTombstone: false,
       operations: [buildOperation(transactionId, userId)],
       postingDate: DateValue.restore('2024-01-01').valueOf(),
       transactionDate: DateValue.restore('2024-01-01').valueOf(),
@@ -75,11 +77,16 @@ describe('GetAllTransactionsUseCase', () => {
   };
 
   it('should retrieve transactions by account ID', async () => {
-    const mockTransactions = [buildTransaction()];
+    const mockTransaction = buildTransaction();
+    const mockTransactions = [mockTransaction];
 
-    transactionQueryRepository.findAll.mockResolvedValue(mockTransactions);
+    transactionQueryRepository.findAll.mockResolvedValue({
+      items: mockTransactions,
+      total: mockTransactions.length,
+    });
 
     const result = await getAllTransactionsUseCase.execute(userId, {
+      ...DEFAULT_TRANSACTION_QUERY,
       accountId,
     });
 
@@ -88,12 +95,25 @@ describe('GetAllTransactionsUseCase', () => {
       accountId,
     );
     expect(transactionQueryRepository.findAll).toHaveBeenCalledWith(userId, {
+      ...DEFAULT_TRANSACTION_QUERY,
       accountId,
     });
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(mockTransactions[0].id);
-    expect(result[0]).not.toHaveProperty('isTombstone');
-    result[0].operations.forEach(
+
+    expect(result.items).toHaveLength(mockTransactions.length);
+    expect(result.items[0].id).toBe(mockTransaction.id);
+    expect(result.items[0].version).toBe(mockTransaction.version);
+    expect(result.items[0]).not.toHaveProperty('isTombstone');
+
+    expect(result.pagination).toEqual({
+      hasNextPage: false,
+      hasPreviousPage: false,
+      page: 1,
+      pageSize: 20,
+      total: mockTransactions.length,
+      totalPages: 1,
+    });
+
+    result.items[0].operations.forEach(
       (operation: TransactionResponseDTO['operations'][number]) => {
         expect(operation).not.toHaveProperty('isTombstone');
       },
@@ -101,20 +121,79 @@ describe('GetAllTransactionsUseCase', () => {
   });
 
   it('should retrieve all transactions without account ownership check when accountId is not provided', async () => {
-    const mockTransactions = [buildTransaction()];
+    const mockTransaction = buildTransaction();
+    const mockTransactions = [mockTransaction];
 
-    transactionQueryRepository.findAll.mockResolvedValue(mockTransactions);
+    transactionQueryRepository.findAll.mockResolvedValue({
+      items: mockTransactions,
+      total: mockTransactions.length,
+    });
 
-    const result = await getAllTransactionsUseCase.execute(userId);
+    const result = await getAllTransactionsUseCase.execute(
+      userId,
+      DEFAULT_TRANSACTION_QUERY,
+    );
 
     expect(accountRepository.ensureUserOwnsAccount).not.toHaveBeenCalled();
     expect(transactionQueryRepository.findAll).toHaveBeenCalledWith(
       userId,
-      undefined,
+      DEFAULT_TRANSACTION_QUERY,
     );
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(mockTransactions[0].id);
-    expect(result[0]).not.toHaveProperty('isTombstone');
+    expect(result.items).toHaveLength(mockTransactions.length);
+    expect(result.items[0].id).toBe(mockTransaction.id);
+    expect(result.items[0]).not.toHaveProperty('isTombstone');
+  });
+
+  it('should build pagination metadata for a middle page', async () => {
+    const mockTransaction1 = buildTransaction();
+    const mockTransaction2 = buildTransaction();
+
+    const mockTransactions = [mockTransaction1, mockTransaction2];
+
+    const totalTransactions = 5;
+    const page = 2;
+    const pageSize = 2;
+
+    transactionQueryRepository.findAll.mockResolvedValue({
+      items: mockTransactions,
+      total: totalTransactions,
+    });
+
+    const result = await getAllTransactionsUseCase.execute(userId, {
+      ...DEFAULT_TRANSACTION_QUERY,
+      page,
+      pageSize,
+    });
+
+    expect(result.pagination).toEqual({
+      hasNextPage: true,
+      hasPreviousPage: true,
+      page,
+      pageSize,
+      total: totalTransactions,
+      totalPages: Math.ceil(totalTransactions / pageSize),
+    });
+  });
+
+  it('should not report a previous page when there are no results', async () => {
+    transactionQueryRepository.findAll.mockResolvedValue({
+      items: [],
+      total: 0,
+    });
+
+    const result = await getAllTransactionsUseCase.execute(userId, {
+      ...DEFAULT_TRANSACTION_QUERY,
+      page: 2,
+    });
+
+    expect(result.pagination).toEqual({
+      hasNextPage: false,
+      hasPreviousPage: false,
+      page: 2,
+      pageSize: DEFAULT_TRANSACTION_QUERY.pageSize,
+      total: 0,
+      totalPages: 0,
+    });
   });
 
   it('should throw an error if user does not own the account', async () => {
@@ -126,6 +205,7 @@ describe('GetAllTransactionsUseCase', () => {
 
     await expect(
       getAllTransactionsUseCase.execute(userId, {
+        ...DEFAULT_TRANSACTION_QUERY,
         accountId,
       }),
     ).rejects.toThrow('You do not have permission to access this account');

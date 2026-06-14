@@ -1,4 +1,4 @@
-import { TransactionQueryParams } from '@ledgerly/shared/types';
+import { TransactionQueryInput } from '@ledgerly/shared/types';
 import {
   getTransactionsQuerySchema,
   TransactionUpdateInput,
@@ -25,7 +25,7 @@ export const transactionsRoutes = (app: FastifyInstance) => {
     response.status(201).send(transaction);
   });
 
-  app.get<{ Querystring: TransactionQueryParams }>(
+  app.get<{ Querystring: TransactionQueryInput }>(
     '/',
     async (request, response) => {
       const user = request.user;

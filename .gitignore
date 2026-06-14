@@ -11,6 +11,9 @@ yarn-error.log*
 # Environment variables
 .env
 
+# Local agent configuration
+.agents/skills/*/config.local.yaml
+
 # Build output
 dist/
 data/

@@ -7,7 +7,10 @@ import {
   TransactionBuilderResult,
 } from 'src/db/test-utils';
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
-import { UnbalancedTransactionError } from 'src/domain/domain.errors';
+import {
+  ConflictingOperationIdsError,
+  UnbalancedTransactionError,
+} from 'src/domain/domain.errors';
 import {
   afterEach,
   beforeAll,
@@ -18,7 +21,8 @@ import {
   vi,
 } from 'vitest';
 
-import { Amount, DateValue } from '../domain-core';
+import { Amount, DateValue, Id } from '../domain-core';
+import { DeletedEntityOperationError } from '../domain.errors';
 import {
   CreateOperationProps,
   OperationProps,
@@ -126,6 +130,7 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.getId()).toBeDefined();
       expect(transaction.getCreatedAt()).toBeDefined();
       expect(transaction.getUpdatedAt()).toBeDefined();
+      expect(transaction.getVersion().valueOf()).toBe(0);
       expect(transaction.isDeleted()).toBe(false);
 
       expect(transaction.currency).toBe(transactionData.currency);
@@ -156,6 +161,73 @@ describe('Transaction Domain Entity', () => {
       const restoredTransaction = Transaction.restore(transactionSnapshot);
       expect(restoredTransaction.toSnapshot()).toEqual(transactionSnapshot);
     });
+
+    it('should restore the persisted version as a value object', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const transactionSnapshot = transaction.toSnapshot();
+
+      const restoredTransaction = Transaction.restore({
+        ...transactionSnapshot,
+        version: 7,
+      });
+
+      expect(restoredTransaction.getVersion().valueOf()).toBe(7);
+      expect(restoredTransaction.toSnapshot().version).toBe(7);
+    });
+
+    it('should restore tombstone operations without allowing them to be updated', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const transactionSnapshot = transaction.toSnapshot();
+      const [operationToDelete, ...activeOperations] =
+        transactionSnapshot.operations;
+
+      const restoredTransaction = Transaction.restore({
+        ...transactionSnapshot,
+        operations: [
+          {
+            ...operationToDelete,
+            isTombstone: true,
+          },
+          ...activeOperations,
+        ],
+      });
+
+      expect(restoredTransaction.getAllOperations()).toHaveLength(
+        transactionSnapshot.operations.length,
+      );
+      expect(restoredTransaction.getOperations()).toHaveLength(
+        activeOperations.length,
+      );
+
+      const operationAccount = data.accountsMap.get(
+        operationToDelete.accountId,
+      );
+
+      if (!operationAccount) {
+        throw new Error('Test setup failed: Account not found');
+      }
+
+      expect(() =>
+        restoredTransaction.applyUpdate(
+          {
+            operations: {
+              create: [],
+              delete: [],
+              update: [
+                {
+                  account: operationAccount,
+                  amount: Amount.create('15000'),
+                  description: 'Updated tombstone operation',
+                  id: Id.fromPersistence(operationToDelete.id),
+                  value: Amount.create('15000'),
+                },
+              ],
+            },
+          },
+          data.transactionContext,
+        ),
+      ).toThrow(DeletedEntityOperationError);
+    });
   });
 
   describe('Updating Transaction data', () => {
@@ -164,6 +236,7 @@ describe('Transaction Domain Entity', () => {
 
       const description = 'Updated transaction description';
       const originalSnapshot = transaction.toSnapshot();
+      const originalVersion = transaction.getVersion();
 
       vi.advanceTimersByTime(5000);
 
@@ -176,6 +249,10 @@ describe('Transaction Domain Entity', () => {
 
       const updatedSnapshot = transaction.toSnapshot();
 
+      expect(transaction.getVersion()).not.toBe(originalVersion);
+      expect(transaction.getVersion().valueOf()).toBe(
+        originalVersion.valueOf() + 1,
+      );
       expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
         new Date(updatedSnapshot.updatedAt).getTime(),
       );
@@ -294,6 +371,113 @@ describe('Transaction Domain Entity', () => {
   });
 
   describe('Manage Operations', () => {
+    const toUpdateProps = (
+      transaction: Transaction,
+      operationIndex: number,
+      id: Id,
+    ): UpdateOperationProps => {
+      const operation = transaction.getOperations()[operationIndex];
+      const account = data.accountsMap.get(operation.getAccountId().valueOf());
+
+      if (!account) {
+        throw new Error('Test setup failed: Account not found');
+      }
+
+      return {
+        account,
+        amount: operation.amount,
+        description: operation.description,
+        id,
+        value: operation.value,
+      };
+    };
+
+    const captureConflictingOperationIdsError = (
+      action: () => void,
+    ): ConflictingOperationIdsError => {
+      try {
+        action();
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConflictingOperationIdsError);
+        return error as ConflictingOperationIdsError;
+      }
+
+      throw new Error('Expected ConflictingOperationIdsError to be thrown');
+    };
+
+    it('should reject the same operation ID in update and delete when represented by different Id instances', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operationId = transaction.getOperations()[0].getId().valueOf();
+
+      const error = captureConflictingOperationIdsError(() =>
+        transaction.applyUpdate(
+          {
+            operations: {
+              create: [],
+              delete: [Id.fromPersistence(operationId)],
+              update: [
+                toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+              ],
+            },
+          },
+          data.transactionContext,
+        ),
+      );
+
+      expect(error.conflictingIds).toEqual([operationId]);
+      expect(error.conflictType).toBe(
+        'IDs found in both update and delete arrays',
+      );
+    });
+
+    it('should reject duplicate update IDs represented by different Id instances', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operationId = transaction.getOperations()[0].getId().valueOf();
+
+      const error = captureConflictingOperationIdsError(() =>
+        transaction.applyUpdate(
+          {
+            operations: {
+              create: [],
+              delete: [],
+              update: [
+                toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+                toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+              ],
+            },
+          },
+          data.transactionContext,
+        ),
+      );
+
+      expect(error.conflictingIds).toEqual([operationId]);
+      expect(error.conflictType).toBe('Duplicate IDs in update array');
+    });
+
+    it('should reject duplicate delete IDs represented by different Id instances', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operationId = transaction.getOperations()[0].getId().valueOf();
+
+      const error = captureConflictingOperationIdsError(() =>
+        transaction.applyUpdate(
+          {
+            operations: {
+              create: [],
+              delete: [
+                Id.fromPersistence(operationId),
+                Id.fromPersistence(operationId),
+              ],
+              update: [],
+            },
+          },
+          data.transactionContext,
+        ),
+      );
+
+      expect(error.conflictingIds).toEqual([operationId]);
+      expect(error.conflictType).toBe('Duplicate IDs in delete array');
+    });
+
     it('Should add a new operation and increase version', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
 
@@ -385,7 +569,7 @@ describe('Transaction Domain Entity', () => {
       });
     });
 
-    it.skip('Should update an existing operation and increase version', () => {
+    it('should update existing operations and increase the aggregate version once', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
 
       const originalSnapshot = transaction.toSnapshot();
@@ -446,21 +630,38 @@ describe('Transaction Domain Entity', () => {
 
       expect(updatedSnapshot.version).toBe(originalSnapshot.version + 1);
 
-      updatedSnapshot.operations.forEach((op) => {
-        const matchedPrevOp = updatedOperationData.find((prevOp) =>
-          prevOp.id.equals(op.id),
+      updatedOperationData.forEach((operationUpdate) => {
+        const updatedOperation = updatedSnapshot.operations.find(
+          (operation) => operation.id === operationUpdate.id.valueOf(),
         );
 
-        expect(matchedPrevOp).toBeDefined();
-
-        expect(op.accountId).toBe(matchedPrevOp?.account.getId().valueOf());
-        expect(op.amount).toBe(matchedPrevOp?.amount.valueOf());
-        expect(op.description).toBe(matchedPrevOp?.description);
-        expect(op.value).toBe(matchedPrevOp?.value.valueOf());
+        expect(updatedOperation).toBeDefined();
+        expect(updatedOperation?.accountId).toBe(
+          operationUpdate.account.getId().valueOf(),
+        );
+        expect(updatedOperation?.amount).toBe(operationUpdate.amount.valueOf());
+        expect(updatedOperation?.description).toBe(operationUpdate.description);
+        expect(updatedOperation?.value).toBe(operationUpdate.value.valueOf());
       });
+
+      originalSnapshot.operations
+        .filter(
+          (operation) =>
+            !updatedOperationData.some(
+              (operationUpdate) =>
+                operationUpdate.id.valueOf() === operation.id,
+            ),
+        )
+        .forEach((originalOperation) => {
+          const unchangedOperation = updatedSnapshot.operations.find(
+            (operation) => operation.id === originalOperation.id,
+          );
+
+          expect(unchangedOperation).toEqual(originalOperation);
+        });
     });
 
-    it('Should delete an existing operation, filter deleted operations from snapshot and increase version', () => {
+    it('Should delete an existing operation, keep it in snapshot and hide it from active operations', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
 
       const originalSnapshot = transaction.toSnapshot();
@@ -472,10 +673,6 @@ describe('Transaction Domain Entity', () => {
 
       const operationsToDeleteIds = operationsToDelete.map((op) =>
         op.valueOf(),
-      );
-
-      const operationsSnapshotFiltered = originalSnapshot.operations.filter(
-        (op) => !operationsToDeleteIds.includes(op.id),
       );
 
       vi.advanceTimersByTime(5000);
@@ -497,19 +694,26 @@ describe('Transaction Domain Entity', () => {
         new Date(updatedSnapshot.updatedAt).getTime(),
       );
 
-      const deletedOperation = operationsSnapshotFiltered.find((op) =>
+      expect(transaction.getOperations()).toHaveLength(
+        originalSnapshot.operations.length - operationsToDeleteIds.length,
+      );
+
+      const deletedOperationSnapshot = updatedSnapshot.operations.filter((op) =>
         operationsToDeleteIds.includes(op.id),
       );
 
-      expect(deletedOperation).not.toBeDefined();
-
-      const deletedOperationSnapshot = updatedSnapshot.operations.filter(
-        (op) => op.id === operationsToDeleteIds[0],
+      expect(deletedOperationSnapshot).toHaveLength(
+        operationsToDeleteIds.length,
       );
+      deletedOperationSnapshot.forEach((op) => {
+        expect(op.isTombstone).toBe(true);
+      });
 
-      expect(deletedOperationSnapshot).toHaveLength(0);
+      originalSnapshot.operations.forEach((op) => {
+        if (operationsToDeleteIds.includes(op.id)) {
+          return;
+        }
 
-      operationsSnapshotFiltered.forEach((op) => {
         expect(operationsToDeleteIds.includes(op.id)).toBe(false);
 
         const matchedPrevOp = updatedSnapshot.operations.find(

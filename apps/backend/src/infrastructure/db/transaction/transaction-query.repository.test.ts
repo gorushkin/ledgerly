@@ -1,3 +1,4 @@
+import { DEFAULT_TRANSACTION_QUERY } from '@ledgerly/shared/constants';
 import {
   CurrencyCode,
   IsoDateString,
@@ -201,14 +202,206 @@ describe('TransactionQueryRepository', () => {
         ),
       );
 
-      const transactions = await transactionQueryRepo.findAll(user.id);
+      const result = await transactionQueryRepo.findAll(
+        user.id,
+        DEFAULT_TRANSACTION_QUERY,
+      );
 
-      expect(transactions).toHaveLength(transactionSeeds.length);
+      expect(result.items).toHaveLength(transactionSeeds.length);
+      expect(result.total).toBe(transactionSeeds.length);
 
-      transactions.forEach((transaction, index) => {
-        const seed = transactionSeeds[index];
+      result.items.forEach((transaction) => {
+        const seed = transactionSeeds.find(
+          (candidate) => candidate.description === transaction.description,
+        );
+
+        expect(seed).toBeDefined();
+
+        if (!seed) {
+          return;
+        }
+
         expectTransactionToMatchSeed(transaction, seed);
       });
+    });
+
+    it('should sort and paginate transactions while preserving the total count', async () => {
+      await Promise.all([
+        createTransaction({
+          description: 'Oldest',
+          operations: [
+            {
+              account: usdAccount,
+              amount: '100' as MoneyString,
+              description: 'Oldest operation',
+            },
+          ],
+          postingDate: '2023-03-01' as IsoDateString,
+          transactionDate: '2023-01-01' as IsoDateString,
+        }),
+        createTransaction({
+          description: 'Middle',
+          operations: [
+            {
+              account: usdAccount,
+              amount: '200' as MoneyString,
+              description: 'Middle operation',
+            },
+          ],
+          postingDate: '2023-01-01' as IsoDateString,
+          transactionDate: '2023-02-01' as IsoDateString,
+        }),
+        createTransaction({
+          description: 'Newest',
+          operations: [
+            {
+              account: usdAccount,
+              amount: '300' as MoneyString,
+              description: 'Newest operation',
+            },
+          ],
+          postingDate: '2023-02-01' as IsoDateString,
+          transactionDate: '2023-03-01' as IsoDateString,
+        }),
+      ]);
+
+      const result = await transactionQueryRepo.findAll(user.id, {
+        ...DEFAULT_TRANSACTION_QUERY,
+        page: 2,
+        pageSize: 1,
+        sortBy: 'transactionDate',
+        sortOrder: 'desc',
+      });
+
+      expect(result.total).toBe(3);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].description).toBe('Middle');
+    });
+
+    it('should sort transactions by posting date in ascending order', async () => {
+      await Promise.all([
+        createTransaction({
+          description: 'Posted last',
+          operations: [
+            {
+              account: usdAccount,
+              amount: '100' as MoneyString,
+              description: 'Posted last operation',
+            },
+          ],
+          postingDate: '2023-03-01' as IsoDateString,
+        }),
+        createTransaction({
+          description: 'Posted first',
+          operations: [
+            {
+              account: usdAccount,
+              amount: '200' as MoneyString,
+              description: 'Posted first operation',
+            },
+          ],
+          postingDate: '2023-01-01' as IsoDateString,
+        }),
+      ]);
+
+      const result = await transactionQueryRepo.findAll(user.id, {
+        ...DEFAULT_TRANSACTION_QUERY,
+        sortBy: 'postingDate',
+        sortOrder: 'asc',
+      });
+
+      expect(
+        result.items.map((transaction) => transaction.description),
+      ).toEqual(['Posted first', 'Posted last']);
+    });
+
+    it('should filter by account and return all active transaction operations', async () => {
+      await Promise.all([
+        createTransaction({
+          description: 'Mixed accounts',
+          operations: [
+            {
+              account: usdAccount,
+              amount: '-100' as MoneyString,
+              description: 'USD operation',
+            },
+            {
+              account: eurAccount,
+              amount: '100' as MoneyString,
+              description: 'EUR operation',
+            },
+          ],
+        }),
+        createTransaction({
+          description: 'EUR only',
+          operations: [
+            {
+              account: eurAccount,
+              amount: '200' as MoneyString,
+              description: 'EUR only operation',
+            },
+          ],
+        }),
+      ]);
+
+      const result = await transactionQueryRepo.findAll(user.id, {
+        ...DEFAULT_TRANSACTION_QUERY,
+        accountId: usdAccount.id,
+      });
+
+      expect(result.total).toBe(1);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].description).toBe('Mixed accounts');
+      expect(result.items[0].operations).toHaveLength(2);
+    });
+
+    it('should filter by an inclusive transaction date range', async () => {
+      await Promise.all([
+        createTransaction({
+          description: 'Before range',
+          operations: [
+            {
+              account: usdAccount,
+              amount: '100' as MoneyString,
+              description: 'Before range operation',
+            },
+          ],
+          transactionDate: '2023-01-01' as IsoDateString,
+        }),
+        createTransaction({
+          description: 'Range start',
+          operations: [
+            {
+              account: usdAccount,
+              amount: '200' as MoneyString,
+              description: 'Range start operation',
+            },
+          ],
+          transactionDate: '2023-01-02' as IsoDateString,
+        }),
+        createTransaction({
+          description: 'Range end',
+          operations: [
+            {
+              account: usdAccount,
+              amount: '300' as MoneyString,
+              description: 'Range end operation',
+            },
+          ],
+          transactionDate: '2023-01-03' as IsoDateString,
+        }),
+      ]);
+
+      const result = await transactionQueryRepo.findAll(user.id, {
+        ...DEFAULT_TRANSACTION_QUERY,
+        dateFrom: '2023-01-02' as IsoDateString,
+        dateTo: '2023-01-03' as IsoDateString,
+      });
+
+      expect(result.total).toBe(2);
+      expect(
+        result.items.map((transaction) => transaction.description),
+      ).toEqual(['Range end', 'Range start']);
     });
 
     it('should filter transactions if they are deleted', async () => {
@@ -278,14 +471,81 @@ describe('TransactionQueryRepository', () => {
         ),
       );
 
-      const transactions = await transactionQueryRepo.findAll(user.id);
+      const result = await transactionQueryRepo.findAll(
+        user.id,
+        DEFAULT_TRANSACTION_QUERY,
+      );
 
-      expect(transactions).toHaveLength(
+      expect(result.items).toHaveLength(
+        transactionSeeds.length - deletedTransactionSeeds.length,
+      );
+      expect(result.total).toBe(
         transactionSeeds.length - deletedTransactionSeeds.length,
       );
 
-      transactions.forEach((transaction) => {
-        expect(transaction.isTombstone).toBeFalsy();
+      result.items.forEach((transaction) => {
+        expect(transaction).not.toHaveProperty('isTombstone');
+      });
+    });
+
+    it('should return application read model shape without persistence-only fields', async () => {
+      await createTransaction({
+        description: 'Read model contract',
+        operations: [
+          {
+            account: usdAccount,
+            amount: '-100' as MoneyString,
+            description: 'Contract debit',
+          },
+          {
+            account: eurAccount,
+            amount: '100' as MoneyString,
+            description: 'Contract credit',
+          },
+        ],
+      });
+
+      const result = await transactionQueryRepo.findAll(
+        user.id,
+        DEFAULT_TRANSACTION_QUERY,
+      );
+
+      expect(result.items).toHaveLength(1);
+
+      const transaction = result.items[0];
+
+      expect(Object.keys(transaction).sort()).toEqual(
+        [
+          'createdAt',
+          'currency',
+          'description',
+          'id',
+          'operations',
+          'postingDate',
+          'transactionDate',
+          'updatedAt',
+          'userId',
+          'version',
+        ].sort(),
+      );
+      expect(transaction).not.toHaveProperty('isTombstone');
+
+      transaction.operations.forEach((operation) => {
+        expect(Object.keys(operation).sort()).toEqual(
+          [
+            'accountId',
+            'amount',
+            'createdAt',
+            'description',
+            'id',
+            'isSystem',
+            'transactionId',
+            'updatedAt',
+            'userId',
+            'value',
+          ].sort(),
+        );
+        expect(operation).not.toHaveProperty('isTombstone');
       });
     });
   });
@@ -439,7 +699,7 @@ describe('TransactionQueryRepository', () => {
       );
 
       transaction?.operations.forEach((op) => {
-        expect(op.isTombstone).toBe(false);
+        expect(op).not.toHaveProperty('isTombstone');
       });
     });
   });

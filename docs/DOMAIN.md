@@ -29,7 +29,8 @@ Represents a single financial posting affecting an account.
 - `value` — signed integer in the **transaction's currency** (cents); used for balance validation
 - For same-currency transactions `amount === value`
 - Positive = debit, Negative = credit
-- May be soft-deleted in persistence via `isTombstone`, but tombstone operations are currently excluded from the active domain and read contract
+- May be soft-deleted in persistence via `isTombstone`
+- Tombstone operations remain part of the raw transaction aggregate state for persistence, but are excluded from active domain accessors and read API responses
 - Has optional description field
 - `isSystem` — reserved for future trading operations (see below)
 
@@ -86,11 +87,37 @@ Represents different monetary units used in the system.
 1. Transactions use soft delete via `isTombstone`
 2. Tombstone transactions must not appear in normal read API responses
 3. Operations may also be marked with `isTombstone` in persistence
-4. Tombstone operations are currently treated as archived storage rows only:
-   - they are not part of the active aggregate contract
-   - they are not returned to clients
-   - they are ignored by normal read flows
-5. If deleted operations later need audit/history/restore semantics, the aggregate and repository contracts must be expanded explicitly
+4. Transaction repositories restore the full raw aggregate state, including tombstone operations
+5. The `Transaction` aggregate separates raw and active operation access:
+   - `getAllOperations()` returns all known operations for persistence
+   - `getOperations()` returns active operations only for domain logic
+   - tombstone operations are not returned to clients and are ignored by normal read flows
+6. Tombstone operations cannot be updated after they are restored into the aggregate
+
+### Concurrency Boundary
+1. `Transaction` is the aggregate root and owns the concurrency boundary for its operations
+2. Every transaction update supplies the expected `Transaction.version`
+3. Changes to transaction metadata or operations increment `Transaction.version` once per aggregate update
+4. The repository updates the transaction with compare-and-update semantics before saving its operations in the same database transaction
+5. `Operation` does not have a separate version because it has no independent write API or use case
+6. Operation-level versioning should be introduced only if operations become independently mutable outside the `Transaction` aggregate
+
+### Operation Application Boundary
+1. `Transaction` is the only application write boundary for its operations
+2. Operations are created, updated, and deleted only through transaction use cases
+3. `Operation` has no independent write API or public application use cases
+4. Operation mappers, domain entities, and persistence collaborators are internal details of the transaction flow
+5. This boundary should be reconsidered only if operations gain an independent lifecycle, authorization model, version, API, or background processing
+6. See [ADR 0002: Operation application boundary](./architecture/adr/0002-operation-application-boundary.md)
+
+### Transaction List Query
+1. `accountId` selects transactions containing at least one active operation for the account, while the response includes all active operations of each matching transaction
+2. `dateFrom` and `dateTo` filter `transactionDate` inclusively
+3. Pagination is page-based with defaults `page=1` and `pageSize=20`; `pageSize` cannot exceed 100
+4. Results are sorted by `transactionDate DESC` by default
+5. Clients may sort by `transactionDate` or `postingDate` in ascending or descending order
+6. `createdAt` and `id` are deterministic tie-breakers for pagination
+7. Tombstone transactions and operations are always excluded; the list API does not support `includeArchived`
 
 ## Examples
 
@@ -146,6 +173,7 @@ Transaction
 - description: string
 - transactionDate: date (ISO string)
 - postingDate: date (ISO string)
+- version: integer              -- optimistic concurrency token for the aggregate
 - isTombstone: boolean
 - userId: UUID (FK)
 - createdAt: timestamp
@@ -196,7 +224,7 @@ Settings
 - **Timestamps**: ISO datetime strings with branded types (`IsoDatetimeString`)
 - **IDs**: UUIDs for all entities
 - **Soft deletion**: Uses `isTombstone` flag instead of hard deletes
-- **MVP operation deletion rule**: deleted operations may remain in storage but are excluded from active domain/read behavior
+- **MVP operation deletion rule**: deleted operations may remain in raw aggregate and storage state, but are excluded from active domain/read behavior
 - **System entities**: System accounts and operations marked with `isSystem = true`
 
 ## Future Improvements
@@ -242,7 +270,8 @@ Settings
    - Idempotent operations (return `undefined` instead of throwing errors)
    - User ownership checks in service layer
    - Read-side returns active data only
-   - MVP write-side does not expose tombstone operations as part of the aggregate contract
+   - Write-side repositories restore and persist raw aggregate state, including tombstone operations
+   - Domain business accessors expose active operations by default
 6. **Type safety**:
    - Branded types for dates (`IsoDatetimeString`)
    - Planned branded types for `Money` and `CurrencyCode`

@@ -1,17 +1,19 @@
 import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
-import { TransactionQueryRepositoryInterface } from 'src/application/interfaces/TransactionQueryRepository.interface';
+import { and, asc, count, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import {
-  operationsTable,
-  transactionsTable,
-  TransactionWithRelations,
-} from 'src/db/schema';
+  PaginatedResult,
+  TransactionQueryRepositoryInterface,
+} from 'src/application/interfaces';
+import { TransactionReadModel } from 'src/application/read-models';
+import { operationsTable, transactionsTable } from 'src/db/schema';
 
 import { BaseRepository } from '../BaseRepository';
 
+import { TransactionReadModelMapper } from './transaction-read-model.mapper';
+
 /**
  * Query repository for read-only transaction operations.
- * Returns DTOs optimized for display without full domain model restoration.
+ * Maps persistence rows to application read models.
  */
 export class TransactionQueryRepository
   extends BaseRepository
@@ -26,7 +28,7 @@ export class TransactionQueryRepository
   async findById(
     userId: UUID,
     transactionId: UUID,
-  ): Promise<TransactionWithRelations | null> {
+  ): Promise<TransactionReadModel | null> {
     return this.executeDatabaseOperation(
       async () => {
         const transaction = await this.db.query.transactionsTable.findFirst({
@@ -42,7 +44,9 @@ export class TransactionQueryRepository
           },
         });
 
-        return transaction ?? null;
+        return transaction
+          ? TransactionReadModelMapper.fromPersistence(transaction)
+          : null;
       },
       'TransactionQueryRepository.findById',
       {
@@ -55,34 +59,77 @@ export class TransactionQueryRepository
 
   async findAll(
     userId: UUID,
-    query?: TransactionQueryParams,
-  ): Promise<TransactionWithRelations[]> {
+    query: TransactionQueryParams,
+  ): Promise<PaginatedResult<TransactionReadModel>> {
     return this.executeDatabaseOperation(
       async () => {
-        const transactions = await this.db.query.transactionsTable.findMany({
-          where: and(
-            eq(transactionsTable.userId, userId),
-            eq(transactionsTable.isTombstone, false),
-          ),
+        // TODO(LED-60): benchmark EXISTS and single-query count alternatives;
+        // this account subquery is currently evaluated for both items and total.
+        const matchingTransactionIds = query.accountId
+          ? inArray(
+              transactionsTable.id,
+              this.db
+                .select({ transactionId: operationsTable.transactionId })
+                .from(operationsTable)
+                .where(
+                  and(
+                    eq(operationsTable.accountId, query.accountId),
+                    eq(operationsTable.isTombstone, false),
+                  ),
+                ),
+            )
+          : undefined;
+
+        const { page, pageSize } = query;
+        const offset = (page - 1) * pageSize;
+
+        const sortColumn =
+          query.sortBy === 'postingDate'
+            ? transactionsTable.postingDate
+            : transactionsTable.transactionDate;
+
+        const sortDirection = query.sortOrder === 'asc' ? asc : desc;
+
+        const transactionWhereConditions = and(
+          eq(transactionsTable.userId, userId),
+          eq(transactionsTable.isTombstone, false),
+          ...(query.dateFrom
+            ? [gte(transactionsTable.transactionDate, query.dateFrom)]
+            : []),
+          ...(query.dateTo
+            ? [lte(transactionsTable.transactionDate, query.dateTo)]
+            : []),
+          matchingTransactionIds,
+        );
+
+        const items = await this.db.query.transactionsTable.findMany({
+          limit: pageSize,
+          offset,
+          orderBy: [
+            sortDirection(sortColumn),
+            sortDirection(transactionsTable.createdAt),
+            sortDirection(transactionsTable.id),
+          ],
+          where: transactionWhereConditions,
           with: {
             operations: {
-              where: and(
-                ...(query?.accountId
-                  ? [eq(operationsTable.accountId, query.accountId)]
-                  : []),
-                eq(operationsTable.isTombstone, false),
-              ),
+              where: eq(operationsTable.isTombstone, false),
             },
           },
         });
 
-        if (!query?.accountId) {
-          return transactions;
-        }
+        // TODO(LED-60): avoid reevaluating the account filter when counting.
+        const [countResult] = await this.db
+          .select({ total: count() })
+          .from(transactionsTable)
+          .where(transactionWhereConditions);
 
-        return transactions.filter(
-          (transaction) => transaction.operations.length,
-        );
+        return {
+          items: items.map((transaction) =>
+            TransactionReadModelMapper.fromPersistence(transaction),
+          ),
+          total: countResult.total,
+        };
       },
       'TransactionQueryRepository.findAll',
       {

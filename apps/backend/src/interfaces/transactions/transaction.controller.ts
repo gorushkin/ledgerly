@@ -35,7 +35,7 @@ export class TransactionController {
     return this.getTransactionById.execute(user.id, transactionId);
   }
 
-  async getAll(user: User, query?: TransactionQueryParams) {
+  async getAll(user: User, query: TransactionQueryParams) {
     return this.getAllTransactions.execute(user.id, query);
   }
 

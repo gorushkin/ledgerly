@@ -1,0 +1,5 @@
+site_url: "https://your-company.atlassian.net"
+cloud_id: "your-atlassian-cloud-id"
+project_name: "Your project name"
+project_key: "PROJECT"
+board_url: "https://your-company.atlassian.net/jira/software/projects/PROJECT/boards/1"

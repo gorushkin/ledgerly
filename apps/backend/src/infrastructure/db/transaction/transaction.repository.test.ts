@@ -3,13 +3,16 @@ import { OperationMapper } from 'src/application/mappers/operation.mapper';
 import { OperationDbRow, UserDbRow } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import {
+  compareEntities,
   TransactionBuilder,
   TransactionBuilderResult,
 } from 'src/db/test-utils';
-import { Account, Operation, User } from 'src/domain';
-import { Amount, DateValue } from 'src/domain/domain-core';
+import { Account, User } from 'src/domain';
+import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
+import { ForeignKeyConstraintError } from 'src/presentation/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -40,6 +43,8 @@ describe('TransactionRepository', () => {
   };
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+
     testDB = new TestDB();
 
     await testDB.setupTestDb();
@@ -162,8 +167,70 @@ describe('TransactionRepository', () => {
       });
     });
 
-    it.todo('should return null when transaction does not exist');
-    it.todo('should return null when transaction belongs to another user');
+    it('should restore all known operations and expose only active operations through getOperations', async () => {
+      const transaction = data.transaction;
+
+      const allOperationsCount = transaction.getAllOperations().length;
+
+      const acc = transaction
+        .getOperations()
+        .reduce((acc, operation, index) => {
+          if (index % 2 === 0) {
+            operation.markAsDeleted();
+            acc++;
+          }
+          return acc;
+        }, 0);
+
+      await testDB.insertTransaction({
+        ...transaction.toSnapshot(),
+      });
+
+      const retrievedTransaction = await transactionRepository.getById(
+        user.id,
+        transaction.getId().valueOf(),
+      );
+
+      expect(retrievedTransaction).not.toBeNull();
+
+      const retrievedOperations = retrievedTransaction?.getOperations() ?? [];
+
+      expect(retrievedTransaction?.getAllOperations()).toHaveLength(
+        allOperationsCount,
+      );
+
+      expect(retrievedOperations).toHaveLength(allOperationsCount - acc);
+
+      retrievedOperations.forEach((operation) => {
+        expect(operation.isDeleted()).toBe(false);
+      });
+    });
+
+    it('should return null when transaction does not exist', async () => {
+      const retrievedTransaction = await transactionRepository.getById(
+        user.id,
+        Id.create().valueOf(),
+      );
+
+      expect(retrievedTransaction).toBeNull();
+    });
+
+    it('should return null when transaction belongs to another user', async () => {
+      const transaction = data.transaction;
+
+      await testDB.insertTransaction({
+        ...transaction.toSnapshot(),
+      });
+
+      const anotherUser = await testDB.createUser();
+
+      const retrievedTransaction = await transactionRepository.getById(
+        anotherUser.id,
+        transaction.getId().valueOf(),
+      );
+
+      expect(retrievedTransaction).toBeNull();
+    });
 
     it('should not retrieve a tombstone transaction', async () => {
       const transaction = data.transaction;
@@ -183,7 +250,15 @@ describe('TransactionRepository', () => {
   });
 
   describe('create', () => {
-    it.todo('should not create a transaction when user does not exist');
+    it('should not create a transaction when user does not exist', async () => {
+      const transaction = data.transaction;
+
+      const nonExistentUserId = Id.create().valueOf();
+
+      await expect(
+        transactionRepository.create(nonExistentUserId, transaction),
+      ).rejects.toThrow(ForeignKeyConstraintError);
+    });
 
     it('should create a new transaction', async () => {
       const transaction = data.transaction;
@@ -206,13 +281,13 @@ describe('TransactionRepository', () => {
         transaction.getTransactionDate().valueOf(),
       );
 
-      const expectedSnapshots = transaction
-        .getOperations()
-        .map((op) => op.toSnapshot());
+      const expectedOperations = transaction
+        .getAllOperations()
+        .map((op) => OperationMapper.toDBRow(op));
 
       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
         user.id,
-        expectedSnapshots,
+        expectedOperations,
       );
     });
   });
@@ -220,17 +295,6 @@ describe('TransactionRepository', () => {
   describe('save', () => {
     it('should update transaction metadata and trigger save', async () => {
       const transaction = data.transaction;
-
-      const initDeletedOperations: Operation[] = [];
-      const initExistedOperations: Operation[] = [];
-
-      transaction.getOperations().forEach((operation) => {
-        if (operation.isDeleted()) {
-          initDeletedOperations.push(operation);
-        } else {
-          initExistedOperations.push(operation);
-        }
-      });
 
       const operations = transaction.getOperations();
 
@@ -278,6 +342,7 @@ describe('TransactionRepository', () => {
       };
 
       await testDB.insertTransaction(transaction.toSnapshot());
+      const expectedVersion = transaction.getVersion();
 
       transaction.applyUpdate(
         {
@@ -293,13 +358,21 @@ describe('TransactionRepository', () => {
 
       const updatedSnapshot = transaction.toSnapshot();
 
-      await transactionRepository.update(user.id, transaction);
+      const isUpdated = await transactionRepository.update(
+        user.id,
+        transaction,
+        expectedVersion,
+      );
 
       const updatedTransaction = await testDB.getTransactionWithRelations(
         transaction.getId().valueOf(),
       );
 
       expect(updatedTransaction).not.toBeNull();
+      expect(isUpdated).toEqual({ ok: true });
+      expect(updatedTransaction?.version).toBe(
+        expectedVersion.increment().valueOf(),
+      );
 
       expect(updatedTransaction?.description).toBe(updatedSnapshot.description);
 
@@ -320,7 +393,7 @@ describe('TransactionRepository', () => {
 
       const expectedOperations: OperationDbRow[] = [];
 
-      transaction.getOperations().forEach((operation) => {
+      transaction.getAllOperations().forEach((operation) => {
         expectedOperations.push(OperationMapper.toDBRow(operation));
       });
 
@@ -331,7 +404,188 @@ describe('TransactionRepository', () => {
       );
     });
 
-    it.todo('should not update transaction belonging to another user');
+    it('should not update transaction belonging to another user', async () => {
+      const transaction = data.transaction;
+
+      const transactionSnapshot = transaction.toSnapshot();
+
+      const anotherUser = await testDB.createUser();
+
+      await testDB.insertTransaction(transaction.toSnapshot());
+      const expectedVersion = transaction.getVersion();
+
+      transaction.applyUpdate(
+        {
+          metadata: {
+            description: 'Updated description',
+            postingDate: transaction.getPostingDate().valueOf(),
+            transactionDate: transaction.getTransactionDate().valueOf(),
+          },
+        },
+        transactionContext,
+      );
+
+      await expect(
+        transactionRepository.update(
+          anotherUser.id,
+          transaction,
+          expectedVersion,
+        ),
+      ).resolves.toEqual({ ok: false, reason: 'NOT_FOUND' });
+
+      const retrievedTransaction = await transactionRepository.getById(
+        data.transaction.getUserId().valueOf(),
+        transaction.getId().valueOf(),
+      );
+
+      expect(retrievedTransaction).not.toBeNull();
+      compareEntities(transactionSnapshot, retrievedTransaction!.toSnapshot());
+    });
+
+    it('should reject a stale version without saving transaction operations', async () => {
+      const transactionSnapshot = {
+        ...data.transaction.toSnapshot(),
+        version: 1,
+      };
+
+      await testDB.insertTransaction(transactionSnapshot);
+
+      const transaction = await transactionRepository.getById(
+        user.id,
+        transactionSnapshot.id,
+      );
+
+      expect(transaction).not.toBeNull();
+
+      if (!transaction) {
+        throw new Error('Expected transaction to be restored');
+      }
+
+      transaction.applyUpdate({
+        metadata: {
+          description: 'Stale update',
+          postingDate: transaction.getPostingDate().valueOf(),
+          transactionDate: transaction.getTransactionDate().valueOf(),
+        },
+      });
+
+      const isUpdated = await transactionRepository.update(
+        user.id,
+        transaction,
+        Version.create(0),
+      );
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transactionSnapshot.id,
+      );
+
+      expect(isUpdated).toEqual({
+        ok: false,
+        reason: 'VERSION_CONFLICT',
+      });
+
+      expect(persistedTransaction?.description).toBe(
+        transactionSnapshot.description,
+      );
+
+      expect(persistedTransaction?.version).toBe(transactionSnapshot.version);
+      expect(mockOperationsRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should report a tombstone transaction as not found', async () => {
+      const transaction = data.transaction;
+      const expectedVersion = transaction.getVersion();
+
+      await testDB.insertTransaction(transaction.toSnapshot());
+      await testDB.softDeleteTransaction(transaction.getId().valueOf());
+
+      transaction.applyUpdate({
+        metadata: {
+          description: 'Update deleted transaction',
+          postingDate: transaction.getPostingDate().valueOf(),
+          transactionDate: transaction.getTransactionDate().valueOf(),
+        },
+      });
+
+      const result = await transactionRepository.update(
+        user.id,
+        transaction,
+        expectedVersion,
+      );
+
+      expect(result).toEqual({ ok: false, reason: 'NOT_FOUND' });
+      expect(mockOperationsRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should not pass already tombstone operations to operation repository save', async () => {
+      const transaction = data.transaction;
+      const transactionSnapshot = transaction.toSnapshot();
+      const [operationToDeleteOne, operationToDeleteTwo, ...activeOperations] =
+        transactionSnapshot.operations;
+      const operationsToDelete = [operationToDeleteOne, operationToDeleteTwo];
+
+      await testDB.insertTransaction({
+        ...transactionSnapshot,
+        operations: [
+          ...operationsToDelete.map((operation) => ({
+            ...operation,
+            isTombstone: true,
+          })),
+          ...activeOperations,
+        ],
+      });
+
+      const restoredTransaction = await transactionRepository.getById(
+        user.id,
+        transaction.getId().valueOf(),
+      );
+
+      expect(restoredTransaction).not.toBeNull();
+
+      if (!restoredTransaction) {
+        throw new Error('Expected transaction to be restored');
+      }
+
+      const expectedVersion = restoredTransaction.getVersion();
+
+      restoredTransaction.applyUpdate({
+        metadata: {
+          description: 'Updated description',
+          postingDate: restoredTransaction.getPostingDate().valueOf(),
+          transactionDate: restoredTransaction.getTransactionDate().valueOf(),
+        },
+      });
+
+      await transactionRepository.update(
+        user.id,
+        restoredTransaction,
+        expectedVersion,
+      );
+
+      const expectedOperationsSnapshots = new Map<UUID, OperationSnapshot>();
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
+
+      persistedTransaction?.operations.forEach((operationSnapshot) => {
+        expectedOperationsSnapshots.set(
+          operationSnapshot.id,
+          operationSnapshot,
+        );
+      });
+
+      const expectedOperations = restoredTransaction
+        .getAllOperations()
+        .filter((operation) => !operation.isDeleted())
+        .map((operation) => OperationMapper.toDBRow(operation));
+
+      expect(mockOperationsRepository.save).toHaveBeenCalledWith(
+        user.id,
+        expectedOperations,
+        expectedOperationsSnapshots,
+      );
+    });
 
     it('should not update isTombstone field when saving', async () => {
       const transaction = data.transaction;
@@ -339,9 +593,10 @@ describe('TransactionRepository', () => {
       const isDeleted = transaction.isDeleted();
 
       await testDB.insertTransaction(transaction.toSnapshot());
+      const expectedVersion = transaction.getVersion();
       transaction.markAsDeleted();
 
-      await transactionRepository.update(user.id, transaction);
+      await transactionRepository.update(user.id, transaction, expectedVersion);
 
       const updatedTransaction = await testDB.getTransactionWithRelations(
         transaction.getId().valueOf(),
@@ -353,7 +608,33 @@ describe('TransactionRepository', () => {
   });
 
   describe('softDelete', () => {
-    it.todo('should not soft delete a transaction belonging to another user');
+    it('should not soft delete a transaction belonging to another user', async () => {
+      const transaction = data.transaction;
+
+      const anotherUser = await testDB.createUser();
+
+      await testDB.insertTransaction(transaction.toSnapshot());
+
+      await expect(
+        transactionRepository.softDelete(anotherUser.id, transaction),
+      ).rejects.toThrow(RepositoryNotFoundError);
+
+      const retrievedTransaction = await transactionRepository.getById(
+        data.transaction.getUserId().valueOf(),
+        transaction.getId().valueOf(),
+      );
+
+      expect(retrievedTransaction).not.toBeNull();
+
+      if (!retrievedTransaction) {
+        throw new Error('Expected transaction to be retrieved');
+      }
+
+      compareEntities(
+        transaction.toSnapshot(),
+        retrievedTransaction.toSnapshot(),
+      );
+    });
 
     it('should soft delete the transaction and its operations', async () => {
       const transaction = data.transaction;
@@ -385,7 +666,7 @@ describe('TransactionRepository', () => {
 
       const expectedOperations: OperationDbRow[] = [];
 
-      transaction.getOperations().forEach((operation) => {
+      transaction.getAllOperations().forEach((operation) => {
         expectedOperations.push(OperationMapper.toDBRow(operation));
       });
 

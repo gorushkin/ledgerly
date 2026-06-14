@@ -188,3 +188,18 @@ When creating transactions across currencies:
 - ❌ Business logic in controllers or repositories
 - ❌ Skipping `transactionManager.run()` for multi-repo operations
 - ❌ Using interfaces instead of types (ESLint enforces this)
+
+## Documentation Workflow
+
+For architecture documentation tasks, use the custom skill
+`ledgerly-architecture-docs` from `.agents/skills/ledgerly-architecture-docs/SKILL.md`.
+
+Use it when asked to:
+
+- create or update ADR files;
+- supersede/deprecate old architecture decisions;
+- move completed plan documents to archive;
+- sync Jira/PR links between plan docs and ADRs.
+
+For Jira board task discovery and ordering, continue to use
+`ledgerly-jira-board`.

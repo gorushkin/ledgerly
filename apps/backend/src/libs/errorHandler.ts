@@ -5,6 +5,7 @@ import {
   UnauthorizedAccessError,
   UserAlreadyExistsError,
   UserNotFoundError,
+  VersionConflictError,
 } from 'src/application/application.errors';
 import { DomainError } from 'src/domain/domain.errors';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
@@ -23,7 +24,8 @@ export function errorHandler(
     | RepositoryNotFoundError
     | UserNotFoundError
     | InvalidPasswordError
-    | UserAlreadyExistsError,
+    | UserAlreadyExistsError
+    | VersionConflictError,
   _request: FastifyRequest,
   reply: FastifyReply,
 ) {
@@ -64,6 +66,14 @@ export function errorHandler(
 
   if (error instanceof UserAlreadyExistsError) {
     return reply.status(409).send({
+      error: true,
+      message: error.message,
+    });
+  }
+
+  if (error instanceof VersionConflictError) {
+    return reply.status(409).send({
+      code: error.code,
       error: true,
       message: error.message,
     });

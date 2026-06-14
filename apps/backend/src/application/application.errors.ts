@@ -11,7 +11,11 @@ export class ApplicationError extends BaseError {}
  */
 export class EntityNotFoundError extends ApplicationError {
   constructor(entityName: string, description?: string) {
-    super(`${entityName} not found ${description ? `: ${description}` : ''}`);
+    super(
+      description
+        ? `${entityName} not found: ${description}`
+        : `${entityName} not found`,
+    );
   }
 }
 
@@ -48,5 +52,21 @@ export class InvalidPasswordError extends ApplicationError {
 export class UserAlreadyExistsError extends ApplicationError {
   constructor(message = 'User already exists') {
     super(message);
+  }
+}
+
+/**
+ * Thrown when an update cannot be applied because aggregate versions differ.
+ */
+export class VersionConflictError extends ApplicationError {
+  readonly code = 'VERSION_CONFLICT' as const;
+
+  constructor(
+    public readonly entityName: string,
+    public readonly expectedVersion: number,
+  ) {
+    super(
+      `${entityName} version mismatch for expected version ${expectedVersion}`,
+    );
   }
 }

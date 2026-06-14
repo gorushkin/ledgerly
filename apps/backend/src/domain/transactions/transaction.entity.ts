@@ -17,6 +17,7 @@ import {
   DateValue,
   Amount,
   Currency,
+  Version,
 } from '../domain-core';
 import { Operation } from '../operations';
 import { OperationProps, UpdateOperationProps } from '../operations/types';
@@ -31,6 +32,22 @@ import {
   OperationsPatch,
 } from './types';
 
+const findDuplicateIds = (ids: UUID[]): UUID[] => {
+  const seenIds = new Set<UUID>();
+  const duplicateIds = new Set<UUID>();
+
+  ids.forEach((id) => {
+    if (seenIds.has(id)) {
+      duplicateIds.add(id);
+      return;
+    }
+
+    seenIds.add(id);
+  });
+
+  return [...duplicateIds];
+};
+
 export class Transaction {
   private operations: Operation[] = [];
   private operationsMap = new Map<string, Operation>();
@@ -43,7 +60,7 @@ export class Transaction {
     private transactionDate: DateValue,
     public currency: Currency,
     public description: string,
-    public version = 0,
+    private version: Version,
   ) {}
 
   static create(userId: Id, dto: CreateTransactionProps): Transaction {
@@ -61,6 +78,7 @@ export class Transaction {
       dto.transactionDate,
       dto.currency,
       dto.description,
+      Version.create(0),
     );
 
     const operations = transaction.createOperationsFromDrafts(dto.operations);
@@ -146,12 +164,12 @@ export class Transaction {
       DateValue.restore(transactionDate),
       Currency.fromPersistence(currency),
       description,
-      version,
+      Version.restore(version),
     );
 
-    const operations = data.operations
-      .filter((operationData) => !operationData.isTombstone)
-      .map((operationData) => Operation.restore(operationData));
+    const operations = data.operations.map((operationData) =>
+      Operation.restore(operationData),
+    );
 
     transaction.attachOperations(operations);
 
@@ -170,8 +188,12 @@ export class Transaction {
     return this.timestamps.getCreatedAt();
   }
 
+  getVersion(): Version {
+    return this.version;
+  }
+
   private markUpdated() {
-    this.version += 1;
+    this.version = this.version.increment();
     this.timestamps = this.timestamps.touch();
   }
 
@@ -198,14 +220,12 @@ export class Transaction {
       description: this.description,
       id: this.getId().valueOf(),
       isTombstone: this.isDeleted(),
-      operations: this.operations
-        .filter((operation) => !operation.isDeleted())
-        .map((operation) => operation.toSnapshot()),
+      operations: this.operations.map((operation) => operation.toSnapshot()),
       postingDate: this.postingDate.valueOf(),
       transactionDate: this.transactionDate.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
       userId: this.getUserId().valueOf(),
-      version: this.version,
+      version: this.version.valueOf(),
     };
   }
 
@@ -289,40 +309,38 @@ export class Transaction {
       return;
     }
 
-    const deleteIds = new Set(operations.delete);
+    const deleteIds = operations.delete.map((id) => id.valueOf());
+    const updateIds = operations.update.map(({ id }) => id.valueOf());
+    const deleteIdSet = new Set(deleteIds);
 
     // Check for IDs present in both update and delete
-    const updateDeleteConflicts = operations.update
-      .map((operation) => operation.id)
-      .filter((id) => deleteIds.has(id));
+    const updateDeleteConflicts = [
+      ...new Set(updateIds.filter((id) => deleteIdSet.has(id))),
+    ];
 
     if (updateDeleteConflicts.length > 0) {
       throw new ConflictingOperationIdsError(
-        updateDeleteConflicts.map((id) => id.valueOf()),
+        updateDeleteConflicts,
         'IDs found in both update and delete arrays',
       );
     }
 
     // Check for duplicate IDs within update array
-    const updateDuplicates = operations.update
-      .map((operation) => operation.id)
-      .filter((id, index, arr) => arr.indexOf(id) !== index);
+    const updateDuplicates = findDuplicateIds(updateIds);
 
     if (updateDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
-        [...new Set(updateDuplicates.map((id) => id.valueOf()))],
+        updateDuplicates,
         'Duplicate IDs in update array',
       );
     }
 
     // Check for duplicate IDs within delete array
-    const deleteDuplicates = operations.delete
-      .filter((id, index, arr) => arr.indexOf(id) !== index)
-      .map((id) => id.valueOf());
+    const deleteDuplicates = findDuplicateIds(deleteIds);
 
     if (deleteDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
-        [...new Set(deleteDuplicates)],
+        deleteDuplicates,
         'Duplicate IDs in delete array',
       );
     }
@@ -436,6 +454,10 @@ export class Transaction {
 
   getOperations(): Operation[] {
     return this.operations.filter((operation) => !operation.isDeleted());
+  }
+
+  getAllOperations(): Operation[] {
+    return [...this.operations];
   }
 
   markAsDeleted(): void {

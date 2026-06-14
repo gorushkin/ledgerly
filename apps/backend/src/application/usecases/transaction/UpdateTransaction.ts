@@ -1,5 +1,9 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
+  EntityNotFoundError,
+  VersionConflictError,
+} from 'src/application/application.errors';
+import {
   TransactionResponseDTO,
   UpdateTransactionRequestDTO,
 } from 'src/application/dto';
@@ -11,7 +15,7 @@ import { OperationMapper, TransactionMapper } from 'src/application/mappers';
 import { TransactionContextLoader } from 'src/application/services';
 import { EnsureEntityExistsAndOwnedFn } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { User } from 'src/domain';
-import { Id } from 'src/domain/domain-core';
+import { Id, Version } from 'src/domain/domain-core';
 
 export class UpdateTransactionUseCase {
   constructor(
@@ -27,12 +31,20 @@ export class UpdateTransactionUseCase {
     data: UpdateTransactionRequestDTO,
   ): Promise<TransactionResponseDTO> {
     return this.transactionManager.run(async () => {
+      const expectedVersion = Version.create(data.version);
       const transaction = await this.ensureEntityExistsAndOwned(
         user,
         this.transactionRepository.getById.bind(this.transactionRepository),
         transactionId,
         'Transaction',
       );
+
+      if (!transaction.getVersion().isEqualTo(expectedVersion)) {
+        throw new VersionConflictError(
+          'Transaction',
+          expectedVersion.valueOf(),
+        );
+      }
 
       const operationsData = [
         ...data.operations.create,
@@ -63,10 +75,22 @@ export class UpdateTransactionUseCase {
       );
 
       if (isUpdated) {
-        await this.transactionRepository.update(
+        const result = await this.transactionRepository.update(
           user.getId().valueOf(),
           transaction,
+          expectedVersion,
         );
+
+        if (!result.ok && result.reason === 'NOT_FOUND') {
+          throw new EntityNotFoundError('Transaction');
+        }
+
+        if (!result.ok && result.reason === 'VERSION_CONFLICT') {
+          throw new VersionConflictError(
+            'Transaction',
+            expectedVersion.valueOf(),
+          );
+        }
       }
 
       return TransactionMapper.toResponseDTO(transaction);

@@ -1,13 +1,22 @@
 import { UUID } from '@ledgerly/shared/types';
 import { BaseError } from 'src/shared/errors/BaseError';
 
-import { Amount } from './domain-core';
+import { Amount } from './domain-core/value-objects/Amount';
 
 /**
  * Base class for all domain layer errors.
  * Domain errors represent violations of business rules and invariants.
  */
 export class DomainError extends BaseError {}
+
+/**
+ * Thrown when a version value is not a non-negative integer.
+ */
+export class InvalidVersionError extends DomainError {
+  constructor(public readonly value: number) {
+    super('Version must be a non-negative integer');
+  }
+}
 
 /**
  * Thrown when a transaction's operations don't balance (sum !== 0).

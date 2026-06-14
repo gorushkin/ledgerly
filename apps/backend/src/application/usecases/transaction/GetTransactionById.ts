@@ -1,10 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
-  EntityNotFoundError,
-  TransactionResponseDTO,
-  TransactionViewMapper,
   TransactionQueryRepositoryInterface,
+  TransactionReadModelResponseMapper,
+  TransactionResponseDTO,
 } from 'src/application';
+import { EntityNotFoundError } from 'src/application/application.errors';
 
 export class GetTransactionByIdUseCase {
   constructor(
@@ -23,6 +23,6 @@ export class GetTransactionByIdUseCase {
       throw new EntityNotFoundError('Transaction');
     }
 
-    return TransactionViewMapper.toView(transactionRecord);
+    return TransactionReadModelResponseMapper.toResponseDTO(transactionRecord);
   }
 }

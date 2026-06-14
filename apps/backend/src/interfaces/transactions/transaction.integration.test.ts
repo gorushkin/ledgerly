@@ -5,6 +5,7 @@ import {
   TransactionCreateInput,
 } from '@ledgerly/shared/validation';
 import {
+  TransactionListResponseDTO,
   TransactionResponseDTO,
   UpdateTransactionRequestDTO,
 } from 'src/application';
@@ -20,6 +21,10 @@ import { compareCommonEntities } from 'src/db/test-utils/entityComparer';
 import { Amount, Currency, DateValue, Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/server';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+const parseResponse = <T>(response: { body: string }): T => {
+  return JSON.parse(response.body) as T;
+};
 
 const testUser = {
   email: 'test@example.com',
@@ -60,6 +65,19 @@ describe('Transactions Integration Tests', () => {
     await testDB.cleanupTestDb();
   });
 
+  const createAccounts = async () => {
+    return Promise.all([
+      testDB.createAccount(userId, {
+        currency: Currency.create('USD').valueOf(),
+        name: 'Checking USD',
+      }),
+      testDB.createAccount(userId, {
+        currency: Currency.create('USD').valueOf(),
+        name: 'Savings USD',
+      }),
+    ]);
+  };
+
   describe('POST /api/transactions', () => {
     let account1: AccountDbRow;
     let account2: AccountDbRow;
@@ -67,13 +85,7 @@ describe('Transactions Integration Tests', () => {
     let operation2: OperationCreateInput;
 
     beforeEach(async () => {
-      account1 = await testDB.createAccount(userId, {
-        name: 'Checking',
-      });
-
-      account2 = await testDB.createAccount(userId, {
-        name: 'Savings',
-      });
+      [account1, account2] = await createAccounts();
 
       operation1 = {
         accountId: account1.id,
@@ -108,7 +120,7 @@ describe('Transactions Integration Tests', () => {
         url,
       });
 
-      const transaction = JSON.parse(response.body) as TransactionResponseDTO;
+      const transaction = parseResponse<TransactionResponseDTO>(response);
 
       expect(response.statusCode).toBe(201);
 
@@ -286,20 +298,7 @@ describe('Transactions Integration Tests', () => {
     const operationsMap = new Map<UUID, OperationDbRow>();
 
     beforeEach(async () => {
-      const accounts = await Promise.all([
-        testDB.createAccount(userId, {
-          currency: Currency.create('USD').valueOf(),
-          name: 'Checking USD',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('USD').valueOf(),
-          name: 'Savings USD',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('EUR').valueOf(),
-          name: 'Savings EUR',
-        }),
-      ]);
+      const accounts = await createAccounts();
 
       transaction = await testDB.createTransaction(userId);
 
@@ -361,29 +360,167 @@ describe('Transactions Integration Tests', () => {
       });
     });
 
-    it.todo('should return 404 for a non-existent transaction ID');
-    it.todo('should return 404 when transaction is soft-deleted (tombstone)');
-    it.todo("should return 404 when accessing another user's transaction");
-    it.todo('should return 401 when not authorized');
+    it('should return 404 for a non-existent transaction ID', async () => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${Id.create().valueOf()}`,
+      });
+
+      const body = JSON.parse(response.body) as {
+        error: boolean;
+        message: string;
+      };
+
+      expect(response.statusCode).toBe(404);
+      expect(body).toEqual({
+        error: true,
+        message: 'Transaction not found',
+      });
+    });
+
+    it('should return 404 when transaction is soft-deleted (tombstone)', async () => {
+      await testDB.softDeleteTransaction(transaction.id);
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should not return soft-deleted (tombstone) operations', async () => {
+      const createdTransaction = await testDB.createTransaction(userId);
+
+      const deletedOperationsData = [
+        {
+          accountId: operations[0].accountId,
+          amount: Amount.create('-50').valueOf(),
+          description: 'Deleted operation',
+          id: Id.create().valueOf(),
+          isTombstone: true,
+          transactionId: createdTransaction.id,
+          value: Amount.create('-50').valueOf(),
+        },
+        {
+          accountId: operations[1].accountId,
+          amount: Amount.create('50').valueOf(),
+          description: 'Deleted operation',
+          id: Id.create().valueOf(),
+          isTombstone: true,
+          transactionId: createdTransaction.id,
+          value: Amount.create('50').valueOf(),
+        },
+      ];
+
+      const activeOperations = [
+        {
+          accountId: operations[0].accountId,
+          amount: Amount.create('-50').valueOf(),
+          description: 'Active operation',
+          id: Id.create().valueOf(),
+          transactionId: createdTransaction.id,
+          value: Amount.create('-50').valueOf(),
+        },
+        {
+          accountId: operations[1].accountId,
+          amount: Amount.create('50').valueOf(),
+          description: 'Active operation',
+          id: Id.create().valueOf(),
+          transactionId: createdTransaction.id,
+          value: Amount.create('50').valueOf(),
+        },
+      ];
+
+      const operationsData = [...deletedOperationsData, ...activeOperations];
+
+      await Promise.all(
+        operationsData.map((op) => testDB.createOperation(userId, op)),
+      );
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${createdTransaction.id}`,
+      });
+
+      const transactionResponse = JSON.parse(
+        response.body,
+      ) as TransactionResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+
+      expect(transactionResponse.operations).toHaveLength(
+        activeOperations.length,
+      );
+
+      deletedOperationsData.forEach((deletedOp) => {
+        expect(
+          transactionResponse.operations.some((op) => op.id === deletedOp.id),
+        ).toBe(false);
+      });
+
+      transactionResponse.operations.forEach((op) => {
+        const isDeleted = deletedOperationsData.some(
+          (deletedOp) => deletedOp.id === op.id,
+        );
+
+        expect(isDeleted).toBe(false);
+
+        const matchedOp = activeOperations.find((o) => o.id === op.id);
+
+        if (!matchedOp) {
+          throw new Error(
+            `Operation with ID ${op.id} not found in active operations`,
+          );
+        }
+
+        compareCommonEntities(matchedOp, op as typeof matchedOp);
+      });
+    });
+
+    it("should return 404 when accessing another user's transaction", async () => {
+      const otherUser = await testDB.createUser();
+
+      const otherUserTransaction = await testDB.createTransaction(otherUser.id);
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}/${otherUserTransaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 401 when not authorized', async () => {
+      const response = await server.inject({
+        method: 'GET',
+        url: `${url}/some-transaction-id`,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
   });
 
   describe('GET /api/transactions', () => {
-    it('should retrieve all transactions for the user', async () => {
-      const accounts = await Promise.all([
-        testDB.createAccount(userId, {
-          currency: Currency.create('USD').valueOf(),
-          name: 'Checking USD',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('USD').valueOf(),
-          name: 'Savings USD',
-        }),
-        testDB.createAccount(userId, {
-          currency: Currency.create('EUR').valueOf(),
-          name: 'Savings EUR',
-        }),
-      ]);
+    let accounts: AccountDbRow[];
 
+    beforeEach(async () => {
+      accounts = await createAccounts();
+    });
+
+    it('should retrieve all transactions for the user', async () => {
       const transaction1Params: CreateTransactionProps = {
         currencyCode: accounts[0].currency,
         description: 'transaction one',
@@ -418,27 +555,357 @@ describe('Transactions Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const transactions = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO[];
+      const { items: transactions, pagination } =
+        parseResponse<TransactionListResponseDTO>(response);
 
       const userTransactions = transactions.filter(
         (tx) => tx.userId === userId,
       );
 
       expect(userTransactions).toHaveLength(transactionData.length);
+      expect(pagination).toMatchObject({
+        page: 1,
+        pageSize: 20,
+        total: transactionData.length,
+        totalPages: 1,
+      });
     });
 
-    it.todo('should return 401 when not authorized');
-    it.todo('should return empty array when user has no transactions');
-    it.todo('should not return soft-deleted (tombstone) transactions');
-    it.todo('should return transactions filtered by accountId query param');
-    it.todo('should return 400 for invalid accountId query param (non-UUID)');
+    it('should return 401 when not authorized', async () => {
+      const response = await server.inject({
+        method: 'GET',
+        url: `${url}`,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('should return empty array when user has no transactions', async () => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const { items: transactions, pagination } =
+        parseResponse<TransactionListResponseDTO>(response);
+
+      expect(transactions).toHaveLength(0);
+      expect(pagination.total).toBe(0);
+      expect(pagination.totalPages).toBe(0);
+    });
+
+    it('should not return soft-deleted (tombstone) transactions', async () => {
+      const transactionToBeDeleted = await testDB.createTransaction(userId);
+
+      const otherTransaction = await testDB.createTransaction(userId);
+
+      await testDB.softDeleteTransaction(transactionToBeDeleted.id);
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const { items: transactions } =
+        parseResponse<TransactionListResponseDTO>(response);
+
+      const deletedTransaction = transactions.find(
+        (tx) => tx.id === transactionToBeDeleted.id,
+      );
+
+      expect(deletedTransaction).toBeUndefined();
+
+      const otherTransactionExists = transactions.find(
+        (tx) => tx.id === otherTransaction.id,
+      );
+
+      expect(otherTransactionExists).toBeDefined();
+    });
+
+    it('should not return soft-deleted (tombstone) operations in transactions', async () => {
+      const createdTransaction = await testDB.createTransaction(userId);
+
+      const deletedOperationsData = [
+        {
+          accountId: accounts[0].id,
+          amount: Amount.create('-50').valueOf(),
+          description: 'Deleted operation',
+          id: Id.create().valueOf(),
+          isTombstone: true,
+          transactionId: createdTransaction.id,
+          value: Amount.create('-50').valueOf(),
+        },
+        {
+          accountId: accounts[1].id,
+          amount: Amount.create('50').valueOf(),
+          description: 'Deleted operation',
+          id: Id.create().valueOf(),
+          isTombstone: true,
+          transactionId: createdTransaction.id,
+          value: Amount.create('50').valueOf(),
+        },
+      ];
+
+      const activeOperations = [
+        {
+          accountId: accounts[0].id,
+          amount: Amount.create('-50').valueOf(),
+          description: 'Active operation',
+          id: Id.create().valueOf(),
+          transactionId: createdTransaction.id,
+          value: Amount.create('-50').valueOf(),
+        },
+        {
+          accountId: accounts[1].id,
+          amount: Amount.create('50').valueOf(),
+          description: 'Active operation',
+          id: Id.create().valueOf(),
+          transactionId: createdTransaction.id,
+          value: Amount.create('50').valueOf(),
+        },
+      ];
+
+      const operationsData = [...deletedOperationsData, ...activeOperations];
+
+      await Promise.all(
+        operationsData.map((op) => testDB.createOperation(userId, op)),
+      );
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const { items: transactions } =
+        parseResponse<TransactionListResponseDTO>(response);
+
+      const transactionResponse = transactions.find(
+        (tx) => tx.id === createdTransaction.id,
+      );
+
+      expect(transactionResponse).toBeDefined();
+
+      expect(transactionResponse?.operations).toHaveLength(
+        activeOperations.length,
+      );
+
+      transactionResponse!.operations.forEach((op) => {
+        const isDeleted = deletedOperationsData.some(
+          (deletedOp) => deletedOp.id === op.id,
+        );
+
+        expect(isDeleted).toBe(false);
+
+        const matchedOp = activeOperations.find((o) => o.id === op.id);
+
+        if (!matchedOp) {
+          throw new Error(
+            `Operation with ID ${op.id} not found in active operations`,
+          );
+        }
+
+        compareCommonEntities(matchedOp, op as typeof matchedOp);
+      });
+
+      activeOperations.forEach((activeOperation) => {
+        expect(
+          transactionResponse?.operations.some(
+            (operation) => operation.id === activeOperation.id,
+          ),
+        ).toBe(true);
+      });
+    });
+
+    it('should return transactions filtered by accountId with all active operations', async () => {
+      const matchingTransaction = await testDB.createTransaction(userId);
+      const otherTransaction = await testDB.createTransaction(userId);
+
+      const matchingOperations = [
+        {
+          accountId: accounts[0].id,
+          amount: Amount.create('-100').valueOf(),
+          description: 'Matching account operation',
+          id: Id.create().valueOf(),
+          transactionId: matchingTransaction.id,
+          value: Amount.create('-100').valueOf(),
+        },
+        {
+          accountId: accounts[1].id,
+          amount: Amount.create('100').valueOf(),
+          description: 'Balancing operation',
+          id: Id.create().valueOf(),
+          transactionId: matchingTransaction.id,
+          value: Amount.create('100').valueOf(),
+        },
+      ];
+
+      await Promise.all([
+        ...matchingOperations.map((operation) =>
+          testDB.createOperation(userId, operation),
+        ),
+        testDB.createOperation(userId, {
+          accountId: accounts[1].id,
+          amount: Amount.create('50').valueOf(),
+          description: 'Other transaction operation',
+          id: Id.create().valueOf(),
+          transactionId: otherTransaction.id,
+          value: Amount.create('50').valueOf(),
+        }),
+      ]);
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?accountId=${accounts[0].id}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const result = parseResponse<TransactionListResponseDTO>(response);
+
+      expect(result.pagination.total).toBe(1);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].id).toBe(matchingTransaction.id);
+      expect(result.items[0].operations).toHaveLength(
+        matchingOperations.length,
+      );
+      expect(
+        result.items[0].operations.map((operation) => operation.id),
+      ).toEqual(
+        expect.arrayContaining(
+          matchingOperations.map((operation) => operation.id),
+        ),
+      );
+    });
+
+    it('should filter by an inclusive transaction date range', async () => {
+      const transactionDates = [
+        ['Before range', '2024-01-01'],
+        ['Range start', '2024-01-02'],
+        ['Range end', '2024-01-03'],
+      ] as const;
+
+      await Promise.all(
+        transactionDates.map(([description, transactionDate]) =>
+          testDB.createTransaction(userId, {
+            description,
+            transactionDate: DateValue.restore(transactionDate).valueOf(),
+          }),
+        ),
+      );
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?dateFrom=2024-01-02&dateTo=2024-01-03`,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const result = parseResponse<TransactionListResponseDTO>(response);
+
+      expect(result.pagination.total).toBe(2);
+      expect(
+        result.items.map((transaction) => transaction.description),
+      ).toEqual(['Range end', 'Range start']);
+    });
+
+    it('should sort and paginate transactions', async () => {
+      const transactionDates = [
+        ['First', '2024-01-01'],
+        ['Second', '2024-01-02'],
+        ['Third', '2024-01-03'],
+      ] as const;
+
+      await Promise.all(
+        transactionDates.map(([description, transactionDate]) =>
+          testDB.createTransaction(userId, {
+            description,
+            transactionDate: DateValue.restore(transactionDate).valueOf(),
+          }),
+        ),
+      );
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?page=2&pageSize=1&sortBy=transactionDate&sortOrder=asc`,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const result = parseResponse<TransactionListResponseDTO>(response);
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].description).toBe('Second');
+      expect(result.pagination).toEqual({
+        hasNextPage: true,
+        hasPreviousPage: true,
+        page: 2,
+        pageSize: 1,
+        total: 3,
+        totalPages: 3,
+      });
+    });
+
+    it.each([
+      ['invalid accountId', 'accountId=not-a-uuid'],
+      ['reversed date range', 'dateFrom=2024-01-03&dateTo=2024-01-02'],
+      ['page size above maximum', 'pageSize=101'],
+    ])('should return 400 for %s', async (_, query) => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?${query}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
   });
 
   describe('DELETE /api/transactions/:id', () => {
     it('should delete an existing transaction and return 204', async () => {
+      const [account1, account2] = await createAccounts();
       const transaction = await testDB.createTransaction(userId);
+      const operations = await Promise.all([
+        testDB.createOperation(userId, {
+          accountId: account1.id,
+          amount: Amount.create('-100').valueOf(),
+          description: 'Transfer from checking',
+          transactionId: transaction.id,
+          value: Amount.create('-100').valueOf(),
+        }),
+        testDB.createOperation(userId, {
+          accountId: account2.id,
+          amount: Amount.create('100').valueOf(),
+          description: 'Transfer to savings',
+          transactionId: transaction.id,
+          value: Amount.create('100').valueOf(),
+        }),
+      ]);
 
       const response = await server.inject({
         headers: {
@@ -454,6 +921,22 @@ describe('Transactions Integration Tests', () => {
 
       expect(dbRecord).toBeDefined();
       expect(dbRecord!.isTombstone).toBe(true);
+
+      const persistedOperations = await testDB.getOperationsByTransactionId(
+        userId,
+        transaction.id,
+      );
+
+      expect(persistedOperations).toHaveLength(operations.length);
+
+      operations.forEach(({ id }) => {
+        expect(persistedOperations).toContainEqual(
+          expect.objectContaining({
+            id,
+            isTombstone: true,
+          }),
+        );
+      });
     });
 
     it('should return 404 when deleting a non-existent transaction', async () => {
@@ -511,9 +994,8 @@ describe('Transactions Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const transactions = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO[];
+      const { items: transactions } =
+        parseResponse<TransactionListResponseDTO>(response);
 
       const deletedTransaction = transactions.find(
         (tx) => tx.id === transaction.id,
@@ -548,14 +1030,36 @@ describe('Transactions Integration Tests', () => {
     let operation1Data: OperationCreateInput;
     let operation2Data: OperationCreateInput;
 
-    beforeEach(async () => {
-      account1Data = await testDB.createAccount(userId, {
-        name: 'Checking',
+    const createUpdateRequest = (
+      overrides: Partial<UpdateTransactionRequestDTO> = {},
+    ): UpdateTransactionRequestDTO => ({
+      description: 'Updated description',
+      operations: {
+        create: [],
+        delete: [],
+        update: [],
+      },
+      postingDate: DateValue.create().valueOf(),
+      transactionDate: DateValue.create().valueOf(),
+      version: 0,
+      ...overrides,
+    });
+
+    const sendUpdateRequest = (
+      transactionId: UUID,
+      payload: UpdateTransactionRequestDTO,
+    ) =>
+      server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload,
+        url: `${url}/${transactionId}`,
       });
 
-      account2Data = await testDB.createAccount(userId, {
-        name: 'Savings',
-      });
+    beforeEach(async () => {
+      [account1Data, account2Data] = await createAccounts();
 
       operation1Data = {
         accountId: account1Data.id,
@@ -572,7 +1076,7 @@ describe('Transactions Integration Tests', () => {
       };
     });
 
-    it('should update transaction metadata (description, dates) and return 200', async () => {
+    it('should update metadata without changing operations', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
       await testDB.createOperation(userId, {
@@ -594,33 +1098,19 @@ describe('Transactions Integration Tests', () => {
 
       const operations = transactionWithOperations.operations;
 
-      const updatedData: UpdateTransactionRequestDTO = {
+      const updatedData = createUpdateRequest({
         description: 'Updated description',
-        operations: {
-          create: [],
-          delete: [],
-          update: [],
-        },
-        postingDate: DateValue.create().valueOf(),
-        transactionDate: DateValue.create().valueOf(),
-      };
-
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
       });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(200);
 
-      const updatedTransaction = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO;
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(response);
 
       expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.version).toBe(updatedData.version + 1);
       expect(updatedTransaction.postingDate).toBe(updatedData.postingDate);
       expect(updatedTransaction.transactionDate).toBe(
         updatedData.transactionDate,
@@ -639,7 +1129,7 @@ describe('Transactions Integration Tests', () => {
       });
     });
 
-    it('should update transaction by adding new operations and return 200', async () => {
+    it('should create operations without changing existing operations', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
       const createdOperations = await Promise.all([
@@ -669,7 +1159,7 @@ describe('Transactions Integration Tests', () => {
 
       const operationsToCreate = [newOperationData1, newOperationData2];
 
-      const updatedData: UpdateTransactionRequestDTO = {
+      const updatedData = createUpdateRequest({
         description: transaction.description,
         operations: {
           create: operationsToCreate,
@@ -678,22 +1168,14 @@ describe('Transactions Integration Tests', () => {
         },
         postingDate: transaction.postingDate,
         transactionDate: transaction.transactionDate,
-      };
-
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
       });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(200);
 
-      const updatedTransaction = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO;
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(response);
 
       const operationsCount =
         createdOperations.length + operationsToCreate.length;
@@ -724,7 +1206,190 @@ describe('Transactions Integration Tests', () => {
       expect(comparedOperationsSet.size).toBe(operationsCount);
     });
 
-    it('should update transaction by deleting operations and return 200', async () => {
+    it('should update existing operations and persist their changes', async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId);
+
+      const createdOperations = await Promise.all([
+        testDB.createOperation(userId, {
+          ...operation1Data,
+          transactionId: transaction.id,
+        }),
+        testDB.createOperation(userId, {
+          ...operation2Data,
+          transactionId: transaction.id,
+        }),
+      ]);
+
+      const operationsToUpdate = [
+        {
+          accountId: account1Data.id,
+          amount: Amount.create('-150').valueOf(),
+          description: 'Updated transfer from checking',
+          id: createdOperations[0].id,
+          value: Amount.create('-150').valueOf(),
+        },
+        {
+          accountId: account2Data.id,
+          amount: Amount.create('150').valueOf(),
+          description: 'Updated transfer to savings',
+          id: createdOperations[1].id,
+          value: Amount.create('150').valueOf(),
+        },
+      ];
+
+      const updatedData = createUpdateRequest({
+        description: transaction.description,
+        operations: {
+          create: [],
+          delete: [],
+          update: operationsToUpdate,
+        },
+        postingDate: transaction.postingDate,
+        transactionDate: transaction.transactionDate,
+      });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
+
+      expect(response.statusCode).toBe(200);
+
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(response);
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      expect(updatedTransaction.operations).toHaveLength(
+        operationsToUpdate.length,
+      );
+
+      expect(persistedTransaction).not.toBeNull();
+
+      operationsToUpdate.forEach((operation) => {
+        const responseOperation = updatedTransaction.operations.find(
+          ({ id }) => id === operation.id,
+        );
+        const persistedOperation = persistedTransaction?.operations.find(
+          ({ id }) => id === operation.id,
+        );
+
+        expect(responseOperation).toBeDefined();
+        expect(persistedOperation).toBeDefined();
+        compareCommonEntities(operation, responseOperation!);
+        compareCommonEntities(operation, persistedOperation!);
+      });
+    });
+
+    it('should apply create, update, and delete operations in one request', async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId);
+
+      const createdOperations = await Promise.all([
+        testDB.createOperation(userId, {
+          ...operation1Data,
+          transactionId: transaction.id,
+        }),
+        testDB.createOperation(userId, {
+          ...operation2Data,
+          transactionId: transaction.id,
+        }),
+      ]);
+
+      const initialTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      if (!initialTransaction) {
+        throw new Error('Failed to fetch initial transaction state');
+      }
+
+      const operationToUpdate = {
+        accountId: account1Data.id,
+        amount: Amount.create('-80').valueOf(),
+        description: 'Updated existing operation',
+        id: createdOperations[0].id,
+        value: Amount.create('-80').valueOf(),
+      };
+
+      const operationIdToDelete = createdOperations[1].id;
+
+      const operationToCreate: OperationCreateInput = {
+        accountId: account2Data.id,
+        amount: Amount.create('80').valueOf(),
+        description: 'Replacement operation',
+        value: Amount.create('80').valueOf(),
+      };
+
+      const updatedData = createUpdateRequest({
+        description: 'Mixed patch transaction',
+        operations: {
+          create: [operationToCreate],
+          delete: [operationIdToDelete],
+          update: [operationToUpdate],
+        },
+        postingDate: transaction.postingDate,
+        transactionDate: transaction.transactionDate,
+      });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
+
+      expect(response.statusCode).toBe(200);
+
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(response);
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      const updatedOperation = updatedTransaction.operations.find(
+        ({ id }) => id === operationToUpdate.id,
+      );
+
+      const createdOperation = updatedTransaction.operations.find(
+        ({ accountId, amount, description, value }) =>
+          accountId === operationToCreate.accountId &&
+          amount === operationToCreate.amount &&
+          description === operationToCreate.description &&
+          value === operationToCreate.value,
+      );
+
+      const deletedOperationInResponse = updatedTransaction.operations.find(
+        ({ id }) => id === operationIdToDelete,
+      );
+
+      const deletedOperation = persistedTransaction?.operations.find(
+        ({ id }) => id === operationIdToDelete,
+      );
+
+      expect(updatedTransaction.description).toBe(updatedData.description);
+      expect(updatedTransaction.operations).toHaveLength(
+        initialTransaction.operations.length,
+      );
+      expect(updatedOperation).toBeDefined();
+      expect(createdOperation).toBeDefined();
+      expect(deletedOperationInResponse).toBeUndefined();
+
+      expect(deletedOperation?.isTombstone).toBe(true);
+      compareCommonEntities(operationToUpdate, updatedOperation!);
+      compareCommonEntities(operationToCreate, createdOperation!);
+
+      expect(persistedTransaction?.operations).toContainEqual(
+        expect.objectContaining({
+          ...operationToUpdate,
+          isTombstone: false,
+        }),
+      );
+
+      expect(persistedTransaction?.operations).toContainEqual(
+        expect.objectContaining({
+          ...operationToCreate,
+          id: createdOperation?.id,
+          isTombstone: false,
+        }),
+      );
+    });
+
+    it('should delete operations from the active response', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
       const createdOperations = await Promise.all([
@@ -748,7 +1413,7 @@ describe('Transactions Integration Tests', () => {
 
       const operationsToDelete = createdOperations.slice(0, 2);
 
-      const updatedData: UpdateTransactionRequestDTO = {
+      const updatedData = createUpdateRequest({
         description: transaction.description,
         operations: {
           create: [],
@@ -757,22 +1422,14 @@ describe('Transactions Integration Tests', () => {
         },
         postingDate: transaction.postingDate,
         transactionDate: transaction.transactionDate,
-      };
-
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
       });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(200);
 
-      const updatedTransaction = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO;
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(response);
 
       const expectedOperationsCount =
         createdOperations.length - operationsToDelete.length;
@@ -800,18 +1457,258 @@ describe('Transactions Integration Tests', () => {
 
         compareCommonEntities(originalOp, op);
       });
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      expect(persistedTransaction?.version).toBe(transaction.version + 1);
+
+      operationsToDelete.forEach(({ id }) => {
+        expect(persistedTransaction?.operations).toContainEqual(
+          expect.objectContaining({
+            id,
+            isTombstone: true,
+          }),
+        );
+      });
+
+      createdOperations.slice(2).forEach(({ id }) => {
+        expect(persistedTransaction?.operations).toContainEqual(
+          expect.objectContaining({
+            id,
+            isTombstone: false,
+          }),
+        );
+      });
     });
-    it.todo('should return 404 when updating a non-existent transaction');
-    it.todo('should return 404 when updating a soft-deleted transaction');
-    it.todo("should return 404 when updating another user's transaction");
-    it.todo('should return 400 for invalid payload (missing required fields)');
-    it.todo('should return 401 when not authorized');
-    it.todo('should return 409 on optimistic locking conflict (stale version)');
+
+    it.each([
+      {
+        buildOperations: (
+          operationToUpdate: NonNullable<
+            UpdateTransactionRequestDTO['operations']['update'][number]
+          >,
+        ) => ({
+          create: [],
+          delete: [operationToUpdate.id],
+          update: [operationToUpdate],
+        }),
+        name: 'the same operation ID in update and delete',
+      },
+      {
+        buildOperations: (
+          operationToUpdate: NonNullable<
+            UpdateTransactionRequestDTO['operations']['update'][number]
+          >,
+        ) => ({
+          create: [],
+          delete: [],
+          update: [operationToUpdate, { ...operationToUpdate }],
+        }),
+        name: 'duplicate operation IDs in update',
+      },
+      {
+        buildOperations: (
+          operationToUpdate: NonNullable<
+            UpdateTransactionRequestDTO['operations']['update'][number]
+          >,
+        ) => ({
+          create: [],
+          delete: [operationToUpdate.id, operationToUpdate.id],
+          update: [],
+        }),
+        name: 'duplicate operation IDs in delete',
+      },
+    ])(
+      'should reject $name without persisting partial changes',
+      async ({ buildOperations }) => {
+        const transaction =
+          await testDB.createTransactionWithOperations(userId);
+        const createdOperations = await Promise.all([
+          testDB.createOperation(userId, {
+            ...operation1Data,
+            transactionId: transaction.id,
+          }),
+          testDB.createOperation(userId, {
+            ...operation2Data,
+            transactionId: transaction.id,
+          }),
+        ]);
+
+        const operationToUpdate = {
+          accountId: account1Data.id,
+          amount: Amount.create('-100').valueOf(),
+          description: 'Conflicting operation update',
+          id: createdOperations[0].id,
+          value: Amount.create('-100').valueOf(),
+        };
+
+        const payload = createUpdateRequest({
+          description: 'Must not be persisted',
+          operations: buildOperations(operationToUpdate),
+          postingDate: transaction.postingDate,
+          transactionDate: transaction.transactionDate,
+          version: transaction.version,
+        });
+
+        const response = await sendUpdateRequest(transaction.id, payload);
+
+        expect(response.statusCode).toBe(400);
+
+        const persistedTransaction = await testDB.getTransactionWithRelations(
+          transaction.id,
+        );
+
+        expect(persistedTransaction).toEqual(
+          expect.objectContaining({
+            description: transaction.description,
+            version: transaction.version,
+          }),
+        );
+
+        createdOperations.forEach((operation) => {
+          expect(persistedTransaction?.operations).toContainEqual(
+            expect.objectContaining({
+              ...operation,
+              isTombstone: false,
+            }),
+          );
+        });
+      },
+    );
+
+    it('should return 404 when updating a non-existent transaction', async () => {
+      const nonExistentId = Id.create().valueOf();
+
+      const updatedData = createUpdateRequest();
+
+      const response = await sendUpdateRequest(nonExistentId, updatedData);
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when updating a soft-deleted transaction', async () => {
+      const transaction = await testDB.createTransaction(userId);
+
+      await testDB.softDeleteTransaction(transaction.id);
+
+      const updatedData = createUpdateRequest();
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it("should return 404 when updating another user's transaction", async () => {
+      const another = await testDB.createUser();
+      const transaction = await testDB.createTransaction(another.id);
+
+      const updatedData = createUpdateRequest();
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 for invalid payload (missing required fields)', async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId);
+
+      const invalidPayload = {
+        description: 'Updated description',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        // Missing postingDate and transactionDate
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'PUT',
+        payload: invalidPayload,
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 401 when not authorized', async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId);
+
+      const updatedData = createUpdateRequest();
+
+      const response = await server.inject({
+        method: 'PUT',
+        payload: updatedData,
+        url: `${url}/${transaction.id}`,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('should return 409 on optimistic locking conflict with a stale version', async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId);
+
+      const firstUpdate = createUpdateRequest({
+        description: 'First successful update',
+        postingDate: transaction.postingDate,
+        transactionDate: transaction.transactionDate,
+        version: transaction.version,
+      });
+
+      const firstResponse = await sendUpdateRequest(
+        transaction.id,
+        firstUpdate,
+      );
+
+      expect(firstResponse.statusCode).toBe(200);
+
+      const updatedTransaction =
+        parseResponse<TransactionResponseDTO>(firstResponse);
+
+      expect(updatedTransaction.description).toBe(firstUpdate.description);
+      expect(updatedTransaction.version).toBe(transaction.version + 1);
+
+      const staleUpdate = {
+        ...firstUpdate,
+        description: 'Stale update must not be persisted',
+      };
+
+      const staleResponse = await sendUpdateRequest(
+        transaction.id,
+        staleUpdate,
+      );
+
+      expect(staleResponse.statusCode).toBe(409);
+
+      const errorResponse = parseResponse<{
+        code: string;
+        error: boolean;
+        message: string;
+      }>(staleResponse);
+
+      expect(errorResponse.code).toBe('VERSION_CONFLICT');
+      expect(errorResponse.error).toBe(true);
+      expect(errorResponse.message).toBe(
+        `Transaction version mismatch for expected version ${transaction.version}`,
+      );
+
+      const persistedTransaction = await testDB.getTransactionById(
+        transaction.id,
+      );
+
+      expect(persistedTransaction?.description).toBe(firstUpdate.description);
+      expect(persistedTransaction?.version).toBe(transaction.version + 1);
+    });
 
     it('should return 400 when resulting operations are unbalanced (sum != 0)', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
-      await testDB.createOperation(userId, {
+      const operationToUpdate = await testDB.createOperation(userId, {
         ...operation1Data,
         transactionId: transaction.id,
       });
@@ -821,7 +1718,7 @@ describe('Transactions Integration Tests', () => {
         transactionId: transaction.id,
       });
 
-      const updatedData: UpdateTransactionRequestDTO = {
+      const updatedData = createUpdateRequest({
         description: transaction.description,
         operations: {
           create: [],
@@ -831,23 +1728,16 @@ describe('Transactions Integration Tests', () => {
               accountId: operation1Data.accountId,
               amount: Amount.create('-150').valueOf(),
               description: operation1Data.description,
-              id: operation1Data.accountId,
+              id: operationToUpdate.id,
               value: Amount.create('-150').valueOf(),
             },
           ],
         },
         postingDate: transaction.postingDate,
         transactionDate: transaction.transactionDate,
-      };
-
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'PUT',
-        payload: updatedData,
-        url: `${url}/${transaction.id}`,
       });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(400);
     });

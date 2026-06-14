@@ -5,6 +5,9 @@ Personal finance management application designed for individual users to track t
 
 For detailed domain model documentation, see [Domain Documentation](./docs/DOMAIN.md)
 
+Project planning and Jira workflow are documented in
+[Jira Board Documentation](./docs/JIRA_BOARD.md).
+
 ## Core Features
 - Multi-currency support with automatic conversion
 - Double-entry bookkeeping system
@@ -21,7 +24,9 @@ For detailed domain model documentation, see [Domain Documentation](./docs/DOMAI
 - Each operation tracks amounts in both original and base currencies
 - MVP deletion semantics:
   - transactions use soft delete (`isTombstone`)
-  - operations may be soft-deleted in storage, but tombstone operations are not part of the domain/read contract and are treated as filtered-out archived rows
+  - operations may be soft-deleted in storage
+  - transaction aggregates keep raw operations for persistence, including tombstone operations
+  - domain business accessors and read APIs expose active operations only
 
 ### Accounts
 - Represents different financial accounts (cash, bank accounts, credit cards)
