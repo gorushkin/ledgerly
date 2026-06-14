@@ -1,9 +1,10 @@
 import {
-  TransactionResponseDTO,
+  OperationReadModel,
   TransactionQueryRepositoryInterface,
+  TransactionReadModel,
+  TransactionResponseDTO,
 } from 'src/application';
 import { EntityNotFoundError } from 'src/application/application.errors';
-import { OperationDbRow, TransactionWithRelations } from 'src/db/schema';
 import {
   Amount,
   Currency,
@@ -34,72 +35,40 @@ describe('GetTransactionByIdUseCase', () => {
     const createdAt = Timestamp.create().valueOf();
     const updatedAt = Timestamp.create().valueOf();
 
-    const mockOperation1: OperationDbRow = {
+    const mockOperation1: OperationReadModel = {
       accountId: Id.create().valueOf(),
       amount: Amount.create('1000').valueOf(),
       createdAt: Timestamp.create().valueOf(),
       description: 'Operation 1',
       id: Id.create().valueOf(),
       isSystem: false,
-      isTombstone: false,
       transactionId,
       updatedAt: Timestamp.create().valueOf(),
       userId,
       value: Amount.create('1000').valueOf(),
     };
 
-    const mockOperation2: OperationDbRow = {
+    const mockOperation2: OperationReadModel = {
       accountId: Id.create().valueOf(),
       amount: Amount.create('-1000').valueOf(),
       createdAt: Timestamp.create().valueOf(),
       description: 'Operation 2',
       id: Id.create().valueOf(),
       isSystem: false,
-      isTombstone: false,
       transactionId,
       updatedAt: Timestamp.create().valueOf(),
       userId,
       value: Amount.create('-1000').valueOf(),
     };
 
-    const mockOperation3: OperationDbRow = {
-      accountId: Id.create().valueOf(),
-      amount: Amount.create('500').valueOf(),
-      createdAt: Timestamp.create().valueOf(),
-      description: 'Deleted Operation 1',
-      id: Id.create().valueOf(),
-      isSystem: false,
-      isTombstone: true,
-      transactionId,
-      updatedAt: Timestamp.create().valueOf(),
-      userId,
-      value: Amount.create('500').valueOf(),
-    };
+    const operations = [mockOperation1, mockOperation2];
 
-    const mockOperation4: OperationDbRow = {
-      accountId: Id.create().valueOf(),
-      amount: Amount.create('-500').valueOf(),
-      createdAt: Timestamp.create().valueOf(),
-      description: 'Deleted Operation 2',
-      id: Id.create().valueOf(),
-      isSystem: false,
-      isTombstone: true,
-      transactionId,
-      updatedAt: Timestamp.create().valueOf(),
-      userId,
-      value: Amount.create('-500').valueOf(),
-    };
-
-    const deletedOperations = [mockOperation3, mockOperation4];
-    const nonDeletedOperations = [mockOperation1, mockOperation2];
-
-    const mockTransactionData: TransactionWithRelations = {
+    const mockTransactionData: TransactionReadModel = {
       createdAt,
       currency: Currency.create('USD').valueOf(),
       description: 'Test Transaction',
       id: transactionId,
-      isTombstone: false,
-      operations: [...deletedOperations, ...nonDeletedOperations],
+      operations,
       postingDate: DateValue.create().valueOf(),
       transactionDate: DateValue.create().valueOf(),
       updatedAt,
@@ -120,11 +89,39 @@ describe('GetTransactionByIdUseCase', () => {
     expect(transaction.id).toBe(transactionId);
     expect(transaction.description).toBe('Test Transaction');
     expect(transaction.version).toBe(mockTransactionData.version);
+    expect(Object.keys(transaction).sort()).toEqual(
+      [
+        'createdAt',
+        'currency',
+        'description',
+        'id',
+        'operations',
+        'postingDate',
+        'transactionDate',
+        'updatedAt',
+        'userId',
+        'version',
+      ].sort(),
+    );
     expect(transaction).not.toHaveProperty('isTombstone');
-    expect(transaction.operations).toHaveLength(nonDeletedOperations.length);
+    expect(transaction.operations).toHaveLength(operations.length);
 
     transaction.operations.forEach(
       (operation: TransactionResponseDTO['operations'][number]) => {
+        expect(Object.keys(operation).sort()).toEqual(
+          [
+            'accountId',
+            'amount',
+            'createdAt',
+            'description',
+            'id',
+            'isSystem',
+            'transactionId',
+            'updatedAt',
+            'userId',
+            'value',
+          ].sort(),
+        );
         expect(operation).not.toHaveProperty('isTombstone');
       },
     );

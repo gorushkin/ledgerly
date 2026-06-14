@@ -18,7 +18,6 @@ import {
   TransactionQueryRepository,
   AccountRepository,
   CurrencyRepository,
-  OperationRepository,
   TransactionRepository,
   UserRepository,
 } from 'src/infrastructure/db';
@@ -35,7 +34,6 @@ type Repositories = {
   transactionQuery: TransactionQueryRepository;
   account: AccountRepository;
   user: UserRepository;
-  operation: OperationRepository;
 };
 
 type Services = {

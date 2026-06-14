@@ -22,6 +22,10 @@ export class DeleteTransactionUseCase {
         'Transaction',
       );
 
+      if (transaction.isDeleted()) {
+        return;
+      }
+
       transaction.markAsDeleted();
 
       await this.transactionRepository.softDelete(

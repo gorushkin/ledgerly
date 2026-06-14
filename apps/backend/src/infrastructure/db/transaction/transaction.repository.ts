@@ -24,7 +24,7 @@ export class TransactionRepository
   implements TransactionRepositoryInterface
 {
   constructor(
-    readonly operationsRepository: OperationRepositoryInterface,
+    private readonly operationsRepository: OperationRepositoryInterface,
     readonly transactionManager: BaseRepository['transactionManager'],
   ) {
     super(transactionManager);

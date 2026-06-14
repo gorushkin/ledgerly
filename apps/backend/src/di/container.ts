@@ -54,7 +54,6 @@ export const createContainer = (db: DataBase): AppContainer => {
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
     currency: currencyRepository,
-    operation: operationRepository,
     transaction: transactionRepository,
     transactionQuery: transactionQueryRepository,
     user: userRepository,
