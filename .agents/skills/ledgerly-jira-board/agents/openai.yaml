@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ledgerly Jira Board"
+  short_description: "Find the next Ledgerly Jira task via JQL"
+  default_prompt: "Use $ledgerly-jira-board to find the next task on the Ledgerly Jira board."
