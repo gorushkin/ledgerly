@@ -13,7 +13,9 @@ export class TransactionReadModelMapper {
       currency: transaction.currency,
       description: transaction.description,
       id: transaction.id,
-      operations: transaction.operations.map(this.mapOperation.bind(this)),
+      // mapOperation does not access this, so passing it unbound is safe.
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      operations: transaction.operations.map(this.mapOperation),
       postingDate: transaction.postingDate,
       transactionDate: transaction.transactionDate,
       updatedAt: transaction.updatedAt,
