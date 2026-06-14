@@ -7,7 +7,6 @@ import {
   sha256String,
   uuid,
   moneyAmountString,
-  getTransactionsQuerySchema,
 } from "../validation/baseValidations";
 
 export type ErrorResponse = {
@@ -39,5 +38,3 @@ export type MoneyString = z.infer<typeof moneyAmountString>;
 export type Brand<T, B extends string> = T & { readonly __brand: B };
 
 export type Money = Brand<number, "Money">;
-
-export type TransactionQueryParams = z.infer<typeof getTransactionsQuerySchema>;

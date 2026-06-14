@@ -1,6 +1,11 @@
 import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
 import { TransactionWithRelations } from 'src/db/schema';
 
+export type PaginatedResult<T> = {
+  items: T[];
+  total: number;
+};
+
 /**
  * Query repository for read-only transaction operations.
  * Returns DTOs optimized for display without full domain model restoration.
@@ -19,6 +24,6 @@ export type TransactionQueryRepositoryInterface = {
    */
   findAll(
     userId: UUID,
-    query?: TransactionQueryParams,
-  ): Promise<TransactionWithRelations[]>;
+    query: TransactionQueryParams,
+  ): Promise<PaginatedResult<TransactionWithRelations>>;
 };

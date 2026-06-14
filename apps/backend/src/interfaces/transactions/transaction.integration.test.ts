@@ -5,6 +5,7 @@ import {
   TransactionCreateInput,
 } from '@ledgerly/shared/validation';
 import {
+  TransactionListResponseDTO,
   TransactionResponseDTO,
   UpdateTransactionRequestDTO,
 } from 'src/application';
@@ -554,15 +555,20 @@ describe('Transactions Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const transactions = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO[];
+      const { items: transactions, pagination } =
+        parseResponse<TransactionListResponseDTO>(response);
 
       const userTransactions = transactions.filter(
         (tx) => tx.userId === userId,
       );
 
       expect(userTransactions).toHaveLength(transactionData.length);
+      expect(pagination).toMatchObject({
+        page: 1,
+        pageSize: 20,
+        total: transactionData.length,
+        totalPages: 1,
+      });
     });
 
     it('should return 401 when not authorized', async () => {
@@ -585,9 +591,12 @@ describe('Transactions Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const transactions = parseResponse<TransactionResponseDTO[]>(response);
+      const { items: transactions, pagination } =
+        parseResponse<TransactionListResponseDTO>(response);
 
       expect(transactions).toHaveLength(0);
+      expect(pagination.total).toBe(0);
+      expect(pagination.totalPages).toBe(0);
     });
 
     it('should not return soft-deleted (tombstone) transactions', async () => {
@@ -607,7 +616,8 @@ describe('Transactions Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const transactions = parseResponse<TransactionResponseDTO[]>(response);
+      const { items: transactions } =
+        parseResponse<TransactionListResponseDTO>(response);
 
       const deletedTransaction = transactions.find(
         (tx) => tx.id === transactionToBeDeleted.id,
@@ -681,7 +691,8 @@ describe('Transactions Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const transactions = parseResponse<TransactionResponseDTO[]>(response);
+      const { items: transactions } =
+        parseResponse<TransactionListResponseDTO>(response);
 
       const transactionResponse = transactions.find(
         (tx) => tx.id === createdTransaction.id,
@@ -720,9 +731,159 @@ describe('Transactions Integration Tests', () => {
       });
     });
 
-    it.todo('should return transactions filtered by accountId query param');
+    it('should return transactions filtered by accountId with all active operations', async () => {
+      const matchingTransaction = await testDB.createTransaction(userId);
+      const otherTransaction = await testDB.createTransaction(userId);
 
-    it.todo('should return 400 for invalid accountId query param (non-UUID)');
+      const matchingOperations = [
+        {
+          accountId: accounts[0].id,
+          amount: Amount.create('-100').valueOf(),
+          description: 'Matching account operation',
+          id: Id.create().valueOf(),
+          transactionId: matchingTransaction.id,
+          value: Amount.create('-100').valueOf(),
+        },
+        {
+          accountId: accounts[1].id,
+          amount: Amount.create('100').valueOf(),
+          description: 'Balancing operation',
+          id: Id.create().valueOf(),
+          transactionId: matchingTransaction.id,
+          value: Amount.create('100').valueOf(),
+        },
+      ];
+
+      await Promise.all([
+        ...matchingOperations.map((operation) =>
+          testDB.createOperation(userId, operation),
+        ),
+        testDB.createOperation(userId, {
+          accountId: accounts[1].id,
+          amount: Amount.create('50').valueOf(),
+          description: 'Other transaction operation',
+          id: Id.create().valueOf(),
+          transactionId: otherTransaction.id,
+          value: Amount.create('50').valueOf(),
+        }),
+      ]);
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?accountId=${accounts[0].id}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const result = parseResponse<TransactionListResponseDTO>(response);
+
+      expect(result.pagination.total).toBe(1);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].id).toBe(matchingTransaction.id);
+      expect(result.items[0].operations).toHaveLength(
+        matchingOperations.length,
+      );
+      expect(
+        result.items[0].operations.map((operation) => operation.id),
+      ).toEqual(
+        expect.arrayContaining(
+          matchingOperations.map((operation) => operation.id),
+        ),
+      );
+    });
+
+    it('should filter by an inclusive transaction date range', async () => {
+      const transactionDates = [
+        ['Before range', '2024-01-01'],
+        ['Range start', '2024-01-02'],
+        ['Range end', '2024-01-03'],
+      ] as const;
+
+      await Promise.all(
+        transactionDates.map(([description, transactionDate]) =>
+          testDB.createTransaction(userId, {
+            description,
+            transactionDate: DateValue.restore(transactionDate).valueOf(),
+          }),
+        ),
+      );
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?dateFrom=2024-01-02&dateTo=2024-01-03`,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const result = parseResponse<TransactionListResponseDTO>(response);
+
+      expect(result.pagination.total).toBe(2);
+      expect(
+        result.items.map((transaction) => transaction.description),
+      ).toEqual(['Range end', 'Range start']);
+    });
+
+    it('should sort and paginate transactions', async () => {
+      const transactionDates = [
+        ['First', '2024-01-01'],
+        ['Second', '2024-01-02'],
+        ['Third', '2024-01-03'],
+      ] as const;
+
+      await Promise.all(
+        transactionDates.map(([description, transactionDate]) =>
+          testDB.createTransaction(userId, {
+            description,
+            transactionDate: DateValue.restore(transactionDate).valueOf(),
+          }),
+        ),
+      );
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?page=2&pageSize=1&sortBy=transactionDate&sortOrder=asc`,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const result = parseResponse<TransactionListResponseDTO>(response);
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].description).toBe('Second');
+      expect(result.pagination).toEqual({
+        hasNextPage: true,
+        hasPreviousPage: true,
+        page: 2,
+        pageSize: 1,
+        total: 3,
+        totalPages: 3,
+      });
+    });
+
+    it.each([
+      ['invalid accountId', 'accountId=not-a-uuid'],
+      ['reversed date range', 'dateFrom=2024-01-03&dateTo=2024-01-02'],
+      ['page size above maximum', 'pageSize=101'],
+    ])('should return 400 for %s', async (_, query) => {
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'GET',
+        url: `${url}?${query}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
   });
 
   describe('DELETE /api/transactions/:id', () => {
@@ -800,9 +961,8 @@ describe('Transactions Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const transactions = JSON.parse(
-        response.body,
-      ) as TransactionResponseDTO[];
+      const { items: transactions } =
+        parseResponse<TransactionListResponseDTO>(response);
 
       const deletedTransaction = transactions.find(
         (tx) => tx.id === transaction.id,
