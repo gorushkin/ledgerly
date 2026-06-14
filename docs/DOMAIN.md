@@ -102,6 +102,15 @@ Represents different monetary units used in the system.
 5. `Operation` does not have a separate version because it has no independent write API or use case
 6. Operation-level versioning should be introduced only if operations become independently mutable outside the `Transaction` aggregate
 
+### Transaction List Query
+1. `accountId` selects transactions containing at least one active operation for the account, while the response includes all active operations of each matching transaction
+2. `dateFrom` and `dateTo` filter `transactionDate` inclusively
+3. Pagination is page-based with defaults `page=1` and `pageSize=20`; `pageSize` cannot exceed 100
+4. Results are sorted by `transactionDate DESC` by default
+5. Clients may sort by `transactionDate` or `postingDate` in ascending or descending order
+6. `createdAt` and `id` are deterministic tie-breakers for pagination
+7. Tombstone transactions and operations are always excluded; the list API does not support `includeArchived`
+
 ## Examples
 
 ### Simple Transaction (Grocery Purchase)
