@@ -1,6 +1,7 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
   ConflictingOperationIdsError,
+  InsufficientOperationsError,
   OperationNotFoundInTransactionError,
   OperationUserMismatchError,
   UnbalancedTransactionError,
@@ -82,6 +83,7 @@ export class Transaction {
     const operations = transaction.createOperationsFromDrafts(dto.operations);
 
     transaction.attachOperations(operations);
+    transaction.validateActiveOperationsCount();
     transaction.validateActiveOperationsBalance();
 
     return transaction;
@@ -312,6 +314,14 @@ export class Transaction {
     });
   }
 
+  private validateActiveOperationsCount(): void {
+    const activeOperationsCount = this.getOperations().length;
+
+    if (activeOperationsCount < 2) {
+      throw new InsufficientOperationsError(activeOperationsCount);
+    }
+  }
+
   private validateActiveOperationsBalance(): void {
     const totalValue = this.getOperations().reduce((sum, { value }) => {
       return sum.add(value);
@@ -492,6 +502,7 @@ export class Transaction {
 
     if (isMetadataUpdated || isOperationsUpdated) {
       this.validateActiveOperationsBalance();
+      this.validateActiveOperationsCount();
       this.markUpdated();
     }
 

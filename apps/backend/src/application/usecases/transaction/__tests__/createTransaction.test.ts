@@ -54,13 +54,14 @@ describe('CreateTransactionUseCase', () => {
 
   describe('execute', () => {
     it('should create a new transaction with entries successfully', async () => {
-      const transactionBuilder = TransactionBuilder.create(user);
-
-      const { transactionContext, transactionDTO } = transactionBuilder
-        .withSettings(transactionData)
-        .withAccounts(['USD'])
-        .withOperations(operationsData)
-        .build();
+      const { transactionContext, transactionDTO } = TransactionBuilder.request(
+        {
+          accounts: ['USD'],
+          operations: operationsData,
+          settings: transactionData,
+          user,
+        },
+      );
 
       transactionContextLoader.loadContext.mockResolvedValue(
         transactionContext,
@@ -132,10 +133,12 @@ describe('CreateTransactionUseCase', () => {
       const error = new Error('Account not found');
       transactionContextLoader.loadContext.mockRejectedValue(error);
 
-      const { transactionDTO } = TransactionBuilder.create(user)
-        .withSettings(transactionData)
-        .withAccounts(['USD'])
-        .build();
+      const { transactionDTO } = TransactionBuilder.request({
+        accounts: ['USD'],
+        operations: [],
+        settings: transactionData,
+        user,
+      });
 
       await expect(
         createTransactionUseCase.execute(user, transactionDTO),
@@ -146,13 +149,14 @@ describe('CreateTransactionUseCase', () => {
       const dbError = new Error('Database error');
       mockTransactionRepository.create.mockRejectedValue(dbError);
 
-      const { transactionContext, transactionDTO } = TransactionBuilder.create(
-        user,
-      )
-        .withSettings(transactionData)
-        .withAccounts(['USD'])
-        .withOperations(operationsData)
-        .build();
+      const { transactionContext, transactionDTO } = TransactionBuilder.request(
+        {
+          accounts: ['USD'],
+          operations: operationsData,
+          settings: transactionData,
+          user,
+        },
+      );
 
       transactionContextLoader.loadContext.mockResolvedValue(
         transactionContext,
@@ -169,13 +173,14 @@ describe('CreateTransactionUseCase', () => {
         { accountKey: 'USD', amount: '5000', description: '2' },
       ];
 
-      const { transactionContext, transactionDTO } = TransactionBuilder.create(
-        user,
-      )
-        .withSettings(transactionData)
-        .withAccounts(['USD'])
-        .withOperations(unbalancedOperations)
-        .build();
+      const { transactionContext, transactionDTO } = TransactionBuilder.request(
+        {
+          accounts: ['USD'],
+          operations: unbalancedOperations,
+          settings: transactionData,
+          user,
+        },
+      );
 
       transactionContextLoader.loadContext.mockResolvedValue(
         transactionContext,

@@ -11,16 +11,22 @@ describe('prettyPrint', () => {
 
   it('prints an operation in PTA format', async () => {
     const user = await createUser();
-    const data = TransactionBuilder.create(user)
-      .withAccounts(['USD'])
-      .withOperations([
+    const data = TransactionBuilder.transaction({
+      accounts: ['USD'],
+      operations: [
         {
           accountKey: 'USD',
           amount: '10000',
           description: 'Test operation',
         },
-      ])
-      .build();
+        {
+          accountKey: 'USD',
+          amount: '-10000',
+          description: 'Balancing operation',
+        },
+      ],
+      user,
+    });
     const consoleInfo = vi
       .spyOn(console, 'info')
       .mockImplementation(() => undefined);
@@ -39,9 +45,9 @@ describe('prettyPrint', () => {
 
   it('prints a transaction in PTA format', async () => {
     const user = await createUser();
-    const data = TransactionBuilder.create(user)
-      .withAccounts(['USD', 'EUR'])
-      .withOperations([
+    const data = TransactionBuilder.transaction({
+      accounts: ['USD', 'EUR'],
+      operations: [
         {
           accountKey: 'USD',
           amount: '10000',
@@ -53,9 +59,9 @@ describe('prettyPrint', () => {
           description: 'Credit operation',
           value: '-10000',
         },
-      ])
-      .attachOperations()
-      .build();
+      ],
+      user,
+    });
     const consoleInfo = vi
       .spyOn(console, 'info')
       .mockImplementation(() => undefined);

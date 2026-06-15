@@ -9,6 +9,7 @@ import {
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
 import {
   ConflictingOperationIdsError,
+  InsufficientOperationsError,
   OperationNotFoundInTransactionError,
   UnbalancedTransactionError,
 } from 'src/domain/domain.errors';
@@ -97,13 +98,12 @@ describe('Transaction Domain Entity', () => {
   beforeAll(async () => {
     user = await createUser();
 
-    const transactionBuilder = TransactionBuilder.create(user);
-
-    data = transactionBuilder
-      .withSettings(transactionRawData)
-      .withAccounts(['USD', 'EUR', 'RUB', 'TRY'])
-      .withOperations(operationsData)
-      .build();
+    data = TransactionBuilder.transaction({
+      accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+      operations: operationsData,
+      settings: transactionRawData,
+      user,
+    });
 
     transactionData = TransactionMapper.toCreateTransactionProps(
       data.transactionDTO,
@@ -791,11 +791,12 @@ describe('Transaction Domain Entity', () => {
         operationsData3,
       ];
 
-      const data = TransactionBuilder.create(user)
-        .withSettings(transactionRawData)
-        .withAccounts(['USD', 'EUR', 'RUB', 'TRY'])
-        .withOperations(operationsData)
-        .build();
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
 
       const transactionData = TransactionMapper.toCreateTransactionProps(
         data.transactionDTO,
@@ -831,11 +832,12 @@ describe('Transaction Domain Entity', () => {
         },
       ];
 
-      const data = TransactionBuilder.create(user)
-        .withSettings(transactionRawData)
-        .withAccounts(['USD', 'EUR', 'RUB', 'TRY'])
-        .withOperations(operationsData)
-        .build();
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
 
       const usdAccount = data.getAccountByKey('USD');
 
@@ -873,7 +875,32 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.getVersion()).toEqual(originalVersion);
     });
 
-    it.todo('[TXN-2] should reject creation with fewer than two operations');
+    it('should reject creation with fewer than two operations', () => {
+      const operationsData = [
+        {
+          accountKey: 'USD',
+          amount: '0',
+          description: 'groceries Account',
+        },
+      ];
+
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
+        InsufficientOperationsError,
+      );
+    });
+
     it.todo(
       '[TXN-2] should reject update that leaves fewer than two operations',
     );

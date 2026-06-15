@@ -42,26 +42,24 @@ describe('DeleteTransactionUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    const transactionBuilder = TransactionBuilder.create(user);
-
-    const data = transactionBuilder
-      .withAccounts(['USD', 'EUR'])
-      .withOperations([
+    const data = TransactionBuilder.transaction({
+      accounts: ['USD', 'EUR'],
+      operations: [
         {
           accountKey: 'USD',
-          amount: Amount.create('10000').valueOf(),
+          amount: '10000',
           description: 'From Operation',
-          value: Amount.create('10000').valueOf(),
+          value: '10000',
         },
         {
           accountKey: 'EUR',
-          amount: Amount.create('-10000').valueOf(),
+          amount: '-10000',
           description: 'To Operation',
-          value: Amount.create('-10000').valueOf(),
+          value: '-10000',
         },
-      ])
-      .attachOperations()
-      .build();
+      ],
+      user,
+    });
 
     const predefinedTransaction = data.transaction;
 

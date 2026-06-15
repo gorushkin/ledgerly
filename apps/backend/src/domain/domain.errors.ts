@@ -42,6 +42,17 @@ export class EmptyOperationsError extends DomainError {
 }
 
 /**
+ * Thrown when a transaction contains fewer than two operations.
+ */
+export class InsufficientOperationsError extends DomainError {
+  constructor(public readonly operationCount: number) {
+    super(
+      `Transaction must contain at least 2 operations. Received: ${operationCount}`,
+    );
+  }
+}
+
+/**
  * Thrown when attempting to perform operations on a deleted entity.
  */
 export class DeletedEntityOperationError extends DomainError {

@@ -145,24 +145,48 @@ describe('UpdateTransactionUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    const data = TransactionBuilder.create(user)
-      .withAccounts(['USD', 'EUR'])
-      .withOperations([
+    const data = TransactionBuilder.transaction({
+      accounts: ['USD', 'EUR'],
+      operations: [
         {
           accountKey: 'USD',
-          amount: Amount.create('10000').valueOf(),
+          amount: '-100000',
           description: 'From Operation',
-          value: Amount.create('10000').valueOf(),
+          value: '-100000',
         },
         {
-          accountKey: 'EUR',
-          amount: Amount.create('-10000').valueOf(),
-          description: 'To Operation',
-          value: Amount.create('-10000').valueOf(),
+          accountKey: 'USD',
+          amount: '60000',
+          description: 'To Operation 1',
+          value: '60000',
         },
-      ])
-      .attachOperations()
-      .build();
+        {
+          accountKey: 'USD',
+          amount: '30000',
+          description: 'From Operation 2',
+          value: '30000',
+        },
+        {
+          accountKey: 'USD',
+          amount: '10000',
+          description: 'To Operation 3',
+          value: '10000',
+        },
+        {
+          accountKey: 'USD',
+          amount: '-30000',
+          description: 'From Operation 3',
+          value: '-30000',
+        },
+        {
+          accountKey: 'USD',
+          amount: '30000',
+          description: 'To Operation 3÷÷',
+          value: '30000',
+        },
+      ],
+      user,
+    });
 
     transaction = data.transaction;
     transactionContext = data.transactionContext;
@@ -247,9 +271,11 @@ describe('UpdateTransactionUseCase', () => {
 
   it('updates existing operations without changing their identities', async () => {
     const operationsToUpdate = [
-      createUpdateOperationRequest(0, '12000', 'Updated debit operation'),
-      createUpdateOperationRequest(1, '-12000', 'Updated credit operation'),
+      createUpdateOperationRequest(1, '20000', 'Updated debit operation'),
+      createUpdateOperationRequest(2, '70000', 'Updated credit operation'),
     ];
+
+    const operationsLength = transaction.getOperations().length;
 
     const data = createRequest({
       operations: {
@@ -262,7 +288,7 @@ describe('UpdateTransactionUseCase', () => {
     const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
-    expect(result.operations).toHaveLength(operationsToUpdate.length);
+    expect(result.operations).toHaveLength(operationsLength);
 
     operationsToUpdate.forEach((operation) => {
       expect(result.operations).toContainEqual(
@@ -275,14 +301,24 @@ describe('UpdateTransactionUseCase', () => {
   });
 
   it('deletes operations from the active response', async () => {
-    const operationIdsToDelete = transaction
+    const operations = transaction.getOperations().length;
+
+    const operationsIdsToDelete = [
+      transaction.getOperations()[operations - 2].getId().valueOf(),
+      transaction.getOperations()[operations - 1].getId().valueOf(),
+    ];
+
+    const restOperations = transaction
       .getOperations()
-      .map((operation) => operation.getId().valueOf());
+      .filter(
+        (operation) =>
+          !operationsIdsToDelete.includes(operation.getId().valueOf()),
+      );
 
     const data = createRequest({
       operations: {
         create: [],
-        delete: operationIdsToDelete,
+        delete: operationsIdsToDelete,
         update: [],
       },
     });
@@ -290,9 +326,13 @@ describe('UpdateTransactionUseCase', () => {
     const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
-    expect(result.operations).toEqual([]);
+    expect(result.operations).toEqual(
+      restOperations.map((operation) =>
+        OperationMapper.toResponseDTO(operation),
+      ),
+    );
 
-    operationIdsToDelete.forEach((id) => {
+    operationsIdsToDelete.forEach((id) => {
       const deletedOperation = transaction
         .getAllOperations()
         .find((operation) => operation.getId().valueOf() === id);
@@ -306,20 +346,22 @@ describe('UpdateTransactionUseCase', () => {
   });
 
   it('applies create, update, and delete operations in one request', async () => {
-    const operationToUpdate = createUpdateOperationRequest(
-      0,
-      '9000',
+    const operationsCount = transaction.getOperations().length;
+
+    const operationToUpdate1 = createUpdateOperationRequest(
+      1,
+      '60000',
       'Updated remaining operation',
     );
 
     const operationIdToDelete = transaction
-      .getOperations()[1]
+      .getOperations()[3]
       .getId()
       .valueOf();
 
     const operationToCreate = createOperationRequest(
       transaction.getOperations()[1].getAccountId().valueOf(),
-      '-9000',
+      '10000',
       'Replacement operation',
     );
 
@@ -328,7 +370,7 @@ describe('UpdateTransactionUseCase', () => {
       operations: {
         create: [operationToCreate],
         delete: [operationIdToDelete],
-        update: [operationToUpdate],
+        update: [operationToUpdate1],
       },
     });
 
@@ -336,9 +378,9 @@ describe('UpdateTransactionUseCase', () => {
     const result = await execute(data);
 
     expect(result.description).toBe(data.description);
-    expect(result.operations).toHaveLength(2);
+    expect(result.operations).toHaveLength(operationsCount);
     expect(result.operations).toContainEqual(
-      expect.objectContaining(operationToUpdate),
+      expect.objectContaining(operationToUpdate1),
     );
 
     expect(result.operations).toContainEqual(
