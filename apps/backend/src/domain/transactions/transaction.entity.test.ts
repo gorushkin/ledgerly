@@ -875,7 +875,25 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.getVersion()).toEqual(originalVersion);
     });
 
-    it('should reject creation with fewer than two operations', () => {
+    it('should reject creation with zero operations', () => {
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: [],
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
+        InsufficientOperationsError,
+      );
+    });
+
+    it('should reject creation with one operation', () => {
       const operationsData = [
         {
           accountKey: 'USD',
@@ -901,9 +919,139 @@ describe('Transaction Domain Entity', () => {
       );
     });
 
-    it.todo(
-      '[TXN-2] should reject update that leaves fewer than two operations',
-    );
+    it('should reject updating to fewer than two operations', () => {
+      const operationsData = [
+        {
+          accountKey: 'USD',
+          amount: '-100000',
+          description: 'groceries Account',
+        },
+        {
+          accountKey: 'USD',
+          amount: '100000',
+          description: 'groceries Account',
+        },
+      ];
+
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      const transaction = Transaction.create(user.getId(), transactionData);
+
+      const originalSnapshot = transaction.toSnapshot();
+      const originalVersion = transaction.getVersion();
+
+      const operationsPatchData = {
+        operations: {
+          create: [],
+          delete: [transaction.getOperations()[0].getId()],
+          update: [],
+        },
+      };
+
+      expect(() => transaction.applyUpdate(operationsPatchData)).toThrow(
+        InsufficientOperationsError,
+      );
+
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
+
+      expect(transaction.getVersion()).toEqual(originalVersion);
+    });
+
+    it('should allow delete and create when two balanced operations remain', () => {
+      const operationsData = [
+        {
+          accountKey: 'USD',
+          amount: '-100000',
+          description: 'groceries Account',
+        },
+        {
+          accountKey: 'USD',
+          amount: '100000',
+          description: 'groceries Account',
+        },
+      ];
+
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      const transaction = Transaction.create(user.getId(), transactionData);
+
+      const initialVersion = transaction.getVersion();
+
+      const operationToDelete = transaction.getOperations()[1];
+      const replacementDescription = 'Replacement operation';
+
+      const operationsPatchData = {
+        operations: {
+          create: [
+            {
+              account: data.getAccountByKey('USD'),
+              amount: Amount.create('100000'),
+              description: replacementDescription,
+              value: Amount.create('100000'),
+            },
+          ],
+          delete: [operationToDelete.getId()],
+          update: [],
+        },
+      };
+
+      transaction.applyUpdate(operationsPatchData);
+
+      expect(transaction.getOperations()).toHaveLength(operationsData.length);
+
+      expect(
+        transaction
+          .getOperations()
+          .some(({ description }) => description === replacementDescription),
+      ).toBe(true);
+
+      expect(
+        transaction
+          .getOperations()
+          .some((operation) => operation.getId().equals(operationToDelete.id)),
+      ).toBe(false);
+
+      expect(
+        transaction
+          .getAllOperations()
+          .find((operation) => operation.getId().equals(operationToDelete.id))
+          ?.isDeleted(),
+      ).toBe(true);
+
+      expect(
+        transaction
+          .getOperations()
+          .reduce(
+            (sum, operation) => sum.add(operation.value),
+            Amount.create('0'),
+          )
+          .isZero(),
+      ).toBe(true);
+
+      expect(transaction.getVersion().valueOf()).toBe(
+        initialVersion.valueOf() + 1,
+      );
+    });
 
     it.todo(
       '[TXN-3] should allow repeated account usage when account net effect is non-zero',

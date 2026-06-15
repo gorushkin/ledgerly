@@ -9,7 +9,6 @@ import {
 import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils/testEntityBuilder';
 import { Transaction, User } from 'src/domain';
-import { Amount } from 'src/domain/domain-core/value-objects/Amount';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DeleteTransactionUseCase } from '../DeleteTransaction';

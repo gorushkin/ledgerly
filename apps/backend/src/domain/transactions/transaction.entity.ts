@@ -314,6 +314,23 @@ export class Transaction {
     });
   }
 
+  private validateResultingOperationCount(
+    operationsPatch?: OperationsPatch,
+  ): void {
+    if (!operationsPatch) {
+      return;
+    }
+
+    const activeOperationsCount =
+      this.getOperations().length +
+      operationsPatch.create.length -
+      operationsPatch.delete.length;
+
+    if (activeOperationsCount < 2) {
+      throw new InsufficientOperationsError(activeOperationsCount);
+    }
+  }
+
   private validateActiveOperationsCount(): void {
     const activeOperationsCount = this.getOperations().length;
 
@@ -494,6 +511,7 @@ export class Transaction {
     this.validateUpdateIsAllowed();
     this.validateOperationsPatch(operations);
     this.validateOperationIds(operations);
+    this.validateResultingOperationCount(operations);
     this.validateResultingBalance(operations);
 
     const isMetadataUpdated = this.updateMetadataIfChanged(metadata);
@@ -502,7 +520,6 @@ export class Transaction {
 
     if (isMetadataUpdated || isOperationsUpdated) {
       this.validateActiveOperationsBalance();
-      this.validateActiveOperationsCount();
       this.markUpdated();
     }
 
