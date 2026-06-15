@@ -1028,7 +1028,9 @@ describe('Transaction Domain Entity', () => {
       expect(
         transaction
           .getOperations()
-          .some((operation) => operation.getId().equals(operationToDelete.id)),
+          .some((operation) =>
+            operation.getId().equals(operationToDelete.getId()),
+          ),
       ).toBe(false);
 
       expect(

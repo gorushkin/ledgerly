@@ -301,24 +301,24 @@ describe('UpdateTransactionUseCase', () => {
   });
 
   it('deletes operations from the active response', async () => {
-    const operations = transaction.getOperations().length;
+    const operationsCount = transaction.getOperations().length;
 
-    const operationsIdsToDelete = [
-      transaction.getOperations()[operations - 2].getId().valueOf(),
-      transaction.getOperations()[operations - 1].getId().valueOf(),
+    const operationIdsToDelete = [
+      transaction.getOperations()[operationsCount - 2].getId().valueOf(),
+      transaction.getOperations()[operationsCount - 1].getId().valueOf(),
     ];
 
     const restOperations = transaction
       .getOperations()
       .filter(
         (operation) =>
-          !operationsIdsToDelete.includes(operation.getId().valueOf()),
+          !operationIdsToDelete.includes(operation.getId().valueOf()),
       );
 
     const data = createRequest({
       operations: {
         create: [],
-        delete: operationsIdsToDelete,
+        delete: operationIdsToDelete,
         update: [],
       },
     });
@@ -332,7 +332,7 @@ describe('UpdateTransactionUseCase', () => {
       ),
     );
 
-    operationsIdsToDelete.forEach((id) => {
+    operationIdsToDelete.forEach((id) => {
       const deletedOperation = transaction
         .getAllOperations()
         .find((operation) => operation.getId().valueOf() === id);

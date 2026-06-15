@@ -22,6 +22,7 @@ import {
 import { Operation } from '../operations';
 import { OperationProps, UpdateOperationProps } from '../operations/types';
 
+import { MIN_TRANSACTION_OPERATIONS } from './constants';
 import {
   CreateTransactionProps,
   TransactionUpdateData,
@@ -326,7 +327,7 @@ export class Transaction {
       operationsPatch.create.length -
       operationsPatch.delete.length;
 
-    if (activeOperationsCount < 2) {
+    if (activeOperationsCount < MIN_TRANSACTION_OPERATIONS) {
       throw new InsufficientOperationsError(activeOperationsCount);
     }
   }
@@ -334,7 +335,7 @@ export class Transaction {
   private validateActiveOperationsCount(): void {
     const activeOperationsCount = this.getOperations().length;
 
-    if (activeOperationsCount < 2) {
+    if (activeOperationsCount < MIN_TRANSACTION_OPERATIONS) {
       throw new InsufficientOperationsError(activeOperationsCount);
     }
   }

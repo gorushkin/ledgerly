@@ -2,6 +2,7 @@ import { UUID } from '@ledgerly/shared/types';
 import { BaseError } from 'src/shared/errors/BaseError';
 
 import { Amount } from './domain-core/value-objects/Amount';
+import { MIN_TRANSACTION_OPERATIONS } from './transactions/constants';
 
 /**
  * Base class for all domain layer errors.
@@ -47,7 +48,7 @@ export class EmptyOperationsError extends DomainError {
 export class InsufficientOperationsError extends DomainError {
   constructor(public readonly operationCount: number) {
     super(
-      `Transaction must contain at least 2 operations. Received: ${operationCount}`,
+      `Transaction must contain at least ${MIN_TRANSACTION_OPERATIONS} operations. Received: ${operationCount}`,
     );
   }
 }
