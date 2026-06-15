@@ -1,0 +1,1 @@
+export const MIN_TRANSACTION_OPERATIONS = 2;

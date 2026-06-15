@@ -5,7 +5,7 @@ import { TestDB } from 'src/db/test-db';
 import {
   compareEntities,
   TransactionBuilder,
-  TransactionBuilderResult,
+  TransactionPersistenceBuilderResult,
 } from 'src/db/test-utils';
 import { Account, User } from 'src/domain';
 import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
@@ -26,7 +26,7 @@ describe('TransactionRepository', () => {
   let user: UserDbRow;
   let usdAccount: Account;
   let eurAccount: Account;
-  let data: TransactionBuilderResult;
+  let data: TransactionPersistenceBuilderResult;
   const description = 'Test transaction';
 
   const mockOperationsRepository = {
@@ -49,13 +49,9 @@ describe('TransactionRepository', () => {
 
     user = await testDB.createUser();
 
-    const transactionBuilder = TransactionBuilder.create(
-      User.fromPersistence(user),
-    );
-
-    data = transactionBuilder
-      .withAccounts(['USD', 'EUR'])
-      .withOperations([
+    data = TransactionBuilder.persistence({
+      accounts: ['USD', 'EUR'],
+      operations: [
         {
           accountKey: 'USD',
           amount: '-200',
@@ -76,10 +72,10 @@ describe('TransactionRepository', () => {
           amount: '100',
           description: 'Debit operation 2',
         },
-      ])
-      .withDescription(description)
-      .attachOperations()
-      .build();
+      ],
+      settings: { description },
+      user: User.fromPersistence(user),
+    });
 
     usdAccount = data.getAccountByKey('USD');
     eurAccount = data.getAccountByKey('EUR');

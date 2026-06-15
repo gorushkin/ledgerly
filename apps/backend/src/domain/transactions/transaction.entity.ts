@@ -1,6 +1,7 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
   ConflictingOperationIdsError,
+  InsufficientOperationsError,
   OperationNotFoundInTransactionError,
   OperationUserMismatchError,
   UnbalancedTransactionError,
@@ -21,6 +22,7 @@ import {
 import { Operation } from '../operations';
 import { OperationProps, UpdateOperationProps } from '../operations/types';
 
+import { MIN_TRANSACTION_OPERATIONS } from './constants';
 import {
   CreateTransactionProps,
   TransactionUpdateData,
@@ -82,6 +84,7 @@ export class Transaction {
     const operations = transaction.createOperationsFromDrafts(dto.operations);
 
     transaction.attachOperations(operations);
+    transaction.validateActiveOperationsCount();
     transaction.validateActiveOperationsBalance();
 
     return transaction;
@@ -312,6 +315,31 @@ export class Transaction {
     });
   }
 
+  private validateResultingOperationCount(
+    operationsPatch?: OperationsPatch,
+  ): void {
+    if (!operationsPatch) {
+      return;
+    }
+
+    const activeOperationsCount =
+      this.getOperations().length +
+      operationsPatch.create.length -
+      operationsPatch.delete.length;
+
+    if (activeOperationsCount < MIN_TRANSACTION_OPERATIONS) {
+      throw new InsufficientOperationsError(activeOperationsCount);
+    }
+  }
+
+  private validateActiveOperationsCount(): void {
+    const activeOperationsCount = this.getOperations().length;
+
+    if (activeOperationsCount < MIN_TRANSACTION_OPERATIONS) {
+      throw new InsufficientOperationsError(activeOperationsCount);
+    }
+  }
+
   private validateActiveOperationsBalance(): void {
     const totalValue = this.getOperations().reduce((sum, { value }) => {
       return sum.add(value);
@@ -484,6 +512,7 @@ export class Transaction {
     this.validateUpdateIsAllowed();
     this.validateOperationsPatch(operations);
     this.validateOperationIds(operations);
+    this.validateResultingOperationCount(operations);
     this.validateResultingBalance(operations);
 
     const isMetadataUpdated = this.updateMetadataIfChanged(metadata);

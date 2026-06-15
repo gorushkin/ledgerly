@@ -45,12 +45,15 @@ describe('Operation Domain Entity', () => {
     user = await createUser();
     userId = user.getId();
 
-    const transactionBuilder = TransactionBuilder.create(user);
-
-    const data = transactionBuilder
-      .withSettings(transactionData)
-      .withAccounts(['USD', 'EUR'])
-      .build();
+    const data = TransactionBuilder.transaction({
+      accounts: ['USD', 'EUR'],
+      operations: [
+        { accountKey: 'USD', amount: '100', description: 'Debit' },
+        { accountKey: 'EUR', amount: '-100', description: 'Credit' },
+      ],
+      settings: transactionData,
+      user,
+    });
 
     usdAccount = data.getAccountByKey('USD');
     eurAccount = data.getAccountByKey('EUR');

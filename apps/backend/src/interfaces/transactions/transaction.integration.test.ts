@@ -1651,7 +1651,23 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 409 on optimistic locking conflict with a stale version', async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
+      const transaction = await testDB.createTransactionFromSeed(userId, {
+        description: 'Transaction for optimistic locking',
+        operations: [
+          {
+            account: account1Data,
+            amount: '-100',
+            description: 'Transfer from checking',
+            value: '-100',
+          },
+          {
+            account: account2Data,
+            amount: '100',
+            description: 'Transfer to savings',
+            value: '100',
+          },
+        ],
+      });
 
       const firstUpdate = createUpdateRequest({
         description: 'First successful update',

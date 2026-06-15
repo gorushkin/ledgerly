@@ -1,12 +1,7 @@
 import { DEFAULT_TRANSACTION_QUERY } from '@ledgerly/shared/constants';
-import {
-  CurrencyCode,
-  IsoDateString,
-  MoneyString,
-  UUID,
-} from '@ledgerly/shared/types';
+import { CurrencyCode, IsoDateString, UUID } from '@ledgerly/shared/types';
 import { UserDbRow } from 'src/db/schema';
-import { TestDB } from 'src/db/test-db';
+import { TestDB, TransactionSeed } from 'src/db/test-db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TransactionManager, TransactionQueryRepository } from '../';
@@ -14,23 +9,6 @@ import { TransactionManager, TransactionQueryRepository } from '../';
 type TestAccount = {
   id: UUID;
   currency: CurrencyCode;
-};
-
-type OperationSeed = {
-  account: TestAccount;
-  amount: MoneyString;
-  description: string;
-  value?: MoneyString;
-  isTombstone?: boolean;
-};
-
-type TransactionSeed = {
-  currencyCode?: CurrencyCode;
-  description: string;
-  operations: OperationSeed[];
-  postingDate?: IsoDateString;
-  transactionDate?: IsoDateString;
-  isTombstone?: boolean;
 };
 
 describe('TransactionQueryRepository', () => {
@@ -62,39 +40,8 @@ describe('TransactionQueryRepository', () => {
     };
   };
 
-  const createTransaction = async ({
-    currencyCode = 'USD' as CurrencyCode,
-    description,
-    isTombstone = false,
-    operations,
-    postingDate = '2023-01-01' as IsoDateString,
-    transactionDate = '2023-01-01' as IsoDateString,
-  }: {
-    currencyCode?: CurrencyCode;
-    description: string;
-    operations: OperationSeed[];
-    postingDate?: IsoDateString;
-    transactionDate?: IsoDateString;
-    isTombstone?: boolean;
-  }) => {
-    return testDB.createTransactionWithOperations(user.id, {
-      currencyCode,
-      description,
-      isTombstone,
-      operations: operations.map((operation) => ({
-        accountId: operation.account.id,
-        amount: operation.amount,
-        description: operation.description,
-        id: crypto.randomUUID() as UUID,
-        isSystem: false,
-        isTombstone: operation.isTombstone ?? false,
-        transactionId: crypto.randomUUID() as UUID,
-        value: operation.value ?? operation.amount,
-      })),
-      postingDate,
-      transactionDate,
-    });
-  };
+  const createTransaction = (seed: TransactionSeed) =>
+    testDB.createTransactionFromSeed(user.id, seed);
 
   const expectTransactionToMatchSeed = (
     transaction: Awaited<ReturnType<TransactionQueryRepository['findById']>>,
@@ -149,12 +96,12 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '-2000' as MoneyString,
+              amount: '-2000',
               description: 'Salary debit',
             },
             {
               account: usdAccount,
-              amount: '2000' as MoneyString,
+              amount: '2000',
               description: 'Salary credit',
             },
           ],
@@ -164,12 +111,12 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '-150' as MoneyString,
+              amount: '-150',
               description: 'Groceries expense',
             },
             {
               account: eurAccount,
-              amount: '150' as MoneyString,
+              amount: '150',
               description: 'Groceries offset',
             },
           ],
@@ -182,12 +129,12 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: eurAccount,
-              amount: '-500' as MoneyString,
+              amount: '-500',
               description: 'Transfer out',
             },
             {
               account: eurAccount,
-              amount: '500' as MoneyString,
+              amount: '500',
               description: 'Transfer in',
             },
           ],
@@ -232,7 +179,7 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '100' as MoneyString,
+              amount: '100',
               description: 'Oldest operation',
             },
           ],
@@ -244,7 +191,7 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '200' as MoneyString,
+              amount: '200',
               description: 'Middle operation',
             },
           ],
@@ -256,7 +203,7 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '300' as MoneyString,
+              amount: '300',
               description: 'Newest operation',
             },
           ],
@@ -285,7 +232,7 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '100' as MoneyString,
+              amount: '100',
               description: 'Posted last operation',
             },
           ],
@@ -296,7 +243,7 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '200' as MoneyString,
+              amount: '200',
               description: 'Posted first operation',
             },
           ],
@@ -322,12 +269,12 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '-100' as MoneyString,
+              amount: '-100',
               description: 'USD operation',
             },
             {
               account: eurAccount,
-              amount: '100' as MoneyString,
+              amount: '100',
               description: 'EUR operation',
             },
           ],
@@ -337,7 +284,7 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: eurAccount,
-              amount: '200' as MoneyString,
+              amount: '200',
               description: 'EUR only operation',
             },
           ],
@@ -362,7 +309,7 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '100' as MoneyString,
+              amount: '100',
               description: 'Before range operation',
             },
           ],
@@ -373,7 +320,7 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '200' as MoneyString,
+              amount: '200',
               description: 'Range start operation',
             },
           ],
@@ -384,7 +331,7 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '300' as MoneyString,
+              amount: '300',
               description: 'Range end operation',
             },
           ],
@@ -412,13 +359,13 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '-2000' as MoneyString,
+              amount: '-2000',
               description: 'Salary debit',
               isTombstone: true,
             },
             {
               account: usdAccount,
-              amount: '2000' as MoneyString,
+              amount: '2000',
               description: 'Salary credit',
               isTombstone: true,
             },
@@ -433,12 +380,12 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: usdAccount,
-              amount: '-150' as MoneyString,
+              amount: '-150',
               description: 'Groceries expense',
             },
             {
               account: eurAccount,
-              amount: '150' as MoneyString,
+              amount: '150',
               description: 'Groceries offset',
             },
           ],
@@ -451,12 +398,12 @@ describe('TransactionQueryRepository', () => {
           operations: [
             {
               account: eurAccount,
-              amount: '-500' as MoneyString,
+              amount: '-500',
               description: 'Transfer out',
             },
             {
               account: eurAccount,
-              amount: '500' as MoneyString,
+              amount: '500',
               description: 'Transfer in',
             },
           ],
@@ -494,12 +441,12 @@ describe('TransactionQueryRepository', () => {
         operations: [
           {
             account: usdAccount,
-            amount: '-100' as MoneyString,
+            amount: '-100',
             description: 'Contract debit',
           },
           {
             account: eurAccount,
-            amount: '100' as MoneyString,
+            amount: '100',
             description: 'Contract credit',
           },
         ],
@@ -558,14 +505,14 @@ describe('TransactionQueryRepository', () => {
         operations: [
           {
             account: usdAccount,
-            amount: '-1000' as MoneyString,
+            amount: '-1000',
             description: 'Exchange USD out',
           },
           {
             account: eurAccount,
-            amount: '920' as MoneyString,
+            amount: '920',
             description: 'Exchange EUR in',
-            value: '920' as MoneyString,
+            value: '920',
           },
         ],
         postingDate: '2023-02-10' as IsoDateString,
@@ -598,12 +545,12 @@ describe('TransactionQueryRepository', () => {
         operations: [
           {
             account: usdAccount,
-            amount: '-300' as MoneyString,
+            amount: '-300',
             description: 'Private transfer out',
           },
           {
             account: usdAccount,
-            amount: '300' as MoneyString,
+            amount: '300',
             description: 'Private transfer in',
           },
         ],
@@ -626,12 +573,12 @@ describe('TransactionQueryRepository', () => {
         operations: [
           {
             account: usdAccount,
-            amount: '-300' as MoneyString,
+            amount: '-300',
             description: 'Soft deleted transaction out',
           },
           {
             account: usdAccount,
-            amount: '300' as MoneyString,
+            amount: '300',
             description: 'Soft deleted transaction in',
           },
         ],
@@ -652,13 +599,13 @@ describe('TransactionQueryRepository', () => {
       const softDeletedOperations: TransactionSeed['operations'] = [
         {
           account: usdAccount,
-          amount: '-500' as MoneyString,
+          amount: '-500',
           description: 'Soft deleted operation out',
           isTombstone: true,
         },
         {
           account: usdAccount,
-          amount: '500' as MoneyString,
+          amount: '500',
           description: 'Soft deleted operation in',
           isTombstone: true,
         },
@@ -667,12 +614,12 @@ describe('TransactionQueryRepository', () => {
       const activeOperations: TransactionSeed['operations'] = [
         {
           account: usdAccount,
-          amount: '-300' as MoneyString,
+          amount: '-300',
           description: 'Active operation out',
         },
         {
           account: usdAccount,
-          amount: '300' as MoneyString,
+          amount: '300',
           description: 'Active operation in',
         },
       ];

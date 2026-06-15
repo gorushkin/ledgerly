@@ -72,6 +72,25 @@ export type CreateTransactionProps = {
   isTombstone?: boolean;
 };
 
+export type TransactionOperationSeed = {
+  account: {
+    id: UUID;
+  };
+  amount: string;
+  description: string;
+  value?: string;
+  isTombstone?: boolean;
+};
+
+export type TransactionSeed = {
+  currencyCode?: CurrencyCode;
+  description: string;
+  operations: TransactionOperationSeed[];
+  postingDate?: IsoDateString;
+  transactionDate?: IsoDateString;
+  isTombstone?: boolean;
+};
+
 export class TestDB {
   db: DataBase;
   transactionCounter = new Counter('transaction');
@@ -226,7 +245,7 @@ export class TestDB {
       operations: {
         accountId: UUID;
         description: string;
-        transactionId: UUID;
+        transactionId?: UUID;
         amount: MoneyString;
         value: MoneyString;
         isSystem?: boolean;
@@ -249,6 +268,35 @@ export class TestDB {
     }
 
     return { ...transaction, operations };
+  };
+
+  createTransactionFromSeed = async (
+    userId: UUID,
+    {
+      currencyCode = 'USD' as CurrencyCode,
+      description,
+      isTombstone = false,
+      operations,
+      postingDate = '2023-01-01' as IsoDateString,
+      transactionDate = '2023-01-01' as IsoDateString,
+    }: TransactionSeed,
+  ): Promise<TransactionWithRelations> => {
+    return this.createTransactionWithOperations(userId, {
+      currencyCode,
+      description,
+      isTombstone,
+      operations: operations.map((operation) => ({
+        accountId: operation.account.id,
+        amount: Amount.create(operation.amount).valueOf(),
+        description: operation.description,
+        id: crypto.randomUUID() as UUID,
+        isSystem: false,
+        isTombstone: operation.isTombstone ?? false,
+        value: Amount.create(operation.value ?? operation.amount).valueOf(),
+      })),
+      postingDate,
+      transactionDate,
+    });
   };
 
   createOperation = async (
