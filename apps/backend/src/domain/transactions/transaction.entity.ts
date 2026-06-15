@@ -491,6 +491,7 @@ export class Transaction {
     const isOperationsUpdated = this.applyOperationsPatch(operations);
 
     if (isMetadataUpdated || isOperationsUpdated) {
+      this.validateActiveOperationsBalance();
       this.markUpdated();
     }
 

@@ -3,7 +3,6 @@ import { UpdateOperationRequestDTO } from 'src/application/dto';
 import { createUser } from 'src/db/createTestUser';
 import {
   compareEntities,
-  prettyPrint,
   TransactionBuilder,
   TransactionBuilderResult,
 } from 'src/db/test-utils';
@@ -466,6 +465,42 @@ describe('Transaction Domain Entity', () => {
       expect(error.conflictType).toBe('Duplicate IDs in delete array');
     });
 
+    it('should reject updating a non-existent operation without changing the transaction', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const originalSnapshot = transaction.toSnapshot();
+      const unknownOperationId = Id.create();
+
+      expect(() =>
+        transaction.applyUpdate({
+          operations: {
+            create: [],
+            delete: [],
+            update: [toUpdateProps(transaction, 0, unknownOperationId)],
+          },
+        }),
+      ).toThrow(OperationNotFoundInTransactionError);
+
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
+    });
+
+    it('should reject deleting a non-existent operation without changing the transaction', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const originalSnapshot = transaction.toSnapshot();
+      const unknownOperationId = Id.create();
+
+      expect(() =>
+        transaction.applyUpdate({
+          operations: {
+            create: [],
+            delete: [unknownOperationId],
+            update: [],
+          },
+        }),
+      ).toThrow(OperationNotFoundInTransactionError);
+
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
+    });
+
     it('Should add a new operation and increase version', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
 
@@ -556,8 +591,6 @@ describe('Transaction Domain Entity', () => {
 
     it('should update existing operations and increase the aggregate version once', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
-
-      prettyPrint.transactionPTA(transaction, data.accountsMap);
 
       const originalSnapshot = transaction.toSnapshot();
 
