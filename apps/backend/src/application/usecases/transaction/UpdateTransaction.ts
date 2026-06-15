@@ -54,25 +54,22 @@ export class UpdateTransactionUseCase {
       const transactionContext =
         await this.transactionContextLoader.loadContext(user, operationsData);
 
-      const isUpdated = transaction.applyUpdate(
-        {
-          metadata: {
-            description: data.description,
-            postingDate: data.postingDate,
-            transactionDate: data.transactionDate,
-          },
-          operations: {
-            create: data.operations.create.map((data) =>
-              OperationMapper.toCreateOperationProps(data, transactionContext),
-            ),
-            delete: data.operations.delete.map((id) => Id.fromPersistence(id)),
-            update: data.operations.update.map((data) =>
-              OperationMapper.toUpdateOperationProps(data, transactionContext),
-            ),
-          },
+      const isUpdated = transaction.applyUpdate({
+        metadata: {
+          description: data.description,
+          postingDate: data.postingDate,
+          transactionDate: data.transactionDate,
         },
-        transactionContext,
-      );
+        operations: {
+          create: data.operations.create.map((data) =>
+            OperationMapper.toCreateOperationProps(data, transactionContext),
+          ),
+          delete: data.operations.delete.map((id) => Id.fromPersistence(id)),
+          update: data.operations.update.map((data) =>
+            OperationMapper.toUpdateOperationProps(data, transactionContext),
+          ),
+        },
+      });
 
       if (isUpdated) {
         const result = await this.transactionRepository.update(

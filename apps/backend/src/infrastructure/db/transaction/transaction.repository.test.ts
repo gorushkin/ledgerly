@@ -10,7 +10,6 @@ import {
 import { Account, User } from 'src/domain';
 import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import { TransactionBuildContext } from 'src/domain/transactions/types';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { ForeignKeyConstraintError } from 'src/presentation/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -25,7 +24,6 @@ describe('TransactionRepository', () => {
   let testDB: TestDB;
   let transactionRepository: TransactionRepository;
   let user: UserDbRow;
-  let transactionContext: TransactionBuildContext;
   let usdAccount: Account;
   let eurAccount: Account;
   let data: TransactionBuilderResult;
@@ -98,8 +96,6 @@ describe('TransactionRepository', () => {
       mockOperationsRepository as unknown as OperationRepository,
       transactionManager as unknown as TransactionManager,
     );
-
-    transactionContext = data.transactionContext;
   });
 
   describe('getById', () => {
@@ -344,17 +340,14 @@ describe('TransactionRepository', () => {
       await testDB.insertTransaction(transaction.toSnapshot());
       const expectedVersion = transaction.getVersion();
 
-      transaction.applyUpdate(
-        {
-          metadata,
-          operations: {
-            create: operationsToCreate,
-            delete: operationsToDelete,
-            update: operationsToUpdate,
-          },
+      transaction.applyUpdate({
+        metadata,
+        operations: {
+          create: operationsToCreate,
+          delete: operationsToDelete,
+          update: operationsToUpdate,
         },
-        transactionContext,
-      );
+      });
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -414,16 +407,13 @@ describe('TransactionRepository', () => {
       await testDB.insertTransaction(transaction.toSnapshot());
       const expectedVersion = transaction.getVersion();
 
-      transaction.applyUpdate(
-        {
-          metadata: {
-            description: 'Updated description',
-            postingDate: transaction.getPostingDate().valueOf(),
-            transactionDate: transaction.getTransactionDate().valueOf(),
-          },
+      transaction.applyUpdate({
+        metadata: {
+          description: 'Updated description',
+          postingDate: transaction.getPostingDate().valueOf(),
+          transactionDate: transaction.getTransactionDate().valueOf(),
         },
-        transactionContext,
-      );
+      });
 
       await expect(
         transactionRepository.update(

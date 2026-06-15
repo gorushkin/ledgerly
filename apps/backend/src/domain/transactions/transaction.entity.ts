@@ -1,7 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
   ConflictingOperationIdsError,
-  MissingTransactionContextError,
   OperationNotFoundInTransactionError,
   OperationUserMismatchError,
   UnbalancedTransactionError,
@@ -24,7 +23,6 @@ import { OperationProps, UpdateOperationProps } from '../operations/types';
 
 import {
   CreateTransactionProps,
-  TransactionBuildContext,
   TransactionUpdateData,
   TransactionSnapshotWithDetails,
   TransactionSnapshot,
@@ -84,7 +82,7 @@ export class Transaction {
     const operations = transaction.createOperationsFromDrafts(dto.operations);
 
     transaction.attachOperations(operations);
-    transaction.validate();
+    transaction.validateActiveOperationsBalance();
 
     return transaction;
   }
@@ -261,8 +259,6 @@ export class Transaction {
   }
 
   private updateMetadataIfChanged(metadata?: TransactionUpdateData): boolean {
-    this.validateUpdateIsAllowed();
-
     if (!metadata) {
       return false;
     }
@@ -294,7 +290,29 @@ export class Transaction {
     return this.operationsMap.get(entryId) ?? null;
   }
 
-  private validate(): void {
+  private validateOperationIds(operationsPatch?: OperationsPatch) {
+    if (!operationsPatch) {
+      return;
+    }
+
+    const ids = [
+      ...operationsPatch.update.map(({ id }) => id),
+      ...operationsPatch.delete,
+    ];
+
+    ids.forEach((id) => {
+      const operation = this.operationsMap.get(id.valueOf());
+
+      if (!operation || operation.isDeleted()) {
+        throw new OperationNotFoundInTransactionError(
+          id.valueOf(),
+          this.getId().valueOf(),
+        );
+      }
+    });
+  }
+
+  private validateActiveOperationsBalance(): void {
     const totalValue = this.getOperations().reduce((sum, { value }) => {
       return sum.add(value);
     }, Amount.create('0'));
@@ -304,13 +322,55 @@ export class Transaction {
     }
   }
 
-  private validateOperationsPatch(operations: OperationsPatch): void {
-    if (!operations) {
+  private validateResultingBalance(operationsPatch?: OperationsPatch) {
+    if (!operationsPatch) {
       return;
     }
 
-    const deleteIds = operations.delete.map((id) => id.valueOf());
-    const updateIds = operations.update.map(({ id }) => id.valueOf());
+    const deletedIds = new Set(
+      operationsPatch.delete.map((id) => id.valueOf()),
+    );
+
+    const updatedValues = new Map(
+      operationsPatch.update.map(({ id, value }) => [id.valueOf(), value]),
+    );
+
+    const currentBalance = this.getOperations().reduce((sum, operation) => {
+      if (deletedIds.has(operation.getId().valueOf())) {
+        return sum;
+      }
+
+      const updatedValue = updatedValues.get(operation.getId().valueOf());
+
+      if (updatedValue) {
+        return sum.add(updatedValue);
+      }
+
+      return sum.add(operation.value);
+    }, Amount.create('0'));
+
+    const updatedBalanceAfterOperations = currentBalance.add(
+      operationsPatch.create.reduce(
+        (sum, { value }) => sum.add(value),
+        Amount.create('0'),
+      ),
+    );
+
+    if (!updatedBalanceAfterOperations.isZero()) {
+      throw new UnbalancedTransactionError(
+        this.getId().valueOf(),
+        updatedBalanceAfterOperations,
+      );
+    }
+  }
+
+  private validateOperationsPatch(operationsPatch?: OperationsPatch): void {
+    if (!operationsPatch) {
+      return;
+    }
+
+    const deleteIds = operationsPatch.delete.map((id) => id.valueOf());
+    const updateIds = operationsPatch.update.map(({ id }) => id.valueOf());
     const deleteIdSet = new Set(deleteIds);
 
     // Check for IDs present in both update and delete
@@ -390,36 +450,23 @@ export class Transaction {
     });
   }
 
-  private applyOperationsPatch(
-    operations?: OperationsPatch,
-    transactionContext?: TransactionBuildContext,
-  ): boolean {
+  private applyOperationsPatch(operationsPatch?: OperationsPatch): boolean {
     let isUpdated = false;
 
-    if (!operations) {
+    if (!operationsPatch) {
       return isUpdated;
     }
 
-    this.validateOperationsPatch(operations);
-
-    const { create, delete: deleteIds, update } = operations;
+    const { create, delete: deleteIds, update } = operationsPatch;
 
     if (create.length > 0) {
       isUpdated = true;
-
-      if (!transactionContext) {
-        throw new MissingTransactionContextError('create new operations');
-      }
 
       this.addOperations(create);
     }
 
     if (update.length > 0) {
       isUpdated = true;
-
-      if (!transactionContext) {
-        throw new MissingTransactionContextError('update operations');
-      }
 
       this.updateOperations(update);
     }
@@ -433,19 +480,18 @@ export class Transaction {
     return isUpdated;
   }
 
-  applyUpdate(
-    { metadata, operations }: UpdateTransactionProps,
-    transactionContext?: TransactionBuildContext,
-  ): boolean {
+  applyUpdate({ metadata, operations }: UpdateTransactionProps): boolean {
+    this.validateUpdateIsAllowed();
+    this.validateOperationsPatch(operations);
+    this.validateOperationIds(operations);
+    this.validateResultingBalance(operations);
+
     const isMetadataUpdated = this.updateMetadataIfChanged(metadata);
 
-    const isOperationsUpdated = this.applyOperationsPatch(
-      operations,
-      transactionContext,
-    );
+    const isOperationsUpdated = this.applyOperationsPatch(operations);
 
     if (isMetadataUpdated || isOperationsUpdated) {
-      this.validate();
+      this.validateActiveOperationsBalance();
       this.markUpdated();
     }
 
