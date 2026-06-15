@@ -109,11 +109,10 @@ describe('UpdateTransactionUseCase', () => {
     data: UpdateTransactionRequestDTO,
     errorType: new (...args: never[]) => Error,
   ) => {
-    const initialVersion = transaction.getVersion();
+    const initialSnapshot = transaction.toSnapshot();
 
     await expect(execute(data)).rejects.toThrow(errorType);
-
-    expect(transaction.getVersion()).toBe(initialVersion);
+    expect(transaction.toSnapshot()).toEqual(initialSnapshot);
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
   };
 
