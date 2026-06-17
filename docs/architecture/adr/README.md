@@ -35,3 +35,4 @@
 - [ADR 0001: Transaction repository boundaries](./0001-transaction-repository-boundaries.md)
 - [ADR 0002: Operation application boundary](./0002-operation-application-boundary.md)
 - [ADR 0003: No zero-net account effect invariant](./0003-no-zero-net-account-effect-invariant.md)
+- [ADR 0004: No minimum distinct accounts invariant](./0004-no-minimum-distinct-accounts-invariant.md)
