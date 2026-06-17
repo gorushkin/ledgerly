@@ -1063,10 +1063,10 @@ describe('Transaction Domain Entity', () => {
     );
 
     it.todo(
-      '[TXN-4] should reject creation with fewer than two distinct accounts',
+      '[TXN-4] should allow creation with one distinct account when base invariants hold',
     );
     it.todo(
-      '[TXN-4] should reject update that leaves fewer than two distinct accounts',
+      '[TXN-4] should allow update that leaves one distinct account when base invariants hold',
     );
 
     it.todo('[TXN-5] should reject creation with zero amount operations');

@@ -82,7 +82,10 @@ Represents different monetary units used in the system.
 3. **Balance rule**: sum of `value` across all operations in a transaction must equal zero
 4. Positive amount = debit, Negative amount = credit
 5. System-wide balance: sum of all operations across all accounts must equal zero
-6. Reusing the same account within one transaction is allowed even when the
+6. There is no minimum number of distinct accounts per transaction. A
+   transaction may be economically meaningless but still valid when it is
+   balanced and does not violate the base invariants.
+7. Reusing the same account within one transaction is allowed even when the
    account-level sum of `amount` is zero. Example: `Cash -100` and `Cash +100`
    can be a valid transaction when the transaction-level balance rule is
    satisfied; there is no separate "non-zero net effect per account" invariant.
