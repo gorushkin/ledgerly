@@ -186,6 +186,41 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(400);
     });
 
+    it.each([
+      ['NaN amount', { amount: 'NaN' as unknown as MoneyString }],
+      ['Infinity amount', { amount: 'Infinity' as unknown as MoneyString }],
+      ['NaN value', { value: 'NaN' as unknown as MoneyString }],
+      ['Infinity value', { value: 'Infinity' as unknown as MoneyString }],
+    ])('should fail with %s', async (_, invalidOperationPatch) => {
+      const payload: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'invalid finite amount',
+        operations: [
+          operation1,
+          {
+            accountId: account2.id,
+            amount: Amount.create('100').valueOf(),
+            description: 'Transfer to savings',
+            value: Amount.create('100').valueOf(),
+            ...invalidOperationPatch,
+          },
+        ],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
     it('should fail for unauthorized access', async () => {
       const payload: TransactionCreateInput = {
         currencyCode: Currency.create('USD').valueOf(),
