@@ -1,3 +1,4 @@
+import { InvalidAmountError } from 'src/domain/domain.errors';
 import { describe, expect, it } from 'vitest';
 
 import { Amount } from './Amount';
@@ -22,7 +23,7 @@ describe('Amount Value Object', () => {
       ['empty string', ''],
       ['decimal string', '12.3'],
     ])('should reject invalid amount: %s', (_caseName, value) => {
-      expect(() => Amount.create(value as string)).toThrow();
+      expect(() => Amount.create(value as string)).toThrow(InvalidAmountError);
     });
   });
 
@@ -45,7 +46,9 @@ describe('Amount Value Object', () => {
       ['empty string', ''],
       ['decimal string', '12.3'],
     ])('should reject invalid persisted amount: %s', (_caseName, value) => {
-      expect(() => Amount.fromPersistence(value as string)).toThrow();
+      expect(() => Amount.fromPersistence(value as string)).toThrow(
+        InvalidAmountError,
+      );
     });
   });
 
