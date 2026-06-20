@@ -32,6 +32,9 @@ Represents a single financial posting affecting an account.
 - Belongs to a user (`userId`)
 - `amount` — signed integer in the **account's native currency** (cents)
 - `value` — signed integer in the **transaction's currency** (cents); used for balance validation
+- `amount` and `value` must be valid integer minor-unit values. `NaN`,
+  `Infinity`, missing values, and decimal/floating-point values are invalid.
+  Zero is allowed and is not rejected by the domain model.
 - For same-currency transactions `amount === value`
 - Positive = debit, Negative = credit
 - May be soft-deleted in persistence via `isTombstone`
@@ -81,11 +84,13 @@ Represents different monetary units used in the system.
 2. Operations can be any count (no minimum of two, no requirement to be a multiple of two)
 3. **Balance rule**: sum of `value` across all operations in a transaction must equal zero
 4. Positive amount = debit, Negative amount = credit
-5. System-wide balance: sum of all operations across all accounts must equal zero
-6. There is no minimum number of distinct accounts per transaction. A
+5. Monetary fields (`amount` and `value`) are integer minor-units and must be
+   finite valid values. `0` is allowed.
+6. System-wide balance: sum of all operations across all accounts must equal zero
+7. There is no minimum number of distinct accounts per transaction. A
    transaction may be economically meaningless but still valid when it is
    balanced and does not violate the base invariants.
-7. Reusing the same account within one transaction is allowed even when the
+8. Reusing the same account within one transaction is allowed even when the
    account-level sum of `amount` is zero. Example: `Cash -100` and `Cash +100`
    can be a valid transaction when the transaction-level balance rule is
    satisfied; there is no separate "non-zero net effect per account" invariant.

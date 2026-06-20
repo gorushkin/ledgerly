@@ -20,6 +20,15 @@ export class InvalidVersionError extends DomainError {
 }
 
 /**
+ * Thrown when a money amount value is not a valid integer minor-unit amount.
+ */
+export class InvalidAmountError extends DomainError {
+  constructor(public readonly value: unknown) {
+    super('Money value must be a valid integer minor-unit value');
+  }
+}
+
+/**
  * Thrown when a transaction's operations don't balance (sum !== 0).
  */
 export class UnbalancedTransactionError extends DomainError {

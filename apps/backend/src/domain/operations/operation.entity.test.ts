@@ -1,6 +1,7 @@
 import { createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
+import { DeletedEntityOperationError } from 'src/domain/domain.errors';
 import {
   afterEach,
   beforeAll,
@@ -13,7 +14,6 @@ import {
 
 import { Account } from '../accounts';
 import { Amount, Id } from '../domain-core';
-import { DeletedEntityOperationError } from '../domain.errors';
 import { Transaction } from '../transactions';
 import { User } from '../users/user.entity';
 

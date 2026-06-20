@@ -1,3 +1,5 @@
+import { DeletedEntityOperationError } from 'src/domain/domain.errors';
+
 import { Account, Transaction } from '..';
 import {
   Id,
@@ -8,7 +10,6 @@ import {
   SoftDelete,
   ParentChildRelation,
 } from '../domain-core';
-import { DeletedEntityOperationError } from '../domain.errors';
 
 import { OperationSnapshot, UpdateOperationProps } from './types';
 
