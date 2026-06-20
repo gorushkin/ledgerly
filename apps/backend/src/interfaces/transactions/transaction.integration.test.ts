@@ -1655,18 +1655,19 @@ describe('Transactions Integration Tests', () => {
     });
 
     it("should return 404 when creating operations with another user's account", async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
-
-      const createdOperations = await Promise.all([
-        testDB.createOperation(userId, {
-          ...operation1Data,
-          transactionId: transaction.id,
-        }),
-        testDB.createOperation(userId, {
-          ...operation2Data,
-          transactionId: transaction.id,
-        }),
-      ]);
+      const transaction = await testDB.createTransactionWithOperations(userId, {
+        operations: [
+          {
+            ...operation1Data,
+            id: Id.create().valueOf(),
+          },
+          {
+            ...operation2Data,
+            id: Id.create().valueOf(),
+          },
+        ],
+      });
+      const createdOperations = transaction.operations;
 
       const otherUser = await testDB.createUser();
 
@@ -1720,25 +1721,32 @@ describe('Transactions Integration Tests', () => {
           ({ id }) => id === operation.id,
         );
 
-        expect(persistedOperation).toBeDefined();
-        expect(persistedOperation?.isTombstone).toBe(false);
-        compareCommonEntities(operation, persistedOperation!);
+        if (!persistedOperation) {
+          throw new Error(
+            `Operation with ID ${operation.id} not found in persisted operations`,
+          );
+        }
+
+        expect(persistedOperation.isTombstone).toBe(false);
+        expect(persistedOperation.accountId).toBe(operation.accountId);
+        compareCommonEntities(operation, persistedOperation);
       });
     });
 
     it("should return 404 when updating operations to another user's account", async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
-
-      const createdOperations = await Promise.all([
-        testDB.createOperation(userId, {
-          ...operation1Data,
-          transactionId: transaction.id,
-        }),
-        testDB.createOperation(userId, {
-          ...operation2Data,
-          transactionId: transaction.id,
-        }),
-      ]);
+      const transaction = await testDB.createTransactionWithOperations(userId, {
+        operations: [
+          {
+            ...operation1Data,
+            id: Id.create().valueOf(),
+          },
+          {
+            ...operation2Data,
+            id: Id.create().valueOf(),
+          },
+        ],
+      });
+      const createdOperations = transaction.operations;
 
       const otherUser = await testDB.createUser();
 
@@ -1778,14 +1786,24 @@ describe('Transactions Integration Tests', () => {
       expect(persistedTransaction?.description).toBe(transaction.description);
       expect(persistedTransaction?.version).toBe(transaction.version);
 
+      expect(persistedTransaction?.operations).toHaveLength(
+        createdOperations.length,
+      );
+
       createdOperations.forEach((operation) => {
         const persistedOperation = persistedTransaction?.operations.find(
           ({ id }) => id === operation.id,
         );
 
-        expect(persistedOperation).toBeDefined();
-        expect(persistedOperation?.isTombstone).toBe(false);
-        compareCommonEntities(operation, persistedOperation!);
+        if (!persistedOperation) {
+          throw new Error(
+            `Operation with ID ${operation.id} not found in persisted operations`,
+          );
+        }
+
+        expect(persistedOperation.isTombstone).toBe(false);
+        expect(persistedOperation.accountId).toBe(operation.accountId);
+        compareCommonEntities(operation, persistedOperation);
       });
     });
 

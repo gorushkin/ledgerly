@@ -145,7 +145,7 @@ describe('TransactionContextLoader', () => {
 
     await expect(
       transactionContextLoader.loadContext(user, rawOperations),
-    ).rejects.toThrow(repositoryError);
+    ).rejects.toBe(repositoryError);
 
     expect(mockAccountRepository.getByIds).toHaveBeenCalledWith(
       user.getId().valueOf(),
