@@ -1,10 +1,7 @@
 import { createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
-import {
-  DeletedEntityOperationError,
-  InvalidAmountError,
-} from 'src/domain/domain.errors';
+import { DeletedEntityOperationError } from 'src/domain/domain.errors';
 import {
   afterEach,
   beforeAll,
@@ -316,32 +313,6 @@ describe('Operation Domain Entity', () => {
     );
 
     expect(operation.amount.equals(operationData.amount)).toBe(true);
-  });
-
-  it('should reject invalid operation amount input before creating an operation', () => {
-    expect(() =>
-      Operation.create(
-        userId,
-        usdAccount,
-        transaction,
-        Amount.create('NaN'),
-        Amount.create('100'),
-        'Invalid amount operation',
-      ),
-    ).toThrow(InvalidAmountError);
-  });
-
-  it('should reject invalid operation value input before creating an operation', () => {
-    expect(() =>
-      Operation.create(
-        userId,
-        usdAccount,
-        transaction,
-        Amount.create('100'),
-        Amount.create('Infinity'),
-        'Invalid value operation',
-      ),
-    ).toThrow(InvalidAmountError);
   });
 
   it('should handle negative amounts correctly', () => {

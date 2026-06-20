@@ -189,8 +189,16 @@ describe('Transactions Integration Tests', () => {
     it.each([
       ['NaN amount', { amount: 'NaN' as unknown as MoneyString }],
       ['Infinity amount', { amount: 'Infinity' as unknown as MoneyString }],
+      ['decimal amount', { amount: '12.3' as unknown as MoneyString }],
+      ['empty amount', { amount: '' as unknown as MoneyString }],
+      ['null amount', { amount: null as unknown as MoneyString }],
+      ['missing amount', { amount: undefined as unknown as MoneyString }],
       ['NaN value', { value: 'NaN' as unknown as MoneyString }],
       ['Infinity value', { value: 'Infinity' as unknown as MoneyString }],
+      ['decimal value', { value: '12.3' as unknown as MoneyString }],
+      ['empty value', { value: '' as unknown as MoneyString }],
+      ['null value', { value: null as unknown as MoneyString }],
+      ['missing value', { value: undefined as unknown as MoneyString }],
     ])('should fail with %s', async (_, invalidOperationPatch) => {
       const payload: TransactionCreateInput = {
         currencyCode: Currency.create('USD').valueOf(),

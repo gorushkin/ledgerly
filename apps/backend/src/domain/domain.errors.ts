@@ -24,7 +24,7 @@ export class InvalidVersionError extends DomainError {
  */
 export class InvalidAmountError extends DomainError {
   constructor(public readonly value: unknown) {
-    super('Amount must be a valid integer minor-unit value');
+    super('Money value must be a valid integer minor-unit value');
   }
 }
 
