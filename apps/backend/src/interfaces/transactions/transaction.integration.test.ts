@@ -1654,6 +1654,159 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
+    it("should return 404 when creating operations with another user's account", async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId, {
+        operations: [
+          {
+            ...operation1Data,
+            id: Id.create().valueOf(),
+          },
+          {
+            ...operation2Data,
+            id: Id.create().valueOf(),
+          },
+        ],
+      });
+      const createdOperations = transaction.operations;
+
+      const otherUser = await testDB.createUser();
+
+      const otherUserAccount = await testDB.createAccount(otherUser.id, {
+        currency: Currency.create('USD').valueOf(),
+        name: 'Other User Account',
+      });
+
+      const updatedData = createUpdateRequest({
+        description: 'Should not be persisted',
+        operations: {
+          create: [
+            {
+              accountId: otherUserAccount.id,
+              amount: Amount.create('50').valueOf(),
+              description: 'Foreign account operation',
+              value: Amount.create('50').valueOf(),
+            },
+            {
+              accountId: account1Data.id,
+              amount: Amount.create('-50').valueOf(),
+              description: 'Balancing operation',
+              value: Amount.create('-50').valueOf(),
+            },
+          ],
+          delete: [],
+          update: [],
+        },
+        postingDate: transaction.postingDate,
+        transactionDate: transaction.transactionDate,
+        version: transaction.version,
+      });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
+
+      expect(response.statusCode).toBe(404);
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      expect(persistedTransaction?.description).toBe(transaction.description);
+      expect(persistedTransaction?.version).toBe(transaction.version);
+
+      expect(persistedTransaction?.operations).toHaveLength(
+        createdOperations.length,
+      );
+
+      createdOperations.forEach((operation) => {
+        const persistedOperation = persistedTransaction?.operations.find(
+          ({ id }) => id === operation.id,
+        );
+
+        if (!persistedOperation) {
+          throw new Error(
+            `Operation with ID ${operation.id} not found in persisted operations`,
+          );
+        }
+
+        expect(persistedOperation.isTombstone).toBe(false);
+        expect(persistedOperation.accountId).toBe(operation.accountId);
+        compareCommonEntities(operation, persistedOperation);
+      });
+    });
+
+    it("should return 404 when updating operations to another user's account", async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId, {
+        operations: [
+          {
+            ...operation1Data,
+            id: Id.create().valueOf(),
+          },
+          {
+            ...operation2Data,
+            id: Id.create().valueOf(),
+          },
+        ],
+      });
+      const createdOperations = transaction.operations;
+
+      const otherUser = await testDB.createUser();
+
+      const otherUserAccount = await testDB.createAccount(otherUser.id, {
+        currency: Currency.create('USD').valueOf(),
+        name: 'Other User Account',
+      });
+
+      const updatedData = createUpdateRequest({
+        description: 'Should not be persisted',
+        operations: {
+          create: [],
+          delete: [],
+          update: [
+            {
+              accountId: otherUserAccount.id,
+              amount: createdOperations[0].amount,
+              description: 'Foreign account update',
+              id: createdOperations[0].id,
+              value: createdOperations[0].value,
+            },
+          ],
+        },
+        postingDate: transaction.postingDate,
+        transactionDate: transaction.transactionDate,
+        version: transaction.version,
+      });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
+
+      expect(response.statusCode).toBe(404);
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      expect(persistedTransaction?.description).toBe(transaction.description);
+      expect(persistedTransaction?.version).toBe(transaction.version);
+
+      expect(persistedTransaction?.operations).toHaveLength(
+        createdOperations.length,
+      );
+
+      createdOperations.forEach((operation) => {
+        const persistedOperation = persistedTransaction?.operations.find(
+          ({ id }) => id === operation.id,
+        );
+
+        if (!persistedOperation) {
+          throw new Error(
+            `Operation with ID ${operation.id} not found in persisted operations`,
+          );
+        }
+
+        expect(persistedOperation.isTombstone).toBe(false);
+        expect(persistedOperation.accountId).toBe(operation.accountId);
+        compareCommonEntities(operation, persistedOperation);
+      });
+    });
+
     it('should return 400 for invalid payload (missing required fields)', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 

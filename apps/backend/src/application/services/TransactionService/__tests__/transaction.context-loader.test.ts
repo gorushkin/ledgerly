@@ -121,6 +121,38 @@ describe('TransactionContextLoader', () => {
     );
   });
 
+  it('should propagate not found errors for accounts outside the user scope', async () => {
+    const otherUser = await createUser();
+    const otherUserAccount = createAccount(otherUser);
+    const repositoryError = new Error('Accounts not found');
+
+    const rawOperations: OperationRequestDTO[] = [
+      {
+        accountId: otherUserAccount.getId().valueOf(),
+        amount: Amount.create('100').valueOf(),
+        description: 'Op 1',
+        value: Amount.create('100').valueOf(),
+      },
+      {
+        accountId: otherUserAccount.getId().valueOf(),
+        amount: Amount.create('-100').valueOf(),
+        description: 'Op 2',
+        value: Amount.create('-100').valueOf(),
+      },
+    ];
+
+    mockAccountRepository.getByIds.mockRejectedValueOnce(repositoryError);
+
+    await expect(
+      transactionContextLoader.loadContext(user, rawOperations),
+    ).rejects.toBe(repositoryError);
+
+    expect(mockAccountRepository.getByIds).toHaveBeenCalledWith(
+      user.getId().valueOf(),
+      [otherUserAccount.getId().valueOf()],
+    );
+  });
+
   it('should return empty maps when operations list is empty', async () => {
     mockAccountRepository.getByIds.mockResolvedValueOnce([]);
 
