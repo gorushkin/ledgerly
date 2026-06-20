@@ -153,6 +153,13 @@ User's financial accounts for tracking funds.
 ### 💱 **Currencies**
 Dictionary of supported currencies.
 
+> Design note: this table is an MVP currency dictionary, not the final identity
+> model for all monetary units. Ledgerly is expected to need an asset/commodity
+> registry for fiat currencies, crypto assets, network-specific tokens, and
+> custom user assets before final transaction currency existence validation is
+> implemented. See
+> [ADR 0006](./architecture/adr/0006-asset-registry-before-currency-validation.md).
+
 | Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
 | `code` | String | Currency code (ISO 4217) | PK, NOT NULL |
