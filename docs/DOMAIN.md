@@ -68,6 +68,13 @@ Represents different financial accounts with unified structure for all account t
 
 Represents different monetary units used in the system.
 
+> Design note: this concept is expected to evolve into an asset/commodity
+> registry before transaction currency existence validation is finalized. Fiat
+> currencies, crypto assets, tokenized assets on different networks, and custom
+> user-defined assets should not all rely on a currency code as primary
+> identity. See
+> [ADR 0006](./architecture/adr/0006-asset-registry-before-currency-validation.md).
+
 #### Key Properties
 
 - Each account has a designated currency
@@ -240,6 +247,14 @@ Currency
 - code: string (PK)
 - name: string
 - symbol: string
+
+Future asset registry direction:
+- id: UUID or stable asset identifier
+- type: fiat | crypto | commodity | custom
+- code/symbol: display and search values, not necessarily globally unique
+- precision: minor-unit scale for integer amount storage
+- network and contract address: optional metadata for tokenized assets
+- createdByUserId: nullable owner for user-defined assets
 
 Settings
 - userId: UUID (PK, FK)
