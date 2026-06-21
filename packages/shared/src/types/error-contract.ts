@@ -7,6 +7,9 @@ export const apiErrorCodes = {
   insufficientOperations: "INSUFFICIENT_OPERATIONS",
   invalidAmount: "INVALID_AMOUNT",
   invalidVersion: "INVALID_VERSION",
+  operationNotFoundInTransaction: "OPERATION_NOT_FOUND_IN_TRANSACTION",
+  operationTransactionMismatch: "OPERATION_TRANSACTION_MISMATCH",
+  operationUserMismatch: "OPERATION_USER_MISMATCH",
   transactionUnbalanced: "TRANSACTION_UNBALANCED",
   unauthorizedAccess: "UNAUTHORIZED_ACCESS",
   validationFailed: "VALIDATION_FAILED",
@@ -50,6 +53,18 @@ export type ErrorContextByCode = {
   INVALID_VERSION: {
     reason: "NON_NEGATIVE_INTEGER";
     received: number;
+  };
+  OPERATION_NOT_FOUND_IN_TRANSACTION: {
+    operationId: UUID;
+    transactionId: UUID;
+  };
+  OPERATION_TRANSACTION_MISMATCH: {
+    operationId: UUID;
+    transactionId: UUID;
+  };
+  OPERATION_USER_MISMATCH: {
+    operationId: UUID;
+    transactionId: UUID;
   };
   TRANSACTION_UNBALANCED: {
     difference: string;

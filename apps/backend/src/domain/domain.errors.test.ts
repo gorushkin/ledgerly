@@ -3,6 +3,9 @@ import {
   ExcessiveOperationsError,
   InsufficientOperationsError,
   InvalidVersionError,
+  OperationDoesNotBelongToTransactionError,
+  OperationNotFoundInTransactionError,
+  OperationUserMismatchError,
 } from 'src/domain/domain.errors';
 import {
   MAX_TRANSACTION_OPERATIONS,
@@ -46,6 +49,38 @@ describe('coded domain errors', () => {
       context: {
         maximum: MAX_TRANSACTION_OPERATIONS,
         received,
+      },
+    });
+  });
+
+  it.each([
+    [
+      'OPERATION_NOT_FOUND_IN_TRANSACTION',
+      new OperationNotFoundInTransactionError(
+        'operation-id' as never,
+        'transaction-id' as never,
+      ),
+    ],
+    [
+      'OPERATION_TRANSACTION_MISMATCH',
+      new OperationDoesNotBelongToTransactionError(
+        'operation-id' as never,
+        'transaction-id' as never,
+      ),
+    ],
+    [
+      'OPERATION_USER_MISMATCH',
+      new OperationUserMismatchError(
+        'operation-id' as never,
+        'transaction-id' as never,
+      ),
+    ],
+  ])('exposes %s context', (code, error) => {
+    expect(error).toMatchObject({
+      code,
+      context: {
+        operationId: 'operation-id',
+        transactionId: 'transaction-id',
       },
     });
   });

@@ -161,13 +161,15 @@ export class ConflictingOperationIdsError extends DomainError {
 /**
  * Thrown when attempting to update/delete an operation that doesn't belong to the transaction.
  */
-export class OperationNotFoundInTransactionError extends DomainError {
+export class OperationNotFoundInTransactionError extends CodedError<'OPERATION_NOT_FOUND_IN_TRANSACTION'> {
   constructor(
     public readonly operationId: UUID,
     public readonly transactionId: UUID,
   ) {
     super(
-      `Operation with id ${operationId} does not belong to transaction ${transactionId}`,
+      `operation ${operationId} was not found in transaction ${transactionId}`,
+      apiErrorCodes.operationNotFoundInTransaction,
+      { operationId, transactionId },
     );
   }
 }
@@ -176,13 +178,15 @@ export class OperationNotFoundInTransactionError extends DomainError {
  * Thrown when attempting to attach an entry that doesn't belong to this transaction.
  * This indicates a programming error - operations should be created with correct transactionId.
  */
-export class OperationDoesNotBelongToTransactionError extends DomainError {
+export class OperationDoesNotBelongToTransactionError extends CodedError<'OPERATION_TRANSACTION_MISMATCH'> {
   constructor(
     public readonly operationId: UUID,
     public readonly transactionId: UUID,
   ) {
     super(
-      `Operation with id ${operationId} was created with wrong transactionId. Expected: ${transactionId}`,
+      `operation ${operationId} belongs to a different transaction than ${transactionId}`,
+      apiErrorCodes.operationTransactionMismatch,
+      { operationId, transactionId },
     );
   }
 }
@@ -205,13 +209,15 @@ export class AccountNotFoundInContextError extends DomainError {
  * Thrown when an operation belongs to a different user than the transaction it's being attached to.
  * This indicates a programming error - operations should be created with the same userId as the transaction.
  */
-export class OperationUserMismatchError extends DomainError {
+export class OperationUserMismatchError extends CodedError<'OPERATION_USER_MISMATCH'> {
   constructor(
     public readonly operationId: UUID,
     public readonly transactionId: UUID,
   ) {
     super(
-      `Operation ${operationId} does not belong to the same user as transaction ${transactionId}`,
+      `operation ${operationId} and transaction ${transactionId} belong to different users`,
+      apiErrorCodes.operationUserMismatch,
+      { operationId, transactionId },
     );
   }
 }
