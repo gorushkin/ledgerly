@@ -116,9 +116,13 @@ export class ExcessiveOperationsError extends CodedError<'EXCESSIVE_OPERATIONS'>
  */
 type DeletedEntityOperation = 'update';
 
-export class DeletedEntityOperationError extends DomainError {
+export class DeletedEntityOperationError extends CodedError<'DELETED_ENTITY_OPERATION'> {
   constructor(entityType: string, operation: DeletedEntityOperation) {
-    super(`Cannot ${operation} on deleted ${entityType}`);
+    super(
+      `cannot ${operation} a deleted ${entityType}`,
+      apiErrorCodes.deletedEntityOperation,
+      { entityType, operation },
+    );
   }
 
   static forUpdate(entityType: string): DeletedEntityOperationError {

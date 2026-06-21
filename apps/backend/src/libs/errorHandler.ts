@@ -16,6 +16,7 @@ import { CodedError } from 'src/shared/errors';
 import { ZodError, type ZodIssue } from 'zod';
 
 const statusByErrorCode = {
+  [apiErrorCodes.deletedEntityOperation]: 400,
   [apiErrorCodes.emptyOperations]: 400,
   [apiErrorCodes.entityNotFound]: 404,
   [apiErrorCodes.excessiveOperations]: 400,

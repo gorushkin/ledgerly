@@ -1,4 +1,5 @@
 import {
+  DeletedEntityOperationError,
   EmptyOperationsError,
   ExcessiveOperationsError,
   InsufficientOperationsError,
@@ -14,6 +15,18 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('coded domain errors', () => {
+  it('exposes DELETED_ENTITY_OPERATION context', () => {
+    expect(
+      new DeletedEntityOperationError('transaction', 'update'),
+    ).toMatchObject({
+      code: 'DELETED_ENTITY_OPERATION',
+      context: {
+        entityType: 'transaction',
+        operation: 'update',
+      },
+    });
+  });
+
   it('exposes INVALID_VERSION context', () => {
     expect(new InvalidVersionError(-1)).toMatchObject({
       code: 'INVALID_VERSION',

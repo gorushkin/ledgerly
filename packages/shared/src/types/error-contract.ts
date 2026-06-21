@@ -1,6 +1,7 @@
 import type { UUID } from "./types";
 
 export const apiErrorCodes = {
+  deletedEntityOperation: "DELETED_ENTITY_OPERATION",
   emptyOperations: "EMPTY_OPERATIONS",
   entityNotFound: "ENTITY_NOT_FOUND",
   excessiveOperations: "EXCESSIVE_OPERATIONS",
@@ -32,6 +33,10 @@ export type ValidationFieldError = {
 };
 
 export type ErrorContextByCode = {
+  DELETED_ENTITY_OPERATION: {
+    entityType: string;
+    operation: "update";
+  };
   EMPTY_OPERATIONS: Record<string, never>;
   ENTITY_NOT_FOUND: {
     entityId?: UUID;
