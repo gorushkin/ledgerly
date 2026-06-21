@@ -10,6 +10,7 @@ import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
 import {
   ConflictingOperationIdsError,
   DeletedEntityOperationError,
+  ExcessiveOperationsError,
   InsufficientOperationsError,
   OperationNotFoundInTransactionError,
   UnbalancedTransactionError,
@@ -32,6 +33,7 @@ import {
 } from '../operations/types';
 import { User } from '../users/user.entity';
 
+import { MAX_TRANSACTION_OPERATIONS } from './constants';
 import { Transaction } from './transaction.entity';
 import { CreateTransactionProps } from './types';
 
@@ -95,6 +97,36 @@ describe('Transaction Domain Entity', () => {
     operationsData3,
     operationsData4,
   ];
+
+  const createBalancedOperations = (count: number): CreateOperationProps[] => {
+    const account = data.getAccountByKey('USD');
+    const operationPairs = Array.from({ length: Math.floor(count / 2) }, () => [
+      {
+        account,
+        amount: Amount.create('1'),
+        description: 'Debit operation',
+        value: Amount.create('1'),
+      },
+      {
+        account,
+        amount: Amount.create('-1'),
+        description: 'Credit operation',
+        value: Amount.create('-1'),
+      },
+    ]).flat();
+
+    return count % 2 === 0
+      ? operationPairs
+      : [
+          ...operationPairs,
+          {
+            account,
+            amount: Amount.create('0'),
+            description: 'Zero operation',
+            value: Amount.create('0'),
+          },
+        ];
+  };
 
   beforeAll(async () => {
     user = await createUser();
@@ -941,6 +973,26 @@ describe('Transaction Domain Entity', () => {
       );
     });
 
+    it('should allow creation with the maximum number of operations', () => {
+      const transaction = Transaction.create(user.getId(), {
+        ...transactionData,
+        operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS),
+      });
+
+      expect(transaction.getOperations()).toHaveLength(
+        MAX_TRANSACTION_OPERATIONS,
+      );
+    });
+
+    it('should reject creation with more than the maximum number of operations', () => {
+      expect(() =>
+        Transaction.create(user.getId(), {
+          ...transactionData,
+          operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS + 1),
+        }),
+      ).toThrow(ExcessiveOperationsError);
+    });
+
     it('should reject updating to fewer than two operations', () => {
       const operationsData = [
         {
@@ -987,6 +1039,51 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.toSnapshot()).toEqual(originalSnapshot);
 
       expect(transaction.getVersion()).toEqual(originalVersion);
+    });
+
+    it('should reject an update that exceeds the maximum number of operations', () => {
+      const transaction = Transaction.create(user.getId(), {
+        ...transactionData,
+        operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS),
+      });
+
+      const originalSnapshot = transaction.toSnapshot();
+
+      expect(() =>
+        transaction.applyUpdate({
+          operations: {
+            create: createBalancedOperations(2),
+            delete: [],
+            update: [],
+          },
+        }),
+      ).toThrow(ExcessiveOperationsError);
+
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
+    });
+
+    it('should allow replacing operations without exceeding the maximum', () => {
+      const transaction = Transaction.create(user.getId(), {
+        ...transactionData,
+        operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS),
+      });
+
+      const operationsToDelete = transaction
+        .getOperations()
+        .slice(0, 2)
+        .map((operation) => operation.getId());
+
+      transaction.applyUpdate({
+        operations: {
+          create: createBalancedOperations(2),
+          delete: operationsToDelete,
+          update: [],
+        },
+      });
+
+      expect(transaction.getOperations()).toHaveLength(
+        MAX_TRANSACTION_OPERATIONS,
+      );
     });
 
     it('should allow delete and create when two balanced operations remain', () => {

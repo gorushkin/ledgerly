@@ -2,6 +2,7 @@ import { UUID } from '@ledgerly/shared/types';
 import {
   ConflictingOperationIdsError,
   DeletedEntityOperationError,
+  ExcessiveOperationsError,
   InsufficientOperationsError,
   OperationNotFoundInTransactionError,
   OperationUserMismatchError,
@@ -23,7 +24,10 @@ import {
 import { Operation } from '../operations';
 import { OperationProps, UpdateOperationProps } from '../operations/types';
 
-import { MIN_TRANSACTION_OPERATIONS } from './constants';
+import {
+  MAX_TRANSACTION_OPERATIONS,
+  MIN_TRANSACTION_OPERATIONS,
+} from './constants';
 import {
   CreateTransactionProps,
   TransactionUpdateData,
@@ -323,6 +327,16 @@ export class Transaction {
     });
   }
 
+  private validateOperationCountWithinLimits(operationCount: number): void {
+    if (operationCount < MIN_TRANSACTION_OPERATIONS) {
+      throw new InsufficientOperationsError(operationCount);
+    }
+
+    if (operationCount > MAX_TRANSACTION_OPERATIONS) {
+      throw new ExcessiveOperationsError(operationCount);
+    }
+  }
+
   private validateResultingOperationCount(
     operationsPatch?: OperationsPatch,
   ): void {
@@ -335,17 +349,13 @@ export class Transaction {
       operationsPatch.create.length -
       operationsPatch.delete.length;
 
-    if (activeOperationsCount < MIN_TRANSACTION_OPERATIONS) {
-      throw new InsufficientOperationsError(activeOperationsCount);
-    }
+    this.validateOperationCountWithinLimits(activeOperationsCount);
   }
 
   private validateActiveOperationsCount(): void {
     const activeOperationsCount = this.getOperations().length;
 
-    if (activeOperationsCount < MIN_TRANSACTION_OPERATIONS) {
-      throw new InsufficientOperationsError(activeOperationsCount);
-    }
+    this.validateOperationCountWithinLimits(activeOperationsCount);
   }
 
   private validateActiveOperationsBalance(): void {

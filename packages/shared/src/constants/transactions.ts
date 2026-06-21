@@ -2,6 +2,8 @@ import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "./pagination";
 
 export const DEFAULT_TRANSACTION_SORT_BY = "transactionDate";
 export const DEFAULT_TRANSACTION_SORT_ORDER = "desc";
+export const MIN_TRANSACTION_OPERATIONS = 2;
+export const MAX_TRANSACTION_OPERATIONS = 1000;
 
 export const DEFAULT_TRANSACTION_QUERY = {
   page: DEFAULT_PAGE,

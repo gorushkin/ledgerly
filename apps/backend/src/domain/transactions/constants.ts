@@ -1,1 +1,4 @@
-export const MIN_TRANSACTION_OPERATIONS = 2;
+export {
+  MAX_TRANSACTION_OPERATIONS,
+  MIN_TRANSACTION_OPERATIONS,
+} from '@ledgerly/shared/constants';

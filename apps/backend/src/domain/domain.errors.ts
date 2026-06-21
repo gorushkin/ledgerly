@@ -2,7 +2,10 @@ import { UUID } from '@ledgerly/shared/types';
 import { BaseError } from 'src/shared/errors/BaseError';
 
 import { Amount } from './domain-core/value-objects/Amount';
-import { MIN_TRANSACTION_OPERATIONS } from './transactions/constants';
+import {
+  MIN_TRANSACTION_OPERATIONS,
+  MAX_TRANSACTION_OPERATIONS,
+} from './transactions/constants';
 
 /**
  * Base class for all domain layer errors.
@@ -58,6 +61,17 @@ export class InsufficientOperationsError extends DomainError {
   constructor(public readonly operationCount: number) {
     super(
       `Transaction must contain at least ${MIN_TRANSACTION_OPERATIONS} operations. Received: ${operationCount}`,
+    );
+  }
+}
+
+/**
+ * Thrown when a transaction contains more than the maximum allowed operations.
+ */
+export class ExcessiveOperationsError extends DomainError {
+  constructor(public readonly operationCount: number) {
+    super(
+      `Transaction cannot contain more than ${MAX_TRANSACTION_OPERATIONS} operations. Received: ${operationCount}`,
     );
   }
 }

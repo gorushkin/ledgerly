@@ -60,7 +60,7 @@ These accounts:
 ### 2.5 ~~Entry Wrapper~~ *(removed)*
 ~~Operations are grouped within **Entries**.~~
 
-The `Entry` entity has been removed from the data model. Operations now belong directly to a transaction via `transactionId`. Any number of operations is valid — balance is checked at the transaction level by summing `value`.
+The `Entry` entity has been removed from the data model. Operations now belong directly to a transaction via `transactionId`. A transaction contains from `MIN_TRANSACTION_OPERATIONS` to `MAX_TRANSACTION_OPERATIONS` active operations (currently 2 to 1000; see [`transactions.ts`](../packages/shared/src/constants/transactions.ts)); balance is checked at the transaction level by summing `value`.
 
 ### 2.6 Immutable Operations
 Operations cannot be edited.  
@@ -252,7 +252,7 @@ Currently, Ledgerly stays closer to GnuCash than to PTA.
 ### Current implementation
 
 - **Transaction → Operation** hierarchy (Entry removed)  
-- Any number of operations per transaction  
+- From `MIN_TRANSACTION_OPERATIONS` to `MAX_TRANSACTION_OPERATIONS` active operations per transaction (currently 2 to 1000)
 - Balance validated by `sum(value) = 0` across all operations  
 - Immutable ledger operations  
 - `amount` = account currency; `value` = transaction currency (GnuCash convention)  
