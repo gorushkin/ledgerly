@@ -65,9 +65,15 @@ export class InsufficientOperationsError extends DomainError {
 /**
  * Thrown when attempting to perform operations on a deleted entity.
  */
+type DeletedEntityOperation = 'update';
+
 export class DeletedEntityOperationError extends DomainError {
-  constructor(entityType: string, operation: string) {
+  constructor(entityType: string, operation: DeletedEntityOperation) {
     super(`Cannot ${operation} on deleted ${entityType}`);
+  }
+
+  static forUpdate(entityType: string): DeletedEntityOperationError {
+    return new DeletedEntityOperationError(entityType, 'update');
   }
 }
 

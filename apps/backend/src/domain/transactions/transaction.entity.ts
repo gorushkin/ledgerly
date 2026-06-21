@@ -50,6 +50,7 @@ const findDuplicateIds = (ids: UUID[]): UUID[] => {
 };
 
 export class Transaction {
+  static readonly entityType = 'transaction';
   private operations: Operation[] = [];
   private operationsMap = new Map<string, Operation>();
   private constructor(
@@ -236,9 +237,9 @@ export class Transaction {
   }
 
   validateUpdateIsAllowed(): void {
-    if (this.isDeleted()) {
-      throw new DeletedEntityOperationError('transaction', 'update');
-    }
+    this.softDelete.validateUpdateIsAllowed(
+      DeletedEntityOperationError.forUpdate(Transaction.entityType),
+    );
   }
 
   private updateDescription(description: string): boolean {

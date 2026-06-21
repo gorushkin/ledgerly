@@ -589,6 +589,7 @@ describe('UpdateTransactionUseCase', () => {
 
     const data = createRequest({
       description: 'Must not update deleted transaction',
+      version: transaction.getVersion().increment().valueOf(),
     });
 
     const deletedSnapshot = transaction.toSnapshot();

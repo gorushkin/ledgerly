@@ -51,6 +51,13 @@ describe('SoftDelete', () => {
     );
   });
 
+  it('should throw the provided error when update is forbidden', () => {
+    const deleted = SoftDelete.create().markAsDeleted();
+    const error = new Error('Custom update error');
+
+    expect(() => deleted.validateUpdateIsAllowed(error)).toThrow(error);
+  });
+
   it('markAsDeleted should return a new instance even for already deleted entity', () => {
     const deleted1 = SoftDelete.create().markAsDeleted();
     const deleted2 = deleted1.markAsDeleted();

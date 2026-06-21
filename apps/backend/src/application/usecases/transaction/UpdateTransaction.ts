@@ -39,14 +39,14 @@ export class UpdateTransactionUseCase {
         'Transaction',
       );
 
+      transaction.validateUpdateIsAllowed();
+
       if (!transaction.hasVersion(expectedVersion)) {
         throw new VersionConflictError(
           'Transaction',
           expectedVersion.valueOf(),
         );
       }
-
-      transaction.validateUpdateIsAllowed();
 
       const operationsData = [
         ...data.operations.create,
