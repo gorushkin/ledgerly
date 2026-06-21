@@ -1,6 +1,7 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
   ConflictingOperationIdsError,
+  DeletedEntityOperationError,
   InsufficientOperationsError,
   OperationNotFoundInTransactionError,
   OperationUserMismatchError,
@@ -193,6 +194,10 @@ export class Transaction {
     return this.version;
   }
 
+  hasVersion(expectedVersion: Version): boolean {
+    return this.version.isEqualTo(expectedVersion);
+  }
+
   private markUpdated() {
     this.version = this.version.increment();
     this.timestamps = this.timestamps.touch();
@@ -231,7 +236,9 @@ export class Transaction {
   }
 
   validateUpdateIsAllowed(): void {
-    this.softDelete.validateUpdateIsAllowed();
+    if (this.isDeleted()) {
+      throw new DeletedEntityOperationError('transaction', 'update');
+    }
   }
 
   private updateDescription(description: string): boolean {

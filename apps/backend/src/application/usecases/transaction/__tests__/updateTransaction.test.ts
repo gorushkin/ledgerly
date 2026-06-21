@@ -21,6 +21,7 @@ import { Transaction, User } from 'src/domain';
 import { Amount, Id, Version } from 'src/domain/domain-core';
 import {
   ConflictingOperationIdsError,
+  DeletedEntityOperationError,
   OperationNotFoundInTransactionError,
   UnbalancedTransactionError,
 } from 'src/domain/domain.errors';
@@ -582,7 +583,19 @@ describe('UpdateTransactionUseCase', () => {
 
     await expect(execute(data)).rejects.toThrow(EntityNotFoundError);
   });
-  it.todo(
-    'should propagate error when update is called on a deleted transaction',
-  );
+
+  it('propagates an error when update is called on a deleted transaction', async () => {
+    transaction.markAsDeleted();
+
+    const data = createRequest({
+      description: 'Must not update deleted transaction',
+    });
+
+    const deletedSnapshot = transaction.toSnapshot();
+
+    await expect(execute(data)).rejects.toThrow(DeletedEntityOperationError);
+    expect(transaction.toSnapshot()).toEqual(deletedSnapshot);
+    expect(mockTransactionContextLoader.loadContext).not.toHaveBeenCalled();
+    expect(mockTransactionRepository.update).not.toHaveBeenCalled();
+  });
 });
