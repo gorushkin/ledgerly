@@ -364,7 +364,11 @@ export class Transaction {
     }, Amount.create('0'));
 
     if (!totalValue.isZero()) {
-      throw new UnbalancedTransactionError(this.getId().valueOf(), totalValue);
+      throw new UnbalancedTransactionError(
+        Transaction.entityType,
+        this.getId().valueOf(),
+        totalValue,
+      );
     }
   }
 
@@ -404,6 +408,7 @@ export class Transaction {
 
     if (!updatedBalanceAfterOperations.isZero()) {
       throw new UnbalancedTransactionError(
+        Transaction.entityType,
         this.getId().valueOf(),
         updatedBalanceAfterOperations,
       );

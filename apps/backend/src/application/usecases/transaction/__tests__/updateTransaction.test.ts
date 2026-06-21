@@ -122,7 +122,7 @@ describe('UpdateTransactionUseCase', () => {
       user,
       expect.any(Function),
       transaction.getId().valueOf(),
-      'Transaction',
+      Transaction.entityType,
     );
 
     expect(
@@ -510,7 +510,10 @@ describe('UpdateTransactionUseCase', () => {
     });
 
     mockEnsureEntityExistsAndOwned.mockRejectedValue(
-      new EntityNotFoundError('Transaction'),
+      new EntityNotFoundError({
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      }),
     );
 
     await expect(execute(data)).rejects.toThrow(EntityNotFoundError);
@@ -525,7 +528,10 @@ describe('UpdateTransactionUseCase', () => {
     });
 
     mockEnsureEntityExistsAndOwned.mockRejectedValue(
-      new UnauthorizedAccessError('Transaction'),
+      new UnauthorizedAccessError({
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      }),
     );
 
     await expect(execute(data)).rejects.toThrow(UnauthorizedAccessError);
@@ -545,8 +551,11 @@ describe('UpdateTransactionUseCase', () => {
     await expect(result).rejects.toThrow(VersionConflictError);
     await expect(result).rejects.toMatchObject({
       code: 'VERSION_CONFLICT',
-      expectedVersion: data.version,
-      message: `Transaction version mismatch for expected version ${data.version}`,
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+        expectedVersion: data.version,
+      },
     });
 
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();

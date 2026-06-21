@@ -1,6 +1,7 @@
 import type { UUID } from "./types";
 
 export const apiErrorCodes = {
+  entityNotFound: "ENTITY_NOT_FOUND",
   invalidAmount: "INVALID_AMOUNT",
   transactionUnbalanced: "TRANSACTION_UNBALANCED",
   unauthorizedAccess: "UNAUTHORIZED_ACCESS",
@@ -21,6 +22,7 @@ export type ErrorContextByCode = {
   };
   TRANSACTION_UNBALANCED: {
     difference: string;
+    entityType: string;
     transactionId: UUID;
   };
   UNAUTHORIZED_ACCESS: {
@@ -29,6 +31,7 @@ export type ErrorContextByCode = {
   };
   VERSION_CONFLICT: {
     actualVersion?: number;
+    entityId?: UUID;
     entityType: string;
     expectedVersion: number;
   };

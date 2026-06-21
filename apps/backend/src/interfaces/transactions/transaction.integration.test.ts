@@ -1,5 +1,5 @@
 import { ROUTES } from '@ledgerly/shared/routes';
-import { MoneyString, UUID } from '@ledgerly/shared/types';
+import { ApiErrorResponse, MoneyString, UUID } from '@ledgerly/shared/types';
 import {
   OperationCreateInput,
   TransactionCreateInput,
@@ -443,23 +443,28 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 404 for a non-existent transaction ID', async () => {
+      const transactionId = Id.create().valueOf();
       const response = await server.inject({
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
         method: 'GET',
-        url: `${url}/${Id.create().valueOf()}`,
+        url: `${url}/${transactionId}`,
       });
 
-      const body = JSON.parse(response.body) as {
-        error: boolean;
-        message: string;
-      };
+      const body =
+        parseResponse<Extract<ApiErrorResponse, { code: 'ENTITY_NOT_FOUND' }>>(
+          response,
+        );
 
       expect(response.statusCode).toBe(404);
       expect(body).toEqual({
+        code: 'ENTITY_NOT_FOUND',
+        context: {
+          entityId: transactionId,
+          entityType: 'transaction',
+        },
         error: true,
-        message: 'Transaction not found',
       });
     });
 
@@ -1936,17 +1941,17 @@ describe('Transactions Integration Tests', () => {
 
       expect(staleResponse.statusCode).toBe(409);
 
-      const errorResponse = parseResponse<{
-        code: string;
-        error: boolean;
-        message: string;
-      }>(staleResponse);
+      const errorResponse = parseResponse<ApiErrorResponse>(staleResponse);
 
-      expect(errorResponse.code).toBe('VERSION_CONFLICT');
-      expect(errorResponse.error).toBe(true);
-      expect(errorResponse.message).toBe(
-        `Transaction version mismatch for expected version ${transaction.version}`,
-      );
+      expect(errorResponse).toEqual({
+        code: 'VERSION_CONFLICT',
+        context: {
+          entityId: transaction.id,
+          entityType: 'transaction',
+          expectedVersion: transaction.version,
+        },
+        error: true,
+      });
 
       const persistedTransaction = await testDB.getTransactionById(
         transaction.id,
@@ -1991,6 +1996,20 @@ describe('Transactions Integration Tests', () => {
       const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(400);
+      const errorResponse =
+        parseResponse<
+          Extract<ApiErrorResponse, { code: 'TRANSACTION_UNBALANCED' }>
+        >(response);
+
+      expect(errorResponse).toMatchObject({
+        code: 'TRANSACTION_UNBALANCED',
+        context: {
+          entityType: 'transaction',
+          transactionId: transaction.id,
+        },
+        error: true,
+      });
+      expect(typeof errorResponse.context.difference).toBe('string');
     });
   });
 });

@@ -146,7 +146,7 @@ export class TransactionBuilder {
     const account = this.accounts.get(key);
 
     if (!account) {
-      throw new EntityNotFoundError(`Account with key ${key} not found`);
+      throw new EntityNotFoundError({ entityType: Account.entityType });
     }
 
     return account;
@@ -156,9 +156,7 @@ export class TransactionBuilder {
     const account = this.systemAccounts.get(currency as CurrencyCode);
 
     if (!account) {
-      throw new EntityNotFoundError(
-        `System account with currency ${currency} not found`,
-      );
+      throw new EntityNotFoundError({ entityType: Account.entityType });
     }
 
     return account;

@@ -12,7 +12,7 @@ export type EnsureEntityExistsAndOwnedFn = <
   user: User,
   promise: (userId: UUID, entityId: UUID) => Promise<T | null>,
   entityId: UUID,
-  entityName: string,
+  entityType: string,
 ) => Promise<T>;
 
 export const ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn = async <
@@ -21,15 +21,15 @@ export const ensureEntityExistsAndOwned: EnsureEntityExistsAndOwnedFn = async <
   user: User,
   promise: (userId: UUID, entityId: UUID) => Promise<T | null>,
   entityId: UUID,
-  entityName: string,
+  entityType: string,
 ): Promise<T> => {
   const entity = await promise(user.getId().valueOf(), entityId);
   if (!entity) {
-    throw new EntityNotFoundError(entityName);
+    throw new EntityNotFoundError({ entityId, entityType });
   }
 
   if (!entity.belongsToUser(user.getId())) {
-    throw new UnauthorizedAccessError(entityName);
+    throw new UnauthorizedAccessError({ entityId, entityType });
   }
 
   return entity;

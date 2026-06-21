@@ -1,5 +1,5 @@
-import { UUID } from '@ledgerly/shared/types';
-import { BaseError } from 'src/shared/errors/BaseError';
+import { apiErrorCodes, UUID } from '@ledgerly/shared/types';
+import { BaseError, CodedError } from 'src/shared/errors';
 
 import { Amount } from './domain-core/value-objects/Amount';
 import {
@@ -25,22 +25,36 @@ export class InvalidVersionError extends DomainError {
 /**
  * Thrown when a money amount value is not a valid integer minor-unit amount.
  */
-export class InvalidAmountError extends DomainError {
+export class InvalidAmountError extends CodedError<'INVALID_AMOUNT'> {
   constructor(public readonly value: unknown) {
-    super('Money value must be a valid integer minor-unit value');
+    super(
+      'money value must be a valid integer minor-unit value',
+      apiErrorCodes.invalidAmount,
+      {
+        reason: 'NOT_INTEGER_MINOR_UNITS',
+        received: String(value),
+      },
+    );
   }
 }
 
 /**
  * Thrown when a transaction's operations don't balance (sum !== 0).
  */
-export class UnbalancedTransactionError extends DomainError {
+export class UnbalancedTransactionError extends CodedError<'TRANSACTION_UNBALANCED'> {
   constructor(
+    entityType: string,
     public readonly transactionId: UUID,
     public readonly difference: Amount,
   ) {
     super(
-      `Transaction with id ${transactionId} has unbalanced operations. Difference: ${difference.valueOf()}`,
+      `operations are unbalanced; difference: ${difference.valueOf()}`,
+      apiErrorCodes.transactionUnbalanced,
+      {
+        difference: difference.valueOf(),
+        entityType,
+        transactionId,
+      },
     );
   }
 }

@@ -81,7 +81,10 @@ describe('DeleteTransactionUseCase', () => {
 
   it('should propagate error when transaction is not found', async () => {
     mockEnsureEntityExistsAndOwned.mockRejectedValue(
-      new EntityNotFoundError('Transaction'),
+      new EntityNotFoundError({
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      }),
     );
 
     await expect(
@@ -93,7 +96,10 @@ describe('DeleteTransactionUseCase', () => {
 
   it('should propagate error when user does not own the transaction', async () => {
     mockEnsureEntityExistsAndOwned.mockRejectedValue(
-      new UnauthorizedAccessError('Transaction'),
+      new UnauthorizedAccessError({
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      }),
     );
 
     await expect(

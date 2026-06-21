@@ -1,16 +1,23 @@
+import { apiErrorCodes, type ApiErrorCode } from '@ledgerly/shared/types';
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import {
-  EntityNotFoundError,
   InvalidPasswordError,
-  UnauthorizedAccessError,
   UserAlreadyExistsError,
   UserNotFoundError,
-  VersionConflictError,
 } from 'src/application/application.errors';
 import { DomainError } from 'src/domain/domain.errors';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors/index';
+import { CodedError } from 'src/shared/errors';
 import { ZodError } from 'zod';
+
+const statusByErrorCode = {
+  [apiErrorCodes.entityNotFound]: 404,
+  [apiErrorCodes.invalidAmount]: 400,
+  [apiErrorCodes.transactionUnbalanced]: 400,
+  [apiErrorCodes.unauthorizedAccess]: 403,
+  [apiErrorCodes.versionConflict]: 409,
+} satisfies Record<ApiErrorCode, number>;
 
 export function errorHandler(
   error:
@@ -19,13 +26,11 @@ export function errorHandler(
     | ZodError
     | DatabaseError
     | DomainError
-    | EntityNotFoundError
-    | UnauthorizedAccessError
+    | CodedError<ApiErrorCode>
     | RepositoryNotFoundError
     | UserNotFoundError
     | InvalidPasswordError
-    | UserAlreadyExistsError
-    | VersionConflictError,
+    | UserAlreadyExistsError,
   _request: FastifyRequest,
   reply: FastifyReply,
 ) {
@@ -38,6 +43,14 @@ export function errorHandler(
     return reply.status(400).send({
       error: true,
       errors: formatted,
+    });
+  }
+
+  if (error instanceof CodedError) {
+    return reply.status(statusByErrorCode[error.code]).send({
+      code: error.code,
+      context: error.context,
+      error: true,
     });
   }
 
@@ -66,29 +79,6 @@ export function errorHandler(
 
   if (error instanceof UserAlreadyExistsError) {
     return reply.status(409).send({
-      error: true,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof VersionConflictError) {
-    return reply.status(409).send({
-      code: error.code,
-      error: true,
-      message: error.message,
-    });
-  }
-
-  // Application layer errors - entity operations
-  if (error instanceof EntityNotFoundError) {
-    return reply.status(404).send({
-      error: true,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof UnauthorizedAccessError) {
-    return reply.status(403).send({
       error: true,
       message: error.message,
     });
