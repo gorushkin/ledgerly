@@ -5,10 +5,24 @@ export const apiErrorCodes = {
   invalidAmount: "INVALID_AMOUNT",
   transactionUnbalanced: "TRANSACTION_UNBALANCED",
   unauthorizedAccess: "UNAUTHORIZED_ACCESS",
+  validationFailed: "VALIDATION_FAILED",
   versionConflict: "VERSION_CONFLICT",
 } as const;
 
 export type ApiErrorCode = (typeof apiErrorCodes)[keyof typeof apiErrorCodes];
+
+export type ValidationFieldErrorCode =
+  | "INVALID_FORMAT"
+  | "INVALID_TYPE"
+  | "INVALID_VALUE"
+  | "REQUIRED"
+  | "TOO_BIG"
+  | "TOO_SMALL";
+
+export type ValidationFieldError = {
+  code: ValidationFieldErrorCode;
+  path: string;
+};
 
 export type ErrorContextByCode = {
   ENTITY_NOT_FOUND: {
@@ -28,6 +42,9 @@ export type ErrorContextByCode = {
   UNAUTHORIZED_ACCESS: {
     entityId?: UUID;
     entityType: string;
+  };
+  VALIDATION_FAILED: {
+    fields: ValidationFieldError[];
   };
   VERSION_CONFLICT: {
     actualVersion?: number;

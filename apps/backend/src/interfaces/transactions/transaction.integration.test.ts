@@ -194,6 +194,26 @@ describe('Transactions Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(400);
+
+      const errorResponse =
+        parseResponse<Extract<ApiErrorResponse, { code: 'VALIDATION_FAILED' }>>(
+          response,
+        );
+
+      expect(errorResponse.code).toBe('VALIDATION_FAILED');
+
+      expect(errorResponse.context.fields).toEqual(
+        expect.arrayContaining([
+          {
+            code: 'REQUIRED',
+            path: 'currencyCode',
+          },
+          {
+            code: 'REQUIRED',
+            path: 'operations',
+          },
+        ]),
+      );
     });
 
     it('should fail with invalid amounts', async () => {

@@ -30,6 +30,9 @@ presentation layer needs a uniform, safe response format.
    and application errors do not carry HTTP-specific status information.
 6. Public error context is an explicit allowlist. Internal diagnostic details
    that are unsafe or unnecessary for a client are kept out of it.
+7. Presentation adapters translate external validation errors, including
+   `ZodError`, into the same contract. The API exposes `VALIDATION_FAILED` and
+   normalized field codes, not Zod issue details or messages.
 
 ## Alternatives Considered
 
@@ -64,6 +67,8 @@ Neutral/cost:
 
 - New coded errors require a code, a public context schema, and a presentation
   status mapping.
+- Validation-library upgrades do not change the API contract; the Zod adapter
+  must map any new issue types deliberately.
 - Existing textual error responses must be migrated deliberately; the first
   migration is limited to the transaction application flow and selected domain
   errors in `LED-72`.
