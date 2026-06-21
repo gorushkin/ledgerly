@@ -45,6 +45,30 @@ export class InvalidAmountError extends CodedError<'INVALID_AMOUNT'> {
   }
 }
 
+export class InvalidDateError extends CodedError<'INVALID_DATE'> {
+  constructor() {
+    super('date has an invalid format', apiErrorCodes.invalidDate, {
+      reason: 'INVALID_FORMAT',
+    });
+  }
+}
+
+export class InvalidIdentifierError extends CodedError<'INVALID_IDENTIFIER'> {
+  constructor() {
+    super('identifier has an invalid format', apiErrorCodes.invalidIdentifier, {
+      reason: 'INVALID_FORMAT',
+    });
+  }
+}
+
+export class InvalidTimestampError extends CodedError<'INVALID_TIMESTAMP'> {
+  constructor() {
+    super('timestamp has an invalid format', apiErrorCodes.invalidTimestamp, {
+      reason: 'INVALID_FORMAT',
+    });
+  }
+}
+
 /**
  * Thrown when a transaction's operations don't balance (sum !== 0).
  */

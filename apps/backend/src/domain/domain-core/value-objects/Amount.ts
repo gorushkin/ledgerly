@@ -15,21 +15,17 @@ export class Amount {
       return;
     }
 
-    const parsed = Amount.parseMinor(value);
+    const parsed = parseValueObject(
+      value,
+      moneyAmountBigint,
+      (invalidValue) => new InvalidAmountError(invalidValue),
+    );
 
     if (typeof parsed !== 'bigint') {
       throw new InvalidAmountError(value);
     }
 
     this.minor = parsed;
-  }
-
-  private static parseMinor(value: string): bigint {
-    return parseValueObject(
-      value,
-      moneyAmountBigint,
-      (invalidValue) => new InvalidAmountError(invalidValue),
-    );
   }
 
   static create(value: string): Amount {

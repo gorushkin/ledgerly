@@ -9,6 +9,9 @@ export const apiErrorCodes = {
   excessiveOperations: "EXCESSIVE_OPERATIONS",
   insufficientOperations: "INSUFFICIENT_OPERATIONS",
   invalidAmount: "INVALID_AMOUNT",
+  invalidDate: "INVALID_DATE",
+  invalidIdentifier: "INVALID_IDENTIFIER",
+  invalidTimestamp: "INVALID_TIMESTAMP",
   invalidVersion: "INVALID_VERSION",
   operationAlreadyAttachedToTransaction:
     "OPERATION_ALREADY_ATTACHED_TO_TRANSACTION",
@@ -70,6 +73,15 @@ export type ErrorContextByCode = {
     field?: string;
     reason: "NOT_INTEGER_MINOR_UNITS";
     received: string;
+  };
+  INVALID_DATE: {
+    reason: "INVALID_FORMAT";
+  };
+  INVALID_IDENTIFIER: {
+    reason: "INVALID_FORMAT";
+  };
+  INVALID_TIMESTAMP: {
+    reason: "INVALID_FORMAT";
   };
   INVALID_VERSION: {
     reason: "NON_NEGATIVE_INTEGER";
