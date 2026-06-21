@@ -17,7 +17,7 @@ Transaction (financial event)
 
 #### Key Properties
 
-- Contains one or more **operations** (any count, not required to be a pair)
+- Contains 2 to 1000 active **operations**; the count does not have to be a pair or a multiple of two
 - The transaction is balanced when the sum of all operation `value` fields equals zero
 - Supports split transactions
 - Contains metadata (date, description, etc.)
@@ -87,8 +87,8 @@ Represents different monetary units used in the system.
 
 ### Double-Entry Bookkeeping
 
-1. Each transaction must have at least one operation
-2. Operations can be any count (no minimum of two, no requirement to be a multiple of two)
+1. Each transaction must contain from 2 to 1000 active operations
+2. The operation count does not have to be a pair or a multiple of two
 3. **Balance rule**: sum of `value` across all operations in a transaction must equal zero
 4. Positive amount = debit, Negative amount = credit
 5. Monetary fields (`amount` and `value`) are integer minor-units and must be
