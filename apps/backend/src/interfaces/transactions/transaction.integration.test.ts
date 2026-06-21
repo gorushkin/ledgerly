@@ -140,6 +140,45 @@ describe('Transactions Integration Tests', () => {
       });
     });
 
+    it('should create a multi-currency transaction balanced by value when amounts do not sum to zero', async () => {
+      const rubAccount = await testDB.createAccount(userId, {
+        currency: Currency.create('RUB').valueOf(),
+        name: 'Cash RUB',
+      });
+
+      const payload: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'USD to RUB exchange',
+        operations: [
+          {
+            accountId: account1.id,
+            amount: Amount.create('-10000').valueOf(),
+            description: 'USD withdrawal',
+            value: Amount.create('-100').valueOf(),
+          },
+          {
+            accountId: rubAccount.id,
+            amount: Amount.create('900000').valueOf(),
+            description: 'RUB deposit',
+            value: Amount.create('100').valueOf(),
+          },
+        ],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(201);
+    });
+
     it('should fail when required fields are missing', async () => {
       const payload = {
         description: 'incomplete transaction',
