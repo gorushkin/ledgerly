@@ -131,6 +131,30 @@ describe('TransactionController', () => {
         ),
       ).rejects.toThrow(ZodError);
     });
+
+    it.each(['postingDate', 'transactionDate'] as const)(
+      'should reject a create request without %s',
+      async (missingDateField) => {
+        const requestBody = {
+          currencyCode: Currency.create('USD').valueOf(),
+          description: 'Test Transaction',
+          operations,
+          postingDate: DateValue.restore('2024-01-01').valueOf(),
+          transactionDate: DateValue.restore('2024-01-02').valueOf(),
+        };
+
+        delete requestBody[missingDateField];
+
+        await expect(
+          transactionController.create(
+            user,
+            requestBody as unknown as TransactionCreateInput,
+          ),
+        ).rejects.toThrow(ZodError);
+
+        expect(mockCreateTransactionUseCase.execute).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('getById', () => {
