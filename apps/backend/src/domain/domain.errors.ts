@@ -208,13 +208,15 @@ export class OperationDoesNotBelongToTransactionError extends CodedError<'OPERAT
 /**
  * Thrown when an account required for an operation is not found in the transaction build context.
  */
-export class AccountNotFoundInContextError extends DomainError {
+export class AccountNotFoundInContextError extends CodedError<'ACCOUNT_NOT_FOUND_IN_CONTEXT'> {
   constructor(
     public readonly accountId: string,
     public readonly operationId: string,
   ) {
     super(
-      `Account with ID ${accountId} not found in context for operation ${operationId}`,
+      `account ${accountId} was not found in the transaction context`,
+      apiErrorCodes.accountNotFoundInContext,
+      { accountId, operationId },
     );
   }
 }

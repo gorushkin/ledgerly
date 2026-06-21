@@ -516,7 +516,17 @@ describe('UpdateTransactionUseCase', () => {
       }),
     );
 
-    await expect(execute(data)).rejects.toThrow(EntityNotFoundError);
+    const result = execute(data);
+
+    await expect(result).rejects.toThrow(EntityNotFoundError);
+
+    await expect(result).rejects.toMatchObject({
+      code: 'ENTITY_NOT_FOUND',
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      },
+    });
 
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
     expect(mockTransactionContextLoader.loadContext).not.toHaveBeenCalled();
@@ -534,7 +544,17 @@ describe('UpdateTransactionUseCase', () => {
       }),
     );
 
-    await expect(execute(data)).rejects.toThrow(UnauthorizedAccessError);
+    const result = execute(data);
+
+    await expect(result).rejects.toThrow(UnauthorizedAccessError);
+
+    await expect(result).rejects.toMatchObject({
+      code: 'UNAUTHORIZED_ACCESS',
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      },
+    });
 
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
     expect(mockTransactionContextLoader.loadContext).not.toHaveBeenCalled();
@@ -571,7 +591,18 @@ describe('UpdateTransactionUseCase', () => {
       reason: 'VERSION_CONFLICT',
     });
 
-    await expect(execute(data)).rejects.toThrow(VersionConflictError);
+    const result = execute(data);
+
+    await expect(result).rejects.toThrow(VersionConflictError);
+
+    await expect(result).rejects.toMatchObject({
+      code: 'VERSION_CONFLICT',
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+        expectedVersion: data.version,
+      },
+    });
 
     expect(mockTransactionRepository.update).toHaveBeenCalledExactlyOnceWith(
       user.getId().valueOf(),

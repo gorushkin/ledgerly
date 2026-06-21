@@ -3,6 +3,19 @@ import { describe, expect, it } from 'vitest';
 
 import { Version } from './Version';
 
+const captureInvalidVersionError = (
+  action: () => void,
+): InvalidVersionError => {
+  try {
+    action();
+  } catch (error) {
+    expect(error).toBeInstanceOf(InvalidVersionError);
+    return error as InvalidVersionError;
+  }
+
+  throw new Error('Expected InvalidVersionError to be thrown');
+};
+
 describe('Version Value Object', () => {
   describe('create method', () => {
     it('should create a non-negative integer version', () => {
@@ -13,7 +26,15 @@ describe('Version Value Object', () => {
     it.each([-1, 1.5, Number.NaN, Infinity, -Infinity])(
       'should reject invalid version %s',
       (value) => {
-        expect(() => Version.create(value)).toThrow(InvalidVersionError);
+        const error = captureInvalidVersionError(() => Version.create(value));
+
+        expect(error).toMatchObject({
+          code: 'INVALID_VERSION',
+          context: {
+            reason: 'NON_NEGATIVE_INTEGER',
+            received: value,
+          },
+        });
       },
     );
   });
@@ -24,7 +45,15 @@ describe('Version Value Object', () => {
     });
 
     it('should reject an invalid persisted version', () => {
-      expect(() => Version.restore(-1)).toThrow(InvalidVersionError);
+      const error = captureInvalidVersionError(() => Version.restore(-1));
+
+      expect(error).toMatchObject({
+        code: 'INVALID_VERSION',
+        context: {
+          reason: 'NON_NEGATIVE_INTEGER',
+          received: -1,
+        },
+      });
     });
   });
 

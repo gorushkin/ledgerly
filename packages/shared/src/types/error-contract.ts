@@ -1,6 +1,7 @@
 import type { UUID } from "./types";
 
 export const apiErrorCodes = {
+  accountNotFoundInContext: "ACCOUNT_NOT_FOUND_IN_CONTEXT",
   conflictingOperationIds: "CONFLICTING_OPERATION_IDS",
   deletedEntityOperation: "DELETED_ENTITY_OPERATION",
   emptyOperations: "EMPTY_OPERATIONS",
@@ -34,6 +35,10 @@ export type ValidationFieldError = {
 };
 
 export type ErrorContextByCode = {
+  ACCOUNT_NOT_FOUND_IN_CONTEXT: {
+    accountId: string;
+    operationId: string;
+  };
   CONFLICTING_OPERATION_IDS: {
     conflict:
       | "DUPLICATE_IN_DELETE"

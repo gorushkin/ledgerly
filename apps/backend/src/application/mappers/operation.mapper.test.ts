@@ -5,7 +5,10 @@ import {
 } from 'src/application/dto';
 import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils';
-import { InvalidAmountError } from 'src/domain/domain.errors';
+import {
+  AccountNotFoundInContextError,
+  InvalidAmountError,
+} from 'src/domain/domain.errors';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { OperationMapper } from './operation.mapper';
@@ -48,6 +51,30 @@ describe('OperationMapper', () => {
           transactionContext,
         ),
       ).toThrow(InvalidAmountError);
+    });
+
+    it('returns ACCOUNT_NOT_FOUND_IN_CONTEXT for an unknown account', () => {
+      const accountId =
+        crypto.randomUUID() as CreateOperationRequestDTO['accountId'];
+
+      try {
+        OperationMapper.toCreateOperationProps(
+          { ...validCreateDTO, accountId },
+          transactionContext,
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(AccountNotFoundInContextError);
+        expect(error).toMatchObject({
+          code: 'ACCOUNT_NOT_FOUND_IN_CONTEXT',
+          context: {
+            accountId,
+            operationId: 'new-operation',
+          },
+        });
+        return;
+      }
+
+      throw new Error('Expected AccountNotFoundInContextError to be thrown');
     });
   });
 

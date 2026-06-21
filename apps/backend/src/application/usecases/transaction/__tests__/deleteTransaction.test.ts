@@ -87,9 +87,20 @@ describe('DeleteTransactionUseCase', () => {
       }),
     );
 
-    await expect(
-      deleteTransactionByIdUseCase.execute(user, transaction.getId().valueOf()),
-    ).rejects.toThrow(EntityNotFoundError);
+    const result = deleteTransactionByIdUseCase.execute(
+      user,
+      transaction.getId().valueOf(),
+    );
+
+    await expect(result).rejects.toThrow(EntityNotFoundError);
+
+    await expect(result).rejects.toMatchObject({
+      code: 'ENTITY_NOT_FOUND',
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      },
+    });
 
     expect(mockTransactionRepository.softDelete).not.toHaveBeenCalled();
   });
@@ -102,9 +113,20 @@ describe('DeleteTransactionUseCase', () => {
       }),
     );
 
-    await expect(
-      deleteTransactionByIdUseCase.execute(user, transaction.getId().valueOf()),
-    ).rejects.toThrow(UnauthorizedAccessError);
+    const result = deleteTransactionByIdUseCase.execute(
+      user,
+      transaction.getId().valueOf(),
+    );
+
+    await expect(result).rejects.toThrow(UnauthorizedAccessError);
+
+    await expect(result).rejects.toMatchObject({
+      code: 'UNAUTHORIZED_ACCESS',
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      },
+    });
 
     expect(mockTransactionRepository.softDelete).not.toHaveBeenCalled();
   });

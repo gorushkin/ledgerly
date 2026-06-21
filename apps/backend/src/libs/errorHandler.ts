@@ -16,6 +16,7 @@ import { CodedError } from 'src/shared/errors';
 import { ZodError, type ZodIssue } from 'zod';
 
 const statusByErrorCode = {
+  [apiErrorCodes.accountNotFoundInContext]: 400,
   [apiErrorCodes.conflictingOperationIds]: 400,
   [apiErrorCodes.deletedEntityOperation]: 400,
   [apiErrorCodes.emptyOperations]: 400,

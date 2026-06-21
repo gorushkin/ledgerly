@@ -53,6 +53,17 @@ const areOperationsEqual = (
   }
 };
 
+const captureThrownError = (action: () => void): Error => {
+  try {
+    action();
+  } catch (error) {
+    expect(error).toBeInstanceOf(Error);
+    return error as Error;
+  }
+
+  throw new Error('Expected an error to be thrown');
+};
+
 describe('Transaction Domain Entity', () => {
   let user: User;
 
@@ -253,7 +264,7 @@ describe('Transaction Domain Entity', () => {
         throw new Error('Test setup failed: Account not found');
       }
 
-      expect(() =>
+      const error = captureThrownError(() =>
         restoredTransaction.applyUpdate({
           operations: {
             create: [],
@@ -269,7 +280,16 @@ describe('Transaction Domain Entity', () => {
             ],
           },
         }),
-      ).toThrow(OperationNotFoundInTransactionError);
+      );
+
+      expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_NOT_FOUND_IN_TRANSACTION',
+        context: {
+          operationId: operationToDelete1.id,
+          transactionId: restoredTransaction.getId().valueOf(),
+        },
+      });
     });
   });
 
@@ -519,7 +539,7 @@ describe('Transaction Domain Entity', () => {
       const originalSnapshot = transaction.toSnapshot();
       const unknownOperationId = Id.create();
 
-      expect(() =>
+      const error = captureThrownError(() =>
         transaction.applyUpdate({
           operations: {
             create: [],
@@ -527,7 +547,16 @@ describe('Transaction Domain Entity', () => {
             update: [toUpdateProps(transaction, 0, unknownOperationId)],
           },
         }),
-      ).toThrow(OperationNotFoundInTransactionError);
+      );
+
+      expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_NOT_FOUND_IN_TRANSACTION',
+        context: {
+          operationId: unknownOperationId.valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
 
       expect(transaction.toSnapshot()).toEqual(originalSnapshot);
     });
@@ -537,7 +566,7 @@ describe('Transaction Domain Entity', () => {
       const originalSnapshot = transaction.toSnapshot();
       const unknownOperationId = Id.create();
 
-      expect(() =>
+      const error = captureThrownError(() =>
         transaction.applyUpdate({
           operations: {
             create: [],
@@ -545,7 +574,16 @@ describe('Transaction Domain Entity', () => {
             update: [],
           },
         }),
-      ).toThrow(OperationNotFoundInTransactionError);
+      );
+
+      expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_NOT_FOUND_IN_TRANSACTION',
+        context: {
+          operationId: unknownOperationId.valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
 
       expect(transaction.toSnapshot()).toEqual(originalSnapshot);
     });
@@ -823,14 +861,23 @@ describe('Transaction Domain Entity', () => {
       const deletedSnapshot = transaction.toSnapshot();
       const metadata = TransactionMapper.toMetadataUpdateData(transaction);
 
-      expect(() =>
+      const error = captureThrownError(() =>
         transaction.applyUpdate({
           metadata: {
             ...metadata,
             description: 'Updated deleted transaction',
           },
         }),
-      ).toThrow(DeletedEntityOperationError);
+      );
+
+      expect(error).toBeInstanceOf(DeletedEntityOperationError);
+      expect(error).toMatchObject({
+        code: 'DELETED_ENTITY_OPERATION',
+        context: {
+          entityType: Transaction.entityType,
+          operation: 'update',
+        },
+      });
 
       expect(transaction.toSnapshot()).toEqual(deletedSnapshot);
     });
@@ -936,7 +983,7 @@ describe('Transaction Domain Entity', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
       const operationToUpdate = transaction.getOperations()[1];
 
-      expect(() =>
+      const error = captureThrownError(() =>
         transaction.applyUpdate({
           operations: {
             create: [],
@@ -952,7 +999,16 @@ describe('Transaction Domain Entity', () => {
             ],
           },
         }),
-      ).toThrow(UnbalancedTransactionError);
+      );
+
+      expect(error).toBeInstanceOf(UnbalancedTransactionError);
+      expect(error).toMatchObject({
+        code: 'TRANSACTION_UNBALANCED',
+        context: {
+          entityType: Transaction.entityType,
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
     });
 
     it('should reject create when resulting operations do not sum to zero', () => {
@@ -1059,9 +1115,18 @@ describe('Transaction Domain Entity', () => {
         data.transactionContext,
       );
 
-      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
-        InsufficientOperationsError,
+      const error = captureThrownError(() =>
+        Transaction.create(user.getId(), transactionData),
       );
+
+      expect(error).toBeInstanceOf(InsufficientOperationsError);
+      expect(error).toMatchObject({
+        code: 'INSUFFICIENT_OPERATIONS',
+        context: {
+          minimum: 2,
+          received: 0,
+        },
+      });
     });
 
     it('should reject creation with one operation', () => {
@@ -1102,12 +1167,21 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should reject creation with more than the maximum number of operations', () => {
-      expect(() =>
+      const error = captureThrownError(() =>
         Transaction.create(user.getId(), {
           ...transactionData,
           operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS + 1),
         }),
-      ).toThrow(ExcessiveOperationsError);
+      );
+
+      expect(error).toBeInstanceOf(ExcessiveOperationsError);
+      expect(error).toMatchObject({
+        code: 'EXCESSIVE_OPERATIONS',
+        context: {
+          maximum: MAX_TRANSACTION_OPERATIONS,
+          received: MAX_TRANSACTION_OPERATIONS + 1,
+        },
+      });
     });
 
     it('should reject updating to fewer than two operations', () => {

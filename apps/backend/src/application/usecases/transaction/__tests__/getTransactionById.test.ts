@@ -139,8 +139,16 @@ describe('GetTransactionByIdUseCase', () => {
 
     mockTransactionQueryRepository.findById.mockResolvedValue(null);
 
-    await expect(
-      getTransactionByIdUseCase.execute(userId, transactionId),
-    ).rejects.toThrow(EntityNotFoundError);
+    const result = getTransactionByIdUseCase.execute(userId, transactionId);
+
+    await expect(result).rejects.toThrow(EntityNotFoundError);
+
+    await expect(result).rejects.toMatchObject({
+      code: 'ENTITY_NOT_FOUND',
+      context: {
+        entityId: transactionId,
+        entityType: 'transaction',
+      },
+    });
   });
 });

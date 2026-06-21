@@ -3,6 +3,17 @@ import { describe, expect, it } from 'vitest';
 
 import { Amount } from './Amount';
 
+const captureInvalidAmountError = (action: () => void): InvalidAmountError => {
+  try {
+    action();
+  } catch (error) {
+    expect(error).toBeInstanceOf(InvalidAmountError);
+    return error as InvalidAmountError;
+  }
+
+  throw new Error('Expected InvalidAmountError to be thrown');
+};
+
 describe('Amount Value Object', () => {
   describe('create method', () => {
     it.each(['100', '-100', '0'])(
@@ -23,7 +34,17 @@ describe('Amount Value Object', () => {
       ['empty string', ''],
       ['decimal string', '12.3'],
     ])('should reject invalid amount: %s', (_caseName, value) => {
-      expect(() => Amount.create(value as string)).toThrow(InvalidAmountError);
+      const error = captureInvalidAmountError(() =>
+        Amount.create(value as string),
+      );
+
+      expect(error).toMatchObject({
+        code: 'INVALID_AMOUNT',
+        context: {
+          reason: 'NOT_INTEGER_MINOR_UNITS',
+          received: String(value),
+        },
+      });
     });
   });
 
@@ -46,9 +67,17 @@ describe('Amount Value Object', () => {
       ['empty string', ''],
       ['decimal string', '12.3'],
     ])('should reject invalid persisted amount: %s', (_caseName, value) => {
-      expect(() => Amount.fromPersistence(value as string)).toThrow(
-        InvalidAmountError,
+      const error = captureInvalidAmountError(() =>
+        Amount.fromPersistence(value as string),
       );
+
+      expect(error).toMatchObject({
+        code: 'INVALID_AMOUNT',
+        context: {
+          reason: 'NOT_INTEGER_MINOR_UNITS',
+          received: String(value),
+        },
+      });
     });
   });
 
