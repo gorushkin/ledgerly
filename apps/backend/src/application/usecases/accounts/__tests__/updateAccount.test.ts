@@ -1,4 +1,5 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
+import { EntityNotFoundError } from 'src/application/application.errors';
 import { createUser } from 'src/db/createTestUser';
 import { Account } from 'src/domain/accounts/account.entity';
 import { Amount } from 'src/domain/domain-core';
@@ -101,11 +102,18 @@ describe('UpdateAccount', async () => {
     it('should throw error when account does not exist', async () => {
       mockAccountRepository.getById.mockResolvedValue(null);
 
-      await expect(
-        updateAccountUseCase.execute(user, accountId, {
-          name: 'Updated Account',
-        }),
-      ).rejects.toThrow();
+      const result = updateAccountUseCase.execute(user, accountId, {
+        name: 'Updated Account',
+      });
+
+      await expect(result).rejects.toThrow(EntityNotFoundError);
+      await expect(result).rejects.toMatchObject({
+        code: 'ENTITY_NOT_FOUND',
+        context: {
+          entityId: accountId,
+          entityType: Account.entityType,
+        },
+      });
 
       expect(mockAccountRepository.getById).toHaveBeenCalledWith(
         user.id,

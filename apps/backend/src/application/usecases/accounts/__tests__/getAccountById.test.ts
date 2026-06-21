@@ -1,5 +1,10 @@
 import { CurrencyCode, Money } from '@ledgerly/shared/types';
+import {
+  EntityNotFoundError,
+  UnauthorizedAccessError,
+} from 'src/application/application.errors';
 import { createUser } from 'src/db/createTestUser';
+import { Account } from 'src/domain/accounts/account.entity';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -72,6 +77,39 @@ describe('GetAccountByIdUseCase', async () => {
         user.id,
         accountId,
       );
+    });
+
+    it('returns ENTITY_NOT_FOUND when the account does not exist', async () => {
+      mockAccountRepository.getById.mockResolvedValue(null);
+
+      const result = getAccountByIdUseCase.execute(user, accountId);
+
+      await expect(result).rejects.toThrow(EntityNotFoundError);
+      await expect(result).rejects.toMatchObject({
+        code: 'ENTITY_NOT_FOUND',
+        context: {
+          entityId: accountId,
+          entityType: Account.entityType,
+        },
+      });
+    });
+
+    it('returns UNAUTHORIZED_ACCESS when the account belongs to another user', async () => {
+      mockAccountRepository.getById.mockResolvedValue({
+        ...mockSavedAccountData,
+        userId: Id.create().valueOf(),
+      });
+
+      const result = getAccountByIdUseCase.execute(user, accountId);
+
+      await expect(result).rejects.toThrow(UnauthorizedAccessError);
+      await expect(result).rejects.toMatchObject({
+        code: 'UNAUTHORIZED_ACCESS',
+        context: {
+          entityId: accountId,
+          entityType: Account.entityType,
+        },
+      });
     });
 
     // TODO: Add missing tests based on account.service.test.ts:
