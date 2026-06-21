@@ -23,9 +23,11 @@ export class SoftDelete {
   /**
    * Checks if the entity can be updated
    */
-  validateUpdateIsAllowed(): void {
+  validateUpdateIsAllowed(
+    error: Error = new Error('Cannot update a deleted entity'),
+  ): void {
     if (this.isTombstone) {
-      throw new Error('Cannot update a deleted entity');
+      throw error;
     }
   }
 

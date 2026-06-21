@@ -9,6 +9,7 @@ import {
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
 import {
   ConflictingOperationIdsError,
+  DeletedEntityOperationError,
   InsufficientOperationsError,
   OperationNotFoundInTransactionError,
   UnbalancedTransactionError,
@@ -23,7 +24,7 @@ import {
   vi,
 } from 'vitest';
 
-import { Amount, DateValue, Id } from '../domain-core';
+import { Amount, DateValue, Id, Version } from '../domain-core';
 import {
   CreateOperationProps,
   OperationSnapshot,
@@ -179,6 +180,8 @@ describe('Transaction Domain Entity', () => {
       });
 
       expect(restoredTransaction.getVersion().valueOf()).toBe(7);
+      expect(restoredTransaction.matchesVersion(Version.create(7))).toBe(true);
+      expect(restoredTransaction.matchesVersion(Version.create(6))).toBe(false);
       expect(restoredTransaction.toSnapshot().version).toBe(7);
     });
 
@@ -760,11 +763,30 @@ describe('Transaction Domain Entity', () => {
 
       expect(transaction.isDeleted()).toBe(true);
 
-      const operations = transaction.getOperations();
+      const operations = transaction.getAllOperations();
 
       operations.forEach((operation) => {
         expect(operation.isDeleted()).toBe(true);
       });
+    });
+
+    it('should reject updates after transaction is deleted', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      transaction.markAsDeleted();
+
+      const deletedSnapshot = transaction.toSnapshot();
+      const metadata = TransactionMapper.toMetadataUpdateData(transaction);
+
+      expect(() =>
+        transaction.applyUpdate({
+          metadata: {
+            ...metadata,
+            description: 'Updated deleted transaction',
+          },
+        }),
+      ).toThrow(DeletedEntityOperationError);
+
+      expect(transaction.toSnapshot()).toEqual(deletedSnapshot);
     });
 
     it('Should not increase version if transaction is already deleted', () => {

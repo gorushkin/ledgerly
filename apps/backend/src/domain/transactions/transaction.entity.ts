@@ -1,6 +1,7 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
   ConflictingOperationIdsError,
+  DeletedEntityOperationError,
   InsufficientOperationsError,
   OperationNotFoundInTransactionError,
   OperationUserMismatchError,
@@ -49,6 +50,7 @@ const findDuplicateIds = (ids: UUID[]): UUID[] => {
 };
 
 export class Transaction {
+  static readonly entityType = 'transaction';
   private operations: Operation[] = [];
   private operationsMap = new Map<string, Operation>();
   private constructor(
@@ -193,6 +195,10 @@ export class Transaction {
     return this.version;
   }
 
+  matchesVersion(expectedVersion: Version): boolean {
+    return this.version.isEqualTo(expectedVersion);
+  }
+
   private markUpdated() {
     this.version = this.version.increment();
     this.timestamps = this.timestamps.touch();
@@ -231,7 +237,9 @@ export class Transaction {
   }
 
   validateUpdateIsAllowed(): void {
-    this.softDelete.validateUpdateIsAllowed();
+    this.softDelete.validateUpdateIsAllowed(
+      DeletedEntityOperationError.forUpdate(Transaction.entityType),
+    );
   }
 
   private updateDescription(description: string): boolean {

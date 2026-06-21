@@ -14,6 +14,8 @@ import {
 import { OperationSnapshot, UpdateOperationProps } from './types';
 
 export class Operation {
+  static readonly entityType = 'operation';
+
   private constructor(
     public readonly identity: EntityIdentity,
     public timestamps: EntityTimestamps,
@@ -231,7 +233,7 @@ export class Operation {
     }
 
     if (this.isDeleted()) {
-      throw new DeletedEntityOperationError('operation', 'update');
+      throw DeletedEntityOperationError.forUpdate(Operation.entityType);
     }
 
     const { account, amount, description, value } = params;
