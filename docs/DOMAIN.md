@@ -17,7 +17,7 @@ Transaction (financial event)
 
 #### Key Properties
 
-- Contains 2 to 1000 active **operations**; the count does not have to be a pair or a multiple of two
+- Contains from [`MIN_TRANSACTION_OPERATIONS`](../packages/shared/src/constants/transactions.ts) to [`MAX_TRANSACTION_OPERATIONS`](../packages/shared/src/constants/transactions.ts) active **operations** (currently 2 to 1000); the count does not have to be a pair or a multiple of two
 - The transaction is balanced when the sum of all operation `value` fields equals zero
 - Supports split transactions
 - Contains metadata (date, description, etc.)
@@ -87,7 +87,7 @@ Represents different monetary units used in the system.
 
 ### Double-Entry Bookkeeping
 
-1. Each transaction must contain from 2 to 1000 active operations
+1. Each transaction must contain from `MIN_TRANSACTION_OPERATIONS` to `MAX_TRANSACTION_OPERATIONS` active operations (currently 2 to 1000; see [`transactions.ts`](../packages/shared/src/constants/transactions.ts))
 2. The operation count does not have to be a pair or a multiple of two
 3. **Balance rule**: sum of `value` across all operations in a transaction must equal zero
 4. Positive amount = debit, Negative amount = credit

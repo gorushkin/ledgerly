@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   MAX_TRANSACTION_OPERATIONS,
   MIN_TRANSACTION_OPERATIONS,
-} from "../constants";
+} from "../constants/transactions";
 
 import {
   uuid,
@@ -49,8 +49,8 @@ export const transactionUpdateSchema = z.object({
   description: requiredText,
   operations: z.object({
     create: z.array(operationCreateSchema).max(MAX_TRANSACTION_OPERATIONS),
-    delete: z.array(uuid),
-    update: z.array(operationUpdateSchema),
+    delete: z.array(uuid).max(MAX_TRANSACTION_OPERATIONS),
+    update: z.array(operationUpdateSchema).max(MAX_TRANSACTION_OPERATIONS),
   }),
   postingDate: isoDate,
   transactionDate: isoDate,
