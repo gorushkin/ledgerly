@@ -16,9 +16,16 @@ export class DomainError extends BaseError {}
 /**
  * Thrown when a version value is not a non-negative integer.
  */
-export class InvalidVersionError extends DomainError {
+export class InvalidVersionError extends CodedError<'INVALID_VERSION'> {
   constructor(public readonly value: number) {
-    super('Version must be a non-negative integer');
+    super(
+      'version must be a non-negative integer',
+      apiErrorCodes.invalidVersion,
+      {
+        reason: 'NON_NEGATIVE_INTEGER',
+        received: value,
+      },
+    );
   }
 }
 
@@ -62,19 +69,28 @@ export class UnbalancedTransactionError extends CodedError<'TRANSACTION_UNBALANC
 /**
  * Thrown when attempting to add an empty operations array to an entry.
  */
-export class EmptyOperationsError extends DomainError {
+export class EmptyOperationsError extends CodedError<'EMPTY_OPERATIONS'> {
   constructor() {
-    super('Cannot add empty operations array');
+    super(
+      'cannot add an empty operations array',
+      apiErrorCodes.emptyOperations,
+      {},
+    );
   }
 }
 
 /**
  * Thrown when a transaction contains fewer than two operations.
  */
-export class InsufficientOperationsError extends DomainError {
+export class InsufficientOperationsError extends CodedError<'INSUFFICIENT_OPERATIONS'> {
   constructor(public readonly operationCount: number) {
     super(
-      `Transaction must contain at least ${MIN_TRANSACTION_OPERATIONS} operations. Received: ${operationCount}`,
+      `too few operations: expected at least ${MIN_TRANSACTION_OPERATIONS}, received ${operationCount}`,
+      apiErrorCodes.insufficientOperations,
+      {
+        minimum: MIN_TRANSACTION_OPERATIONS,
+        received: operationCount,
+      },
     );
   }
 }
@@ -82,10 +98,15 @@ export class InsufficientOperationsError extends DomainError {
 /**
  * Thrown when a transaction contains more than the maximum allowed operations.
  */
-export class ExcessiveOperationsError extends DomainError {
+export class ExcessiveOperationsError extends CodedError<'EXCESSIVE_OPERATIONS'> {
   constructor(public readonly operationCount: number) {
     super(
-      `Transaction cannot contain more than ${MAX_TRANSACTION_OPERATIONS} operations. Received: ${operationCount}`,
+      `too many operations: expected at most ${MAX_TRANSACTION_OPERATIONS}, received ${operationCount}`,
+      apiErrorCodes.excessiveOperations,
+      {
+        maximum: MAX_TRANSACTION_OPERATIONS,
+        received: operationCount,
+      },
     );
   }
 }

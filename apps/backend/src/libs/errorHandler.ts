@@ -16,8 +16,12 @@ import { CodedError } from 'src/shared/errors';
 import { ZodError, type ZodIssue } from 'zod';
 
 const statusByErrorCode = {
+  [apiErrorCodes.emptyOperations]: 400,
   [apiErrorCodes.entityNotFound]: 404,
+  [apiErrorCodes.excessiveOperations]: 400,
+  [apiErrorCodes.insufficientOperations]: 400,
   [apiErrorCodes.invalidAmount]: 400,
+  [apiErrorCodes.invalidVersion]: 400,
   [apiErrorCodes.transactionUnbalanced]: 400,
   [apiErrorCodes.unauthorizedAccess]: 403,
   [apiErrorCodes.validationFailed]: 400,

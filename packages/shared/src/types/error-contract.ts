@@ -1,8 +1,12 @@
 import type { UUID } from "./types";
 
 export const apiErrorCodes = {
+  emptyOperations: "EMPTY_OPERATIONS",
   entityNotFound: "ENTITY_NOT_FOUND",
+  excessiveOperations: "EXCESSIVE_OPERATIONS",
+  insufficientOperations: "INSUFFICIENT_OPERATIONS",
   invalidAmount: "INVALID_AMOUNT",
+  invalidVersion: "INVALID_VERSION",
   transactionUnbalanced: "TRANSACTION_UNBALANCED",
   unauthorizedAccess: "UNAUTHORIZED_ACCESS",
   validationFailed: "VALIDATION_FAILED",
@@ -25,14 +29,27 @@ export type ValidationFieldError = {
 };
 
 export type ErrorContextByCode = {
+  EMPTY_OPERATIONS: Record<string, never>;
   ENTITY_NOT_FOUND: {
     entityId?: UUID;
     entityType: string;
+  };
+  EXCESSIVE_OPERATIONS: {
+    maximum: number;
+    received: number;
+  };
+  INSUFFICIENT_OPERATIONS: {
+    minimum: number;
+    received: number;
   };
   INVALID_AMOUNT: {
     field?: string;
     reason: "NOT_INTEGER_MINOR_UNITS";
     received: string;
+  };
+  INVALID_VERSION: {
+    reason: "NON_NEGATIVE_INTEGER";
+    received: number;
   };
   TRANSACTION_UNBALANCED: {
     difference: string;
