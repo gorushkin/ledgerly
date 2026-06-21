@@ -838,6 +838,109 @@ describe('Transaction Domain Entity', () => {
   });
 
   describe('Transaction Domain Invariants coverage', () => {
+    it('should accept a multi-currency transaction balanced by value even when amounts do not sum to zero', () => {
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'RUB'],
+        operations: [
+          {
+            accountKey: 'USD',
+            amount: '-10000',
+            value: '-100',
+          },
+          {
+            accountKey: 'RUB',
+            amount: '900000',
+            value: '100',
+          },
+        ],
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      expect(() =>
+        Transaction.create(user.getId(), transactionData),
+      ).not.toThrow();
+    });
+
+    it('should reject a multi-currency transaction with balanced amounts but unbalanced values', () => {
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'RUB'],
+        operations: [
+          {
+            accountKey: 'USD',
+            amount: '-10000',
+            value: '-100',
+          },
+          {
+            accountKey: 'RUB',
+            amount: '10000',
+            value: '90',
+          },
+        ],
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
+        UnbalancedTransactionError,
+      );
+    });
+
+    it('should validate a multi-currency operation patch by value rather than amount', () => {
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'RUB'],
+        operations: [
+          {
+            accountKey: 'USD',
+            amount: '-10000',
+            value: '-100',
+          },
+          {
+            accountKey: 'RUB',
+            amount: '900000',
+            value: '100',
+          },
+        ],
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operationToUpdate = transaction.getOperations()[1];
+
+      expect(() =>
+        transaction.applyUpdate({
+          operations: {
+            create: [],
+            delete: [],
+            update: [
+              {
+                account: data.getAccountByKey('RUB'),
+                amount: Amount.create('10000'),
+                description: operationToUpdate.description,
+                id: operationToUpdate.getId(),
+                value: Amount.create('90'),
+              },
+            ],
+          },
+        }),
+      ).toThrow(UnbalancedTransactionError);
+    });
+
     it('should reject create when resulting operations do not sum to zero', () => {
       const operationsData = [
         operationsData1,
