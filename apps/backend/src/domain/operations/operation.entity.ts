@@ -1,4 +1,7 @@
-import { DeletedEntityOperationError } from 'src/domain/domain.errors';
+import {
+  DeletedEntityOperationError,
+  OperationIdMismatchError,
+} from 'src/domain/domain.errors';
 
 import { Account, Transaction } from '..';
 import {
@@ -228,8 +231,10 @@ export class Operation {
 
   update(params: UpdateOperationProps): void {
     if (this.identity.getId().equals(params.id.valueOf()) === false) {
-      // TODO: add proper error handling
-      throw new Error('Operation ID mismatch');
+      throw new OperationIdMismatchError(
+        this.getId().valueOf(),
+        params.id.valueOf(),
+      );
     }
 
     if (this.isDeleted()) {

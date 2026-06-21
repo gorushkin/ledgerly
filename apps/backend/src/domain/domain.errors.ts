@@ -151,6 +151,19 @@ export class OperationAlreadyAttachedToTransactionError extends CodedError<'OPER
   }
 }
 
+export class OperationIdMismatchError extends CodedError<'OPERATION_ID_MISMATCH'> {
+  constructor(
+    public readonly expectedOperationId: UUID,
+    public readonly receivedOperationId: UUID,
+  ) {
+    super(
+      `operation ID ${receivedOperationId} does not match ${expectedOperationId}`,
+      apiErrorCodes.operationIdMismatch,
+      { expectedOperationId, receivedOperationId },
+    );
+  }
+}
+
 export class ConflictingOperationIdsError extends CodedError<'CONFLICTING_OPERATION_IDS'> {
   constructor(
     public readonly conflictingIds: UUID[],
@@ -229,6 +242,19 @@ export class OperationUserMismatchError extends CodedError<'OPERATION_USER_MISMA
       `operation ${operationId} and transaction ${transactionId} belong to different users`,
       apiErrorCodes.operationUserMismatch,
       { operationId, transactionId },
+    );
+  }
+}
+
+export class UserOwnershipError extends CodedError<'UNAUTHORIZED_ACCESS'> {
+  constructor(public readonly userId: UUID) {
+    super(
+      `user ${userId} does not match the authenticated user`,
+      apiErrorCodes.unauthorizedAccess,
+      {
+        entityId: userId,
+        entityType: 'user',
+      },
     );
   }
 }

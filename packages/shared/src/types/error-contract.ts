@@ -12,6 +12,7 @@ export const apiErrorCodes = {
   invalidVersion: "INVALID_VERSION",
   operationAlreadyAttachedToTransaction:
     "OPERATION_ALREADY_ATTACHED_TO_TRANSACTION",
+  operationIdMismatch: "OPERATION_ID_MISMATCH",
   operationNotFoundInTransaction: "OPERATION_NOT_FOUND_IN_TRANSACTION",
   operationTransactionMismatch: "OPERATION_TRANSACTION_MISMATCH",
   operationUserMismatch: "OPERATION_USER_MISMATCH",
@@ -77,6 +78,10 @@ export type ErrorContextByCode = {
   OPERATION_ALREADY_ATTACHED_TO_TRANSACTION: {
     operationId: UUID;
     transactionId: UUID;
+  };
+  OPERATION_ID_MISMATCH: {
+    expectedOperationId: UUID;
+    receivedOperationId: UUID;
   };
   OPERATION_NOT_FOUND_IN_TRANSACTION: {
     operationId: UUID;
