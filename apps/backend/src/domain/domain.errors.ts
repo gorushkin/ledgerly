@@ -53,10 +53,34 @@ export class InvalidDateError extends CodedError<'INVALID_DATE'> {
   }
 }
 
+export class InvalidEmailError extends CodedError<'INVALID_EMAIL'> {
+  constructor() {
+    super('email has an invalid format', apiErrorCodes.invalidEmail, {
+      reason: 'INVALID_FORMAT',
+    });
+  }
+}
+
 export class InvalidIdentifierError extends CodedError<'INVALID_IDENTIFIER'> {
   constructor() {
     super('identifier has an invalid format', apiErrorCodes.invalidIdentifier, {
       reason: 'INVALID_FORMAT',
+    });
+  }
+}
+
+export class InvalidNameError extends CodedError<'INVALID_NAME'> {
+  constructor() {
+    super('name must not be empty', apiErrorCodes.invalidName, {
+      reason: 'EMPTY',
+    });
+  }
+}
+
+export class InvalidPasswordError extends CodedError<'INVALID_PASSWORD'> {
+  constructor() {
+    super('password does not meet the policy', apiErrorCodes.invalidPassword, {
+      reason: 'POLICY_VIOLATION',
     });
   }
 }

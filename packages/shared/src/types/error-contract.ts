@@ -10,7 +10,10 @@ export const apiErrorCodes = {
   insufficientOperations: "INSUFFICIENT_OPERATIONS",
   invalidAmount: "INVALID_AMOUNT",
   invalidDate: "INVALID_DATE",
+  invalidEmail: "INVALID_EMAIL",
   invalidIdentifier: "INVALID_IDENTIFIER",
+  invalidName: "INVALID_NAME",
+  invalidPassword: "INVALID_PASSWORD",
   invalidTimestamp: "INVALID_TIMESTAMP",
   invalidVersion: "INVALID_VERSION",
   operationAlreadyAttachedToTransaction:
@@ -77,8 +80,17 @@ export type ErrorContextByCode = {
   INVALID_DATE: {
     reason: "INVALID_FORMAT";
   };
+  INVALID_EMAIL: {
+    reason: "INVALID_FORMAT";
+  };
   INVALID_IDENTIFIER: {
     reason: "INVALID_FORMAT";
+  };
+  INVALID_NAME: {
+    reason: "EMPTY";
+  };
+  INVALID_PASSWORD: {
+    reason: "POLICY_VIOLATION";
   };
   INVALID_TIMESTAMP: {
     reason: "INVALID_FORMAT";
