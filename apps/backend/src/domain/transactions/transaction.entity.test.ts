@@ -452,10 +452,14 @@ describe('Transaction Domain Entity', () => {
         }),
       );
 
-      expect(error.conflictingIds).toEqual([operationId]);
-      expect(error.conflictType).toBe(
-        'IDs found in both update and delete arrays',
-      );
+      expect(error).toBeInstanceOf(ConflictingOperationIdsError);
+      expect(error).toMatchObject({
+        code: 'CONFLICTING_OPERATION_IDS',
+        context: {
+          conflict: 'UPDATE_AND_DELETE',
+          operationIds: [operationId],
+        },
+      });
     });
 
     it('should reject duplicate update IDs represented by different Id instances', () => {
@@ -475,8 +479,13 @@ describe('Transaction Domain Entity', () => {
         }),
       );
 
-      expect(error.conflictingIds).toEqual([operationId]);
-      expect(error.conflictType).toBe('Duplicate IDs in update array');
+      expect(error).toMatchObject({
+        code: 'CONFLICTING_OPERATION_IDS',
+        context: {
+          conflict: 'DUPLICATE_IN_UPDATE',
+          operationIds: [operationId],
+        },
+      });
     });
 
     it('should reject duplicate delete IDs represented by different Id instances', () => {
@@ -496,8 +505,13 @@ describe('Transaction Domain Entity', () => {
         }),
       );
 
-      expect(error.conflictingIds).toEqual([operationId]);
-      expect(error.conflictType).toBe('Duplicate IDs in delete array');
+      expect(error).toMatchObject({
+        code: 'CONFLICTING_OPERATION_IDS',
+        context: {
+          conflict: 'DUPLICATE_IN_DELETE',
+          operationIds: [operationId],
+        },
+      });
     });
 
     it('should reject updating a non-existent operation without changing the transaction', () => {

@@ -151,13 +151,23 @@ export class MissingOperationsError extends DomainError {
 /**
  * Thrown when the same operation ID appears in multiple patch arrays simultaneously.
  */
-export class ConflictingOperationIdsError extends DomainError {
+type OperationIdConflict =
+  | 'DUPLICATE_IN_DELETE'
+  | 'DUPLICATE_IN_UPDATE'
+  | 'UPDATE_AND_DELETE';
+
+export class ConflictingOperationIdsError extends CodedError<'CONFLICTING_OPERATION_IDS'> {
   constructor(
-    public readonly conflictingIds: string[],
-    public readonly conflictType: string,
+    public readonly conflictingIds: UUID[],
+    public readonly conflict: OperationIdConflict,
   ) {
     super(
-      `Operation IDs cannot appear in multiple operations. ${conflictType}: ${conflictingIds.join(', ')}`,
+      `conflicting operation IDs: ${conflictingIds.join(', ')}`,
+      apiErrorCodes.conflictingOperationIds,
+      {
+        conflict,
+        operationIds: conflictingIds,
+      },
     );
   }
 }

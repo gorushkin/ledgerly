@@ -432,7 +432,7 @@ export class Transaction {
     if (updateDeleteConflicts.length > 0) {
       throw new ConflictingOperationIdsError(
         updateDeleteConflicts,
-        'IDs found in both update and delete arrays',
+        'UPDATE_AND_DELETE',
       );
     }
 
@@ -442,7 +442,7 @@ export class Transaction {
     if (updateDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
         updateDuplicates,
-        'Duplicate IDs in update array',
+        'DUPLICATE_IN_UPDATE',
       );
     }
 
@@ -452,7 +452,7 @@ export class Transaction {
     if (deleteDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
         deleteDuplicates,
-        'Duplicate IDs in delete array',
+        'DUPLICATE_IN_DELETE',
       );
     }
   }

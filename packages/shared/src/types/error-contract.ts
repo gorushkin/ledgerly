@@ -1,6 +1,7 @@
 import type { UUID } from "./types";
 
 export const apiErrorCodes = {
+  conflictingOperationIds: "CONFLICTING_OPERATION_IDS",
   deletedEntityOperation: "DELETED_ENTITY_OPERATION",
   emptyOperations: "EMPTY_OPERATIONS",
   entityNotFound: "ENTITY_NOT_FOUND",
@@ -33,6 +34,13 @@ export type ValidationFieldError = {
 };
 
 export type ErrorContextByCode = {
+  CONFLICTING_OPERATION_IDS: {
+    conflict:
+      | "DUPLICATE_IN_DELETE"
+      | "DUPLICATE_IN_UPDATE"
+      | "UPDATE_AND_DELETE";
+    operationIds: UUID[];
+  };
   DELETED_ENTITY_OPERATION: {
     entityType: string;
     operation: "update";
