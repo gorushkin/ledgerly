@@ -4,7 +4,6 @@ import {
   ExcessiveOperationsError,
   InsufficientOperationsError,
   InvalidVersionError,
-  OperationDoesNotBelongToTransactionError,
   OperationNotFoundInTransactionError,
   OperationUserMismatchError,
 } from 'src/domain/domain.errors';
@@ -70,13 +69,6 @@ describe('coded domain errors', () => {
     [
       'OPERATION_NOT_FOUND_IN_TRANSACTION',
       new OperationNotFoundInTransactionError(
-        'operation-id' as never,
-        'transaction-id' as never,
-      ),
-    ],
-    [
-      'OPERATION_TRANSACTION_MISMATCH',
-      new OperationDoesNotBelongToTransactionError(
         'operation-id' as never,
         'transaction-id' as never,
       ),

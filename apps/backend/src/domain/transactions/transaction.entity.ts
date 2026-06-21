@@ -4,6 +4,8 @@ import {
   DeletedEntityOperationError,
   ExcessiveOperationsError,
   InsufficientOperationsError,
+  OperationAlreadyAttachedToTransactionError,
+  OperationDoesNotBelongToTransactionError,
   OperationNotFoundInTransactionError,
   OperationUserMismatchError,
   UnbalancedTransactionError,
@@ -103,13 +105,21 @@ export class Transaction {
       );
 
       if (existingOperation) {
-        throw new Error(
-          `Operation with id ${operation.getId().valueOf()} is already attached to transaction ${this.getId().valueOf()}`,
+        throw new OperationAlreadyAttachedToTransactionError(
+          operation.getId().valueOf(),
+          this.getId().valueOf(),
         );
       }
 
       if (!operation.belongsToUser(this.getUserId())) {
         throw new OperationUserMismatchError(
+          operation.getId().valueOf(),
+          this.getId().valueOf(),
+        );
+      }
+
+      if (!operation.belongsToTransaction(this)) {
+        throw new OperationDoesNotBelongToTransactionError(
           operation.getId().valueOf(),
           this.getId().valueOf(),
         );

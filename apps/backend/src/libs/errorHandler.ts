@@ -25,6 +25,7 @@ const statusByErrorCode = {
   [apiErrorCodes.insufficientOperations]: 400,
   [apiErrorCodes.invalidAmount]: 400,
   [apiErrorCodes.invalidVersion]: 400,
+  [apiErrorCodes.operationAlreadyAttachedToTransaction]: 400,
   [apiErrorCodes.operationNotFoundInTransaction]: 400,
   [apiErrorCodes.operationTransactionMismatch]: 400,
   [apiErrorCodes.operationUserMismatch]: 400,

@@ -10,6 +10,8 @@ export const apiErrorCodes = {
   insufficientOperations: "INSUFFICIENT_OPERATIONS",
   invalidAmount: "INVALID_AMOUNT",
   invalidVersion: "INVALID_VERSION",
+  operationAlreadyAttachedToTransaction:
+    "OPERATION_ALREADY_ATTACHED_TO_TRANSACTION",
   operationNotFoundInTransaction: "OPERATION_NOT_FOUND_IN_TRANSACTION",
   operationTransactionMismatch: "OPERATION_TRANSACTION_MISMATCH",
   operationUserMismatch: "OPERATION_USER_MISMATCH",
@@ -71,6 +73,10 @@ export type ErrorContextByCode = {
   INVALID_VERSION: {
     reason: "NON_NEGATIVE_INTEGER";
     received: number;
+  };
+  OPERATION_ALREADY_ATTACHED_TO_TRANSACTION: {
+    operationId: UUID;
+    transactionId: UUID;
   };
   OPERATION_NOT_FOUND_IN_TRANSACTION: {
     operationId: UUID;

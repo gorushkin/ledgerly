@@ -12,6 +12,8 @@ import {
   DeletedEntityOperationError,
   ExcessiveOperationsError,
   InsufficientOperationsError,
+  OperationAlreadyAttachedToTransactionError,
+  OperationDoesNotBelongToTransactionError,
   OperationNotFoundInTransactionError,
   UnbalancedTransactionError,
 } from 'src/domain/domain.errors';
@@ -422,6 +424,47 @@ describe('Transaction Domain Entity', () => {
   });
 
   describe('Manage Operations', () => {
+    it('rejects attaching an operation that is already attached', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operation = transaction.getOperations()[0];
+
+      const error = captureThrownError(() =>
+        transaction.attachOperations([operation]),
+      );
+
+      expect(error).toBeInstanceOf(OperationAlreadyAttachedToTransactionError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_ALREADY_ATTACHED_TO_TRANSACTION',
+        context: {
+          operationId: operation.getId().valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
+    });
+
+    it('rejects an operation that belongs to another transaction of the same user', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+
+      const otherTransaction = Transaction.create(
+        user.getId(),
+        transactionData,
+      );
+      const foreignOperation = otherTransaction.getOperations()[0];
+
+      const error = captureThrownError(() =>
+        transaction.attachOperations([foreignOperation]),
+      );
+
+      expect(error).toBeInstanceOf(OperationDoesNotBelongToTransactionError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_TRANSACTION_MISMATCH',
+        context: {
+          operationId: foreignOperation.getId().valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
+    });
+
     const toUpdateProps = (
       transaction: Transaction,
       operationIndex: number,

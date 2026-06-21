@@ -131,30 +131,25 @@ export class DeletedEntityOperationError extends CodedError<'DELETED_ENTITY_OPER
 }
 
 /**
- * Thrown when an operation doesn't belong to the expected transaction.
- */
-export class OperationOwnershipError extends DomainError {
-  constructor() {
-    super('Operation does not belong to this transaction');
-  }
-}
-
-/**
- * Thrown when attempting to validate an entry without operations.
- */
-export class MissingOperationsError extends DomainError {
-  constructor() {
-    super('Cannot validate entry without operations');
-  }
-}
-
-/**
  * Thrown when the same operation ID appears in multiple patch arrays simultaneously.
  */
 type OperationIdConflict =
   | 'DUPLICATE_IN_DELETE'
   | 'DUPLICATE_IN_UPDATE'
   | 'UPDATE_AND_DELETE';
+
+export class OperationAlreadyAttachedToTransactionError extends CodedError<'OPERATION_ALREADY_ATTACHED_TO_TRANSACTION'> {
+  constructor(
+    public readonly operationId: UUID,
+    public readonly transactionId: UUID,
+  ) {
+    super(
+      `operation ${operationId} is already attached to transaction ${transactionId}`,
+      apiErrorCodes.operationAlreadyAttachedToTransaction,
+      { operationId, transactionId },
+    );
+  }
+}
 
 export class ConflictingOperationIdsError extends CodedError<'CONFLICTING_OPERATION_IDS'> {
   constructor(
@@ -235,14 +230,5 @@ export class OperationUserMismatchError extends CodedError<'OPERATION_USER_MISMA
       apiErrorCodes.operationUserMismatch,
       { operationId, transactionId },
     );
-  }
-}
-
-/**
- * Thrown when TransactionBuildContext is required but not provided.
- */
-export class MissingTransactionContextError extends DomainError {
-  constructor(operation: string) {
-    super(`TransactionBuildContext is required to ${operation}`);
   }
 }
