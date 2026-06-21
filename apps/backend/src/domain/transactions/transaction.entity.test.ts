@@ -180,8 +180,8 @@ describe('Transaction Domain Entity', () => {
       });
 
       expect(restoredTransaction.getVersion().valueOf()).toBe(7);
-      expect(restoredTransaction.hasVersion(Version.create(7))).toBe(true);
-      expect(restoredTransaction.hasVersion(Version.create(6))).toBe(false);
+      expect(restoredTransaction.matchesVersion(Version.create(7))).toBe(true);
+      expect(restoredTransaction.matchesVersion(Version.create(6))).toBe(false);
       expect(restoredTransaction.toSnapshot().version).toBe(7);
     });
 

@@ -195,7 +195,7 @@ export class Transaction {
     return this.version;
   }
 
-  hasVersion(expectedVersion: Version): boolean {
+  matchesVersion(expectedVersion: Version): boolean {
     return this.version.isEqualTo(expectedVersion);
   }
 

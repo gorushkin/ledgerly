@@ -41,7 +41,7 @@ export class UpdateTransactionUseCase {
 
       transaction.validateUpdateIsAllowed();
 
-      if (!transaction.hasVersion(expectedVersion)) {
+      if (!transaction.matchesVersion(expectedVersion)) {
         throw new VersionConflictError(
           'Transaction',
           expectedVersion.valueOf(),
