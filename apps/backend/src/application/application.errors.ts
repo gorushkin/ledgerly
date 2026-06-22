@@ -1,4 +1,9 @@
-import { BaseError } from 'src/shared/errors/BaseError';
+import {
+  apiErrorCodes,
+  type ApiErrorCode,
+  type ErrorContextByCode,
+} from '@ledgerly/shared/types';
+import { BaseError } from 'src/shared/errors';
 
 /**
  * Base class for all application layer errors.
@@ -7,14 +12,30 @@ import { BaseError } from 'src/shared/errors/BaseError';
 export class ApplicationError extends BaseError {}
 
 /**
+ * Base application error with a stable, client-safe contract.
+ */
+export abstract class CodedApplicationError<
+  Code extends ApiErrorCode,
+> extends ApplicationError {
+  protected constructor(
+    message: string,
+    public readonly code: Code,
+    public readonly context: ErrorContextByCode[Code],
+    cause?: Error,
+  ) {
+    super(message, cause);
+  }
+}
+
+/**
  * Thrown when an entity is not found in the system.
  */
-export class EntityNotFoundError extends ApplicationError {
-  constructor(entityName: string, description?: string) {
+export class EntityNotFoundError extends CodedApplicationError<'ENTITY_NOT_FOUND'> {
+  constructor(context: ErrorContextByCode['ENTITY_NOT_FOUND']) {
     super(
-      description
-        ? `${entityName} not found: ${description}`
-        : `${entityName} not found`,
+      `${context.entityType} not found`,
+      apiErrorCodes.entityNotFound,
+      context,
     );
   }
 }
@@ -22,9 +43,13 @@ export class EntityNotFoundError extends ApplicationError {
 /**
  * Thrown when a user attempts to access an entity they don't own.
  */
-export class UnauthorizedAccessError extends ApplicationError {
-  constructor(entityName: string) {
-    super(`${entityName} does not belong to the user`);
+export class UnauthorizedAccessError extends CodedApplicationError<'UNAUTHORIZED_ACCESS'> {
+  constructor(context: ErrorContextByCode['UNAUTHORIZED_ACCESS']) {
+    super(
+      `${context.entityType} does not belong to the user`,
+      apiErrorCodes.unauthorizedAccess,
+      context,
+    );
   }
 }
 
@@ -58,15 +83,12 @@ export class UserAlreadyExistsError extends ApplicationError {
 /**
  * Thrown when an update cannot be applied because aggregate versions differ.
  */
-export class VersionConflictError extends ApplicationError {
-  readonly code = 'VERSION_CONFLICT' as const;
-
-  constructor(
-    public readonly entityName: string,
-    public readonly expectedVersion: number,
-  ) {
+export class VersionConflictError extends CodedApplicationError<'VERSION_CONFLICT'> {
+  constructor(context: ErrorContextByCode['VERSION_CONFLICT']) {
     super(
-      `${entityName} version mismatch for expected version ${expectedVersion}`,
+      `${context.entityType} version mismatch for expected version ${context.expectedVersion}`,
+      apiErrorCodes.versionConflict,
+      context,
     );
   }
 }

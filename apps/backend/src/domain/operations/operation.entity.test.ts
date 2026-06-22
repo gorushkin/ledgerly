@@ -1,7 +1,10 @@
 import { createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
-import { DeletedEntityOperationError } from 'src/domain/domain.errors';
+import {
+  DeletedEntityOperationError,
+  OperationIdMismatchError,
+} from 'src/domain/domain.errors';
 import {
   afterEach,
   beforeAll,
@@ -239,6 +242,40 @@ describe('Operation Domain Entity', () => {
     ).toThrow(DeletedEntityOperationError);
 
     expect(operation.toSnapshot()).toEqual(deletedSnapshot);
+  });
+
+  it('rejects an update with a different operation ID', () => {
+    const operation = Operation.create(
+      userId,
+      usdAccount,
+      transaction,
+      Amount.create('100'),
+      Amount.create('300'),
+      'Test operation',
+    );
+    const receivedOperationId = Id.create();
+
+    try {
+      operation.update({
+        account: eurAccount,
+        amount: Amount.create('150'),
+        description: 'Updated operation',
+        id: receivedOperationId,
+        value: Amount.create('350'),
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(OperationIdMismatchError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_ID_MISMATCH',
+        context: {
+          expectedOperationId: operation.getId().valueOf(),
+          receivedOperationId: receivedOperationId.valueOf(),
+        },
+      });
+      return;
+    }
+
+    throw new Error('Expected OperationIdMismatchError to be thrown');
   });
 
   it('should mark an operation as deleted', () => {

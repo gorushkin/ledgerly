@@ -3,18 +3,22 @@ import {
   moneyAmountBigint,
   moneyAmountString,
 } from '@ledgerly/shared/validation';
+import {
+  CurrencyMismatchError,
+  InvalidMoneyAmountError,
+} from 'src/domain/domain.errors';
+
+import { parseValueObject } from './parseValueObject';
 
 export class Money {
   private readonly minor: bigint;
   private readonly currency: CurrencyCode;
   constructor(value: string, currency: CurrencyCode) {
-    const parsed = moneyAmountBigint.parse(value);
-
-    if (typeof parsed !== 'bigint') {
-      throw new Error('Invalid money amount');
-    }
-
-    this.minor = parsed;
+    this.minor = parseValueObject(
+      value,
+      moneyAmountBigint,
+      () => new InvalidMoneyAmountError(),
+    );
     this.currency = currency;
   }
 
@@ -36,7 +40,7 @@ export class Money {
 
   private assertSameCurrency(other: Money): void {
     if (this.currency !== other.currency) {
-      throw new Error('Currency mismatch');
+      throw new CurrencyMismatchError(this.currency, other.currency);
     }
   }
 

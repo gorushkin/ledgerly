@@ -15,6 +15,8 @@ import {
 } from '../domain-core';
 
 export class Account {
+  static readonly entityType = 'account';
+
   private readonly identity: EntityIdentity;
   private timestamps: EntityTimestamps;
   private softDelete: SoftDelete;

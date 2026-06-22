@@ -1,16 +1,17 @@
 import { UUID } from '@ledgerly/shared/types';
 import { uuid } from '@ledgerly/shared/validation';
+import { InvalidIdentifierError } from 'src/domain/domain.errors';
+
+import { parseValueObject } from './parseValueObject';
 
 export class Id {
   private readonly value: UUID;
   private constructor(value: string) {
-    const parsed = uuid.safeParse(value);
-
-    if (!parsed.success) {
-      throw new Error('Invalid UUID format');
-    }
-
-    this.value = parsed.data;
+    this.value = parseValueObject(
+      value,
+      uuid,
+      () => new InvalidIdentifierError(),
+    );
     Object.freeze(this);
   }
 

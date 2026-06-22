@@ -81,24 +81,52 @@ describe('DeleteTransactionUseCase', () => {
 
   it('should propagate error when transaction is not found', async () => {
     mockEnsureEntityExistsAndOwned.mockRejectedValue(
-      new EntityNotFoundError('Transaction'),
+      new EntityNotFoundError({
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      }),
     );
 
-    await expect(
-      deleteTransactionByIdUseCase.execute(user, transaction.getId().valueOf()),
-    ).rejects.toThrow(EntityNotFoundError);
+    const result = deleteTransactionByIdUseCase.execute(
+      user,
+      transaction.getId().valueOf(),
+    );
+
+    await expect(result).rejects.toThrow(EntityNotFoundError);
+
+    await expect(result).rejects.toMatchObject({
+      code: 'ENTITY_NOT_FOUND',
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      },
+    });
 
     expect(mockTransactionRepository.softDelete).not.toHaveBeenCalled();
   });
 
   it('should propagate error when user does not own the transaction', async () => {
     mockEnsureEntityExistsAndOwned.mockRejectedValue(
-      new UnauthorizedAccessError('Transaction'),
+      new UnauthorizedAccessError({
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      }),
     );
 
-    await expect(
-      deleteTransactionByIdUseCase.execute(user, transaction.getId().valueOf()),
-    ).rejects.toThrow(UnauthorizedAccessError);
+    const result = deleteTransactionByIdUseCase.execute(
+      user,
+      transaction.getId().valueOf(),
+    );
+
+    await expect(result).rejects.toThrow(UnauthorizedAccessError);
+
+    await expect(result).rejects.toMatchObject({
+      code: 'UNAUTHORIZED_ACCESS',
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      },
+    });
 
     expect(mockTransactionRepository.softDelete).not.toHaveBeenCalled();
   });

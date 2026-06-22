@@ -1,6 +1,7 @@
 import { UUID } from '@ledgerly/shared/types';
 import { UserResponseDTO } from 'src/application';
 import { UserDbInsert, UserDbRow } from 'src/db/schema';
+import { UserOwnershipError } from 'src/domain/domain.errors';
 
 import {
   EntityIdentity,
@@ -13,6 +14,8 @@ import {
 } from '../domain-core';
 
 export class User {
+  static readonly entityType = 'user';
+
   private readonly identity: EntityIdentity;
   private timestamps: EntityTimestamps;
   private constructor(
@@ -111,9 +114,7 @@ export class User {
     const isUserOwner = this.getId().valueOf() === userId;
 
     if (!isUserOwner) {
-      // TODO: Replace with proper error handling
-      // throw new UnauthorizedAccessError();
-      throw new Error('User ID mismatch: unauthorized access');
+      throw new UserOwnershipError(User.entityType, this.getId().valueOf());
     }
   }
 }

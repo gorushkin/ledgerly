@@ -5,6 +5,7 @@ import {
   TransactionResponseDTO,
 } from 'src/application';
 import { EntityNotFoundError } from 'src/application/application.errors';
+import { Transaction } from 'src/domain';
 
 export class GetTransactionByIdUseCase {
   constructor(
@@ -20,7 +21,10 @@ export class GetTransactionByIdUseCase {
     );
 
     if (!transactionRecord) {
-      throw new EntityNotFoundError('Transaction');
+      throw new EntityNotFoundError({
+        entityId: transactionId,
+        entityType: Transaction.entityType,
+      });
     }
 
     return TransactionReadModelResponseMapper.toResponseDTO(transactionRecord);

@@ -4,6 +4,8 @@ import {
   DeletedEntityOperationError,
   ExcessiveOperationsError,
   InsufficientOperationsError,
+  OperationAlreadyAttachedToTransactionError,
+  OperationDoesNotBelongToTransactionError,
   OperationNotFoundInTransactionError,
   OperationUserMismatchError,
   UnbalancedTransactionError,
@@ -103,13 +105,21 @@ export class Transaction {
       );
 
       if (existingOperation) {
-        throw new Error(
-          `Operation with id ${operation.getId().valueOf()} is already attached to transaction ${this.getId().valueOf()}`,
+        throw new OperationAlreadyAttachedToTransactionError(
+          operation.getId().valueOf(),
+          this.getId().valueOf(),
         );
       }
 
       if (!operation.belongsToUser(this.getUserId())) {
         throw new OperationUserMismatchError(
+          operation.getId().valueOf(),
+          this.getId().valueOf(),
+        );
+      }
+
+      if (!operation.belongsToTransaction(this)) {
+        throw new OperationDoesNotBelongToTransactionError(
           operation.getId().valueOf(),
           this.getId().valueOf(),
         );
@@ -364,7 +374,11 @@ export class Transaction {
     }, Amount.create('0'));
 
     if (!totalValue.isZero()) {
-      throw new UnbalancedTransactionError(this.getId().valueOf(), totalValue);
+      throw new UnbalancedTransactionError(
+        Transaction.entityType,
+        this.getId().valueOf(),
+        totalValue,
+      );
     }
   }
 
@@ -404,6 +418,7 @@ export class Transaction {
 
     if (!updatedBalanceAfterOperations.isZero()) {
       throw new UnbalancedTransactionError(
+        Transaction.entityType,
         this.getId().valueOf(),
         updatedBalanceAfterOperations,
       );
@@ -427,7 +442,7 @@ export class Transaction {
     if (updateDeleteConflicts.length > 0) {
       throw new ConflictingOperationIdsError(
         updateDeleteConflicts,
-        'IDs found in both update and delete arrays',
+        'UPDATE_AND_DELETE',
       );
     }
 
@@ -437,7 +452,7 @@ export class Transaction {
     if (updateDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
         updateDuplicates,
-        'Duplicate IDs in update array',
+        'DUPLICATE_IN_UPDATE',
       );
     }
 
@@ -447,7 +462,7 @@ export class Transaction {
     if (deleteDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
         deleteDuplicates,
-        'Duplicate IDs in delete array',
+        'DUPLICATE_IN_DELETE',
       );
     }
   }

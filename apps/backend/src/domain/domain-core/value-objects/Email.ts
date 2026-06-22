@@ -1,3 +1,5 @@
+import { InvalidEmailError } from 'src/domain/domain.errors';
+
 export class Email {
   private readonly value: string;
 
@@ -10,7 +12,7 @@ export class Email {
     const trimmed = raw.trim().toLowerCase();
 
     if (!Email.isValidEmail(trimmed)) {
-      throw new Error('Invalid email format');
+      throw new InvalidEmailError();
     }
 
     return new Email(trimmed);

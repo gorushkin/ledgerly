@@ -39,3 +39,4 @@
 - [ADR 0005: No non-zero operation invariant](./0005-no-non-zero-operation-invariant.md)
 - [ADR 0006: Asset registry before currency validation](./0006-asset-registry-before-currency-validation.md)
 - [ADR 0007: No operation amount sign invariant](./0007-no-operation-amount-sign-invariant.md)
+- [ADR 0008: Structured API error contract](./0008-structured-api-error-contract.md)

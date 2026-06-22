@@ -1,3 +1,4 @@
+import { InvalidEmailError } from 'src/domain/domain.errors';
 import { describe, expect, it } from 'vitest';
 
 import { Email } from './Email';
@@ -39,9 +40,7 @@ describe('Email Value Object', () => {
       ];
 
       invalidEmails.forEach((invalidEmail) => {
-        expect(() => Email.create(invalidEmail)).toThrow(
-          'Invalid email format',
-        );
+        expect(() => Email.create(invalidEmail)).toThrow(InvalidEmailError);
       });
     });
 

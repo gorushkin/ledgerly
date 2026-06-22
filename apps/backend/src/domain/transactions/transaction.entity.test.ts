@@ -12,6 +12,8 @@ import {
   DeletedEntityOperationError,
   ExcessiveOperationsError,
   InsufficientOperationsError,
+  OperationAlreadyAttachedToTransactionError,
+  OperationDoesNotBelongToTransactionError,
   OperationNotFoundInTransactionError,
   UnbalancedTransactionError,
 } from 'src/domain/domain.errors';
@@ -51,6 +53,17 @@ const areOperationsEqual = (
 
     compareEntities(op1, op2);
   }
+};
+
+const captureThrownError = (action: () => void): Error => {
+  try {
+    action();
+  } catch (error) {
+    expect(error).toBeInstanceOf(Error);
+    return error as Error;
+  }
+
+  throw new Error('Expected an error to be thrown');
 };
 
 describe('Transaction Domain Entity', () => {
@@ -253,7 +266,7 @@ describe('Transaction Domain Entity', () => {
         throw new Error('Test setup failed: Account not found');
       }
 
-      expect(() =>
+      const error = captureThrownError(() =>
         restoredTransaction.applyUpdate({
           operations: {
             create: [],
@@ -269,7 +282,16 @@ describe('Transaction Domain Entity', () => {
             ],
           },
         }),
-      ).toThrow(OperationNotFoundInTransactionError);
+      );
+
+      expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_NOT_FOUND_IN_TRANSACTION',
+        context: {
+          operationId: operationToDelete1.id,
+          transactionId: restoredTransaction.getId().valueOf(),
+        },
+      });
     });
   });
 
@@ -402,6 +424,47 @@ describe('Transaction Domain Entity', () => {
   });
 
   describe('Manage Operations', () => {
+    it('rejects attaching an operation that is already attached', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operation = transaction.getOperations()[0];
+
+      const error = captureThrownError(() =>
+        transaction.attachOperations([operation]),
+      );
+
+      expect(error).toBeInstanceOf(OperationAlreadyAttachedToTransactionError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_ALREADY_ATTACHED_TO_TRANSACTION',
+        context: {
+          operationId: operation.getId().valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
+    });
+
+    it('rejects an operation that belongs to another transaction of the same user', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+
+      const otherTransaction = Transaction.create(
+        user.getId(),
+        transactionData,
+      );
+      const foreignOperation = otherTransaction.getOperations()[0];
+
+      const error = captureThrownError(() =>
+        transaction.attachOperations([foreignOperation]),
+      );
+
+      expect(error).toBeInstanceOf(OperationDoesNotBelongToTransactionError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_TRANSACTION_MISMATCH',
+        context: {
+          operationId: foreignOperation.getId().valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
+    });
+
     const toUpdateProps = (
       transaction: Transaction,
       operationIndex: number,
@@ -452,10 +515,14 @@ describe('Transaction Domain Entity', () => {
         }),
       );
 
-      expect(error.conflictingIds).toEqual([operationId]);
-      expect(error.conflictType).toBe(
-        'IDs found in both update and delete arrays',
-      );
+      expect(error).toBeInstanceOf(ConflictingOperationIdsError);
+      expect(error).toMatchObject({
+        code: 'CONFLICTING_OPERATION_IDS',
+        context: {
+          conflict: 'UPDATE_AND_DELETE',
+          operationIds: [operationId],
+        },
+      });
     });
 
     it('should reject duplicate update IDs represented by different Id instances', () => {
@@ -475,8 +542,13 @@ describe('Transaction Domain Entity', () => {
         }),
       );
 
-      expect(error.conflictingIds).toEqual([operationId]);
-      expect(error.conflictType).toBe('Duplicate IDs in update array');
+      expect(error).toMatchObject({
+        code: 'CONFLICTING_OPERATION_IDS',
+        context: {
+          conflict: 'DUPLICATE_IN_UPDATE',
+          operationIds: [operationId],
+        },
+      });
     });
 
     it('should reject duplicate delete IDs represented by different Id instances', () => {
@@ -496,8 +568,13 @@ describe('Transaction Domain Entity', () => {
         }),
       );
 
-      expect(error.conflictingIds).toEqual([operationId]);
-      expect(error.conflictType).toBe('Duplicate IDs in delete array');
+      expect(error).toMatchObject({
+        code: 'CONFLICTING_OPERATION_IDS',
+        context: {
+          conflict: 'DUPLICATE_IN_DELETE',
+          operationIds: [operationId],
+        },
+      });
     });
 
     it('should reject updating a non-existent operation without changing the transaction', () => {
@@ -505,7 +582,7 @@ describe('Transaction Domain Entity', () => {
       const originalSnapshot = transaction.toSnapshot();
       const unknownOperationId = Id.create();
 
-      expect(() =>
+      const error = captureThrownError(() =>
         transaction.applyUpdate({
           operations: {
             create: [],
@@ -513,7 +590,16 @@ describe('Transaction Domain Entity', () => {
             update: [toUpdateProps(transaction, 0, unknownOperationId)],
           },
         }),
-      ).toThrow(OperationNotFoundInTransactionError);
+      );
+
+      expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_NOT_FOUND_IN_TRANSACTION',
+        context: {
+          operationId: unknownOperationId.valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
 
       expect(transaction.toSnapshot()).toEqual(originalSnapshot);
     });
@@ -523,7 +609,7 @@ describe('Transaction Domain Entity', () => {
       const originalSnapshot = transaction.toSnapshot();
       const unknownOperationId = Id.create();
 
-      expect(() =>
+      const error = captureThrownError(() =>
         transaction.applyUpdate({
           operations: {
             create: [],
@@ -531,7 +617,16 @@ describe('Transaction Domain Entity', () => {
             update: [],
           },
         }),
-      ).toThrow(OperationNotFoundInTransactionError);
+      );
+
+      expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
+      expect(error).toMatchObject({
+        code: 'OPERATION_NOT_FOUND_IN_TRANSACTION',
+        context: {
+          operationId: unknownOperationId.valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
 
       expect(transaction.toSnapshot()).toEqual(originalSnapshot);
     });
@@ -809,14 +904,23 @@ describe('Transaction Domain Entity', () => {
       const deletedSnapshot = transaction.toSnapshot();
       const metadata = TransactionMapper.toMetadataUpdateData(transaction);
 
-      expect(() =>
+      const error = captureThrownError(() =>
         transaction.applyUpdate({
           metadata: {
             ...metadata,
             description: 'Updated deleted transaction',
           },
         }),
-      ).toThrow(DeletedEntityOperationError);
+      );
+
+      expect(error).toBeInstanceOf(DeletedEntityOperationError);
+      expect(error).toMatchObject({
+        code: 'DELETED_ENTITY_OPERATION',
+        context: {
+          entityType: Transaction.entityType,
+          operation: 'update',
+        },
+      });
 
       expect(transaction.toSnapshot()).toEqual(deletedSnapshot);
     });
@@ -922,7 +1026,7 @@ describe('Transaction Domain Entity', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
       const operationToUpdate = transaction.getOperations()[1];
 
-      expect(() =>
+      const error = captureThrownError(() =>
         transaction.applyUpdate({
           operations: {
             create: [],
@@ -938,7 +1042,16 @@ describe('Transaction Domain Entity', () => {
             ],
           },
         }),
-      ).toThrow(UnbalancedTransactionError);
+      );
+
+      expect(error).toBeInstanceOf(UnbalancedTransactionError);
+      expect(error).toMatchObject({
+        code: 'TRANSACTION_UNBALANCED',
+        context: {
+          entityType: Transaction.entityType,
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
     });
 
     it('should reject create when resulting operations do not sum to zero', () => {
@@ -1045,9 +1158,18 @@ describe('Transaction Domain Entity', () => {
         data.transactionContext,
       );
 
-      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
-        InsufficientOperationsError,
+      const error = captureThrownError(() =>
+        Transaction.create(user.getId(), transactionData),
       );
+
+      expect(error).toBeInstanceOf(InsufficientOperationsError);
+      expect(error).toMatchObject({
+        code: 'INSUFFICIENT_OPERATIONS',
+        context: {
+          minimum: 2,
+          received: 0,
+        },
+      });
     });
 
     it('should reject creation with one operation', () => {
@@ -1088,12 +1210,21 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should reject creation with more than the maximum number of operations', () => {
-      expect(() =>
+      const error = captureThrownError(() =>
         Transaction.create(user.getId(), {
           ...transactionData,
           operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS + 1),
         }),
-      ).toThrow(ExcessiveOperationsError);
+      );
+
+      expect(error).toBeInstanceOf(ExcessiveOperationsError);
+      expect(error).toMatchObject({
+        code: 'EXCESSIVE_OPERATIONS',
+        context: {
+          maximum: MAX_TRANSACTION_OPERATIONS,
+          received: MAX_TRANSACTION_OPERATIONS + 1,
+        },
+      });
     });
 
     it('should reject updating to fewer than two operations', () => {

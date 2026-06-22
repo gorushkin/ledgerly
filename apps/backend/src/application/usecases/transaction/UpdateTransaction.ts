@@ -14,7 +14,7 @@ import {
 import { OperationMapper, TransactionMapper } from 'src/application/mappers';
 import { TransactionContextLoader } from 'src/application/services';
 import { EnsureEntityExistsAndOwnedFn } from 'src/application/shared/ensureEntityExistsAndOwned';
-import { User } from 'src/domain';
+import { Transaction, User } from 'src/domain';
 import { Id, Version } from 'src/domain/domain-core';
 
 export class UpdateTransactionUseCase {
@@ -36,16 +36,17 @@ export class UpdateTransactionUseCase {
         user,
         this.transactionRepository.getById.bind(this.transactionRepository),
         transactionId,
-        'Transaction',
+        Transaction.entityType,
       );
 
       transaction.validateUpdateIsAllowed();
 
       if (!transaction.matchesVersion(expectedVersion)) {
-        throw new VersionConflictError(
-          'Transaction',
-          expectedVersion.valueOf(),
-        );
+        throw new VersionConflictError({
+          entityId: transactionId,
+          entityType: Transaction.entityType,
+          expectedVersion: expectedVersion.valueOf(),
+        });
       }
 
       const operationsData = [
@@ -81,14 +82,18 @@ export class UpdateTransactionUseCase {
         );
 
         if (!result.ok && result.reason === 'NOT_FOUND') {
-          throw new EntityNotFoundError('Transaction');
+          throw new EntityNotFoundError({
+            entityId: transactionId,
+            entityType: Transaction.entityType,
+          });
         }
 
         if (!result.ok && result.reason === 'VERSION_CONFLICT') {
-          throw new VersionConflictError(
-            'Transaction',
-            expectedVersion.valueOf(),
-          );
+          throw new VersionConflictError({
+            entityId: transactionId,
+            entityType: Transaction.entityType,
+            expectedVersion: expectedVersion.valueOf(),
+          });
         }
       }
 
