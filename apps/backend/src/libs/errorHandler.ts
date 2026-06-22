@@ -1,6 +1,7 @@
 import {
   apiErrorCodes,
   type ApiErrorCode,
+  type ErrorContextByCode,
   type ValidationFieldErrorCode,
 } from '@ledgerly/shared/types';
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
@@ -12,11 +13,13 @@ import {
 import { DomainError } from 'src/domain/domain.errors';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors/index';
-import { isCodedError, type CodedErrorContract } from 'src/shared/errors';
+import { isCodedError } from 'src/shared/errors';
 import { ZodError, type ZodIssue } from 'zod';
 
 const statusByErrorCode = {
   [apiErrorCodes.accountNotFoundInContext]: 400,
+  [apiErrorCodes.badRequest]: 400,
+  [apiErrorCodes.conflict]: 409,
   [apiErrorCodes.conflictingOperationIds]: 400,
   [apiErrorCodes.currencyMismatch]: 400,
   [apiErrorCodes.deletedEntityOperation]: 400,
@@ -24,6 +27,7 @@ const statusByErrorCode = {
   [apiErrorCodes.entityNotFound]: 404,
   [apiErrorCodes.excessiveOperations]: 400,
   [apiErrorCodes.insufficientOperations]: 400,
+  [apiErrorCodes.internalServerError]: 500,
   [apiErrorCodes.invalidAccountType]: 400,
   [apiErrorCodes.invalidAmount]: 400,
   [apiErrorCodes.invalidDate]: 400,
@@ -34,12 +38,14 @@ const statusByErrorCode = {
   [apiErrorCodes.invalidPassword]: 400,
   [apiErrorCodes.invalidTimestamp]: 400,
   [apiErrorCodes.invalidVersion]: 400,
+  [apiErrorCodes.notFound]: 404,
   [apiErrorCodes.operationAlreadyAttachedToTransaction]: 400,
   [apiErrorCodes.operationIdMismatch]: 400,
   [apiErrorCodes.operationNotFoundInTransaction]: 400,
   [apiErrorCodes.operationTransactionMismatch]: 400,
   [apiErrorCodes.operationUserMismatch]: 400,
   [apiErrorCodes.transactionUnbalanced]: 400,
+  [apiErrorCodes.unauthorized]: 401,
   [apiErrorCodes.unauthorizedAccess]: 403,
   [apiErrorCodes.validationFailed]: 400,
   [apiErrorCodes.versionConflict]: 409,
@@ -64,18 +70,20 @@ export const getValidationFieldErrorCode = (
   return validationFieldCodeByZodIssueCode[issue.code] ?? 'INVALID_VALUE';
 };
 
+const sendCodedError = <Code extends ApiErrorCode>(
+  reply: FastifyReply,
+  status: number,
+  code: Code,
+  context: ErrorContextByCode[Code],
+) =>
+  reply.status(status).send({
+    code,
+    context,
+    error: true,
+  });
+
 export function errorHandler(
-  error:
-    | FastifyError
-    | HttpApiError
-    | ZodError
-    | DatabaseError
-    | DomainError
-    | CodedErrorContract<ApiErrorCode>
-    | RepositoryNotFoundError
-    | UserNotFoundError
-    | InvalidPasswordError
-    | UserAlreadyExistsError,
+  error: FastifyError | Error,
   _request: FastifyRequest,
   reply: FastifyReply,
 ) {
@@ -85,84 +93,95 @@ export function errorHandler(
       path: issue.path.length > 0 ? issue.path.join('.') : '$',
     }));
 
-    return reply
-      .status(statusByErrorCode[apiErrorCodes.validationFailed])
-      .send({
-        code: apiErrorCodes.validationFailed,
-        context: { fields },
-        error: true,
-      });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.validationFailed],
+      apiErrorCodes.validationFailed,
+      { fields },
+    );
   }
 
   if (isCodedError(error)) {
-    return reply.status(statusByErrorCode[error.code]).send({
-      code: error.code,
-      context: error.context,
-      error: true,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[error.code],
+      error.code,
+      error.context,
+    );
   }
 
-  // Domain layer errors - business rule violations
+  // Legacy errors that have not yet been migrated to coded domain contracts.
   if (error instanceof DomainError) {
-    return reply.status(400).send({
-      error: true,
-      message: error.message,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.badRequest],
+      apiErrorCodes.badRequest,
+      {},
+    );
   }
 
   // Application layer errors - authentication/authorization
   if (error instanceof UserNotFoundError) {
-    return reply.status(401).send({
-      error: true,
-      message: error.message,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.unauthorized],
+      apiErrorCodes.unauthorized,
+      {},
+    );
   }
 
   if (error instanceof InvalidPasswordError) {
-    return reply.status(401).send({
-      error: true,
-      message: error.message,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.unauthorized],
+      apiErrorCodes.unauthorized,
+      {},
+    );
   }
 
   if (error instanceof UserAlreadyExistsError) {
-    return reply.status(409).send({
-      error: true,
-      message: error.message,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.conflict],
+      apiErrorCodes.conflict,
+      {},
+    );
   }
 
   // Infrastructure layer errors
   if (error instanceof RepositoryNotFoundError) {
-    return reply.status(404).send({
-      error: true,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof HttpApiError) {
-    return reply.status(error.statusCode).send({
-      error: true,
-      message: error.message,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.notFound],
+      apiErrorCodes.notFound,
+      {},
+    );
   }
 
   if (error instanceof DatabaseError) {
     if (process.env.NODE_ENV !== 'test') {
       console.error('Database error:', error);
     }
-    return reply.status(500).send({
-      error: true,
-      message: 'Database operation failed',
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.internalServerError],
+      apiErrorCodes.internalServerError,
+      {},
+    );
+  }
+
+  if (error instanceof HttpApiError) {
+    return sendCodedError(reply, error.statusCode, error.code, {});
   }
 
   if (process.env.NODE_ENV !== 'test') {
     console.error('Unexpected error:', error);
   }
 
-  return reply.status(500).send({
-    error: true,
-    message: 'Internal server error',
-  });
+  return sendCodedError(
+    reply,
+    statusByErrorCode[apiErrorCodes.internalServerError],
+    apiErrorCodes.internalServerError,
+    {},
+  );
 }

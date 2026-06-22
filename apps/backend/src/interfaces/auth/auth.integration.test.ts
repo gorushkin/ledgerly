@@ -1,14 +1,10 @@
+import { apiErrorCodes, type ApiErrorResponse } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 type AuthSuccessResponse = {
   token: string;
-};
-
-type AuthErrorResponse = {
-  error: boolean;
-  message: string;
 };
 
 describe('Auth Integration Tests', () => {
@@ -57,8 +53,16 @@ describe('Auth Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(409);
-      const body = JSON.parse(response.body) as AuthErrorResponse;
-      expect(body.error).toBe(true);
+      const body = JSON.parse(response.body) as Extract<
+        ApiErrorResponse,
+        { code: 'CONFLICT' }
+      >;
+
+      expect(body).toEqual({
+        code: apiErrorCodes.conflict,
+        context: {},
+        error: true,
+      });
     });
   });
 
@@ -212,8 +216,16 @@ describe('Auth Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(401);
-      const body = JSON.parse(response.body) as AuthErrorResponse;
-      expect(body.error).toBe(true);
+      const body = JSON.parse(response.body) as Extract<
+        ApiErrorResponse,
+        { code: 'UNAUTHORIZED' }
+      >;
+
+      expect(body).toEqual({
+        code: apiErrorCodes.unauthorized,
+        context: {},
+        error: true,
+      });
     });
 
     it('should fail with non-existent email', async () => {
@@ -227,8 +239,16 @@ describe('Auth Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(401);
-      const body = JSON.parse(response.body) as AuthErrorResponse;
-      expect(body.error).toBe(true);
+      const body = JSON.parse(response.body) as Extract<
+        ApiErrorResponse,
+        { code: 'UNAUTHORIZED' }
+      >;
+
+      expect(body).toEqual({
+        code: apiErrorCodes.unauthorized,
+        context: {},
+        error: true,
+      });
     });
   });
 

@@ -1,8 +1,33 @@
-import type { ValidationFieldErrorCode } from '@ledgerly/shared/types';
+import {
+  apiErrorCodes,
+  type ValidationFieldErrorCode,
+} from '@ledgerly/shared/types';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import { DatabaseError, HttpApiError } from 'src/presentation/errors';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { getValidationFieldErrorCode } from './errorHandler';
+import { errorHandler, getValidationFieldErrorCode } from './errorHandler';
+
+const createReply = () => {
+  let payload: unknown;
+  let statusCode: number | undefined;
+  const reply = {
+    send: (body: unknown) => {
+      payload = body;
+      return reply;
+    },
+    status: (status: number) => {
+      statusCode = status;
+      return reply;
+    },
+  };
+
+  return {
+    reply: reply as unknown as FastifyReply,
+    response: () => ({ payload, statusCode }),
+  };
+};
 
 describe('getValidationFieldErrorCode', () => {
   const expectValidationCode = (
@@ -46,5 +71,56 @@ describe('getValidationFieldErrorCode', () => {
       z.literal('expected').safeParse('received'),
       'INVALID_VALUE',
     );
+  });
+});
+
+describe('errorHandler', () => {
+  const handle = (error: Error) => {
+    const { reply, response } = createReply();
+
+    errorHandler(error, {} as FastifyRequest, reply);
+
+    return response();
+  };
+
+  it('serializes HttpApiError with its stable code and no diagnostic message', () => {
+    const response = handle(new HttpApiError('request diagnostic', 400));
+
+    expect(response).toEqual({
+      payload: {
+        code: apiErrorCodes.badRequest,
+        context: {},
+        error: true,
+      },
+      statusCode: 400,
+    });
+  });
+
+  it('does not expose database diagnostics', () => {
+    const response = handle(
+      new DatabaseError({ message: 'database password is secret' }),
+    );
+
+    expect(response).toEqual({
+      payload: {
+        code: apiErrorCodes.internalServerError,
+        context: {},
+        error: true,
+      },
+      statusCode: 500,
+    });
+  });
+
+  it('uses a safe, stable response for unknown errors', () => {
+    const response = handle(new Error('unhandled secret diagnostic'));
+
+    expect(response).toEqual({
+      payload: {
+        code: apiErrorCodes.internalServerError,
+        context: {},
+        error: true,
+      },
+      statusCode: 500,
+    });
   });
 });
