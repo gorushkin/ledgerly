@@ -114,7 +114,7 @@ export class User {
     const isUserOwner = this.getId().valueOf() === userId;
 
     if (!isUserOwner) {
-      throw new UserOwnershipError(this.getId().valueOf());
+      throw new UserOwnershipError(User.entityType, this.getId().valueOf());
     }
   }
 }

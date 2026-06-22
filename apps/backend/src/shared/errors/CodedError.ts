@@ -9,6 +9,8 @@ export type CodedErrorContract<Code extends ApiErrorCode = ApiErrorCode> = {
   context: ErrorContextByCode[Code];
 };
 
+const apiErrorCodeSet = new Set(Object.values(apiErrorCodes));
+
 export const isCodedError = (error: unknown): error is CodedErrorContract => {
   if (!error || typeof error !== 'object') {
     return false;
@@ -17,7 +19,7 @@ export const isCodedError = (error: unknown): error is CodedErrorContract => {
   const candidate = error as Partial<CodedErrorContract>;
   return (
     typeof candidate.code === 'string' &&
-    Object.values(apiErrorCodes).includes(candidate.code) &&
+    apiErrorCodeSet.has(candidate.code) &&
     !!candidate.context &&
     typeof candidate.context === 'object'
   );

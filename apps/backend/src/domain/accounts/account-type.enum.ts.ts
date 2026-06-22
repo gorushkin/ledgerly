@@ -1,3 +1,5 @@
+import { InvalidAccountTypeError } from 'src/domain/domain.errors';
+
 type AccountTypeValue =
   | 'asset'
   | 'liability'
@@ -54,4 +56,3 @@ export class AccountType {
     return SYSTEM_ACCOUNT_TYPE_VALUES.includes(this._value);
   }
 }
-import { InvalidAccountTypeError } from 'src/domain/domain.errors';

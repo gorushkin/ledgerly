@@ -45,25 +45,23 @@ const statusByErrorCode = {
   [apiErrorCodes.versionConflict]: 409,
 } satisfies Record<ApiErrorCode, number>;
 
-const getValidationFieldErrorCode = (
+const validationFieldCodeByZodIssueCode: Partial<
+  Record<ZodIssue['code'], ValidationFieldErrorCode>
+> = {
+  invalid_string: 'INVALID_FORMAT',
+  invalid_type: 'INVALID_TYPE',
+  too_big: 'TOO_BIG',
+  too_small: 'TOO_SMALL',
+};
+
+export const getValidationFieldErrorCode = (
   issue: ZodIssue,
 ): ValidationFieldErrorCode => {
   if (issue.code === 'invalid_type' && issue.received === 'undefined') {
     return 'REQUIRED';
   }
 
-  switch (issue.code) {
-    case 'invalid_string':
-      return 'INVALID_FORMAT';
-    case 'invalid_type':
-      return 'INVALID_TYPE';
-    case 'too_big':
-      return 'TOO_BIG';
-    case 'too_small':
-      return 'TOO_SMALL';
-    default:
-      return 'INVALID_VALUE';
-  }
+  return validationFieldCodeByZodIssueCode[issue.code] ?? 'INVALID_VALUE';
 };
 
 export function errorHandler(

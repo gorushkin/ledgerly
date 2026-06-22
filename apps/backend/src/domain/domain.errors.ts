@@ -353,13 +353,16 @@ export class OperationUserMismatchError extends CodedDomainError<'OPERATION_USER
 }
 
 export class UserOwnershipError extends CodedDomainError<'UNAUTHORIZED_ACCESS'> {
-  constructor(public readonly userId: UUID) {
+  constructor(
+    entityType: string,
+    public readonly userId: UUID,
+  ) {
     super(
       `user ${userId} does not match the authenticated user`,
       apiErrorCodes.unauthorizedAccess,
       {
         entityId: userId,
-        entityType: 'user',
+        entityType,
       },
     );
   }
