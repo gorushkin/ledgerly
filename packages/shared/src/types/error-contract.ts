@@ -2,6 +2,7 @@ import type { UUID } from "./types";
 
 export const apiErrorCodes = {
   accountNotFoundInContext: "ACCOUNT_NOT_FOUND_IN_CONTEXT",
+  authenticationFailed: "AUTHENTICATION_FAILED",
   badRequest: "BAD_REQUEST",
   conflict: "CONFLICT",
   conflictingOperationIds: "CONFLICTING_OPERATION_IDS",
@@ -29,6 +30,7 @@ export const apiErrorCodes = {
   operationNotFoundInTransaction: "OPERATION_NOT_FOUND_IN_TRANSACTION",
   operationTransactionMismatch: "OPERATION_TRANSACTION_MISMATCH",
   operationUserMismatch: "OPERATION_USER_MISMATCH",
+  registrationConflict: "REGISTRATION_CONFLICT",
   transactionUnbalanced: "TRANSACTION_UNBALANCED",
   unauthorized: "UNAUTHORIZED",
   unauthorizedAccess: "UNAUTHORIZED_ACCESS",
@@ -56,6 +58,7 @@ export type ErrorContextByCode = {
     accountId: string;
     operationId: string;
   };
+  AUTHENTICATION_FAILED: Record<string, never>;
   BAD_REQUEST: Record<string, never>;
   CONFLICT: Record<string, never>;
   CONFLICTING_OPERATION_IDS: {
@@ -141,6 +144,7 @@ export type ErrorContextByCode = {
     operationId: UUID;
     transactionId: UUID;
   };
+  REGISTRATION_CONFLICT: Record<string, never>;
   TRANSACTION_UNBALANCED: {
     difference: string;
     entityType: string;

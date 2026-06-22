@@ -55,11 +55,11 @@ describe('Auth Integration Tests', () => {
       expect(response.statusCode).toBe(409);
       const body = JSON.parse(response.body) as Extract<
         ApiErrorResponse,
-        { code: 'CONFLICT' }
+        { code: 'REGISTRATION_CONFLICT' }
       >;
 
       expect(body).toEqual({
-        code: apiErrorCodes.conflict,
+        code: apiErrorCodes.registrationConflict,
         context: {},
         error: true,
       });
@@ -205,8 +205,8 @@ describe('Auth Integration Tests', () => {
       expect(typeof body.token).toBe('string');
     });
 
-    it('should fail with incorrect password', async () => {
-      const response = await server.inject({
+    it('returns the same public failure for invalid credentials', async () => {
+      const invalidPasswordResponse = await server.inject({
         method: 'POST',
         payload: {
           email: testUser.email,
@@ -215,21 +215,7 @@ describe('Auth Integration Tests', () => {
         url: '/api/auth/login',
       });
 
-      expect(response.statusCode).toBe(401);
-      const body = JSON.parse(response.body) as Extract<
-        ApiErrorResponse,
-        { code: 'UNAUTHORIZED' }
-      >;
-
-      expect(body).toEqual({
-        code: apiErrorCodes.unauthorized,
-        context: {},
-        error: true,
-      });
-    });
-
-    it('should fail with non-existent email', async () => {
-      const response = await server.inject({
+      const unknownUserResponse = await server.inject({
         method: 'POST',
         payload: {
           email: 'nonexistent@example.com',
@@ -238,17 +224,19 @@ describe('Auth Integration Tests', () => {
         url: '/api/auth/login',
       });
 
-      expect(response.statusCode).toBe(401);
-      const body = JSON.parse(response.body) as Extract<
+      expect(invalidPasswordResponse.statusCode).toBe(401);
+      expect(unknownUserResponse.statusCode).toBe(401);
+      const body = JSON.parse(invalidPasswordResponse.body) as Extract<
         ApiErrorResponse,
-        { code: 'UNAUTHORIZED' }
+        { code: 'AUTHENTICATION_FAILED' }
       >;
 
       expect(body).toEqual({
-        code: apiErrorCodes.unauthorized,
+        code: apiErrorCodes.authenticationFailed,
         context: {},
         error: true,
       });
+      expect(JSON.parse(unknownUserResponse.body)).toEqual(body);
     });
   });
 

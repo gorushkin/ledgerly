@@ -5,11 +5,6 @@ import {
   type ValidationFieldErrorCode,
 } from '@ledgerly/shared/types';
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
-import {
-  InvalidPasswordError,
-  UserAlreadyExistsError,
-  UserNotFoundError,
-} from 'src/application/application.errors';
 import { DomainError } from 'src/domain/domain.errors';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors/index';
@@ -18,6 +13,7 @@ import { ZodError, type ZodIssue } from 'zod';
 
 const statusByErrorCode = {
   [apiErrorCodes.accountNotFoundInContext]: 400,
+  [apiErrorCodes.authenticationFailed]: 401,
   [apiErrorCodes.badRequest]: 400,
   [apiErrorCodes.conflict]: 409,
   [apiErrorCodes.conflictingOperationIds]: 400,
@@ -44,6 +40,7 @@ const statusByErrorCode = {
   [apiErrorCodes.operationNotFoundInTransaction]: 400,
   [apiErrorCodes.operationTransactionMismatch]: 400,
   [apiErrorCodes.operationUserMismatch]: 400,
+  [apiErrorCodes.registrationConflict]: 409,
   [apiErrorCodes.transactionUnbalanced]: 400,
   [apiErrorCodes.unauthorized]: 401,
   [apiErrorCodes.unauthorizedAccess]: 403,
@@ -116,34 +113,6 @@ export function errorHandler(
       reply,
       statusByErrorCode[apiErrorCodes.badRequest],
       apiErrorCodes.badRequest,
-      {},
-    );
-  }
-
-  // Application layer errors - authentication/authorization
-  if (error instanceof UserNotFoundError) {
-    return sendCodedError(
-      reply,
-      statusByErrorCode[apiErrorCodes.unauthorized],
-      apiErrorCodes.unauthorized,
-      {},
-    );
-  }
-
-  if (error instanceof InvalidPasswordError) {
-    return sendCodedError(
-      reply,
-      statusByErrorCode[apiErrorCodes.unauthorized],
-      apiErrorCodes.unauthorized,
-      {},
-    );
-  }
-
-  if (error instanceof UserAlreadyExistsError) {
-    return sendCodedError(
-      reply,
-      statusByErrorCode[apiErrorCodes.conflict],
-      apiErrorCodes.conflict,
       {},
     );
   }

@@ -54,18 +54,32 @@ export class UnauthorizedAccessError extends CodedApplicationError<'UNAUTHORIZED
 }
 
 /**
- * Thrown when a user is not found during authentication.
+ * A deliberately non-specific authentication failure.
+ *
+ * The diagnostic message may distinguish internal causes, but the public
+ * response always uses AUTHENTICATION_FAILED with an empty context.
  */
-export class UserNotFoundError extends ApplicationError {
+export class AuthenticationFailedError extends CodedApplicationError<'AUTHENTICATION_FAILED'> {
+  constructor(message = 'Authentication failed') {
+    super(message, apiErrorCodes.authenticationFailed, {});
+  }
+}
+
+/**
+ * Retained to preserve an internal diagnostic for a missing user. Its public
+ * contract is intentionally identical to an invalid password.
+ */
+export class UserNotFoundError extends AuthenticationFailedError {
   constructor(message = 'User not found') {
     super(message);
   }
 }
 
 /**
- * Thrown when a password is invalid during authentication.
+ * Retained to preserve an internal diagnostic for an invalid password. Its
+ * public contract is intentionally identical to a missing user.
  */
-export class InvalidPasswordError extends ApplicationError {
+export class InvalidPasswordError extends AuthenticationFailedError {
   constructor(message = 'Invalid password') {
     super(message);
   }
@@ -74,9 +88,9 @@ export class InvalidPasswordError extends ApplicationError {
 /**
  * Thrown when trying to register a user that already exists.
  */
-export class UserAlreadyExistsError extends ApplicationError {
+export class UserAlreadyExistsError extends CodedApplicationError<'REGISTRATION_CONFLICT'> {
   constructor(message = 'User already exists') {
-    super(message);
+    super(message, apiErrorCodes.registrationConflict, {});
   }
 }
 
