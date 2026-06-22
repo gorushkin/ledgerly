@@ -1,5 +1,9 @@
-import { apiErrorCodes, type ErrorContextByCode } from '@ledgerly/shared/types';
-import { BaseError, CodedError } from 'src/shared/errors';
+import {
+  apiErrorCodes,
+  type ApiErrorCode,
+  type ErrorContextByCode,
+} from '@ledgerly/shared/types';
+import { BaseError } from 'src/shared/errors';
 
 /**
  * Base class for all application layer errors.
@@ -8,9 +12,25 @@ import { BaseError, CodedError } from 'src/shared/errors';
 export class ApplicationError extends BaseError {}
 
 /**
+ * Base application error with a stable, client-safe contract.
+ */
+export abstract class CodedApplicationError<
+  Code extends ApiErrorCode,
+> extends ApplicationError {
+  protected constructor(
+    message: string,
+    public readonly code: Code,
+    public readonly context: ErrorContextByCode[Code],
+    cause?: Error,
+  ) {
+    super(message, cause);
+  }
+}
+
+/**
  * Thrown when an entity is not found in the system.
  */
-export class EntityNotFoundError extends CodedError<'ENTITY_NOT_FOUND'> {
+export class EntityNotFoundError extends CodedApplicationError<'ENTITY_NOT_FOUND'> {
   constructor(context: ErrorContextByCode['ENTITY_NOT_FOUND']) {
     super(
       `${context.entityType} not found`,
@@ -23,7 +43,7 @@ export class EntityNotFoundError extends CodedError<'ENTITY_NOT_FOUND'> {
 /**
  * Thrown when a user attempts to access an entity they don't own.
  */
-export class UnauthorizedAccessError extends CodedError<'UNAUTHORIZED_ACCESS'> {
+export class UnauthorizedAccessError extends CodedApplicationError<'UNAUTHORIZED_ACCESS'> {
   constructor(context: ErrorContextByCode['UNAUTHORIZED_ACCESS']) {
     super(
       `${context.entityType} does not belong to the user`,
@@ -63,7 +83,7 @@ export class UserAlreadyExistsError extends ApplicationError {
 /**
  * Thrown when an update cannot be applied because aggregate versions differ.
  */
-export class VersionConflictError extends CodedError<'VERSION_CONFLICT'> {
+export class VersionConflictError extends CodedApplicationError<'VERSION_CONFLICT'> {
   constructor(context: ErrorContextByCode['VERSION_CONFLICT']) {
     super(
       `${context.entityType} version mismatch for expected version ${context.expectedVersion}`,

@@ -1,2 +1,2 @@
 export { BaseError } from './BaseError';
-export { CodedError } from './CodedError';
+export { isCodedError, type CodedErrorContract } from './CodedError';

@@ -12,7 +12,7 @@ import {
 import { DomainError } from 'src/domain/domain.errors';
 import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors/index';
-import { CodedError } from 'src/shared/errors';
+import { isCodedError, type CodedErrorContract } from 'src/shared/errors';
 import { ZodError, type ZodIssue } from 'zod';
 
 const statusByErrorCode = {
@@ -73,7 +73,7 @@ export function errorHandler(
     | ZodError
     | DatabaseError
     | DomainError
-    | CodedError<ApiErrorCode>
+    | CodedErrorContract<ApiErrorCode>
     | RepositoryNotFoundError
     | UserNotFoundError
     | InvalidPasswordError
@@ -96,7 +96,7 @@ export function errorHandler(
       });
   }
 
-  if (error instanceof CodedError) {
+  if (isCodedError(error)) {
     return reply.status(statusByErrorCode[error.code]).send({
       code: error.code,
       context: error.context,

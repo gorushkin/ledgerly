@@ -1,4 +1,5 @@
 import {
+  DomainError,
   DeletedEntityOperationError,
   EmptyOperationsError,
   ExcessiveOperationsError,
@@ -15,9 +16,10 @@ import { describe, expect, it } from 'vitest';
 
 describe('coded domain errors', () => {
   it('exposes DELETED_ENTITY_OPERATION context', () => {
-    expect(
-      new DeletedEntityOperationError('transaction', 'update'),
-    ).toMatchObject({
+    const error = new DeletedEntityOperationError('transaction', 'update');
+
+    expect(error).toBeInstanceOf(DomainError);
+    expect(error).toMatchObject({
       code: 'DELETED_ENTITY_OPERATION',
       context: {
         entityType: 'transaction',

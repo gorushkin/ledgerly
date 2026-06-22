@@ -1,18 +1,24 @@
-import type { ApiErrorCode, ErrorContextByCode } from '@ledgerly/shared/types';
+import {
+  apiErrorCodes,
+  type ApiErrorCode,
+  type ErrorContextByCode,
+} from '@ledgerly/shared/types';
 
-import { BaseError } from './BaseError';
+export type CodedErrorContract<Code extends ApiErrorCode = ApiErrorCode> = {
+  code: Code;
+  context: ErrorContextByCode[Code];
+};
 
-/**
- * Base error for failures that have a stable, client-safe API representation.
- * HTTP status mapping belongs to the presentation layer.
- */
-export abstract class CodedError<Code extends ApiErrorCode> extends BaseError {
-  protected constructor(
-    message: string,
-    public readonly code: Code,
-    public readonly context: ErrorContextByCode[Code],
-    cause?: Error,
-  ) {
-    super(message, cause);
+export const isCodedError = (error: unknown): error is CodedErrorContract => {
+  if (!error || typeof error !== 'object') {
+    return false;
   }
-}
+
+  const candidate = error as Partial<CodedErrorContract>;
+  return (
+    typeof candidate.code === 'string' &&
+    Object.values(apiErrorCodes).includes(candidate.code) &&
+    !!candidate.context &&
+    typeof candidate.context === 'object'
+  );
+};

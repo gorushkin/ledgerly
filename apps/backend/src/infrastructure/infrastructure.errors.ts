@@ -1,3 +1,4 @@
+import type { ApiErrorCode, ErrorContextByCode } from '@ledgerly/shared/types';
 import { BaseError } from 'src/shared/errors/BaseError';
 
 /**
@@ -6,6 +7,22 @@ import { BaseError } from 'src/shared/errors/BaseError';
  */
 export class InfrastructureError extends BaseError {
   constructor(message: string, cause?: Error) {
+    super(message, cause);
+  }
+}
+
+/**
+ * Base infrastructure error with a stable, client-safe contract.
+ */
+export abstract class CodedInfrastructureError<
+  Code extends ApiErrorCode,
+> extends InfrastructureError {
+  protected constructor(
+    message: string,
+    public readonly code: Code,
+    public readonly context: ErrorContextByCode[Code],
+    cause?: Error,
+  ) {
     super(message, cause);
   }
 }

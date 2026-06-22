@@ -1,5 +1,10 @@
-import { apiErrorCodes, UUID } from '@ledgerly/shared/types';
-import { BaseError, CodedError } from 'src/shared/errors';
+import {
+  apiErrorCodes,
+  type ApiErrorCode,
+  type ErrorContextByCode,
+  UUID,
+} from '@ledgerly/shared/types';
+import { BaseError } from 'src/shared/errors';
 
 import { Amount } from './domain-core/value-objects/Amount';
 import {
@@ -14,9 +19,25 @@ import {
 export class DomainError extends BaseError {}
 
 /**
+ * Base domain error with a stable, client-safe contract.
+ */
+export abstract class CodedDomainError<
+  Code extends ApiErrorCode,
+> extends DomainError {
+  protected constructor(
+    message: string,
+    public readonly code: Code,
+    public readonly context: ErrorContextByCode[Code],
+    cause?: Error,
+  ) {
+    super(message, cause);
+  }
+}
+
+/**
  * Thrown when a version value is not a non-negative integer.
  */
-export class InvalidVersionError extends CodedError<'INVALID_VERSION'> {
+export class InvalidVersionError extends CodedDomainError<'INVALID_VERSION'> {
   constructor(public readonly value: number) {
     super(
       'version must be a non-negative integer',
@@ -32,7 +53,7 @@ export class InvalidVersionError extends CodedError<'INVALID_VERSION'> {
 /**
  * Thrown when a money amount value is not a valid integer minor-unit amount.
  */
-export class InvalidAmountError extends CodedError<'INVALID_AMOUNT'> {
+export class InvalidAmountError extends CodedDomainError<'INVALID_AMOUNT'> {
   constructor(public readonly value: unknown) {
     super(
       'money value must be a valid integer minor-unit value',
@@ -45,7 +66,7 @@ export class InvalidAmountError extends CodedError<'INVALID_AMOUNT'> {
   }
 }
 
-export class InvalidDateError extends CodedError<'INVALID_DATE'> {
+export class InvalidDateError extends CodedDomainError<'INVALID_DATE'> {
   constructor() {
     super('date has an invalid format', apiErrorCodes.invalidDate, {
       reason: 'INVALID_FORMAT',
@@ -53,7 +74,7 @@ export class InvalidDateError extends CodedError<'INVALID_DATE'> {
   }
 }
 
-export class InvalidEmailError extends CodedError<'INVALID_EMAIL'> {
+export class InvalidEmailError extends CodedDomainError<'INVALID_EMAIL'> {
   constructor() {
     super('email has an invalid format', apiErrorCodes.invalidEmail, {
       reason: 'INVALID_FORMAT',
@@ -61,7 +82,7 @@ export class InvalidEmailError extends CodedError<'INVALID_EMAIL'> {
   }
 }
 
-export class InvalidMoneyAmountError extends CodedError<'INVALID_MONEY_AMOUNT'> {
+export class InvalidMoneyAmountError extends CodedDomainError<'INVALID_MONEY_AMOUNT'> {
   constructor() {
     super(
       'money amount must be an integer minor-unit value',
@@ -73,7 +94,7 @@ export class InvalidMoneyAmountError extends CodedError<'INVALID_MONEY_AMOUNT'> 
   }
 }
 
-export class InvalidIdentifierError extends CodedError<'INVALID_IDENTIFIER'> {
+export class InvalidIdentifierError extends CodedDomainError<'INVALID_IDENTIFIER'> {
   constructor() {
     super('identifier has an invalid format', apiErrorCodes.invalidIdentifier, {
       reason: 'INVALID_FORMAT',
@@ -81,7 +102,7 @@ export class InvalidIdentifierError extends CodedError<'INVALID_IDENTIFIER'> {
   }
 }
 
-export class InvalidNameError extends CodedError<'INVALID_NAME'> {
+export class InvalidNameError extends CodedDomainError<'INVALID_NAME'> {
   constructor() {
     super('name must not be empty', apiErrorCodes.invalidName, {
       reason: 'EMPTY',
@@ -89,7 +110,7 @@ export class InvalidNameError extends CodedError<'INVALID_NAME'> {
   }
 }
 
-export class InvalidPasswordError extends CodedError<'INVALID_PASSWORD'> {
+export class InvalidPasswordError extends CodedDomainError<'INVALID_PASSWORD'> {
   constructor() {
     super('password does not meet the policy', apiErrorCodes.invalidPassword, {
       reason: 'POLICY_VIOLATION',
@@ -97,7 +118,7 @@ export class InvalidPasswordError extends CodedError<'INVALID_PASSWORD'> {
   }
 }
 
-export class CurrencyMismatchError extends CodedError<'CURRENCY_MISMATCH'> {
+export class CurrencyMismatchError extends CodedDomainError<'CURRENCY_MISMATCH'> {
   constructor(
     public readonly expectedCurrency: string,
     public readonly receivedCurrency: string,
@@ -110,7 +131,7 @@ export class CurrencyMismatchError extends CodedError<'CURRENCY_MISMATCH'> {
   }
 }
 
-export class InvalidAccountTypeError extends CodedError<'INVALID_ACCOUNT_TYPE'> {
+export class InvalidAccountTypeError extends CodedDomainError<'INVALID_ACCOUNT_TYPE'> {
   constructor(public readonly receivedType: string) {
     super(
       `account type ${receivedType} is invalid`,
@@ -122,7 +143,7 @@ export class InvalidAccountTypeError extends CodedError<'INVALID_ACCOUNT_TYPE'> 
   }
 }
 
-export class InvalidTimestampError extends CodedError<'INVALID_TIMESTAMP'> {
+export class InvalidTimestampError extends CodedDomainError<'INVALID_TIMESTAMP'> {
   constructor() {
     super('timestamp has an invalid format', apiErrorCodes.invalidTimestamp, {
       reason: 'INVALID_FORMAT',
@@ -133,7 +154,7 @@ export class InvalidTimestampError extends CodedError<'INVALID_TIMESTAMP'> {
 /**
  * Thrown when a transaction's operations don't balance (sum !== 0).
  */
-export class UnbalancedTransactionError extends CodedError<'TRANSACTION_UNBALANCED'> {
+export class UnbalancedTransactionError extends CodedDomainError<'TRANSACTION_UNBALANCED'> {
   constructor(
     entityType: string,
     public readonly transactionId: UUID,
@@ -154,7 +175,7 @@ export class UnbalancedTransactionError extends CodedError<'TRANSACTION_UNBALANC
 /**
  * Thrown when attempting to add an empty operations array to an entry.
  */
-export class EmptyOperationsError extends CodedError<'EMPTY_OPERATIONS'> {
+export class EmptyOperationsError extends CodedDomainError<'EMPTY_OPERATIONS'> {
   constructor() {
     super(
       'cannot add an empty operations array',
@@ -167,7 +188,7 @@ export class EmptyOperationsError extends CodedError<'EMPTY_OPERATIONS'> {
 /**
  * Thrown when a transaction contains fewer than two operations.
  */
-export class InsufficientOperationsError extends CodedError<'INSUFFICIENT_OPERATIONS'> {
+export class InsufficientOperationsError extends CodedDomainError<'INSUFFICIENT_OPERATIONS'> {
   constructor(public readonly operationCount: number) {
     super(
       `too few operations: expected at least ${MIN_TRANSACTION_OPERATIONS}, received ${operationCount}`,
@@ -183,7 +204,7 @@ export class InsufficientOperationsError extends CodedError<'INSUFFICIENT_OPERAT
 /**
  * Thrown when a transaction contains more than the maximum allowed operations.
  */
-export class ExcessiveOperationsError extends CodedError<'EXCESSIVE_OPERATIONS'> {
+export class ExcessiveOperationsError extends CodedDomainError<'EXCESSIVE_OPERATIONS'> {
   constructor(public readonly operationCount: number) {
     super(
       `too many operations: expected at most ${MAX_TRANSACTION_OPERATIONS}, received ${operationCount}`,
@@ -201,7 +222,7 @@ export class ExcessiveOperationsError extends CodedError<'EXCESSIVE_OPERATIONS'>
  */
 type DeletedEntityOperation = 'update';
 
-export class DeletedEntityOperationError extends CodedError<'DELETED_ENTITY_OPERATION'> {
+export class DeletedEntityOperationError extends CodedDomainError<'DELETED_ENTITY_OPERATION'> {
   constructor(entityType: string, operation: DeletedEntityOperation) {
     super(
       `cannot ${operation} a deleted ${entityType}`,
@@ -223,7 +244,7 @@ type OperationIdConflict =
   | 'DUPLICATE_IN_UPDATE'
   | 'UPDATE_AND_DELETE';
 
-export class OperationAlreadyAttachedToTransactionError extends CodedError<'OPERATION_ALREADY_ATTACHED_TO_TRANSACTION'> {
+export class OperationAlreadyAttachedToTransactionError extends CodedDomainError<'OPERATION_ALREADY_ATTACHED_TO_TRANSACTION'> {
   constructor(
     public readonly operationId: UUID,
     public readonly transactionId: UUID,
@@ -236,7 +257,7 @@ export class OperationAlreadyAttachedToTransactionError extends CodedError<'OPER
   }
 }
 
-export class OperationIdMismatchError extends CodedError<'OPERATION_ID_MISMATCH'> {
+export class OperationIdMismatchError extends CodedDomainError<'OPERATION_ID_MISMATCH'> {
   constructor(
     public readonly expectedOperationId: UUID,
     public readonly receivedOperationId: UUID,
@@ -249,7 +270,7 @@ export class OperationIdMismatchError extends CodedError<'OPERATION_ID_MISMATCH'
   }
 }
 
-export class ConflictingOperationIdsError extends CodedError<'CONFLICTING_OPERATION_IDS'> {
+export class ConflictingOperationIdsError extends CodedDomainError<'CONFLICTING_OPERATION_IDS'> {
   constructor(
     public readonly conflictingIds: UUID[],
     public readonly conflict: OperationIdConflict,
@@ -268,7 +289,7 @@ export class ConflictingOperationIdsError extends CodedError<'CONFLICTING_OPERAT
 /**
  * Thrown when attempting to update/delete an operation that doesn't belong to the transaction.
  */
-export class OperationNotFoundInTransactionError extends CodedError<'OPERATION_NOT_FOUND_IN_TRANSACTION'> {
+export class OperationNotFoundInTransactionError extends CodedDomainError<'OPERATION_NOT_FOUND_IN_TRANSACTION'> {
   constructor(
     public readonly operationId: UUID,
     public readonly transactionId: UUID,
@@ -285,7 +306,7 @@ export class OperationNotFoundInTransactionError extends CodedError<'OPERATION_N
  * Thrown when attempting to attach an entry that doesn't belong to this transaction.
  * This indicates a programming error - operations should be created with correct transactionId.
  */
-export class OperationDoesNotBelongToTransactionError extends CodedError<'OPERATION_TRANSACTION_MISMATCH'> {
+export class OperationDoesNotBelongToTransactionError extends CodedDomainError<'OPERATION_TRANSACTION_MISMATCH'> {
   constructor(
     public readonly operationId: UUID,
     public readonly transactionId: UUID,
@@ -301,7 +322,7 @@ export class OperationDoesNotBelongToTransactionError extends CodedError<'OPERAT
 /**
  * Thrown when an account required for an operation is not found in the transaction build context.
  */
-export class AccountNotFoundInContextError extends CodedError<'ACCOUNT_NOT_FOUND_IN_CONTEXT'> {
+export class AccountNotFoundInContextError extends CodedDomainError<'ACCOUNT_NOT_FOUND_IN_CONTEXT'> {
   constructor(
     public readonly accountId: string,
     public readonly operationId: string,
@@ -318,7 +339,7 @@ export class AccountNotFoundInContextError extends CodedError<'ACCOUNT_NOT_FOUND
  * Thrown when an operation belongs to a different user than the transaction it's being attached to.
  * This indicates a programming error - operations should be created with the same userId as the transaction.
  */
-export class OperationUserMismatchError extends CodedError<'OPERATION_USER_MISMATCH'> {
+export class OperationUserMismatchError extends CodedDomainError<'OPERATION_USER_MISMATCH'> {
   constructor(
     public readonly operationId: UUID,
     public readonly transactionId: UUID,
@@ -331,7 +352,7 @@ export class OperationUserMismatchError extends CodedError<'OPERATION_USER_MISMA
   }
 }
 
-export class UserOwnershipError extends CodedError<'UNAUTHORIZED_ACCESS'> {
+export class UserOwnershipError extends CodedDomainError<'UNAUTHORIZED_ACCESS'> {
   constructor(public readonly userId: UUID) {
     super(
       `user ${userId} does not match the authenticated user`,
