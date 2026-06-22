@@ -1,5 +1,6 @@
 import { apiErrorCodes, type ApiErrorResponse } from '@ledgerly/shared/types';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -31,6 +32,42 @@ describe('errorHandler HTTP integration', () => {
     expect(response.statusCode).toBe(400);
     expect(response.json<ApiErrorResponse>()).toEqual({
       code: apiErrorCodes.badRequest,
+      context: {},
+      error: true,
+    });
+  });
+
+  it.each([
+    [401, apiErrorCodes.unauthorized],
+    [404, apiErrorCodes.notFound],
+    [409, apiErrorCodes.conflict],
+  ] as const)('maps HttpApiError status %i to %s', async (statusCode, code) => {
+    const server = createServer();
+    server.get('/http-error', () => {
+      throw new HttpApiError('request diagnostic', statusCode);
+    });
+
+    const response = await server.inject('/http-error');
+
+    expect(response.statusCode).toBe(statusCode);
+    expect(response.json<ApiErrorResponse>()).toEqual({
+      code,
+      context: {},
+      error: true,
+    });
+  });
+
+  it('maps legacy repository-not-found errors to NOT_FOUND', async () => {
+    const server = createServer();
+    server.get('/repository-not-found', () => {
+      throw new RepositoryNotFoundError('repository diagnostic');
+    });
+
+    const response = await server.inject('/repository-not-found');
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json<ApiErrorResponse>()).toEqual({
+      code: apiErrorCodes.notFound,
       context: {},
       error: true,
     });

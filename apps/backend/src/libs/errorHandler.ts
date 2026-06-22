@@ -1,6 +1,7 @@
 import {
   apiErrorCodes,
   type ApiErrorCode,
+  type ErrorContextByCode,
   type ValidationFieldErrorCode,
 } from '@ledgerly/shared/types';
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
@@ -69,6 +70,18 @@ export const getValidationFieldErrorCode = (
   return validationFieldCodeByZodIssueCode[issue.code] ?? 'INVALID_VALUE';
 };
 
+const sendCodedError = <Code extends ApiErrorCode>(
+  reply: FastifyReply,
+  status: number,
+  code: Code,
+  context: ErrorContextByCode[Code],
+) =>
+  reply.status(status).send({
+    code,
+    context,
+    error: true,
+  });
+
 export function errorHandler(
   error: FastifyError | Error,
   _request: FastifyRequest,
@@ -80,96 +93,95 @@ export function errorHandler(
       path: issue.path.length > 0 ? issue.path.join('.') : '$',
     }));
 
-    return reply
-      .status(statusByErrorCode[apiErrorCodes.validationFailed])
-      .send({
-        code: apiErrorCodes.validationFailed,
-        context: { fields },
-        error: true,
-      });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.validationFailed],
+      apiErrorCodes.validationFailed,
+      { fields },
+    );
   }
 
   if (isCodedError(error)) {
-    return reply.status(statusByErrorCode[error.code]).send({
-      code: error.code,
-      context: error.context,
-      error: true,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[error.code],
+      error.code,
+      error.context,
+    );
   }
 
   // Legacy errors that have not yet been migrated to coded domain contracts.
   if (error instanceof DomainError) {
-    return reply.status(statusByErrorCode[apiErrorCodes.badRequest]).send({
-      code: apiErrorCodes.badRequest,
-      context: {},
-      error: true,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.badRequest],
+      apiErrorCodes.badRequest,
+      {},
+    );
   }
 
   // Application layer errors - authentication/authorization
   if (error instanceof UserNotFoundError) {
-    return reply.status(statusByErrorCode[apiErrorCodes.unauthorized]).send({
-      code: apiErrorCodes.unauthorized,
-      context: {},
-      error: true,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.unauthorized],
+      apiErrorCodes.unauthorized,
+      {},
+    );
   }
 
   if (error instanceof InvalidPasswordError) {
-    return reply.status(statusByErrorCode[apiErrorCodes.unauthorized]).send({
-      code: apiErrorCodes.unauthorized,
-      context: {},
-      error: true,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.unauthorized],
+      apiErrorCodes.unauthorized,
+      {},
+    );
   }
 
   if (error instanceof UserAlreadyExistsError) {
-    return reply.status(statusByErrorCode[apiErrorCodes.conflict]).send({
-      code: apiErrorCodes.conflict,
-      context: {},
-      error: true,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.conflict],
+      apiErrorCodes.conflict,
+      {},
+    );
   }
 
   // Infrastructure layer errors
   if (error instanceof RepositoryNotFoundError) {
-    return reply.status(statusByErrorCode[apiErrorCodes.notFound]).send({
-      code: apiErrorCodes.notFound,
-      context: {},
-      error: true,
-    });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.notFound],
+      apiErrorCodes.notFound,
+      {},
+    );
   }
 
   if (error instanceof DatabaseError) {
     if (process.env.NODE_ENV !== 'test') {
       console.error('Database error:', error);
     }
-    return reply
-      .status(statusByErrorCode[apiErrorCodes.internalServerError])
-      .send({
-        code: apiErrorCodes.internalServerError,
-        context: {},
-        error: true,
-      });
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.internalServerError],
+      apiErrorCodes.internalServerError,
+      {},
+    );
   }
 
   if (error instanceof HttpApiError) {
-    return reply.status(error.statusCode).send({
-      code: error.code,
-      context: {},
-      error: true,
-    });
+    return sendCodedError(reply, error.statusCode, error.code, {});
   }
 
   if (process.env.NODE_ENV !== 'test') {
     console.error('Unexpected error:', error);
   }
 
-  return reply
-    .status(statusByErrorCode[apiErrorCodes.internalServerError])
-    .send({
-      code: apiErrorCodes.internalServerError,
-      context: {},
-      error: true,
-    });
+  return sendCodedError(
+    reply,
+    statusByErrorCode[apiErrorCodes.internalServerError],
+    apiErrorCodes.internalServerError,
+    {},
+  );
 }
