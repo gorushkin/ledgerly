@@ -34,10 +34,10 @@ presentation layer needs a uniform, safe response format.
    `ZodError`, into the same contract. The API exposes `VALIDATION_FAILED` and
    normalized field codes, not Zod issue details or messages.
 8. Authentication failures use one `AUTHENTICATION_FAILED` response with an
-   empty context whether the account is absent or the password is invalid.
-   Internal error messages may retain the cause for diagnostics, but are never
-   serialized. Registration conflicts use the stable `REGISTRATION_CONFLICT`
-   code with an empty context.
+   empty context and HTTP 401 whether the account is absent or the password is
+   invalid. Internal error messages may retain the cause for diagnostics, but
+   are never serialized. Registration conflicts use the stable
+   `REGISTRATION_CONFLICT` code with an empty context and HTTP 409.
 
 ## Alternatives Considered
 

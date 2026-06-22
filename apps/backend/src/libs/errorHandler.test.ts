@@ -3,6 +3,11 @@ import {
   type ValidationFieldErrorCode,
 } from '@ledgerly/shared/types';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import {
+  InvalidPasswordError,
+  UserAlreadyExistsError,
+  UserNotFoundError,
+} from 'src/application/application.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -95,6 +100,39 @@ describe('errorHandler', () => {
       statusCode: 400,
     });
   });
+
+  it.each([
+    [
+      'a missing user',
+      new UserNotFoundError(),
+      401,
+      apiErrorCodes.authenticationFailed,
+    ],
+    [
+      'an invalid password',
+      new InvalidPasswordError(),
+      401,
+      apiErrorCodes.authenticationFailed,
+    ],
+    [
+      'a duplicate registration',
+      new UserAlreadyExistsError(),
+      409,
+      apiErrorCodes.registrationConflict,
+    ],
+  ])(
+    'serializes %s through the generic coded-error path',
+    (_caseName, error, expectedStatus, expectedCode) => {
+      expect(handle(error)).toEqual({
+        payload: {
+          code: expectedCode,
+          context: {},
+          error: true,
+        },
+        statusCode: expectedStatus,
+      });
+    },
+  );
 
   it('does not expose database diagnostics', () => {
     const response = handle(

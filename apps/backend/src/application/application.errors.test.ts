@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import {
   AuthenticationFailedError,
   ApplicationError,
@@ -19,7 +20,7 @@ describe('coded application errors', () => {
 
   it('keeps auth diagnostics out of the public contract', () => {
     expect(new AuthenticationFailedError('missing user')).toMatchObject({
-      code: 'AUTHENTICATION_FAILED',
+      code: apiErrorCodes.authenticationFailed,
       context: {},
       message: 'missing user',
     });
@@ -27,7 +28,7 @@ describe('coded application errors', () => {
 
   it('uses a stable public code for a registration conflict', () => {
     expect(new UserAlreadyExistsError()).toMatchObject({
-      code: 'REGISTRATION_CONFLICT',
+      code: apiErrorCodes.registrationConflict,
       context: {},
     });
   });
