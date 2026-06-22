@@ -2,6 +2,8 @@ import type { UUID } from "./types";
 
 export const apiErrorCodes = {
   accountNotFoundInContext: "ACCOUNT_NOT_FOUND_IN_CONTEXT",
+  badRequest: "BAD_REQUEST",
+  conflict: "CONFLICT",
   conflictingOperationIds: "CONFLICTING_OPERATION_IDS",
   currencyMismatch: "CURRENCY_MISMATCH",
   deletedEntityOperation: "DELETED_ENTITY_OPERATION",
@@ -9,6 +11,7 @@ export const apiErrorCodes = {
   entityNotFound: "ENTITY_NOT_FOUND",
   excessiveOperations: "EXCESSIVE_OPERATIONS",
   insufficientOperations: "INSUFFICIENT_OPERATIONS",
+  internalServerError: "INTERNAL_SERVER_ERROR",
   invalidAccountType: "INVALID_ACCOUNT_TYPE",
   invalidAmount: "INVALID_AMOUNT",
   invalidDate: "INVALID_DATE",
@@ -19,6 +22,7 @@ export const apiErrorCodes = {
   invalidPassword: "INVALID_PASSWORD",
   invalidTimestamp: "INVALID_TIMESTAMP",
   invalidVersion: "INVALID_VERSION",
+  notFound: "NOT_FOUND",
   operationAlreadyAttachedToTransaction:
     "OPERATION_ALREADY_ATTACHED_TO_TRANSACTION",
   operationIdMismatch: "OPERATION_ID_MISMATCH",
@@ -26,6 +30,7 @@ export const apiErrorCodes = {
   operationTransactionMismatch: "OPERATION_TRANSACTION_MISMATCH",
   operationUserMismatch: "OPERATION_USER_MISMATCH",
   transactionUnbalanced: "TRANSACTION_UNBALANCED",
+  unauthorized: "UNAUTHORIZED",
   unauthorizedAccess: "UNAUTHORIZED_ACCESS",
   validationFailed: "VALIDATION_FAILED",
   versionConflict: "VERSION_CONFLICT",
@@ -51,6 +56,8 @@ export type ErrorContextByCode = {
     accountId: string;
     operationId: string;
   };
+  BAD_REQUEST: Record<string, never>;
+  CONFLICT: Record<string, never>;
   CONFLICTING_OPERATION_IDS: {
     conflict:
       | "DUPLICATE_IN_DELETE"
@@ -79,6 +86,7 @@ export type ErrorContextByCode = {
     minimum: number;
     received: number;
   };
+  INTERNAL_SERVER_ERROR: Record<string, never>;
   INVALID_ACCOUNT_TYPE: {
     receivedType: string;
   };
@@ -112,6 +120,7 @@ export type ErrorContextByCode = {
     reason: "NON_NEGATIVE_INTEGER";
     received: number;
   };
+  NOT_FOUND: Record<string, never>;
   OPERATION_ALREADY_ATTACHED_TO_TRANSACTION: {
     operationId: UUID;
     transactionId: UUID;
@@ -137,6 +146,7 @@ export type ErrorContextByCode = {
     entityType: string;
     transactionId: UUID;
   };
+  UNAUTHORIZED: Record<string, never>;
   UNAUTHORIZED_ACCESS: {
     entityId?: UUID;
     entityType: string;
