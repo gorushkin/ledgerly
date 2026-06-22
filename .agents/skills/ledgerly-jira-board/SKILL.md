@@ -9,6 +9,12 @@ Use Jira as the only source of truth for task status, priority, assignee, and
 board order. Do not infer these values from Git branches, commits, pull
 requests, or repository files.
 
+## Issue Language
+
+When creating or updating Ledgerly Jira issues, write the summary in English
+and the description in Russian. Keep identifiers, API field names, error codes,
+and code snippets in their original technical form.
+
 ## Connection
 
 Read connection values from `config.local.yaml` in this skill directory. This
