@@ -3,15 +3,18 @@ import type { UUID } from "./types";
 export const apiErrorCodes = {
   accountNotFoundInContext: "ACCOUNT_NOT_FOUND_IN_CONTEXT",
   conflictingOperationIds: "CONFLICTING_OPERATION_IDS",
+  currencyMismatch: "CURRENCY_MISMATCH",
   deletedEntityOperation: "DELETED_ENTITY_OPERATION",
   emptyOperations: "EMPTY_OPERATIONS",
   entityNotFound: "ENTITY_NOT_FOUND",
   excessiveOperations: "EXCESSIVE_OPERATIONS",
   insufficientOperations: "INSUFFICIENT_OPERATIONS",
+  invalidAccountType: "INVALID_ACCOUNT_TYPE",
   invalidAmount: "INVALID_AMOUNT",
   invalidDate: "INVALID_DATE",
   invalidEmail: "INVALID_EMAIL",
   invalidIdentifier: "INVALID_IDENTIFIER",
+  invalidMoneyAmount: "INVALID_MONEY_AMOUNT",
   invalidName: "INVALID_NAME",
   invalidPassword: "INVALID_PASSWORD",
   invalidTimestamp: "INVALID_TIMESTAMP",
@@ -55,6 +58,10 @@ export type ErrorContextByCode = {
       | "UPDATE_AND_DELETE";
     operationIds: UUID[];
   };
+  CURRENCY_MISMATCH: {
+    expectedCurrency: string;
+    receivedCurrency: string;
+  };
   DELETED_ENTITY_OPERATION: {
     entityType: string;
     operation: "update";
@@ -72,6 +79,9 @@ export type ErrorContextByCode = {
     minimum: number;
     received: number;
   };
+  INVALID_ACCOUNT_TYPE: {
+    receivedType: string;
+  };
   INVALID_AMOUNT: {
     field?: string;
     reason: "NOT_INTEGER_MINOR_UNITS";
@@ -85,6 +95,9 @@ export type ErrorContextByCode = {
   };
   INVALID_IDENTIFIER: {
     reason: "INVALID_FORMAT";
+  };
+  INVALID_MONEY_AMOUNT: {
+    reason: "INVALID_INTEGER_MINOR_UNITS";
   };
   INVALID_NAME: {
     reason: "EMPTY";

@@ -32,7 +32,7 @@ export class AccountType {
 
   static create(type: AccountTypeValue): AccountType {
     if (!ACCOUNT_TYPE_VALUES.includes(type)) {
-      throw new Error(`Invalid account type: ${type}`);
+      throw new InvalidAccountTypeError(type);
     }
 
     return new AccountType(type);
@@ -54,3 +54,4 @@ export class AccountType {
     return SYSTEM_ACCOUNT_TYPE_VALUES.includes(this._value);
   }
 }
+import { InvalidAccountTypeError } from 'src/domain/domain.errors';

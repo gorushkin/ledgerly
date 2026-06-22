@@ -61,6 +61,18 @@ export class InvalidEmailError extends CodedError<'INVALID_EMAIL'> {
   }
 }
 
+export class InvalidMoneyAmountError extends CodedError<'INVALID_MONEY_AMOUNT'> {
+  constructor() {
+    super(
+      'money amount must be an integer minor-unit value',
+      apiErrorCodes.invalidMoneyAmount,
+      {
+        reason: 'INVALID_INTEGER_MINOR_UNITS',
+      },
+    );
+  }
+}
+
 export class InvalidIdentifierError extends CodedError<'INVALID_IDENTIFIER'> {
   constructor() {
     super('identifier has an invalid format', apiErrorCodes.invalidIdentifier, {
@@ -82,6 +94,31 @@ export class InvalidPasswordError extends CodedError<'INVALID_PASSWORD'> {
     super('password does not meet the policy', apiErrorCodes.invalidPassword, {
       reason: 'POLICY_VIOLATION',
     });
+  }
+}
+
+export class CurrencyMismatchError extends CodedError<'CURRENCY_MISMATCH'> {
+  constructor(
+    public readonly expectedCurrency: string,
+    public readonly receivedCurrency: string,
+  ) {
+    super(
+      `currency ${receivedCurrency} does not match ${expectedCurrency}`,
+      apiErrorCodes.currencyMismatch,
+      { expectedCurrency, receivedCurrency },
+    );
+  }
+}
+
+export class InvalidAccountTypeError extends CodedError<'INVALID_ACCOUNT_TYPE'> {
+  constructor(public readonly receivedType: string) {
+    super(
+      `account type ${receivedType} is invalid`,
+      apiErrorCodes.invalidAccountType,
+      {
+        receivedType,
+      },
+    );
   }
 }
 
