@@ -1,4 +1,4 @@
-import { UUID } from '@ledgerly/shared/types';
+import { type ErrorContextByCode, UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
 import {
   ForbiddenAccessError,
@@ -123,33 +123,70 @@ export class BaseRepository {
   }
 
   /**
+   * Builds the only public context allowed for repository not-found errors.
+   * The result is serialized in the API response, so callers must not add
+   * diagnostics beyond the entity type and, when safe to expose, its ID.
+   */
+  protected entityNotFoundContext(
+    entityType: string,
+    entityId?: UUID,
+  ): ErrorContextByCode['ENTITY_NOT_FOUND'] {
+    return entityId ? { entityId, entityType } : { entityType };
+  }
+
+  /**
+   * Builds the only public context allowed for repository access-denied errors.
+   * The result is serialized in the API response, so callers must not add
+   * diagnostics beyond the entity type and, when safe to expose, its ID.
+   */
+  protected unauthorizedAccessContext(
+    entityType: string,
+    entityId?: UUID,
+  ): ErrorContextByCode['UNAUTHORIZED_ACCESS'] {
+    return entityId ? { entityId, entityType } : { entityType };
+  }
+
+  /**
    * Ensures an entity exists, throwing RepositoryNotFoundError if not.
-   * Use this to avoid if (!entity) throw error boilerplate.
+   * The context becomes the public API context of the coded error, so it must
+   * contain only allowlisted entity metadata: `entityType` and, when it is
+   * safe to expose, `entityId`. Never include repository messages, database
+   * details, user identifiers, or other diagnostics.
    *
    * @param entity - The entity to check
    * @param message - Error message if entity doesn't exist
+   * @param context - Client-safe entity metadata surfaced in the API error response
    * @returns The entity (guaranteed to be non-null)
    */
   protected ensureEntityExists<T>(
     entity: T | undefined | null,
     message: string,
+    context: ErrorContextByCode['ENTITY_NOT_FOUND'],
   ): T {
     if (!entity) {
-      throw new RepositoryNotFoundError(message);
+      throw new RepositoryNotFoundError(message, context);
     }
     return entity;
   }
 
   /**
    * Ensures a user has access to an entity, throwing ForbiddenAccessError if not.
-   * Use this to check entity ownership.
+   * The context becomes the public API context of the coded error, so it must
+   * contain only allowlisted entity metadata: `entityType` and, when it is
+   * safe to expose, `entityId`. Never include repository messages, database
+   * details, user identifiers, or other diagnostics.
    *
    * @param condition - The condition to check (e.g., entity.userId === userId)
    * @param message - Error message if access is denied
+   * @param context - Client-safe entity metadata surfaced in the API error response
    */
-  protected ensureAccess(condition: boolean, message: string): void {
+  protected ensureAccess(
+    condition: boolean,
+    message: string,
+    context: ErrorContextByCode['UNAUTHORIZED_ACCESS'],
+  ): void {
     if (!condition) {
-      throw new ForbiddenAccessError(message);
+      throw new ForbiddenAccessError(message, context);
     }
   }
 

@@ -1,4 +1,9 @@
-import { CurrencyCode, AccountTypeValue, UUID } from '@ledgerly/shared/types';
+import {
+  apiErrorCodes,
+  AccountTypeValue,
+  CurrencyCode,
+  UUID,
+} from '@ledgerly/shared/types';
 import dayjs from 'dayjs';
 import { AccountDbInsert, AccountDbRow, UserDbRow } from 'src/db/schema';
 import { Amount } from 'src/domain/domain-core';
@@ -258,6 +263,17 @@ describe('AccountRepository', () => {
       await expect(retrievedAccount).rejects.toThrowError(
         RepositoryNotFoundError,
       );
+    });
+
+    it('returns an allowlisted error contract for a missing account', async () => {
+      const accountId = Id.create().valueOf();
+
+      await expect(
+        accountRepository.getById(user.id, accountId),
+      ).rejects.toMatchObject({
+        code: apiErrorCodes.entityNotFound,
+        context: { entityId: accountId, entityType: 'account' },
+      });
     });
 
     it('should return undefined if user does not own the account', async () => {

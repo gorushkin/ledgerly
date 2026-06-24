@@ -200,6 +200,7 @@ describe('GetAllTransactionsUseCase', () => {
     accountRepository.ensureUserOwnsAccount.mockRejectedValue(
       new ForbiddenAccessError(
         'You do not have permission to access this account',
+        { entityType: 'account' },
       ),
     );
 

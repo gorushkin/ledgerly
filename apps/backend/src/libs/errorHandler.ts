@@ -6,7 +6,6 @@ import {
 } from '@ledgerly/shared/types';
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { DomainError } from 'src/domain/domain.errors';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors/index';
 import { isCodedError } from 'src/shared/errors';
 import { ZodError, type ZodIssue } from 'zod';
@@ -113,16 +112,6 @@ export function errorHandler(
       reply,
       statusByErrorCode[apiErrorCodes.badRequest],
       apiErrorCodes.badRequest,
-      {},
-    );
-  }
-
-  // Infrastructure layer errors
-  if (error instanceof RepositoryNotFoundError) {
-    return sendCodedError(
-      reply,
-      statusByErrorCode[apiErrorCodes.notFound],
-      apiErrorCodes.notFound,
       {},
     );
   }
