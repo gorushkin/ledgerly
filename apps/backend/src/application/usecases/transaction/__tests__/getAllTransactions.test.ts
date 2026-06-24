@@ -16,7 +16,7 @@ import {
   Id,
   Timestamp,
 } from 'src/domain/domain-core';
-import { ForbiddenAccessError } from 'src/infrastructure/infrastructure.errors';
+import { ForbiddenAccessError } from 'src/infrastructure/errors';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAllTransactionsUseCase } from '../GetAllTransactions';

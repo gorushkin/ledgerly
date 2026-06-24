@@ -1,7 +1,7 @@
 import { UserRepositoryInterface } from 'src/application';
 import { Id, Password } from 'src/domain/domain-core';
 import { TransactionManager } from 'src/infrastructure/db';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
+import { RepositoryNotFoundError } from 'src/infrastructure/errors';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 
 import { UserRepository } from '../';

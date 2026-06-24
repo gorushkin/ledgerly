@@ -1,4 +1,4 @@
-import { HttpApiError } from '../HttpError';
+import { BaseError } from 'src/shared/errors/BaseError';
 
 type DB_ERROR_CODES =
   | 'ALREADY_EXISTS'
@@ -15,13 +15,22 @@ export const DB_ERROR_CODES: Record<DB_ERROR_CODES, string> = {
   PRIMARYKEY: 'primaryKey',
 };
 
-export class DatabaseError extends HttpApiError {
+/**
+ * Infrastructure failure raised while interacting with the database.
+ *
+ * Database diagnostics remain internal. The presentation error handler
+ * translates this error to a safe generic API response when needed.
+ */
+export class DatabaseError extends BaseError {
+  public readonly context?: DBErrorContext;
+
   constructor(params: {
     message: string;
     context?: DBErrorContext;
     cause?: Error;
   }) {
-    super(params.message, 500, params.cause);
+    super(params.message, params.cause);
+    this.context = params.context;
   }
 }
 

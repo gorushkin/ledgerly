@@ -9,7 +9,7 @@ import {
 import { Transaction, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import { RepositoryInvariantError } from 'src/infrastructure/infrastructure.errors';
+import { RepositoryInvariantError } from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';

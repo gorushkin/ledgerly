@@ -1,19 +1,18 @@
 import { type ErrorContextByCode, UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
 import {
-  ForbiddenAccessError,
-  InfrastructureError,
-  RepositoryNotFoundError,
-} from 'src/infrastructure/infrastructure.errors';
-import {
   DBErrorContext,
   DatabaseError,
+  ForbiddenAccessError,
   ForeignKeyConstraintError,
+  InfrastructureError,
   InvalidDataError,
   RecordAlreadyExistsError,
-} from 'src/presentation/errors';
-import { adaptLibsqlError } from 'src/presentation/errors/database/libsql-adapter';
+  RepositoryNotFoundError,
+} from 'src/infrastructure/errors';
+import { reportDatabaseError } from 'src/shared/errors/reportDatabaseError';
 
+import { adaptLibsqlError } from './libsql-adapter';
 import { TransactionManager } from './TransactionManager';
 
 export type NormalizedDbError =
@@ -99,15 +98,13 @@ export class BaseRepository {
       if (error instanceof InvalidDataError) throw error;
       if (error instanceof InfrastructureError) throw error;
 
-      if (process.env.NODE_ENV !== 'test') {
-        console.error(`Database error: ${errorMessage}`, error);
-      }
-
-      throw new DatabaseError({
+      const databaseError = new DatabaseError({
         cause: error as Error,
         context,
         message: errorMessage,
       });
+      reportDatabaseError(databaseError);
+      throw databaseError;
     }
   }
 

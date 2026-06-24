@@ -2,7 +2,7 @@ import { apiErrorCodes } from '@ledgerly/shared/types';
 import {
   CodedInfrastructureError,
   InfrastructureError,
-} from 'src/infrastructure/infrastructure.errors';
+} from 'src/infrastructure/errors';
 import { describe, expect, it } from 'vitest';
 
 import { isCodedError } from './CodedError';

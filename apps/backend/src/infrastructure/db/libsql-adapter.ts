@@ -1,7 +1,7 @@
 import { LibsqlError } from '@libsql/client';
-import { DBErrorContext } from 'src/presentation/errors';
 
-import { NormalizedDbError } from '../../../infrastructure/db/BaseRepository';
+import { type NormalizedDbError } from './BaseRepository';
+import { type DBErrorContext } from './DatabaseErrors';
 
 const UNIQUE = 'SQLITE_CONSTRAINT_UNIQUE';
 const FOREIGNKEY = 'SQLITE_CONSTRAINT_FOREIGNKEY';

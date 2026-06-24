@@ -10,11 +10,11 @@ import { Amount } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import {
   ForeignKeyConstraintError,
   RecordAlreadyExistsError,
-} from 'src/presentation/errors';
+  RepositoryNotFoundError,
+} from 'src/infrastructure/errors';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
@@ -173,9 +173,9 @@ describe('AccountRepository', () => {
       await expect(accountRepository.create(newAccount)).rejects.toThrowError(
         new ForeignKeyConstraintError({
           context: {
-            field: 'id',
-            tableName: 'users',
-            value: newAccount.userId,
+            field: 'accountName',
+            tableName: 'accounts',
+            value: newAccount.name,
           },
         }),
       );

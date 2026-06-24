@@ -5,8 +5,10 @@ import {
   type ValidationFieldErrorCode,
 } from '@ledgerly/shared/types';
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
-import { DatabaseError, HttpApiError } from 'src/presentation/errors/index';
+import { DatabaseError } from 'src/infrastructure/errors';
+import { HttpApiError } from 'src/presentation/errors/';
 import { isCodedError } from 'src/shared/errors';
+import { reportDatabaseError } from 'src/shared/errors/reportDatabaseError';
 import { ZodError, type ZodIssue } from 'zod';
 
 const statusByErrorCode = {
@@ -105,9 +107,7 @@ export function errorHandler(
   }
 
   if (error instanceof DatabaseError) {
-    if (process.env.NODE_ENV !== 'test') {
-      console.error('Database error:', error);
-    }
+    reportDatabaseError(error);
     return sendCodedError(
       reply,
       statusByErrorCode[apiErrorCodes.internalServerError],
