@@ -8,6 +8,11 @@ import {
   UserAlreadyExistsError,
   UserNotFoundError,
 } from 'src/application/application.errors';
+import {
+  ForbiddenAccessError,
+  RepositoryInvariantError,
+  RepositoryNotFoundError,
+} from 'src/infrastructure/infrastructure.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -137,6 +142,53 @@ describe('errorHandler', () => {
   it('does not expose database diagnostics', () => {
     const response = handle(
       new DatabaseError({ message: 'database password is secret' }),
+    );
+
+    expect(response).toEqual({
+      payload: {
+        code: apiErrorCodes.internalServerError,
+        context: {},
+        error: true,
+      },
+      statusCode: 500,
+    });
+  });
+
+  it('serializes expected repository failures through the coded-error path', () => {
+    expect(
+      handle(
+        new RepositoryNotFoundError('repository diagnostic', {
+          entityType: 'account',
+        }),
+      ),
+    ).toEqual({
+      payload: {
+        code: apiErrorCodes.entityNotFound,
+        context: { entityType: 'account' },
+        error: true,
+      },
+      statusCode: 404,
+    });
+
+    expect(
+      handle(
+        new ForbiddenAccessError('repository diagnostic', {
+          entityType: 'account',
+        }),
+      ),
+    ).toEqual({
+      payload: {
+        code: apiErrorCodes.unauthorizedAccess,
+        context: { entityType: 'account' },
+        error: true,
+      },
+      statusCode: 403,
+    });
+  });
+
+  it('maps repository invariants to the safe internal-server response', () => {
+    const response = handle(
+      new RepositoryInvariantError('persistence snapshot diagnostic'),
     );
 
     expect(response).toEqual({

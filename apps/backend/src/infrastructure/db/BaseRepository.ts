@@ -1,4 +1,4 @@
-import { UUID } from '@ledgerly/shared/types';
+import { type ErrorContextByCode, UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
 import {
   ForbiddenAccessError,
@@ -133,9 +133,10 @@ export class BaseRepository {
   protected ensureEntityExists<T>(
     entity: T | undefined | null,
     message: string,
+    context: ErrorContextByCode['ENTITY_NOT_FOUND'],
   ): T {
     if (!entity) {
-      throw new RepositoryNotFoundError(message);
+      throw new RepositoryNotFoundError(message, context);
     }
     return entity;
   }
@@ -147,9 +148,13 @@ export class BaseRepository {
    * @param condition - The condition to check (e.g., entity.userId === userId)
    * @param message - Error message if access is denied
    */
-  protected ensureAccess(condition: boolean, message: string): void {
+  protected ensureAccess(
+    condition: boolean,
+    message: string,
+    context: ErrorContextByCode['UNAUTHORIZED_ACCESS'],
+  ): void {
     if (!condition) {
-      throw new ForbiddenAccessError(message);
+      throw new ForbiddenAccessError(message, context);
     }
   }
 

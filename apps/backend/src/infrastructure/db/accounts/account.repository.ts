@@ -68,6 +68,7 @@ export class AccountRepository
       return this.ensureEntityExists(
         account,
         `Account with ID ${id} not found`,
+        { entityId: id, entityType: 'account' },
       );
     }, 'Failed to fetch account by ID');
   }
@@ -98,6 +99,7 @@ export class AccountRepository
         return this.ensureEntityExists(
           updatedAccount,
           `Account with ID ${id} not found`,
+          { entityId: id, entityType: 'account' },
         );
       },
       `Failed to update account with ID ${id}`,
@@ -121,6 +123,7 @@ export class AccountRepository
       return this.ensureEntityExists(
         updatedAccount,
         `Account with ID ${id} not found`,
+        { entityId: id, entityType: 'account' },
       );
     }, `Failed to delete account with ID ${id}`);
   }
@@ -146,6 +149,7 @@ export class AccountRepository
       return this.ensureEntityExists(
         account,
         `System account not found for currency: ${currency}`,
+        { entityType: 'account' },
       );
     }, 'Failed to fetch system account');
   }
@@ -166,10 +170,12 @@ export class AccountRepository
       const existingAccount = this.ensureEntityExists(
         account,
         `Account with ID ${accountId} not found`,
+        { entityId: accountId, entityType: 'account' },
       );
       this.ensureAccess(
         existingAccount.userId === userId,
         'You do not have permission to access this account',
+        { entityId: accountId, entityType: 'account' },
       );
 
       return existingAccount;
@@ -197,6 +203,7 @@ export class AccountRepository
       this.ensureEntityExists(
         missingAccounts.length === 0 ? true : null,
         `Accounts not found: ${missingAccounts.join(', ')}`,
+        { entityType: 'account' },
       );
 
       return accounts;

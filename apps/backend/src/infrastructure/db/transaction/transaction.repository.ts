@@ -115,6 +115,10 @@ export class TransactionRepository
     if (!snapshot) {
       throw new RepositoryNotFoundError(
         `Transaction ${transaction.getId().valueOf()} snapshot not found for user ${userId}`,
+        {
+          entityId: transaction.getId().valueOf(),
+          entityType: 'transaction',
+        },
       );
     }
 

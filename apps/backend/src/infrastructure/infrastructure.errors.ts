@@ -1,4 +1,8 @@
-import type { ApiErrorCode, ErrorContextByCode } from '@ledgerly/shared/types';
+import {
+  apiErrorCodes,
+  type ApiErrorCode,
+  type ErrorContextByCode,
+} from '@ledgerly/shared/types';
 import { BaseError } from 'src/shared/errors/BaseError';
 
 /**
@@ -30,9 +34,12 @@ export abstract class CodedInfrastructureError<
 /**
  * Thrown when a repository operation fails to find a requested entity.
  */
-export class RepositoryNotFoundError extends InfrastructureError {
-  constructor(message: string) {
-    super(message);
+export class RepositoryNotFoundError extends CodedInfrastructureError<'ENTITY_NOT_FOUND'> {
+  constructor(
+    message: string,
+    context: ErrorContextByCode['ENTITY_NOT_FOUND'],
+  ) {
+    super(message, apiErrorCodes.entityNotFound, context);
   }
 }
 
@@ -40,9 +47,12 @@ export class RepositoryNotFoundError extends InfrastructureError {
  * Thrown when a repository operation fails due to access/authorization issues.
  * Typically when a user tries to access a resource they don't own.
  */
-export class ForbiddenAccessError extends InfrastructureError {
-  constructor(message: string) {
-    super(message);
+export class ForbiddenAccessError extends CodedInfrastructureError<'UNAUTHORIZED_ACCESS'> {
+  constructor(
+    message: string,
+    context: ErrorContextByCode['UNAUTHORIZED_ACCESS'],
+  ) {
+    super(message, apiErrorCodes.unauthorizedAccess, context);
   }
 }
 
