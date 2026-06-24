@@ -14,7 +14,7 @@ import {
   RepositoryNotFoundError,
 } from 'src/infrastructure/infrastructure.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { errorHandler, getValidationFieldErrorCode } from './errorHandler';
@@ -152,6 +152,38 @@ describe('errorHandler', () => {
       },
       statusCode: 500,
     });
+  });
+
+  it('keeps database errors out of the HTTP error hierarchy and logs them', () => {
+    const cause = new Error('connection reset');
+
+    const error = new DatabaseError({
+      cause,
+      context: { tableName: 'users' },
+      message: 'database password is secret',
+    });
+
+    const logError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    vi.stubEnv('NODE_ENV', 'production');
+
+    expect(error).not.toBeInstanceOf(HttpApiError);
+    expect(error.cause).toBe(cause);
+    expect(error.context).toEqual({ tableName: 'users' });
+
+    expect(handle(error)).toEqual({
+      payload: {
+        code: apiErrorCodes.internalServerError,
+        context: {},
+        error: true,
+      },
+      statusCode: 500,
+    });
+
+    expect(logError).toHaveBeenCalledWith('Database error:', error);
+    logError.mockRestore();
+    vi.unstubAllEnvs();
   });
 
   it('serializes expected repository failures through the coded-error path', () => {

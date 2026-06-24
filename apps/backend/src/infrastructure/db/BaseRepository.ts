@@ -99,10 +99,6 @@ export class BaseRepository {
       if (error instanceof InvalidDataError) throw error;
       if (error instanceof InfrastructureError) throw error;
 
-      if (process.env.NODE_ENV !== 'test') {
-        console.error(`Database error: ${errorMessage}`, error);
-      }
-
       throw new DatabaseError({
         cause: error as Error,
         context,

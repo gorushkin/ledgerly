@@ -32,7 +32,9 @@ export const saveWithIdRetry: SaveWithIdRetryType = async <
     if (error instanceof RecordAlreadyExistsError && retries > 0) {
       return await saveWithIdRetry(promise, entityFactory, retries - 1);
     }
+
     throw new DatabaseError({
+      cause: error instanceof Error ? error : undefined,
       message: `Failed to create entity: ${error instanceof Error ? error.message : String(error)}`,
     });
   }
