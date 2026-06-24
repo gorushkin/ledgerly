@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import { UserOwnershipError } from 'src/domain/domain.errors';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -56,7 +57,7 @@ describe('User Domain Entity', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(UserOwnershipError);
         expect(error).toMatchObject({
-          code: 'UNAUTHORIZED_ACCESS',
+          code: apiErrorCodes.unauthorizedAccess,
           context: {
             entityId: user.getId().valueOf(),
             entityType: User.entityType,

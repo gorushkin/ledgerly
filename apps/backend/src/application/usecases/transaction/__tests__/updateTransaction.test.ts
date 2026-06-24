@@ -1,4 +1,4 @@
-import type { UUID } from '@ledgerly/shared/types';
+import { apiErrorCodes, type UUID } from '@ledgerly/shared/types';
 import { OperationMapper, TransactionMapper } from 'src/application';
 import {
   EntityNotFoundError,
@@ -521,7 +521,7 @@ describe('UpdateTransactionUseCase', () => {
     await expect(result).rejects.toThrow(EntityNotFoundError);
 
     await expect(result).rejects.toMatchObject({
-      code: 'ENTITY_NOT_FOUND',
+      code: apiErrorCodes.entityNotFound,
       context: {
         entityId: transaction.getId().valueOf(),
         entityType: Transaction.entityType,
@@ -549,7 +549,7 @@ describe('UpdateTransactionUseCase', () => {
     await expect(result).rejects.toThrow(UnauthorizedAccessError);
 
     await expect(result).rejects.toMatchObject({
-      code: 'UNAUTHORIZED_ACCESS',
+      code: apiErrorCodes.unauthorizedAccess,
       context: {
         entityId: transaction.getId().valueOf(),
         entityType: Transaction.entityType,
@@ -570,7 +570,7 @@ describe('UpdateTransactionUseCase', () => {
 
     await expect(result).rejects.toThrow(VersionConflictError);
     await expect(result).rejects.toMatchObject({
-      code: 'VERSION_CONFLICT',
+      code: apiErrorCodes.versionConflict,
       context: {
         entityId: transaction.getId().valueOf(),
         entityType: Transaction.entityType,
@@ -596,7 +596,7 @@ describe('UpdateTransactionUseCase', () => {
     await expect(result).rejects.toThrow(VersionConflictError);
 
     await expect(result).rejects.toMatchObject({
-      code: 'VERSION_CONFLICT',
+      code: apiErrorCodes.versionConflict,
       context: {
         entityId: transaction.getId().valueOf(),
         entityType: Transaction.entityType,

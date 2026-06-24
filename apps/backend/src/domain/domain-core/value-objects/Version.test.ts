@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import { InvalidVersionError } from 'src/domain/domain.errors';
 import { describe, expect, it } from 'vitest';
 
@@ -29,7 +30,7 @@ describe('Version Value Object', () => {
         const error = captureInvalidVersionError(() => Version.create(value));
 
         expect(error).toMatchObject({
-          code: 'INVALID_VERSION',
+          code: apiErrorCodes.invalidVersion,
           context: {
             reason: 'NON_NEGATIVE_INTEGER',
             received: value,
@@ -48,7 +49,7 @@ describe('Version Value Object', () => {
       const error = captureInvalidVersionError(() => Version.restore(-1));
 
       expect(error).toMatchObject({
-        code: 'INVALID_VERSION',
+        code: apiErrorCodes.invalidVersion,
         context: {
           reason: 'NON_NEGATIVE_INTEGER',
           received: -1,

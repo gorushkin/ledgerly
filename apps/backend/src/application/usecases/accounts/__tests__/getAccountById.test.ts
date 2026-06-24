@@ -1,4 +1,4 @@
-import { CurrencyCode, Money } from '@ledgerly/shared/types';
+import { apiErrorCodes, CurrencyCode, Money } from '@ledgerly/shared/types';
 import {
   EntityNotFoundError,
   UnauthorizedAccessError,
@@ -86,7 +86,7 @@ describe('GetAccountByIdUseCase', async () => {
 
       await expect(result).rejects.toThrow(EntityNotFoundError);
       await expect(result).rejects.toMatchObject({
-        code: 'ENTITY_NOT_FOUND',
+        code: apiErrorCodes.entityNotFound,
         context: {
           entityId: accountId,
           entityType: Account.entityType,
@@ -104,7 +104,7 @@ describe('GetAccountByIdUseCase', async () => {
 
       await expect(result).rejects.toThrow(UnauthorizedAccessError);
       await expect(result).rejects.toMatchObject({
-        code: 'UNAUTHORIZED_ACCESS',
+        code: apiErrorCodes.unauthorizedAccess,
         context: {
           entityId: accountId,
           entityType: Account.entityType,

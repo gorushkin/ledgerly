@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import {
   InvalidNameError,
   InvalidPasswordError,
@@ -14,7 +15,7 @@ describe('text and credential value objects', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(InvalidNameError);
       expect(error).toMatchObject({
-        code: 'INVALID_NAME',
+        code: apiErrorCodes.invalidName,
         context: { reason: 'EMPTY' },
       });
       return;
@@ -29,7 +30,7 @@ describe('text and credential value objects', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(InvalidPasswordError);
       expect(error).toMatchObject({
-        code: 'INVALID_PASSWORD',
+        code: apiErrorCodes.invalidPassword,
         context: { reason: 'POLICY_VIOLATION' },
       });
       return;

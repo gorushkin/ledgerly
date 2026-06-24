@@ -1,5 +1,10 @@
 import { ROUTES } from '@ledgerly/shared/routes';
-import { ApiErrorResponse, MoneyString, UUID } from '@ledgerly/shared/types';
+import {
+  apiErrorCodes,
+  ApiErrorResponse,
+  MoneyString,
+  UUID,
+} from '@ledgerly/shared/types';
 import {
   OperationCreateInput,
   TransactionCreateInput,
@@ -195,12 +200,13 @@ describe('Transactions Integration Tests', () => {
 
       expect(response.statusCode).toBe(400);
 
+      // Literal is intentional: Extract needs a concrete discriminant to narrow ApiErrorResponse.
       const errorResponse =
         parseResponse<Extract<ApiErrorResponse, { code: 'VALIDATION_FAILED' }>>(
           response,
         );
 
-      expect(errorResponse.code).toBe('VALIDATION_FAILED');
+      expect(errorResponse.code).toBe(apiErrorCodes.validationFailed);
 
       expect(errorResponse.context.fields).toEqual(
         expect.arrayContaining([
@@ -472,6 +478,7 @@ describe('Transactions Integration Tests', () => {
         url: `${url}/${transactionId}`,
       });
 
+      // Literal is intentional: Extract needs a concrete discriminant to narrow ApiErrorResponse.
       const body =
         parseResponse<Extract<ApiErrorResponse, { code: 'ENTITY_NOT_FOUND' }>>(
           response,
@@ -479,7 +486,7 @@ describe('Transactions Integration Tests', () => {
 
       expect(response.statusCode).toBe(404);
       expect(body).toEqual({
-        code: 'ENTITY_NOT_FOUND',
+        code: apiErrorCodes.entityNotFound,
         context: {
           entityId: transactionId,
           entityType: 'transaction',
@@ -1964,7 +1971,7 @@ describe('Transactions Integration Tests', () => {
       const errorResponse = parseResponse<ApiErrorResponse>(staleResponse);
 
       expect(errorResponse).toEqual({
-        code: 'VERSION_CONFLICT',
+        code: apiErrorCodes.versionConflict,
         context: {
           entityId: transaction.id,
           entityType: 'transaction',
@@ -2016,13 +2023,14 @@ describe('Transactions Integration Tests', () => {
       const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(400);
+      // Literal is intentional: Extract needs a concrete discriminant to narrow ApiErrorResponse.
       const errorResponse =
         parseResponse<
           Extract<ApiErrorResponse, { code: 'TRANSACTION_UNBALANCED' }>
         >(response);
 
       expect(errorResponse).toMatchObject({
-        code: 'TRANSACTION_UNBALANCED',
+        code: apiErrorCodes.transactionUnbalanced,
         context: {
           entityType: 'transaction',
           transactionId: transaction.id,

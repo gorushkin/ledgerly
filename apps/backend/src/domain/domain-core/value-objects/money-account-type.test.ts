@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import { AccountType } from 'src/domain/accounts';
 import {
   CurrencyMismatchError,
@@ -18,7 +19,7 @@ describe('money and account type value objects', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(InvalidMoneyAmountError);
       expect(error).toMatchObject({
-        code: 'INVALID_MONEY_AMOUNT',
+        code: apiErrorCodes.invalidMoneyAmount,
         context: { reason: 'INVALID_INTEGER_MINOR_UNITS' },
       });
       return;
@@ -39,7 +40,7 @@ describe('money and account type value objects', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(CurrencyMismatchError);
       expect(error).toMatchObject({
-        code: 'CURRENCY_MISMATCH',
+        code: apiErrorCodes.currencyMismatch,
         context: {
           expectedCurrency: 'USD',
           receivedCurrency: 'EUR',
@@ -57,7 +58,7 @@ describe('money and account type value objects', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(InvalidAccountTypeError);
       expect(error).toMatchObject({
-        code: 'INVALID_ACCOUNT_TYPE',
+        code: apiErrorCodes.invalidAccountType,
         context: { receivedType: 'unsupported' },
       });
       return;

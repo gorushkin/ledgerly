@@ -13,7 +13,7 @@ describe('coded application errors', () => {
 
     expect(error).toBeInstanceOf(ApplicationError);
     expect(error).toMatchObject({
-      code: 'ENTITY_NOT_FOUND',
+      code: apiErrorCodes.entityNotFound,
       context: { entityType: 'account' },
     });
   });

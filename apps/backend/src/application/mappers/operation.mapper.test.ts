@@ -1,4 +1,4 @@
-import { MoneyString } from '@ledgerly/shared/types';
+import { apiErrorCodes, MoneyString } from '@ledgerly/shared/types';
 import {
   CreateOperationRequestDTO,
   UpdateOperationRequestDTO,
@@ -65,7 +65,7 @@ describe('OperationMapper', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AccountNotFoundInContextError);
         expect(error).toMatchObject({
-          code: 'ACCOUNT_NOT_FOUND_IN_CONTEXT',
+          code: apiErrorCodes.accountNotFoundInContext,
           context: {
             accountId,
             operationId: 'new-operation',

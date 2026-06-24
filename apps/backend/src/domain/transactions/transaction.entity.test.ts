@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import { TransactionMapper } from 'src/application';
 import { UpdateOperationRequestDTO } from 'src/application/dto';
 import { createUser } from 'src/db/createTestUser';
@@ -286,7 +287,7 @@ describe('Transaction Domain Entity', () => {
 
       expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
       expect(error).toMatchObject({
-        code: 'OPERATION_NOT_FOUND_IN_TRANSACTION',
+        code: apiErrorCodes.operationNotFoundInTransaction,
         context: {
           operationId: operationToDelete1.id,
           transactionId: restoredTransaction.getId().valueOf(),
@@ -434,7 +435,7 @@ describe('Transaction Domain Entity', () => {
 
       expect(error).toBeInstanceOf(OperationAlreadyAttachedToTransactionError);
       expect(error).toMatchObject({
-        code: 'OPERATION_ALREADY_ATTACHED_TO_TRANSACTION',
+        code: apiErrorCodes.operationAlreadyAttachedToTransaction,
         context: {
           operationId: operation.getId().valueOf(),
           transactionId: transaction.getId().valueOf(),
@@ -457,7 +458,7 @@ describe('Transaction Domain Entity', () => {
 
       expect(error).toBeInstanceOf(OperationDoesNotBelongToTransactionError);
       expect(error).toMatchObject({
-        code: 'OPERATION_TRANSACTION_MISMATCH',
+        code: apiErrorCodes.operationTransactionMismatch,
         context: {
           operationId: foreignOperation.getId().valueOf(),
           transactionId: transaction.getId().valueOf(),
@@ -517,7 +518,7 @@ describe('Transaction Domain Entity', () => {
 
       expect(error).toBeInstanceOf(ConflictingOperationIdsError);
       expect(error).toMatchObject({
-        code: 'CONFLICTING_OPERATION_IDS',
+        code: apiErrorCodes.conflictingOperationIds,
         context: {
           conflict: 'UPDATE_AND_DELETE',
           operationIds: [operationId],
@@ -543,7 +544,7 @@ describe('Transaction Domain Entity', () => {
       );
 
       expect(error).toMatchObject({
-        code: 'CONFLICTING_OPERATION_IDS',
+        code: apiErrorCodes.conflictingOperationIds,
         context: {
           conflict: 'DUPLICATE_IN_UPDATE',
           operationIds: [operationId],
@@ -569,7 +570,7 @@ describe('Transaction Domain Entity', () => {
       );
 
       expect(error).toMatchObject({
-        code: 'CONFLICTING_OPERATION_IDS',
+        code: apiErrorCodes.conflictingOperationIds,
         context: {
           conflict: 'DUPLICATE_IN_DELETE',
           operationIds: [operationId],
@@ -594,7 +595,7 @@ describe('Transaction Domain Entity', () => {
 
       expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
       expect(error).toMatchObject({
-        code: 'OPERATION_NOT_FOUND_IN_TRANSACTION',
+        code: apiErrorCodes.operationNotFoundInTransaction,
         context: {
           operationId: unknownOperationId.valueOf(),
           transactionId: transaction.getId().valueOf(),
@@ -621,7 +622,7 @@ describe('Transaction Domain Entity', () => {
 
       expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
       expect(error).toMatchObject({
-        code: 'OPERATION_NOT_FOUND_IN_TRANSACTION',
+        code: apiErrorCodes.operationNotFoundInTransaction,
         context: {
           operationId: unknownOperationId.valueOf(),
           transactionId: transaction.getId().valueOf(),
@@ -915,7 +916,7 @@ describe('Transaction Domain Entity', () => {
 
       expect(error).toBeInstanceOf(DeletedEntityOperationError);
       expect(error).toMatchObject({
-        code: 'DELETED_ENTITY_OPERATION',
+        code: apiErrorCodes.deletedEntityOperation,
         context: {
           entityType: Transaction.entityType,
           operation: 'update',
@@ -1046,7 +1047,7 @@ describe('Transaction Domain Entity', () => {
 
       expect(error).toBeInstanceOf(UnbalancedTransactionError);
       expect(error).toMatchObject({
-        code: 'TRANSACTION_UNBALANCED',
+        code: apiErrorCodes.transactionUnbalanced,
         context: {
           entityType: Transaction.entityType,
           transactionId: transaction.getId().valueOf(),
@@ -1164,7 +1165,7 @@ describe('Transaction Domain Entity', () => {
 
       expect(error).toBeInstanceOf(InsufficientOperationsError);
       expect(error).toMatchObject({
-        code: 'INSUFFICIENT_OPERATIONS',
+        code: apiErrorCodes.insufficientOperations,
         context: {
           minimum: 2,
           received: 0,
@@ -1219,7 +1220,7 @@ describe('Transaction Domain Entity', () => {
 
       expect(error).toBeInstanceOf(ExcessiveOperationsError);
       expect(error).toMatchObject({
-        code: 'EXCESSIVE_OPERATIONS',
+        code: apiErrorCodes.excessiveOperations,
         context: {
           maximum: MAX_TRANSACTION_OPERATIONS,
           received: MAX_TRANSACTION_OPERATIONS + 1,

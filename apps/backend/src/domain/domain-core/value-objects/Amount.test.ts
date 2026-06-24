@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import { InvalidAmountError } from 'src/domain/domain.errors';
 import { describe, expect, it } from 'vitest';
 
@@ -39,7 +40,7 @@ describe('Amount Value Object', () => {
       );
 
       expect(error).toMatchObject({
-        code: 'INVALID_AMOUNT',
+        code: apiErrorCodes.invalidAmount,
         context: {
           reason: 'NOT_INTEGER_MINOR_UNITS',
           received: String(value),
@@ -72,7 +73,7 @@ describe('Amount Value Object', () => {
       );
 
       expect(error).toMatchObject({
-        code: 'INVALID_AMOUNT',
+        code: apiErrorCodes.invalidAmount,
         context: {
           reason: 'NOT_INTEGER_MINOR_UNITS',
           received: String(value),
