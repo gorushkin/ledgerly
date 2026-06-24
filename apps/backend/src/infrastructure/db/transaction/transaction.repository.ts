@@ -15,7 +15,7 @@ import {
 import { Transaction } from 'src/domain';
 import { Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
+import { RepositoryNotFoundError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
 

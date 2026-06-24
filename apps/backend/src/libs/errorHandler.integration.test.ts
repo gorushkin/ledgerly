@@ -1,14 +1,12 @@
 import { apiErrorCodes, type ApiErrorResponse } from '@ledgerly/shared/types';
 import Fastify, { type FastifyInstance } from 'fastify';
 import {
-  ForbiddenAccessError,
-  RepositoryNotFoundError,
-} from 'src/infrastructure/infrastructure.errors';
-import {
   DatabaseError,
   ForeignKeyConstraintError,
-  HttpApiError,
-} from 'src/presentation/errors';
+  ForbiddenAccessError,
+  RepositoryNotFoundError,
+} from 'src/infrastructure/errors';
+import { HttpApiError } from 'src/presentation/errors';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { errorHandler } from './errorHandler';

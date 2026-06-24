@@ -7,7 +7,7 @@ import {
   operationsTable,
 } from 'src/db/schema';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import { RepositoryInvariantError } from 'src/infrastructure/infrastructure.errors';
+import { RepositoryInvariantError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
 

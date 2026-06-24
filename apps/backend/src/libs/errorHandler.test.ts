@@ -9,11 +9,12 @@ import {
   UserNotFoundError,
 } from 'src/application/application.errors';
 import {
+  DatabaseError,
   ForbiddenAccessError,
   RepositoryInvariantError,
   RepositoryNotFoundError,
-} from 'src/infrastructure/infrastructure.errors';
-import { DatabaseError, HttpApiError } from 'src/presentation/errors';
+} from 'src/infrastructure/errors';
+import { HttpApiError } from 'src/presentation/errors';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -168,22 +169,25 @@ describe('errorHandler', () => {
       .mockImplementation(() => undefined);
     vi.stubEnv('NODE_ENV', 'production');
 
-    expect(error).not.toBeInstanceOf(HttpApiError);
-    expect(error.cause).toBe(cause);
-    expect(error.context).toEqual({ tableName: 'users' });
+    try {
+      expect(error).not.toBeInstanceOf(HttpApiError);
+      expect(error.cause).toBe(cause);
+      expect(error.context).toEqual({ tableName: 'users' });
 
-    expect(handle(error)).toEqual({
-      payload: {
-        code: apiErrorCodes.internalServerError,
-        context: {},
-        error: true,
-      },
-      statusCode: 500,
-    });
+      expect(handle(error)).toEqual({
+        payload: {
+          code: apiErrorCodes.internalServerError,
+          context: {},
+          error: true,
+        },
+        statusCode: 500,
+      });
 
-    expect(logError).toHaveBeenCalledWith('Database error:', error);
-    logError.mockRestore();
-    vi.unstubAllEnvs();
+      expect(logError).toHaveBeenCalledWith('Database error:', error);
+    } finally {
+      logError.mockRestore();
+      vi.unstubAllEnvs();
+    }
   });
 
   it('serializes expected repository failures through the coded-error path', () => {

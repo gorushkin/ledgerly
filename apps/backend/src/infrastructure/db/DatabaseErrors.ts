@@ -18,9 +18,8 @@ export const DB_ERROR_CODES: Record<DB_ERROR_CODES, string> = {
 /**
  * Infrastructure failure raised while interacting with the database.
  *
- * Database diagnostics are intentionally kept separate from the HTTP error
- * contract. The presentation error handler is responsible for translating
- * every instance to a safe generic API response.
+ * Database diagnostics remain internal. The presentation error handler
+ * translates this error to a safe generic API response when needed.
  */
 export class DatabaseError extends BaseError {
   public readonly context?: DBErrorContext;

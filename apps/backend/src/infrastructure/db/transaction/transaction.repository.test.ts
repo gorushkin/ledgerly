@@ -10,8 +10,10 @@ import {
 import { Account, User } from 'src/domain';
 import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
-import { ForeignKeyConstraintError } from 'src/presentation/errors';
+import {
+  ForeignKeyConstraintError,
+  RepositoryNotFoundError,
+} from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
