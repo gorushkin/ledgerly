@@ -23,7 +23,6 @@ export const apiErrorCodes = {
   invalidPassword: "INVALID_PASSWORD",
   invalidTimestamp: "INVALID_TIMESTAMP",
   invalidVersion: "INVALID_VERSION",
-  notFound: "NOT_FOUND",
   operationAlreadyAttachedToTransaction:
     "OPERATION_ALREADY_ATTACHED_TO_TRANSACTION",
   operationIdMismatch: "OPERATION_ID_MISMATCH",
@@ -123,7 +122,6 @@ export type ErrorContextByCode = {
     reason: "NON_NEGATIVE_INTEGER";
     received: number;
   };
-  NOT_FOUND: Record<string, never>;
   OPERATION_ALREADY_ATTACHED_TO_TRANSACTION: {
     operationId: UUID;
     transactionId: UUID;

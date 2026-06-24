@@ -32,7 +32,6 @@ const statusByErrorCode = {
   [apiErrorCodes.invalidPassword]: 400,
   [apiErrorCodes.invalidTimestamp]: 400,
   [apiErrorCodes.invalidVersion]: 400,
-  [apiErrorCodes.notFound]: 404,
   [apiErrorCodes.operationAlreadyAttachedToTransaction]: 400,
   [apiErrorCodes.operationIdMismatch]: 400,
   [apiErrorCodes.operationNotFoundInTransaction]: 400,

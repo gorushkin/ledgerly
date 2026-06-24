@@ -200,11 +200,13 @@ describe('Transactions Integration Tests', () => {
 
       expect(response.statusCode).toBe(400);
 
-      // Literal is intentional: Extract needs a concrete discriminant to narrow ApiErrorResponse.
       const errorResponse =
-        parseResponse<Extract<ApiErrorResponse, { code: 'VALIDATION_FAILED' }>>(
-          response,
-        );
+        parseResponse<
+          Extract<
+            ApiErrorResponse,
+            { code: typeof apiErrorCodes.validationFailed }
+          >
+        >(response);
 
       expect(errorResponse.code).toBe(apiErrorCodes.validationFailed);
 
@@ -478,11 +480,13 @@ describe('Transactions Integration Tests', () => {
         url: `${url}/${transactionId}`,
       });
 
-      // Literal is intentional: Extract needs a concrete discriminant to narrow ApiErrorResponse.
       const body =
-        parseResponse<Extract<ApiErrorResponse, { code: 'ENTITY_NOT_FOUND' }>>(
-          response,
-        );
+        parseResponse<
+          Extract<
+            ApiErrorResponse,
+            { code: typeof apiErrorCodes.entityNotFound }
+          >
+        >(response);
 
       expect(response.statusCode).toBe(404);
       expect(body).toEqual({
@@ -2023,10 +2027,12 @@ describe('Transactions Integration Tests', () => {
       const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(400);
-      // Literal is intentional: Extract needs a concrete discriminant to narrow ApiErrorResponse.
       const errorResponse =
         parseResponse<
-          Extract<ApiErrorResponse, { code: 'TRANSACTION_UNBALANCED' }>
+          Extract<
+            ApiErrorResponse,
+            { code: typeof apiErrorCodes.transactionUnbalanced }
+          >
         >(response);
 
       expect(errorResponse).toMatchObject({

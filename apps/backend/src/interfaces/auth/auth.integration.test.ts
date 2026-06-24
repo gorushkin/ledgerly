@@ -53,10 +53,9 @@ describe('Auth Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(409);
-      // Literal is intentional: Extract needs a concrete discriminant to narrow ApiErrorResponse.
       const body = JSON.parse(response.body) as Extract<
         ApiErrorResponse,
-        { code: 'REGISTRATION_CONFLICT' }
+        { code: typeof apiErrorCodes.registrationConflict }
       >;
 
       expect(body).toEqual({
@@ -227,10 +226,9 @@ describe('Auth Integration Tests', () => {
 
       expect(invalidPasswordResponse.statusCode).toBe(401);
       expect(unknownUserResponse.statusCode).toBe(401);
-      // Literal is intentional: Extract needs a concrete discriminant to narrow ApiErrorResponse.
       const body = JSON.parse(invalidPasswordResponse.body) as Extract<
         ApiErrorResponse,
-        { code: 'AUTHENTICATION_FAILED' }
+        { code: typeof apiErrorCodes.authenticationFailed }
       >;
 
       expect(body).toEqual({
