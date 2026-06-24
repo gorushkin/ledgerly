@@ -55,7 +55,7 @@ describe('Auth Integration Tests', () => {
       expect(response.statusCode).toBe(409);
       const body = JSON.parse(response.body) as Extract<
         ApiErrorResponse,
-        { code: 'REGISTRATION_CONFLICT' }
+        { code: typeof apiErrorCodes.registrationConflict }
       >;
 
       expect(body).toEqual({
@@ -228,7 +228,7 @@ describe('Auth Integration Tests', () => {
       expect(unknownUserResponse.statusCode).toBe(401);
       const body = JSON.parse(invalidPasswordResponse.body) as Extract<
         ApiErrorResponse,
-        { code: 'AUTHENTICATION_FAILED' }
+        { code: typeof apiErrorCodes.authenticationFailed }
       >;
 
       expect(body).toEqual({

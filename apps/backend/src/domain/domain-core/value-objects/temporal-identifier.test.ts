@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import {
   InvalidDateError,
   InvalidIdentifierError,
@@ -16,7 +17,7 @@ describe('temporal and identifier value objects', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(InvalidIdentifierError);
       expect(error).toMatchObject({
-        code: 'INVALID_IDENTIFIER',
+        code: apiErrorCodes.invalidIdentifier,
         context: { reason: 'INVALID_FORMAT' },
       });
       return;

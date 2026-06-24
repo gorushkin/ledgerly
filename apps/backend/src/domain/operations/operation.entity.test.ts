@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import { createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
@@ -266,7 +267,7 @@ describe('Operation Domain Entity', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(OperationIdMismatchError);
       expect(error).toMatchObject({
-        code: 'OPERATION_ID_MISMATCH',
+        code: apiErrorCodes.operationIdMismatch,
         context: {
           expectedOperationId: operation.getId().valueOf(),
           receivedOperationId: receivedOperationId.valueOf(),

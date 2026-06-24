@@ -1,4 +1,4 @@
-import { CurrencyCode } from '@ledgerly/shared/types';
+import { apiErrorCodes, CurrencyCode } from '@ledgerly/shared/types';
 import { EntityNotFoundError } from 'src/application/application.errors';
 import { createUser } from 'src/db/createTestUser';
 import { Account } from 'src/domain/accounts/account.entity';
@@ -108,7 +108,7 @@ describe('UpdateAccount', async () => {
 
       await expect(result).rejects.toThrow(EntityNotFoundError);
       await expect(result).rejects.toMatchObject({
-        code: 'ENTITY_NOT_FOUND',
+        code: apiErrorCodes.entityNotFound,
         context: {
           entityId: accountId,
           entityType: Account.entityType,

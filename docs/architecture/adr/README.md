@@ -41,3 +41,4 @@
 - [ADR 0007: No operation amount sign invariant](./0007-no-operation-amount-sign-invariant.md)
 - [ADR 0008: Structured API error contract](./0008-structured-api-error-contract.md)
 - [ADR 0009: Repository error-code migration](./0009-repository-error-code-migration.md)
+- [ADR 0010: Entity not found API code](./0010-entity-not-found-api-code.md)

@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import {
   DomainError,
   DeletedEntityOperationError,
@@ -20,7 +21,7 @@ describe('coded domain errors', () => {
 
     expect(error).toBeInstanceOf(DomainError);
     expect(error).toMatchObject({
-      code: 'DELETED_ENTITY_OPERATION',
+      code: apiErrorCodes.deletedEntityOperation,
       context: {
         entityType: 'transaction',
         operation: 'update',
@@ -30,7 +31,7 @@ describe('coded domain errors', () => {
 
   it('exposes INVALID_VERSION context', () => {
     expect(new InvalidVersionError(-1)).toMatchObject({
-      code: 'INVALID_VERSION',
+      code: apiErrorCodes.invalidVersion,
       context: {
         reason: 'NON_NEGATIVE_INTEGER',
         received: -1,
@@ -40,14 +41,14 @@ describe('coded domain errors', () => {
 
   it('exposes EMPTY_OPERATIONS context', () => {
     expect(new EmptyOperationsError()).toMatchObject({
-      code: 'EMPTY_OPERATIONS',
+      code: apiErrorCodes.emptyOperations,
       context: {},
     });
   });
 
   it('exposes INSUFFICIENT_OPERATIONS context', () => {
     expect(new InsufficientOperationsError(1)).toMatchObject({
-      code: 'INSUFFICIENT_OPERATIONS',
+      code: apiErrorCodes.insufficientOperations,
       context: {
         minimum: MIN_TRANSACTION_OPERATIONS,
         received: 1,
@@ -59,7 +60,7 @@ describe('coded domain errors', () => {
     const received = MAX_TRANSACTION_OPERATIONS + 1;
 
     expect(new ExcessiveOperationsError(received)).toMatchObject({
-      code: 'EXCESSIVE_OPERATIONS',
+      code: apiErrorCodes.excessiveOperations,
       context: {
         maximum: MAX_TRANSACTION_OPERATIONS,
         received,

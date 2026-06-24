@@ -47,7 +47,6 @@ describe('errorHandler HTTP integration', () => {
 
   it.each([
     [401, apiErrorCodes.unauthorized],
-    [404, apiErrorCodes.notFound],
     [409, apiErrorCodes.conflict],
   ] as const)('maps HttpApiError status %i to %s', async (statusCode, code) => {
     const server = createServer();

@@ -5,7 +5,6 @@ import {
   type ValidationFieldErrorCode,
 } from '@ledgerly/shared/types';
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
-import { DomainError } from 'src/domain/domain.errors';
 import { DatabaseError, HttpApiError } from 'src/presentation/errors/index';
 import { isCodedError } from 'src/shared/errors';
 import { ZodError, type ZodIssue } from 'zod';
@@ -33,7 +32,6 @@ const statusByErrorCode = {
   [apiErrorCodes.invalidPassword]: 400,
   [apiErrorCodes.invalidTimestamp]: 400,
   [apiErrorCodes.invalidVersion]: 400,
-  [apiErrorCodes.notFound]: 404,
   [apiErrorCodes.operationAlreadyAttachedToTransaction]: 400,
   [apiErrorCodes.operationIdMismatch]: 400,
   [apiErrorCodes.operationNotFoundInTransaction]: 400,
@@ -103,16 +101,6 @@ export function errorHandler(
       statusByErrorCode[error.code],
       error.code,
       error.context,
-    );
-  }
-
-  // Legacy errors that have not yet been migrated to coded domain contracts.
-  if (error instanceof DomainError) {
-    return sendCodedError(
-      reply,
-      statusByErrorCode[apiErrorCodes.badRequest],
-      apiErrorCodes.badRequest,
-      {},
     );
   }
 

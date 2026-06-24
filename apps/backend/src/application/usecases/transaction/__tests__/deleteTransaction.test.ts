@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import {
   EntityNotFoundError,
   UnauthorizedAccessError,
@@ -95,7 +96,7 @@ describe('DeleteTransactionUseCase', () => {
     await expect(result).rejects.toThrow(EntityNotFoundError);
 
     await expect(result).rejects.toMatchObject({
-      code: 'ENTITY_NOT_FOUND',
+      code: apiErrorCodes.entityNotFound,
       context: {
         entityId: transaction.getId().valueOf(),
         entityType: Transaction.entityType,
@@ -121,7 +122,7 @@ describe('DeleteTransactionUseCase', () => {
     await expect(result).rejects.toThrow(UnauthorizedAccessError);
 
     await expect(result).rejects.toMatchObject({
-      code: 'UNAUTHORIZED_ACCESS',
+      code: apiErrorCodes.unauthorizedAccess,
       context: {
         entityId: transaction.getId().valueOf(),
         entityType: Transaction.entityType,

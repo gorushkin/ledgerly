@@ -1,15 +1,21 @@
 import { apiErrorCodes, type ApiErrorCode } from '@ledgerly/shared/types';
 import { BaseError } from 'src/shared/errors/BaseError';
 
-const errorCodeByStatus: Record<number, ApiErrorCode> = {
+type HttpApiStatusCode = 400 | 401 | 409 | 500;
+
+const errorCodeByStatus: Record<
+  Exclude<HttpApiStatusCode, 500>,
+  ApiErrorCode
+> = {
   400: apiErrorCodes.badRequest,
   401: apiErrorCodes.unauthorized,
-  404: apiErrorCodes.notFound,
   409: apiErrorCodes.conflict,
 };
 
-const getHttpErrorCode = (statusCode: number): ApiErrorCode =>
-  errorCodeByStatus[statusCode] ?? apiErrorCodes.internalServerError;
+const getHttpErrorCode = (statusCode: HttpApiStatusCode): ApiErrorCode =>
+  statusCode === 500
+    ? apiErrorCodes.internalServerError
+    : errorCodeByStatus[statusCode];
 
 /**
  * HTTP-specific error with status code for REST API responses.
@@ -18,7 +24,7 @@ const getHttpErrorCode = (statusCode: number): ApiErrorCode =>
 export class HttpApiError extends BaseError {
   constructor(
     message: string,
-    public readonly statusCode = 500,
+    public readonly statusCode: HttpApiStatusCode = 500,
     cause?: Error,
     public readonly code: ApiErrorCode = getHttpErrorCode(statusCode),
   ) {

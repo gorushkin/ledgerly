@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import {
   OperationReadModel,
   TransactionQueryRepositoryInterface,
@@ -144,7 +145,7 @@ describe('GetTransactionByIdUseCase', () => {
     await expect(result).rejects.toThrow(EntityNotFoundError);
 
     await expect(result).rejects.toMatchObject({
-      code: 'ENTITY_NOT_FOUND',
+      code: apiErrorCodes.entityNotFound,
       context: {
         entityId: transactionId,
         entityType: 'transaction',

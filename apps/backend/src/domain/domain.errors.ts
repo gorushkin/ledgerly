@@ -16,14 +16,19 @@ import {
  * Base class for all domain layer errors.
  * Domain errors represent violations of business rules and invariants.
  */
-export class DomainError extends BaseError {}
+export abstract class DomainError<
+  Code extends ApiErrorCode = ApiErrorCode,
+> extends BaseError {
+  abstract readonly code: Code;
+  abstract readonly context: ErrorContextByCode[Code];
+}
 
 /**
  * Base domain error with a stable, client-safe contract.
  */
 export abstract class CodedDomainError<
   Code extends ApiErrorCode,
-> extends DomainError {
+> extends DomainError<Code> {
   protected constructor(
     message: string,
     public readonly code: Code,
@@ -355,13 +360,13 @@ export class OperationUserMismatchError extends CodedDomainError<'OPERATION_USER
 export class UserOwnershipError extends CodedDomainError<'UNAUTHORIZED_ACCESS'> {
   constructor(
     entityType: string,
-    public readonly userId: UUID,
+    public readonly entityId: UUID,
   ) {
     super(
-      `user ${userId} does not match the authenticated user`,
+      `user ${entityId} does not match the authenticated user`,
       apiErrorCodes.unauthorizedAccess,
       {
-        entityId: userId,
+        entityId,
         entityType,
       },
     );
