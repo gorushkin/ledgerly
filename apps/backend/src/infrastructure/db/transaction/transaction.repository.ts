@@ -112,13 +112,12 @@ export class TransactionRepository
       transaction.getId().valueOf(),
     );
 
+    const transactionId = transaction.getId().valueOf();
+
     if (!snapshot) {
       throw new RepositoryNotFoundError(
-        `Transaction ${transaction.getId().valueOf()} snapshot not found for user ${userId}`,
-        {
-          entityId: transaction.getId().valueOf(),
-          entityType: 'transaction',
-        },
+        `Transaction ${transactionId} snapshot not found for user ${userId}`,
+        this.entityNotFoundContext('transaction', transactionId),
       );
     }
 

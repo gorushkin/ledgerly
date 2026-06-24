@@ -33,6 +33,10 @@ export abstract class CodedInfrastructureError<
 
 /**
  * Thrown when a repository operation fails to find a requested entity.
+ *
+ * Public API contract: this emits `ENTITY_NOT_FOUND`, replacing the legacy
+ * repository-specific `NOT_FOUND` response. This is an intentional breaking
+ * change; see ADR 0009 before adding a compatibility mapping.
  */
 export class RepositoryNotFoundError extends CodedInfrastructureError<'ENTITY_NOT_FOUND'> {
   constructor(
@@ -46,6 +50,9 @@ export class RepositoryNotFoundError extends CodedInfrastructureError<'ENTITY_NO
 /**
  * Thrown when a repository operation fails due to access/authorization issues.
  * Typically when a user tries to access a resource they don't own.
+ *
+ * Public API contract: this emits `UNAUTHORIZED_ACCESS` with an allowlisted
+ * entity context. See ADR 0009 for the client migration requirement.
  */
 export class ForbiddenAccessError extends CodedInfrastructureError<'UNAUTHORIZED_ACCESS'> {
   constructor(

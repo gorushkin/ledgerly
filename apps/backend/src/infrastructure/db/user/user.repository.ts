@@ -56,10 +56,11 @@ export class UserRepository
         .where(eq(usersTable.id, id))
         .get();
 
-      return this.ensureEntityExists(user, `User with ID ${id} not found`, {
-        entityId: id,
-        entityType: 'user',
-      });
+      return this.ensureEntityExists(
+        user,
+        `User with ID ${id} not found`,
+        this.entityNotFoundContext('user', id),
+      );
     }, `Failed to fetch user with ID ${id}`);
   }
 
@@ -97,7 +98,7 @@ export class UserRepository
       return this.ensureEntityExists(
         updatedUserProfile,
         `User with ID ${id} not found`,
-        { entityId: id, entityType: 'user' },
+        this.entityNotFoundContext('user', id),
       );
     }, `Failed to update user profile with ID ${id}`);
   }
@@ -113,7 +114,7 @@ export class UserRepository
       this.ensureEntityExists(
         rowsAffected > 0 ? true : null,
         `User with ID ${id} not found`,
-        { entityId: id, entityType: 'user' },
+        this.entityNotFoundContext('user', id),
       );
     }, `Failed to update password for user with ID ${id}`);
   }
@@ -140,7 +141,7 @@ export class UserRepository
       this.ensureEntityExists(
         rowsAffected > 0 ? true : null,
         `User with ID ${id} not found`,
-        { entityId: id, entityType: 'user' },
+        this.entityNotFoundContext('user', id),
       );
     }, `Failed to delete user with ID ${id}`);
   }
