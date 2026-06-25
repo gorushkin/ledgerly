@@ -2,7 +2,7 @@ import { UUID } from '@ledgerly/shared/types';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { User } from 'src/domain/users/user.entity';
 
-import { AuthErrors } from '../errors/auth.errors';
+import { UnauthorizedError } from '../errors/auth.errors';
 
 export async function authMiddleware(
   request: FastifyRequest,
@@ -12,7 +12,7 @@ export async function authMiddleware(
     const token = request.headers.authorization?.replace('Bearer ', '');
 
     if (!token) {
-      throw new AuthErrors.UnauthorizedError('Authentication required');
+      throw new UnauthorizedError('Authentication required');
     }
 
     const decoded = await request.jwtVerify<{
@@ -25,13 +25,13 @@ export async function authMiddleware(
     const rawUser = await userRepository.getByIdWithPassword(decoded.userId);
 
     if (!rawUser) {
-      throw new AuthErrors.UnauthorizedError('User not found');
+      throw new UnauthorizedError('User not found');
     }
 
     const user = User.fromPersistence(rawUser);
 
     request.user = user;
   } catch {
-    throw new AuthErrors.UnauthorizedError('Invalid or expired token');
+    throw new UnauthorizedError('Invalid or expired token');
   }
 }

@@ -14,7 +14,7 @@ import {
   RepositoryInvariantError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
-import { HttpApiError } from 'src/presentation/errors';
+import { HttpApiError, UnauthorizedError } from 'src/presentation/errors';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -94,16 +94,16 @@ describe('errorHandler', () => {
     return response();
   };
 
-  it('serializes HttpApiError with its stable code and no diagnostic message', () => {
-    const response = handle(new HttpApiError('request diagnostic', 400));
+  it('serializes concrete HTTP API errors with their stable code and no diagnostic message', () => {
+    const response = handle(new UnauthorizedError('request diagnostic'));
 
     expect(response).toEqual({
       payload: {
-        code: apiErrorCodes.badRequest,
+        code: apiErrorCodes.unauthorized,
         context: {},
         error: true,
       },
-      statusCode: 400,
+      statusCode: 401,
     });
   });
 
