@@ -205,7 +205,13 @@ export class BaseRepository {
           retries - 1,
         );
       }
-      throw new Error('Failed to create account');
+
+      const databaseError = new DatabaseOperationError({
+        cause: error instanceof Error ? error : new Error(String(error)),
+        message: 'Failed to create entity',
+      });
+      reportDatabaseError(databaseError);
+      throw databaseError;
     }
   }
 }
