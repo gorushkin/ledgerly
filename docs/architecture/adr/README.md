@@ -42,3 +42,4 @@
 - [ADR 0008: Structured API error contract](./0008-structured-api-error-contract.md)
 - [ADR 0009: Repository error-code migration](./0009-repository-error-code-migration.md)
 - [ADR 0010: Entity not found API code](./0010-entity-not-found-api-code.md)
+- [ADR 0011: Domain entity API conventions](./0011-domain-entity-api-conventions.md)
