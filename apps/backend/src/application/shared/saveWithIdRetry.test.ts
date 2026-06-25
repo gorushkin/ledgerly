@@ -1,4 +1,7 @@
-import { DatabaseError } from 'src/infrastructure/errors';
+import {
+  DatabaseError,
+  DatabaseOperationError,
+} from 'src/infrastructure/errors';
 import { describe, expect, it, vi } from 'vitest';
 
 import { saveWithIdRetry } from './saveWithIdRetry';
@@ -18,5 +21,8 @@ describe('saveWithIdRetry', () => {
     await expect(
       saveWithIdRetry(insert, () => entity, 0),
     ).rejects.toBeInstanceOf(DatabaseError);
+    await expect(
+      saveWithIdRetry(insert, () => entity, 0),
+    ).rejects.toBeInstanceOf(DatabaseOperationError);
   });
 });

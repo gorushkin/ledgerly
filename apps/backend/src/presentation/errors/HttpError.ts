@@ -18,11 +18,14 @@ const getHttpErrorCode = (statusCode: HttpApiStatusCode): ApiErrorCode =>
     : errorCodeByStatus[statusCode];
 
 /**
- * HTTP-specific error with status code for REST API responses.
- * Use this only in the presentation layer for errors that need to be translated to HTTP responses.
+ * Presentation-layer base class for transport-specific API errors.
+ *
+ * Domain, application, and infrastructure code should expose stable coded
+ * errors instead. Use concrete subclasses only at HTTP boundaries such as
+ * middleware.
  */
-export class HttpApiError extends BaseError {
-  constructor(
+export abstract class HttpApiError extends BaseError {
+  protected constructor(
     message: string,
     public readonly statusCode: HttpApiStatusCode = 500,
     cause?: Error,

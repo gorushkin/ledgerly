@@ -21,10 +21,10 @@ export const DB_ERROR_CODES: Record<DB_ERROR_CODES, string> = {
  * Database diagnostics remain internal. The presentation error handler
  * translates this error to a safe generic API response when needed.
  */
-export class DatabaseError extends BaseError {
+export abstract class DatabaseError extends BaseError {
   public readonly context?: DBErrorContext;
 
-  constructor(params: {
+  protected constructor(params: {
     message: string;
     context?: DBErrorContext;
     cause?: Error;
@@ -34,16 +34,32 @@ export class DatabaseError extends BaseError {
   }
 }
 
+export class DatabaseOperationError extends DatabaseError {
+  constructor(params: {
+    message: string;
+    context?: DBErrorContext;
+    cause?: Error;
+  }) {
+    super(params);
+  }
+}
+
 export class InvalidDataError extends DatabaseError {
   constructor(message = '') {
     super({ message: `Invalid data: ${message}` });
   }
 }
 
-export type DBErrorContext = {
+export type DBErrorDiagnosticContext = {
   field?: string;
   tableName?: string;
   value?: string;
+};
+
+export type DBErrorContext = DBErrorDiagnosticContext & {
+  foreignKey?: DBErrorDiagnosticContext;
+  primaryKey?: DBErrorDiagnosticContext;
+  unique?: DBErrorDiagnosticContext;
 };
 
 export class RecordAlreadyExistsError extends DatabaseError {

@@ -5,11 +5,12 @@ type Parser<T> = {
 export const parseValueObject = <T>(
   value: unknown,
   parser: Parser<T>,
-  createError: (value: unknown) => Error,
+  createError: (cause: Error, value: unknown) => Error,
 ): T => {
   try {
     return parser.parse(value);
-  } catch {
-    throw createError(value);
+  } catch (error) {
+    const cause = error instanceof Error ? error : new Error(String(error));
+    throw createError(cause, value);
   }
 };

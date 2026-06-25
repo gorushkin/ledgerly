@@ -46,6 +46,7 @@ describe('Amount Value Object', () => {
           received: String(value),
         },
       });
+      expect(error.cause).toBeInstanceOf(Error);
     });
   });
 

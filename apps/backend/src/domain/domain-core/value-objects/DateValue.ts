@@ -11,7 +11,7 @@ export class DateValue {
     this._value = parseValueObject(
       value,
       isoDate,
-      () => new InvalidDateError(),
+      (cause) => new InvalidDateError(cause),
     );
   }
 

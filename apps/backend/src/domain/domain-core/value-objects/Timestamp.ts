@@ -10,7 +10,7 @@ export class Timestamp {
     this._value = parseValueObject(
       value,
       isoDatetime,
-      () => new InvalidTimestampError(),
+      (cause) => new InvalidTimestampError(cause),
     );
   }
 

@@ -9,7 +9,7 @@ import { BaseError } from 'src/shared/errors/BaseError';
  * Base class for all infrastructure layer errors.
  * Infrastructure errors represent failures in external systems (databases, APIs, file systems, etc.).
  */
-export class InfrastructureError extends BaseError {
+export abstract class InfrastructureError extends BaseError {
   constructor(message: string, cause?: Error) {
     super(message, cause);
   }

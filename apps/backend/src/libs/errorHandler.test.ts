@@ -10,11 +10,12 @@ import {
 } from 'src/application/application.errors';
 import {
   DatabaseError,
+  DatabaseOperationError,
   ForbiddenAccessError,
   RepositoryInvariantError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
-import { HttpApiError } from 'src/presentation/errors';
+import { HttpApiError, UnauthorizedError } from 'src/presentation/errors';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -94,16 +95,16 @@ describe('errorHandler', () => {
     return response();
   };
 
-  it('serializes HttpApiError with its stable code and no diagnostic message', () => {
-    const response = handle(new HttpApiError('request diagnostic', 400));
+  it('serializes concrete HTTP API errors with their stable code and no diagnostic message', () => {
+    const response = handle(new UnauthorizedError('request diagnostic'));
 
     expect(response).toEqual({
       payload: {
-        code: apiErrorCodes.badRequest,
+        code: apiErrorCodes.unauthorized,
         context: {},
         error: true,
       },
-      statusCode: 400,
+      statusCode: 401,
     });
   });
 
@@ -142,7 +143,7 @@ describe('errorHandler', () => {
 
   it('does not expose database diagnostics', () => {
     const response = handle(
-      new DatabaseError({ message: 'database password is secret' }),
+      new DatabaseOperationError({ message: 'database password is secret' }),
     );
 
     expect(response).toEqual({
@@ -158,7 +159,7 @@ describe('errorHandler', () => {
   it('keeps database errors out of the HTTP error hierarchy and logs them', () => {
     const cause = new Error('connection reset');
 
-    const error = new DatabaseError({
+    const error = new DatabaseOperationError({
       cause,
       context: { tableName: 'users' },
       message: 'database password is secret',
@@ -171,6 +172,7 @@ describe('errorHandler', () => {
 
     try {
       expect(error).not.toBeInstanceOf(HttpApiError);
+      expect(error).toBeInstanceOf(DatabaseError);
       expect(error.cause).toBe(cause);
       expect(error.context).toEqual({ tableName: 'users' });
 

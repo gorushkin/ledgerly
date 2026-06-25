@@ -6,7 +6,7 @@ import {
 } from '@ledgerly/shared/types';
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { DatabaseError } from 'src/infrastructure/errors';
-import { HttpApiError } from 'src/presentation/errors/';
+import { HttpApiError } from 'src/presentation/errors';
 import { isCodedError } from 'src/shared/errors';
 import { reportDatabaseError } from 'src/shared/errors/reportDatabaseError';
 import { ZodError, type ZodIssue } from 'zod';

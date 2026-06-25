@@ -1,12 +1,12 @@
 import { apiErrorCodes, type ApiErrorResponse } from '@ledgerly/shared/types';
 import Fastify, { type FastifyInstance } from 'fastify';
 import {
-  DatabaseError,
+  DatabaseOperationError,
   ForeignKeyConstraintError,
   ForbiddenAccessError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
-import { HttpApiError } from 'src/presentation/errors';
+import { UnauthorizedError } from 'src/presentation/errors';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { errorHandler } from './errorHandler';
@@ -26,37 +26,18 @@ describe('errorHandler HTTP integration', () => {
     await Promise.all(servers.splice(0).map((server) => server.close()));
   });
 
-  it('serializes HttpApiError as a safe API response', async () => {
+  it('serializes concrete HTTP API errors as safe API responses', async () => {
     const server = createServer();
 
     server.get('/http-error', () => {
-      throw new HttpApiError('request diagnostic', 400);
+      throw new UnauthorizedError('request diagnostic');
     });
 
     const response = await server.inject('/http-error');
 
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(401);
     expect(response.json<ApiErrorResponse>()).toEqual({
-      code: apiErrorCodes.badRequest,
-      context: {},
-      error: true,
-    });
-  });
-
-  it.each([
-    [401, apiErrorCodes.unauthorized],
-    [409, apiErrorCodes.conflict],
-  ] as const)('maps HttpApiError status %i to %s', async (statusCode, code) => {
-    const server = createServer();
-    server.get('/http-error', () => {
-      throw new HttpApiError('request diagnostic', statusCode);
-    });
-
-    const response = await server.inject('/http-error');
-
-    expect(response.statusCode).toBe(statusCode);
-    expect(response.json<ApiErrorResponse>()).toEqual({
-      code,
+      code: apiErrorCodes.unauthorized,
       context: {},
       error: true,
     });
@@ -106,7 +87,9 @@ describe('errorHandler HTTP integration', () => {
   it('does not expose database diagnostics over HTTP', async () => {
     const server = createServer();
     server.get('/database-error', () => {
-      throw new DatabaseError({ message: 'database password is secret' });
+      throw new DatabaseOperationError({
+        message: 'database password is secret',
+      });
     });
 
     const response = await server.inject('/database-error');

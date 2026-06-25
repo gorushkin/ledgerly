@@ -59,7 +59,10 @@ export class InvalidVersionError extends CodedDomainError<'INVALID_VERSION'> {
  * Thrown when a money amount value is not a valid integer minor-unit amount.
  */
 export class InvalidAmountError extends CodedDomainError<'INVALID_AMOUNT'> {
-  constructor(public readonly value: unknown) {
+  constructor(
+    public readonly value: unknown,
+    cause?: Error,
+  ) {
     super(
       'money value must be a valid integer minor-unit value',
       apiErrorCodes.invalidAmount,
@@ -67,15 +70,21 @@ export class InvalidAmountError extends CodedDomainError<'INVALID_AMOUNT'> {
         reason: 'NOT_INTEGER_MINOR_UNITS',
         received: String(value),
       },
+      cause,
     );
   }
 }
 
 export class InvalidDateError extends CodedDomainError<'INVALID_DATE'> {
-  constructor() {
-    super('date has an invalid format', apiErrorCodes.invalidDate, {
-      reason: 'INVALID_FORMAT',
-    });
+  constructor(cause?: Error) {
+    super(
+      'date has an invalid format',
+      apiErrorCodes.invalidDate,
+      {
+        reason: 'INVALID_FORMAT',
+      },
+      cause,
+    );
   }
 }
 
@@ -88,22 +97,28 @@ export class InvalidEmailError extends CodedDomainError<'INVALID_EMAIL'> {
 }
 
 export class InvalidMoneyAmountError extends CodedDomainError<'INVALID_MONEY_AMOUNT'> {
-  constructor() {
+  constructor(cause?: Error) {
     super(
       'money amount must be an integer minor-unit value',
       apiErrorCodes.invalidMoneyAmount,
       {
         reason: 'INVALID_INTEGER_MINOR_UNITS',
       },
+      cause,
     );
   }
 }
 
 export class InvalidIdentifierError extends CodedDomainError<'INVALID_IDENTIFIER'> {
-  constructor() {
-    super('identifier has an invalid format', apiErrorCodes.invalidIdentifier, {
-      reason: 'INVALID_FORMAT',
-    });
+  constructor(cause?: Error) {
+    super(
+      'identifier has an invalid format',
+      apiErrorCodes.invalidIdentifier,
+      {
+        reason: 'INVALID_FORMAT',
+      },
+      cause,
+    );
   }
 }
 
@@ -116,10 +131,15 @@ export class InvalidNameError extends CodedDomainError<'INVALID_NAME'> {
 }
 
 export class InvalidPasswordError extends CodedDomainError<'INVALID_PASSWORD'> {
-  constructor() {
-    super('password does not meet the policy', apiErrorCodes.invalidPassword, {
-      reason: 'POLICY_VIOLATION',
-    });
+  constructor(cause?: Error) {
+    super(
+      'password does not meet the policy',
+      apiErrorCodes.invalidPassword,
+      {
+        reason: 'POLICY_VIOLATION',
+      },
+      cause,
+    );
   }
 }
 
@@ -149,10 +169,15 @@ export class InvalidAccountTypeError extends CodedDomainError<'INVALID_ACCOUNT_T
 }
 
 export class InvalidTimestampError extends CodedDomainError<'INVALID_TIMESTAMP'> {
-  constructor() {
-    super('timestamp has an invalid format', apiErrorCodes.invalidTimestamp, {
-      reason: 'INVALID_FORMAT',
-    });
+  constructor(cause?: Error) {
+    super(
+      'timestamp has an invalid format',
+      apiErrorCodes.invalidTimestamp,
+      {
+        reason: 'INVALID_FORMAT',
+      },
+      cause,
+    );
   }
 }
 

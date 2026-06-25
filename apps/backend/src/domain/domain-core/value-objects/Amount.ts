@@ -18,7 +18,7 @@ export class Amount {
     this.minor = parseValueObject(
       value,
       moneyAmountBigint,
-      (invalidValue) => new InvalidAmountError(invalidValue),
+      (cause, invalidValue) => new InvalidAmountError(invalidValue, cause),
     );
   }
 
