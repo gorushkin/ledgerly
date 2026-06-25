@@ -2,7 +2,7 @@ import { type ErrorContextByCode, UUID } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
 import {
   DBErrorContext,
-  DatabaseError,
+  DatabaseOperationError,
   ForbiddenAccessError,
   ForeignKeyConstraintError,
   InfrastructureError,
@@ -98,7 +98,7 @@ export class BaseRepository {
       if (error instanceof InvalidDataError) throw error;
       if (error instanceof InfrastructureError) throw error;
 
-      const databaseError = new DatabaseError({
+      const databaseError = new DatabaseOperationError({
         cause: error as Error,
         context,
         message: errorMessage,

@@ -9,7 +9,7 @@ import { BaseError } from 'src/shared/errors';
  * Base class for all application layer errors.
  * Application errors represent use case failures (e.g., entity not found, unauthorized access).
  */
-export class ApplicationError extends BaseError {}
+export abstract class ApplicationError extends BaseError {}
 
 /**
  * Base application error with a stable, client-safe contract.
@@ -59,8 +59,8 @@ export class UnauthorizedAccessError extends CodedApplicationError<'UNAUTHORIZED
  * The diagnostic message may distinguish internal causes, but the public
  * response always uses AUTHENTICATION_FAILED with an empty context.
  */
-export class AuthenticationFailedError extends CodedApplicationError<'AUTHENTICATION_FAILED'> {
-  constructor(message = 'Authentication failed') {
+export abstract class AuthenticationFailedError extends CodedApplicationError<'AUTHENTICATION_FAILED'> {
+  protected constructor(message: string) {
     super(message, apiErrorCodes.authenticationFailed, {});
   }
 }

@@ -10,6 +10,7 @@ import {
 } from 'src/application/application.errors';
 import {
   DatabaseError,
+  DatabaseOperationError,
   ForbiddenAccessError,
   RepositoryInvariantError,
   RepositoryNotFoundError,
@@ -142,7 +143,7 @@ describe('errorHandler', () => {
 
   it('does not expose database diagnostics', () => {
     const response = handle(
-      new DatabaseError({ message: 'database password is secret' }),
+      new DatabaseOperationError({ message: 'database password is secret' }),
     );
 
     expect(response).toEqual({
@@ -158,7 +159,7 @@ describe('errorHandler', () => {
   it('keeps database errors out of the HTTP error hierarchy and logs them', () => {
     const cause = new Error('connection reset');
 
-    const error = new DatabaseError({
+    const error = new DatabaseOperationError({
       cause,
       context: { tableName: 'users' },
       message: 'database password is secret',
@@ -171,6 +172,7 @@ describe('errorHandler', () => {
 
     try {
       expect(error).not.toBeInstanceOf(HttpApiError);
+      expect(error).toBeInstanceOf(DatabaseError);
       expect(error.cause).toBe(cause);
       expect(error.context).toEqual({ tableName: 'users' });
 

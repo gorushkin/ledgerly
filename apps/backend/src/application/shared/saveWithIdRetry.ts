@@ -1,5 +1,5 @@
 import {
-  DatabaseError,
+  DatabaseOperationError,
   RecordAlreadyExistsError,
 } from 'src/infrastructure/errors';
 import { reportDatabaseError } from 'src/shared/errors/reportDatabaseError';
@@ -34,7 +34,7 @@ export const saveWithIdRetry: SaveWithIdRetryType = async <
       return await saveWithIdRetry(promise, entityFactory, retries - 1);
     }
 
-    const databaseError = new DatabaseError({
+    const databaseError = new DatabaseOperationError({
       cause: error instanceof Error ? error : new Error(String(error)),
       message: 'Failed to create entity',
     });

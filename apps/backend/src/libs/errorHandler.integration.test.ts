@@ -1,7 +1,7 @@
 import { apiErrorCodes, type ApiErrorResponse } from '@ledgerly/shared/types';
 import Fastify, { type FastifyInstance } from 'fastify';
 import {
-  DatabaseError,
+  DatabaseOperationError,
   ForeignKeyConstraintError,
   ForbiddenAccessError,
   RepositoryNotFoundError,
@@ -87,7 +87,9 @@ describe('errorHandler HTTP integration', () => {
   it('does not expose database diagnostics over HTTP', async () => {
     const server = createServer();
     server.get('/database-error', () => {
-      throw new DatabaseError({ message: 'database password is secret' });
+      throw new DatabaseOperationError({
+        message: 'database password is secret',
+      });
     });
 
     const response = await server.inject('/database-error');
