@@ -2,7 +2,7 @@ import { UUID } from '@ledgerly/shared/types';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { User } from 'src/domain/users/user.entity';
 
-import { UnauthorizedError } from '../errors/auth.errors';
+import { UnauthorizedError } from '../errors';
 
 export async function authMiddleware(
   request: FastifyRequest,
@@ -31,7 +31,11 @@ export async function authMiddleware(
     const user = User.fromPersistence(rawUser);
 
     request.user = user;
-  } catch {
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      throw error;
+    }
+
     throw new UnauthorizedError('Invalid or expired token');
   }
 }

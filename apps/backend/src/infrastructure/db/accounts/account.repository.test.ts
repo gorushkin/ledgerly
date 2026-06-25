@@ -173,9 +173,9 @@ describe('AccountRepository', () => {
       await expect(accountRepository.create(newAccount)).rejects.toThrowError(
         new ForeignKeyConstraintError({
           context: {
-            field: 'accountName',
+            field: 'userId',
             tableName: 'accounts',
-            value: newAccount.name,
+            value: newAccount.userId,
           },
         }),
       );

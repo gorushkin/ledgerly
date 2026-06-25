@@ -44,9 +44,16 @@ export class AccountRepository
           .get(),
       'Failed to create account',
       {
-        field: 'accountName',
-        tableName: 'accounts',
-        value: data.name,
+        foreignKey: {
+          field: 'userId',
+          tableName: 'accounts',
+          value: data.userId,
+        },
+        unique: {
+          field: 'accountName',
+          tableName: 'accounts',
+          value: data.name,
+        },
       },
     );
   }

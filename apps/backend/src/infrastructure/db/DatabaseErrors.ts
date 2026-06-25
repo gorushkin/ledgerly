@@ -50,10 +50,16 @@ export class InvalidDataError extends DatabaseError {
   }
 }
 
-export type DBErrorContext = {
+export type DBErrorDiagnosticContext = {
   field?: string;
   tableName?: string;
   value?: string;
+};
+
+export type DBErrorContext = DBErrorDiagnosticContext & {
+  foreignKey?: DBErrorDiagnosticContext;
+  primaryKey?: DBErrorDiagnosticContext;
+  unique?: DBErrorDiagnosticContext;
 };
 
 export class RecordAlreadyExistsError extends DatabaseError {

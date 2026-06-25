@@ -10,7 +10,7 @@ export class Id {
     this.value = parseValueObject(
       value,
       uuid,
-      () => new InvalidIdentifierError(),
+      (cause) => new InvalidIdentifierError(cause),
     );
     Object.freeze(this);
   }

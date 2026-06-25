@@ -17,7 +17,7 @@ export class Password {
     parseValueObject(
       value,
       passwordValidation,
-      () => new InvalidPasswordError(),
+      (cause) => new InvalidPasswordError(cause),
     );
 
     const hashed = await bcrypt.hash(value, hashingSaltRounds);
