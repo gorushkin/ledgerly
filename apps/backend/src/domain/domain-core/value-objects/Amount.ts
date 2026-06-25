@@ -3,6 +3,9 @@ import {
   moneyAmountBigint,
   moneyAmountString,
 } from '@ledgerly/shared/validation';
+import { InvalidAmountError } from 'src/domain/domain.errors';
+
+import { parseValueObject } from './parseValueObject';
 
 export class Amount {
   private readonly minor: bigint;
@@ -12,13 +15,11 @@ export class Amount {
       return;
     }
 
-    const parsed = moneyAmountBigint.parse(value);
-
-    if (typeof parsed !== 'bigint') {
-      throw new Error('Invalid money amount');
-    }
-
-    this.minor = parsed;
+    this.minor = parseValueObject(
+      value,
+      moneyAmountBigint,
+      (cause, invalidValue) => new InvalidAmountError(invalidValue, cause),
+    );
   }
 
   static create(value: string): Amount {

@@ -1,130 +1,133 @@
-import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import {
-  EntityNotFoundError,
-  InvalidPasswordError,
-  UnauthorizedAccessError,
-  UserAlreadyExistsError,
-  UserNotFoundError,
-  VersionConflictError,
-} from 'src/application/application.errors';
-import { DomainError } from 'src/domain/domain.errors';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
-import { DatabaseError, HttpApiError } from 'src/presentation/errors/index';
-import { ZodError } from 'zod';
+  apiErrorCodes,
+  type ApiErrorCode,
+  type ErrorContextByCode,
+  type ValidationFieldErrorCode,
+} from '@ledgerly/shared/types';
+import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
+import { DatabaseError } from 'src/infrastructure/errors';
+import { HttpApiError } from 'src/presentation/errors';
+import { isCodedError } from 'src/shared/errors';
+import { reportDatabaseError } from 'src/shared/errors/reportDatabaseError';
+import { ZodError, type ZodIssue } from 'zod';
+
+const statusByErrorCode = {
+  [apiErrorCodes.accountNotFoundInContext]: 400,
+  [apiErrorCodes.authenticationFailed]: 401,
+  [apiErrorCodes.badRequest]: 400,
+  [apiErrorCodes.conflict]: 409,
+  [apiErrorCodes.conflictingOperationIds]: 400,
+  [apiErrorCodes.currencyMismatch]: 400,
+  [apiErrorCodes.deletedEntityOperation]: 400,
+  [apiErrorCodes.emptyOperations]: 400,
+  [apiErrorCodes.entityNotFound]: 404,
+  [apiErrorCodes.excessiveOperations]: 400,
+  [apiErrorCodes.insufficientOperations]: 400,
+  [apiErrorCodes.internalServerError]: 500,
+  [apiErrorCodes.invalidAccountType]: 400,
+  [apiErrorCodes.invalidAmount]: 400,
+  [apiErrorCodes.invalidDate]: 400,
+  [apiErrorCodes.invalidEmail]: 400,
+  [apiErrorCodes.invalidIdentifier]: 400,
+  [apiErrorCodes.invalidMoneyAmount]: 400,
+  [apiErrorCodes.invalidName]: 400,
+  [apiErrorCodes.invalidPassword]: 400,
+  [apiErrorCodes.invalidTimestamp]: 400,
+  [apiErrorCodes.invalidVersion]: 400,
+  [apiErrorCodes.operationAlreadyAttachedToTransaction]: 400,
+  [apiErrorCodes.operationIdMismatch]: 400,
+  [apiErrorCodes.operationNotFoundInTransaction]: 400,
+  [apiErrorCodes.operationTransactionMismatch]: 400,
+  [apiErrorCodes.operationUserMismatch]: 400,
+  [apiErrorCodes.registrationConflict]: 409,
+  [apiErrorCodes.transactionUnbalanced]: 400,
+  [apiErrorCodes.unauthorized]: 401,
+  [apiErrorCodes.unauthorizedAccess]: 403,
+  [apiErrorCodes.validationFailed]: 400,
+  [apiErrorCodes.versionConflict]: 409,
+} satisfies Record<ApiErrorCode, number>;
+
+const validationFieldCodeByZodIssueCode: Partial<
+  Record<ZodIssue['code'], ValidationFieldErrorCode>
+> = {
+  invalid_string: 'INVALID_FORMAT',
+  invalid_type: 'INVALID_TYPE',
+  too_big: 'TOO_BIG',
+  too_small: 'TOO_SMALL',
+};
+
+export const getValidationFieldErrorCode = (
+  issue: ZodIssue,
+): ValidationFieldErrorCode => {
+  if (issue.code === 'invalid_type' && issue.received === 'undefined') {
+    return 'REQUIRED';
+  }
+
+  return validationFieldCodeByZodIssueCode[issue.code] ?? 'INVALID_VALUE';
+};
+
+const sendCodedError = <Code extends ApiErrorCode>(
+  reply: FastifyReply,
+  status: number,
+  code: Code,
+  context: ErrorContextByCode[Code],
+) =>
+  reply.status(status).send({
+    code,
+    context,
+    error: true,
+  });
 
 export function errorHandler(
-  error:
-    | FastifyError
-    | HttpApiError
-    | ZodError
-    | DatabaseError
-    | DomainError
-    | EntityNotFoundError
-    | UnauthorizedAccessError
-    | RepositoryNotFoundError
-    | UserNotFoundError
-    | InvalidPasswordError
-    | UserAlreadyExistsError
-    | VersionConflictError,
+  error: FastifyError | Error,
   _request: FastifyRequest,
   reply: FastifyReply,
 ) {
   if (error instanceof ZodError) {
-    const formatted = error.issues.map((issue) => ({
-      code: issue.code,
-      field: issue.path.join('.'),
-      message: issue.message,
+    const fields = error.issues.map((issue) => ({
+      code: getValidationFieldErrorCode(issue),
+      path: issue.path.length > 0 ? issue.path.join('.') : '$',
     }));
-    return reply.status(400).send({
-      error: true,
-      errors: formatted,
-    });
+
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.validationFailed],
+      apiErrorCodes.validationFailed,
+      { fields },
+    );
   }
 
-  // Domain layer errors - business rule violations
-  if (error instanceof DomainError) {
-    return reply.status(400).send({
-      error: true,
-      message: error.message,
-    });
-  }
-
-  // Application layer errors - authentication/authorization
-  if (error instanceof UserNotFoundError) {
-    return reply.status(401).send({
-      error: true,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof InvalidPasswordError) {
-    return reply.status(401).send({
-      error: true,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof UserAlreadyExistsError) {
-    return reply.status(409).send({
-      error: true,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof VersionConflictError) {
-    return reply.status(409).send({
-      code: error.code,
-      error: true,
-      message: error.message,
-    });
-  }
-
-  // Application layer errors - entity operations
-  if (error instanceof EntityNotFoundError) {
-    return reply.status(404).send({
-      error: true,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof UnauthorizedAccessError) {
-    return reply.status(403).send({
-      error: true,
-      message: error.message,
-    });
-  }
-
-  // Infrastructure layer errors
-  if (error instanceof RepositoryNotFoundError) {
-    return reply.status(404).send({
-      error: true,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof HttpApiError) {
-    return reply.status(error.statusCode).send({
-      error: true,
-      message: error.message,
-    });
+  if (isCodedError(error)) {
+    return sendCodedError(
+      reply,
+      statusByErrorCode[error.code],
+      error.code,
+      error.context,
+    );
   }
 
   if (error instanceof DatabaseError) {
-    if (process.env.NODE_ENV !== 'test') {
-      console.error('Database error:', error);
-    }
-    return reply.status(500).send({
-      error: true,
-      message: 'Database operation failed',
-    });
+    reportDatabaseError(error);
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.internalServerError],
+      apiErrorCodes.internalServerError,
+      {},
+    );
+  }
+
+  if (error instanceof HttpApiError) {
+    return sendCodedError(reply, error.statusCode, error.code, {});
   }
 
   if (process.env.NODE_ENV !== 'test') {
     console.error('Unexpected error:', error);
   }
 
-  return reply.status(500).send({
-    error: true,
-    message: 'Internal server error',
-  });
+  return sendCodedError(
+    reply,
+    statusByErrorCode[apiErrorCodes.internalServerError],
+    apiErrorCodes.internalServerError,
+    {},
+  );
 }

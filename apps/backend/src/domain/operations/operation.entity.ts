@@ -1,3 +1,8 @@
+import {
+  DeletedEntityOperationError,
+  OperationIdMismatchError,
+} from 'src/domain/domain.errors';
+
 import { Account, Transaction } from '..';
 import {
   Id,
@@ -8,11 +13,12 @@ import {
   SoftDelete,
   ParentChildRelation,
 } from '../domain-core';
-import { DeletedEntityOperationError } from '../domain.errors';
 
 import { OperationSnapshot, UpdateOperationProps } from './types';
 
 export class Operation {
+  static readonly entityType = 'operation';
+
   private constructor(
     public readonly identity: EntityIdentity,
     public timestamps: EntityTimestamps,
@@ -225,12 +231,14 @@ export class Operation {
 
   update(params: UpdateOperationProps): void {
     if (this.identity.getId().equals(params.id.valueOf()) === false) {
-      // TODO: add proper error handling
-      throw new Error('Operation ID mismatch');
+      throw new OperationIdMismatchError(
+        this.getId().valueOf(),
+        params.id.valueOf(),
+      );
     }
 
     if (this.isDeleted()) {
-      throw new DeletedEntityOperationError('operation', 'update');
+      throw DeletedEntityOperationError.forUpdate(Operation.entityType);
     }
 
     const { account, amount, description, value } = params;

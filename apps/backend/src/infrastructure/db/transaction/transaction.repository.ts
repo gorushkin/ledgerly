@@ -15,7 +15,7 @@ import {
 import { Transaction } from 'src/domain';
 import { Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
+import { RepositoryNotFoundError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -112,9 +112,12 @@ export class TransactionRepository
       transaction.getId().valueOf(),
     );
 
+    const transactionId = transaction.getId().valueOf();
+
     if (!snapshot) {
       throw new RepositoryNotFoundError(
-        `Transaction ${transaction.getId().valueOf()} snapshot not found for user ${userId}`,
+        `Transaction ${transactionId} snapshot not found for user ${userId}`,
+        this.entityNotFoundContext('transaction', transactionId),
       );
     }
 

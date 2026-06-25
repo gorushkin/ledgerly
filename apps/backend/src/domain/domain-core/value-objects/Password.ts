@@ -1,5 +1,8 @@
 import { passwordValidation } from '@ledgerly/shared/validation';
 import bcrypt from 'bcryptjs';
+import { InvalidPasswordError } from 'src/domain/domain.errors';
+
+import { parseValueObject } from './parseValueObject';
 
 const hashingSaltRounds = 10;
 
@@ -11,11 +14,11 @@ export class Password {
   }
 
   static async create(value: string): Promise<Password> {
-    const parsed = passwordValidation.safeParse(value);
-
-    if (!parsed.success) {
-      throw new Error(parsed.error.message);
-    }
+    parseValueObject(
+      value,
+      passwordValidation,
+      (cause) => new InvalidPasswordError(cause),
+    );
 
     const hashed = await bcrypt.hash(value, hashingSaltRounds);
 

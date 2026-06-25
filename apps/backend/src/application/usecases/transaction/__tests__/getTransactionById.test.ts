@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import {
   OperationReadModel,
   TransactionQueryRepositoryInterface,
@@ -139,8 +140,16 @@ describe('GetTransactionByIdUseCase', () => {
 
     mockTransactionQueryRepository.findById.mockResolvedValue(null);
 
-    await expect(
-      getTransactionByIdUseCase.execute(userId, transactionId),
-    ).rejects.toThrow(EntityNotFoundError);
+    const result = getTransactionByIdUseCase.execute(userId, transactionId);
+
+    await expect(result).rejects.toThrow(EntityNotFoundError);
+
+    await expect(result).rejects.toMatchObject({
+      code: apiErrorCodes.entityNotFound,
+      context: {
+        entityId: transactionId,
+        entityType: 'transaction',
+      },
+    });
   });
 });

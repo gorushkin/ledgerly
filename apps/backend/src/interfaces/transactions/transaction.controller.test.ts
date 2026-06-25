@@ -1,4 +1,7 @@
-import { DEFAULT_TRANSACTION_QUERY } from '@ledgerly/shared/constants';
+import {
+  DEFAULT_TRANSACTION_QUERY,
+  MAX_TRANSACTION_OPERATIONS,
+} from '@ledgerly/shared/constants';
 import { TransactionCreateInput } from '@ledgerly/shared/validation';
 import {
   CreateOperationRequestDTO,
@@ -131,6 +134,30 @@ describe('TransactionController', () => {
         ),
       ).rejects.toThrow(ZodError);
     });
+
+    it.each(['postingDate', 'transactionDate'] as const)(
+      'should reject a create request without %s',
+      async (missingDateField) => {
+        const requestBody = {
+          currencyCode: Currency.create('USD').valueOf(),
+          description: 'Test Transaction',
+          operations,
+          postingDate: DateValue.restore('2024-01-01').valueOf(),
+          transactionDate: DateValue.restore('2024-01-02').valueOf(),
+        };
+
+        delete requestBody[missingDateField];
+
+        await expect(
+          transactionController.create(
+            user,
+            requestBody as unknown as TransactionCreateInput,
+          ),
+        ).rejects.toThrow(ZodError);
+
+        expect(mockCreateTransactionUseCase.execute).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('getById', () => {
@@ -237,6 +264,54 @@ describe('TransactionController', () => {
         ),
       ).rejects.toThrow(ZodError);
     });
+
+    it.each([
+      [
+        'create',
+        Array.from({ length: MAX_TRANSACTION_OPERATIONS + 1 }, () => ({
+          ...operation1,
+        })),
+      ],
+      [
+        'delete',
+        Array.from(
+          { length: MAX_TRANSACTION_OPERATIONS + 1 },
+          () => operation1.accountId,
+        ),
+      ],
+      [
+        'update',
+        Array.from({ length: MAX_TRANSACTION_OPERATIONS + 1 }, () => ({
+          ...operation1,
+          id: operation1.accountId,
+        })),
+      ],
+    ] as const)(
+      'should reject an update with more than the maximum %s operations',
+      async (operationType, items) => {
+        const transactionId = Id.create().valueOf();
+        const requestBody = {
+          description: 'Updated Transaction',
+          operations: Object.assign(
+            { create: [], delete: [], update: [] },
+            { [operationType]: items },
+          ),
+          postingDate: DateValue.restore('2024-01-01').valueOf(),
+          transactionDate: DateValue.restore('2024-01-02').valueOf(),
+          version: 0,
+        };
+
+        await expect(
+          transactionController.update(
+            user,
+            transactionId,
+            requestBody as unknown as UpdateTransactionRequestDTO,
+          ),
+        ).rejects.toThrow(ZodError);
+
+        expect(mockUpdateTransactionUseCase.execute).not.toHaveBeenCalled();
+      },
+    );
 
     it('should reject an update without version', async () => {
       const transactionId = Id.create().valueOf();

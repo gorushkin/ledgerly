@@ -1,0 +1,95 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
+import {
+  DomainError,
+  DeletedEntityOperationError,
+  EmptyOperationsError,
+  ExcessiveOperationsError,
+  InsufficientOperationsError,
+  InvalidVersionError,
+  OperationNotFoundInTransactionError,
+  OperationUserMismatchError,
+} from 'src/domain/domain.errors';
+import {
+  MAX_TRANSACTION_OPERATIONS,
+  MIN_TRANSACTION_OPERATIONS,
+} from 'src/domain/transactions/constants';
+import { describe, expect, it } from 'vitest';
+
+describe('coded domain errors', () => {
+  it('exposes DELETED_ENTITY_OPERATION context', () => {
+    const error = new DeletedEntityOperationError('transaction', 'update');
+
+    expect(error).toBeInstanceOf(DomainError);
+    expect(error).toMatchObject({
+      code: apiErrorCodes.deletedEntityOperation,
+      context: {
+        entityType: 'transaction',
+        operation: 'update',
+      },
+    });
+  });
+
+  it('exposes INVALID_VERSION context', () => {
+    expect(new InvalidVersionError(-1)).toMatchObject({
+      code: apiErrorCodes.invalidVersion,
+      context: {
+        reason: 'NON_NEGATIVE_INTEGER',
+        received: -1,
+      },
+    });
+  });
+
+  it('exposes EMPTY_OPERATIONS context', () => {
+    expect(new EmptyOperationsError()).toMatchObject({
+      code: apiErrorCodes.emptyOperations,
+      context: {},
+    });
+  });
+
+  it('exposes INSUFFICIENT_OPERATIONS context', () => {
+    expect(new InsufficientOperationsError(1)).toMatchObject({
+      code: apiErrorCodes.insufficientOperations,
+      context: {
+        minimum: MIN_TRANSACTION_OPERATIONS,
+        received: 1,
+      },
+    });
+  });
+
+  it('exposes EXCESSIVE_OPERATIONS context', () => {
+    const received = MAX_TRANSACTION_OPERATIONS + 1;
+
+    expect(new ExcessiveOperationsError(received)).toMatchObject({
+      code: apiErrorCodes.excessiveOperations,
+      context: {
+        maximum: MAX_TRANSACTION_OPERATIONS,
+        received,
+      },
+    });
+  });
+
+  it.each([
+    [
+      'OPERATION_NOT_FOUND_IN_TRANSACTION',
+      new OperationNotFoundInTransactionError(
+        'operation-id' as never,
+        'transaction-id' as never,
+      ),
+    ],
+    [
+      'OPERATION_USER_MISMATCH',
+      new OperationUserMismatchError(
+        'operation-id' as never,
+        'transaction-id' as never,
+      ),
+    ],
+  ])('exposes %s context', (code, error) => {
+    expect(error).toMatchObject({
+      code,
+      context: {
+        operationId: 'operation-id',
+        transactionId: 'transaction-id',
+      },
+    });
+  });
+});

@@ -9,7 +9,7 @@ import {
 import { Transaction, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import { RepositoryInvariantError } from 'src/infrastructure/infrastructure.errors';
+import { RepositoryInvariantError } from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
@@ -41,10 +41,6 @@ describe('OperationRepository', () => {
     await testDB.setupTestDb();
     user = await testDB.createUser();
 
-    const transactionBuilder = TransactionBuilder.create(
-      User.fromPersistence(user),
-    );
-
     const operationsData = [
       { accountKey: 'USD', amount: '10000', description: '1' },
       { accountKey: 'EUR', amount: '-10000', description: '2' },
@@ -54,10 +50,11 @@ describe('OperationRepository', () => {
       { accountKey: 'USD', amount: '-20000', description: '2' },
     ];
 
-    data = transactionBuilder
-      .withAccounts(['USD', 'EUR'])
-      .withOperations(operationsData)
-      .build();
+    data = TransactionBuilder.transaction({
+      accounts: ['USD', 'EUR'],
+      operations: operationsData,
+      user: User.fromPersistence(user),
+    });
 
     transaction = data.transaction;
 
@@ -67,7 +64,10 @@ describe('OperationRepository', () => {
       ),
     );
 
-    await testDB.insertTransaction(transaction.toSnapshot());
+    await testDB.insertTransaction({
+      ...transaction.toSnapshot(),
+      operations: [],
+    });
   });
 
   describe('save', () => {

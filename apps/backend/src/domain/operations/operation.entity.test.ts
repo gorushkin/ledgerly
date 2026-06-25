@@ -1,6 +1,11 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import { createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
+import {
+  DeletedEntityOperationError,
+  OperationIdMismatchError,
+} from 'src/domain/domain.errors';
 import {
   afterEach,
   beforeAll,
@@ -13,7 +18,6 @@ import {
 
 import { Account } from '../accounts';
 import { Amount, Id } from '../domain-core';
-import { DeletedEntityOperationError } from '../domain.errors';
 import { Transaction } from '../transactions';
 import { User } from '../users/user.entity';
 
@@ -45,12 +49,15 @@ describe('Operation Domain Entity', () => {
     user = await createUser();
     userId = user.getId();
 
-    const transactionBuilder = TransactionBuilder.create(user);
-
-    const data = transactionBuilder
-      .withSettings(transactionData)
-      .withAccounts(['USD', 'EUR'])
-      .build();
+    const data = TransactionBuilder.transaction({
+      accounts: ['USD', 'EUR'],
+      operations: [
+        { accountKey: 'USD', amount: '100', description: 'Debit' },
+        { accountKey: 'EUR', amount: '-100', description: 'Credit' },
+      ],
+      settings: transactionData,
+      user,
+    });
 
     usdAccount = data.getAccountByKey('USD');
     eurAccount = data.getAccountByKey('EUR');
@@ -236,6 +243,40 @@ describe('Operation Domain Entity', () => {
     ).toThrow(DeletedEntityOperationError);
 
     expect(operation.toSnapshot()).toEqual(deletedSnapshot);
+  });
+
+  it('rejects an update with a different operation ID', () => {
+    const operation = Operation.create(
+      userId,
+      usdAccount,
+      transaction,
+      Amount.create('100'),
+      Amount.create('300'),
+      'Test operation',
+    );
+    const receivedOperationId = Id.create();
+
+    try {
+      operation.update({
+        account: eurAccount,
+        amount: Amount.create('150'),
+        description: 'Updated operation',
+        id: receivedOperationId,
+        value: Amount.create('350'),
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(OperationIdMismatchError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.operationIdMismatch,
+        context: {
+          expectedOperationId: operation.getId().valueOf(),
+          receivedOperationId: receivedOperationId.valueOf(),
+        },
+      });
+      return;
+    }
+
+    throw new Error('Expected OperationIdMismatchError to be thrown');
   });
 
   it('should mark an operation as deleted', () => {

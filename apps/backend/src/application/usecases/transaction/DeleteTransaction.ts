@@ -4,7 +4,7 @@ import {
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import { EnsureEntityExistsAndOwnedFn } from 'src/application/shared/ensureEntityExistsAndOwned';
-import { User } from 'src/domain';
+import { Transaction, User } from 'src/domain';
 
 export class DeleteTransactionUseCase {
   constructor(
@@ -19,7 +19,7 @@ export class DeleteTransactionUseCase {
         user,
         this.transactionRepository.getById.bind(this.transactionRepository),
         transactionId,
-        'Transaction',
+        Transaction.entityType,
       );
 
       if (transaction.isDeleted()) {

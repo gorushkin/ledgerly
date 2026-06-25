@@ -5,14 +5,15 @@ import { TestDB } from 'src/db/test-db';
 import {
   compareEntities,
   TransactionBuilder,
-  TransactionBuilderResult,
+  TransactionPersistenceBuilderResult,
 } from 'src/db/test-utils';
 import { Account, User } from 'src/domain';
 import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import { TransactionBuildContext } from 'src/domain/transactions/types';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
-import { ForeignKeyConstraintError } from 'src/presentation/errors';
+import {
+  ForeignKeyConstraintError,
+  RepositoryNotFoundError,
+} from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -25,10 +26,9 @@ describe('TransactionRepository', () => {
   let testDB: TestDB;
   let transactionRepository: TransactionRepository;
   let user: UserDbRow;
-  let transactionContext: TransactionBuildContext;
   let usdAccount: Account;
   let eurAccount: Account;
-  let data: TransactionBuilderResult;
+  let data: TransactionPersistenceBuilderResult;
   const description = 'Test transaction';
 
   const mockOperationsRepository = {
@@ -51,13 +51,9 @@ describe('TransactionRepository', () => {
 
     user = await testDB.createUser();
 
-    const transactionBuilder = TransactionBuilder.create(
-      User.fromPersistence(user),
-    );
-
-    data = transactionBuilder
-      .withAccounts(['USD', 'EUR'])
-      .withOperations([
+    data = TransactionBuilder.persistence({
+      accounts: ['USD', 'EUR'],
+      operations: [
         {
           accountKey: 'USD',
           amount: '-200',
@@ -78,10 +74,10 @@ describe('TransactionRepository', () => {
           amount: '100',
           description: 'Debit operation 2',
         },
-      ])
-      .withDescription(description)
-      .attachOperations()
-      .build();
+      ],
+      settings: { description },
+      user: User.fromPersistence(user),
+    });
 
     usdAccount = data.getAccountByKey('USD');
     eurAccount = data.getAccountByKey('EUR');
@@ -98,8 +94,6 @@ describe('TransactionRepository', () => {
       mockOperationsRepository as unknown as OperationRepository,
       transactionManager as unknown as TransactionManager,
     );
-
-    transactionContext = data.transactionContext;
   });
 
   describe('getById', () => {
@@ -344,17 +338,14 @@ describe('TransactionRepository', () => {
       await testDB.insertTransaction(transaction.toSnapshot());
       const expectedVersion = transaction.getVersion();
 
-      transaction.applyUpdate(
-        {
-          metadata,
-          operations: {
-            create: operationsToCreate,
-            delete: operationsToDelete,
-            update: operationsToUpdate,
-          },
+      transaction.applyUpdate({
+        metadata,
+        operations: {
+          create: operationsToCreate,
+          delete: operationsToDelete,
+          update: operationsToUpdate,
         },
-        transactionContext,
-      );
+      });
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -414,16 +405,13 @@ describe('TransactionRepository', () => {
       await testDB.insertTransaction(transaction.toSnapshot());
       const expectedVersion = transaction.getVersion();
 
-      transaction.applyUpdate(
-        {
-          metadata: {
-            description: 'Updated description',
-            postingDate: transaction.getPostingDate().valueOf(),
-            transactionDate: transaction.getTransactionDate().valueOf(),
-          },
+      transaction.applyUpdate({
+        metadata: {
+          description: 'Updated description',
+          postingDate: transaction.getPostingDate().valueOf(),
+          transactionDate: transaction.getTransactionDate().valueOf(),
         },
-        transactionContext,
-      );
+      });
 
       await expect(
         transactionRepository.update(

@@ -1,7 +1,11 @@
 import { UUID } from '@ledgerly/shared/types';
 import {
   ConflictingOperationIdsError,
-  MissingTransactionContextError,
+  DeletedEntityOperationError,
+  ExcessiveOperationsError,
+  InsufficientOperationsError,
+  OperationAlreadyAttachedToTransactionError,
+  OperationDoesNotBelongToTransactionError,
   OperationNotFoundInTransactionError,
   OperationUserMismatchError,
   UnbalancedTransactionError,
@@ -23,8 +27,11 @@ import { Operation } from '../operations';
 import { OperationProps, UpdateOperationProps } from '../operations/types';
 
 import {
+  MAX_TRANSACTION_OPERATIONS,
+  MIN_TRANSACTION_OPERATIONS,
+} from './constants';
+import {
   CreateTransactionProps,
-  TransactionBuildContext,
   TransactionUpdateData,
   TransactionSnapshotWithDetails,
   TransactionSnapshot,
@@ -49,6 +56,7 @@ const findDuplicateIds = (ids: UUID[]): UUID[] => {
 };
 
 export class Transaction {
+  static readonly entityType = 'transaction';
   private operations: Operation[] = [];
   private operationsMap = new Map<string, Operation>();
   private constructor(
@@ -84,7 +92,8 @@ export class Transaction {
     const operations = transaction.createOperationsFromDrafts(dto.operations);
 
     transaction.attachOperations(operations);
-    transaction.validate();
+    transaction.validateActiveOperationsCount();
+    transaction.validateActiveOperationsBalance();
 
     return transaction;
   }
@@ -96,13 +105,21 @@ export class Transaction {
       );
 
       if (existingOperation) {
-        throw new Error(
-          `Operation with id ${operation.getId().valueOf()} is already attached to transaction ${this.getId().valueOf()}`,
+        throw new OperationAlreadyAttachedToTransactionError(
+          operation.getId().valueOf(),
+          this.getId().valueOf(),
         );
       }
 
       if (!operation.belongsToUser(this.getUserId())) {
         throw new OperationUserMismatchError(
+          operation.getId().valueOf(),
+          this.getId().valueOf(),
+        );
+      }
+
+      if (!operation.belongsToTransaction(this)) {
+        throw new OperationDoesNotBelongToTransactionError(
           operation.getId().valueOf(),
           this.getId().valueOf(),
         );
@@ -192,6 +209,10 @@ export class Transaction {
     return this.version;
   }
 
+  matchesVersion(expectedVersion: Version): boolean {
+    return this.version.isEqualTo(expectedVersion);
+  }
+
   private markUpdated() {
     this.version = this.version.increment();
     this.timestamps = this.timestamps.touch();
@@ -230,7 +251,9 @@ export class Transaction {
   }
 
   validateUpdateIsAllowed(): void {
-    this.softDelete.validateUpdateIsAllowed();
+    this.softDelete.validateUpdateIsAllowed(
+      DeletedEntityOperationError.forUpdate(Transaction.entityType),
+    );
   }
 
   private updateDescription(description: string): boolean {
@@ -261,8 +284,6 @@ export class Transaction {
   }
 
   private updateMetadataIfChanged(metadata?: TransactionUpdateData): boolean {
-    this.validateUpdateIsAllowed();
-
     if (!metadata) {
       return false;
     }
@@ -294,23 +315,123 @@ export class Transaction {
     return this.operationsMap.get(entryId) ?? null;
   }
 
-  private validate(): void {
+  private validateOperationIds(operationsPatch?: OperationsPatch) {
+    if (!operationsPatch) {
+      return;
+    }
+
+    const ids = [
+      ...operationsPatch.update.map(({ id }) => id),
+      ...operationsPatch.delete,
+    ];
+
+    ids.forEach((id) => {
+      const operation = this.operationsMap.get(id.valueOf());
+
+      if (!operation || operation.isDeleted()) {
+        throw new OperationNotFoundInTransactionError(
+          id.valueOf(),
+          this.getId().valueOf(),
+        );
+      }
+    });
+  }
+
+  private validateOperationCountWithinLimits(operationCount: number): void {
+    if (operationCount < MIN_TRANSACTION_OPERATIONS) {
+      throw new InsufficientOperationsError(operationCount);
+    }
+
+    if (operationCount > MAX_TRANSACTION_OPERATIONS) {
+      throw new ExcessiveOperationsError(operationCount);
+    }
+  }
+
+  private validateResultingOperationCount(
+    operationsPatch?: OperationsPatch,
+  ): void {
+    if (!operationsPatch) {
+      return;
+    }
+
+    const activeOperationsCount =
+      this.getOperations().length +
+      operationsPatch.create.length -
+      operationsPatch.delete.length;
+
+    this.validateOperationCountWithinLimits(activeOperationsCount);
+  }
+
+  private validateActiveOperationsCount(): void {
+    const activeOperationsCount = this.getOperations().length;
+
+    this.validateOperationCountWithinLimits(activeOperationsCount);
+  }
+
+  private validateActiveOperationsBalance(): void {
     const totalValue = this.getOperations().reduce((sum, { value }) => {
       return sum.add(value);
     }, Amount.create('0'));
 
     if (!totalValue.isZero()) {
-      throw new UnbalancedTransactionError(this.getId().valueOf(), totalValue);
+      throw new UnbalancedTransactionError(
+        Transaction.entityType,
+        this.getId().valueOf(),
+        totalValue,
+      );
     }
   }
 
-  private validateOperationsPatch(operations: OperationsPatch): void {
-    if (!operations) {
+  private validateResultingBalance(operationsPatch?: OperationsPatch) {
+    if (!operationsPatch) {
       return;
     }
 
-    const deleteIds = operations.delete.map((id) => id.valueOf());
-    const updateIds = operations.update.map(({ id }) => id.valueOf());
+    const deletedIds = new Set(
+      operationsPatch.delete.map((id) => id.valueOf()),
+    );
+
+    const updatedValues = new Map(
+      operationsPatch.update.map(({ id, value }) => [id.valueOf(), value]),
+    );
+
+    const currentBalance = this.getOperations().reduce((sum, operation) => {
+      if (deletedIds.has(operation.getId().valueOf())) {
+        return sum;
+      }
+
+      const updatedValue = updatedValues.get(operation.getId().valueOf());
+
+      if (updatedValue) {
+        return sum.add(updatedValue);
+      }
+
+      return sum.add(operation.value);
+    }, Amount.create('0'));
+
+    const updatedBalanceAfterOperations = currentBalance.add(
+      operationsPatch.create.reduce(
+        (sum, { value }) => sum.add(value),
+        Amount.create('0'),
+      ),
+    );
+
+    if (!updatedBalanceAfterOperations.isZero()) {
+      throw new UnbalancedTransactionError(
+        Transaction.entityType,
+        this.getId().valueOf(),
+        updatedBalanceAfterOperations,
+      );
+    }
+  }
+
+  private validateOperationsPatch(operationsPatch?: OperationsPatch): void {
+    if (!operationsPatch) {
+      return;
+    }
+
+    const deleteIds = operationsPatch.delete.map((id) => id.valueOf());
+    const updateIds = operationsPatch.update.map(({ id }) => id.valueOf());
     const deleteIdSet = new Set(deleteIds);
 
     // Check for IDs present in both update and delete
@@ -321,7 +442,7 @@ export class Transaction {
     if (updateDeleteConflicts.length > 0) {
       throw new ConflictingOperationIdsError(
         updateDeleteConflicts,
-        'IDs found in both update and delete arrays',
+        'UPDATE_AND_DELETE',
       );
     }
 
@@ -331,7 +452,7 @@ export class Transaction {
     if (updateDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
         updateDuplicates,
-        'Duplicate IDs in update array',
+        'DUPLICATE_IN_UPDATE',
       );
     }
 
@@ -341,7 +462,7 @@ export class Transaction {
     if (deleteDuplicates.length > 0) {
       throw new ConflictingOperationIdsError(
         deleteDuplicates,
-        'Duplicate IDs in delete array',
+        'DUPLICATE_IN_DELETE',
       );
     }
   }
@@ -390,36 +511,23 @@ export class Transaction {
     });
   }
 
-  private applyOperationsPatch(
-    operations?: OperationsPatch,
-    transactionContext?: TransactionBuildContext,
-  ): boolean {
+  private applyOperationsPatch(operationsPatch?: OperationsPatch): boolean {
     let isUpdated = false;
 
-    if (!operations) {
+    if (!operationsPatch) {
       return isUpdated;
     }
 
-    this.validateOperationsPatch(operations);
-
-    const { create, delete: deleteIds, update } = operations;
+    const { create, delete: deleteIds, update } = operationsPatch;
 
     if (create.length > 0) {
       isUpdated = true;
-
-      if (!transactionContext) {
-        throw new MissingTransactionContextError('create new operations');
-      }
 
       this.addOperations(create);
     }
 
     if (update.length > 0) {
       isUpdated = true;
-
-      if (!transactionContext) {
-        throw new MissingTransactionContextError('update operations');
-      }
 
       this.updateOperations(update);
     }
@@ -433,19 +541,19 @@ export class Transaction {
     return isUpdated;
   }
 
-  applyUpdate(
-    { metadata, operations }: UpdateTransactionProps,
-    transactionContext?: TransactionBuildContext,
-  ): boolean {
+  applyUpdate({ metadata, operations }: UpdateTransactionProps): boolean {
+    this.validateUpdateIsAllowed();
+    this.validateOperationsPatch(operations);
+    this.validateOperationIds(operations);
+    this.validateResultingOperationCount(operations);
+    this.validateResultingBalance(operations);
+
     const isMetadataUpdated = this.updateMetadataIfChanged(metadata);
 
-    const isOperationsUpdated = this.applyOperationsPatch(
-      operations,
-      transactionContext,
-    );
+    const isOperationsUpdated = this.applyOperationsPatch(operations);
 
     if (isMetadataUpdated || isOperationsUpdated) {
-      this.validate();
+      this.validateActiveOperationsBalance();
       this.markUpdated();
     }
 

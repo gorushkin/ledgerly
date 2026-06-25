@@ -6,11 +6,14 @@ import {
 } from 'src/application';
 import { Account, AccountType, Operation, Transaction, User } from 'src/domain';
 import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
-import { TransactionBuildContext } from 'src/domain/transactions/types';
+import {
+  CreateTransactionProps,
+  TransactionBuildContext,
+} from 'src/domain/transactions/types';
 
 import { TransactionWithRelations } from '../schema';
 
-type OperationDataForTransaction = {
+export type OperationDataForTransaction = {
   accountKey: string;
   amount: string;
   value?: string;
@@ -18,21 +21,26 @@ type OperationDataForTransaction = {
 };
 
 export type TransactionProps = {
-  user?: User;
   postingDate?: string;
   transactionDate?: string;
   description?: string;
   currencyCode: string;
 };
 
-export type TransactionBuilderResult = {
+export type TransactionBuilderOptions = {
+  user: User;
+  accounts: string[];
+  operations: OperationDataForTransaction[];
+  settings?: Partial<TransactionProps>;
+};
+
+export type TransactionRequestBuilderResult = {
   accountsMap: Map<UUID, Account>;
   accounts: Account[];
   transactionContext: TransactionBuildContext;
   getAccountByKey: (key: string) => Account;
   getSystemAccountByCurrency: (currency: string) => Account;
   systemAccounts: Map<CurrencyCode, Account>;
-  transaction: Transaction;
   user: User;
   transactionDTO: CreateTransactionRequestDTO;
   transactionData: {
@@ -42,167 +50,105 @@ export type TransactionBuilderResult = {
     userId: UUID;
   };
   operationsData: OperationDataForTransaction[];
+};
+
+export type TransactionBuilderResult = TransactionRequestBuilderResult & {
+  transaction: Transaction;
   operations: Operation[];
+};
+
+export type TransactionPersistenceBuilderResult = TransactionBuilderResult & {
   transactionWithRelations: TransactionWithRelations;
 };
 
 export class TransactionBuilder {
-  operations: Operation[] = [];
-  operationsData: OperationDataForTransaction[] = [];
-  postingDate: IsoDateString = DateValue.restore('2023-01-01').valueOf();
-  transactionDate: IsoDateString = DateValue.restore('2023-01-01').valueOf();
-  description = 'Test Transaction';
-  user: User | null = null;
-  accounts = new Map<string, Account>();
-  accountsMap = new Map<UUID, Account>();
-  systemAccounts = new Map<CurrencyCode, Account>();
-  transaction: Transaction | null = null;
-  transactionCurrency: Currency = Currency.create('USD');
-  addOperations = false;
+  private readonly user: User;
+  private readonly accounts = new Map<string, Account>();
+  private readonly accountsMap = new Map<UUID, Account>();
+  private readonly systemAccounts = new Map<CurrencyCode, Account>();
+  private readonly operationsData: OperationDataForTransaction[];
+  private readonly postingDate: IsoDateString;
+  private readonly transactionDate: IsoDateString;
+  private readonly description: string;
+  private readonly transactionCurrency: Currency;
 
-  static create(user?: User): TransactionBuilder {
-    const builder = new TransactionBuilder();
-    return user ? builder.withUser(user) : builder;
+  private constructor(options: TransactionBuilderOptions) {
+    this.user = options.user;
+    this.operationsData = [...options.operations];
+    this.postingDate = DateValue.restore(
+      options.settings?.postingDate ?? '2023-01-01',
+    ).valueOf();
+    this.transactionDate = DateValue.restore(
+      options.settings?.transactionDate ?? '2023-01-01',
+    ).valueOf();
+    this.description = options.settings?.description ?? 'Test Transaction';
+    this.transactionCurrency = Currency.create(
+      options.settings?.currencyCode ?? 'USD',
+    );
+
+    this.createAccounts(options.accounts);
   }
 
-  withUser(user: User): this {
-    this.user = user;
-    return this;
+  static request(
+    options: TransactionBuilderOptions,
+  ): TransactionRequestBuilderResult {
+    return new TransactionBuilder(options).buildRequest();
   }
 
-  withDescription(description: string): this {
-    this.description = description;
-    return this;
+  static transaction(
+    options: TransactionBuilderOptions,
+  ): TransactionBuilderResult {
+    return new TransactionBuilder(options).buildTransaction();
   }
 
-  private validateUser(): asserts this is { user: User } {
-    if (!this.user) {
-      throw new Error('User must be set before creating transaction');
-    }
+  static persistence(
+    options: TransactionBuilderOptions,
+  ): TransactionPersistenceBuilderResult {
+    return new TransactionBuilder(options).buildPersistence();
   }
 
-  withPostingDate(date: IsoDateString): this {
-    this.postingDate = date;
-    return this;
-  }
-
-  withTransactionDate(date: IsoDateString): this {
-    this.transactionDate = date;
-    return this;
-  }
-
-  withSettings(settings: TransactionProps): this {
-    if (settings.user) {
-      this.user = settings.user;
-    }
-    if (settings.postingDate) {
-      this.postingDate = settings.postingDate as IsoDateString;
-    }
-    if (settings.transactionDate) {
-      this.transactionDate = settings.transactionDate as IsoDateString;
-    }
-    if (settings.description) {
-      this.description = settings.description;
-    }
-
-    if (settings.currencyCode) {
-      this.transactionCurrency = Currency.create(settings.currencyCode);
-    }
-
-    return this;
-  }
-
-  withAccounts(currencyCodes: string[]): this {
-    this.validateUser();
-
-    for (const currencyCode of currencyCodes) {
-      const name = Name.create(`Account ${currencyCode}`);
+  private createAccounts(currencyCodes: string[]): void {
+    currencyCodes.forEach((currencyCode) => {
       const account = Account.create(
         this.user,
-        name,
+        Name.create(`Account ${currencyCode}`),
         `Account ${currencyCode}`,
         Amount.create('0'),
         Currency.create(currencyCode),
         AccountType.create('asset'),
       );
+
       this.accounts.set(currencyCode, account);
       this.accountsMap.set(account.getId().valueOf(), account);
-    }
+    });
 
-    return this.withSystemAccounts();
+    this.createSystemAccounts();
   }
 
-  private withSystemAccounts(): this {
-    this.validateUser();
-
-    for (const [_, account] of this.accounts) {
+  private createSystemAccounts(): void {
+    this.accounts.forEach((account) => {
+      const currencyCode = account.currency.valueOf();
       const systemAccount = Account.create(
         this.user,
-        Name.create(`System Account ${account.currency.valueOf()}`),
-        `System Account for ${account.currency.valueOf()}`,
+        Name.create(`System Account ${currencyCode}`),
+        `System Account for ${currencyCode}`,
         Amount.create('0'),
-        Currency.create(account.currency.valueOf()),
+        Currency.create(currencyCode),
         AccountType.create('currencyTrading'),
       );
-      this.systemAccounts.set(systemAccount.currency.valueOf(), systemAccount);
+
+      this.systemAccounts.set(currencyCode, systemAccount);
       this.accountsMap.set(systemAccount.getId().valueOf(), systemAccount);
-    }
-    return this;
-  }
-
-  attachOperations() {
-    this.addOperations = true;
-    return this;
-  }
-
-  private ensureTransaction(): asserts this is { transaction: Transaction } {
-    this.validateUser();
-
-    if (this.transaction) {
-      return;
-    }
-
-    this.transaction = Transaction.create(this.user.getId(), {
-      currency: this.transactionCurrency,
-      description: 'Test Transaction',
-      operations: [],
-      postingDate: DateValue.restore('2023-01-01'),
-      transactionDate: DateValue.restore('2023-01-01'),
     });
-  }
-
-  withOperations(operationsData: OperationDataForTransaction[]): this {
-    this.validateUser();
-    this.ensureTransaction();
-
-    this.operationsData.push(...operationsData);
-
-    const operations = operationsData.map((op) => {
-      const account = this.getAccountByKey(op.accountKey);
-      const amount = Amount.create(op.amount);
-      const value = op.value ? Amount.create(op.value) : amount;
-
-      return Operation.create(
-        this.user.getId(),
-        account,
-        this.transaction,
-        amount,
-        value,
-        op.description ?? 'Test Operation',
-      );
-    });
-
-    this.operations.push(...operations);
-
-    return this;
   }
 
   getAccountByKey(key: string): Account {
     const account = this.accounts.get(key);
 
     if (!account) {
-      throw new EntityNotFoundError(`Account with key ${key} not found`);
+      throw new EntityNotFoundError({ entityType: Account.entityType });
     }
+
     return account;
   }
 
@@ -210,46 +156,55 @@ export class TransactionBuilder {
     const account = this.systemAccounts.get(currency as CurrencyCode);
 
     if (!account) {
-      throw new EntityNotFoundError(
-        `System account with currency ${currency} not found`,
-      );
+      throw new EntityNotFoundError({ entityType: Account.entityType });
     }
+
     return account;
   }
 
-  build(): TransactionBuilderResult {
-    this.ensureTransaction();
+  private buildOperationsDTO(): CreateOperationRequestDTO[] {
+    return this.operationsData.map((operation) => {
+      const amount = Amount.create(operation.amount).valueOf();
+      const value = operation.value
+        ? Amount.create(operation.value).valueOf()
+        : amount;
 
-    this.validateUser();
+      return {
+        accountId: this.getAccountByKey(operation.accountKey).getId().valueOf(),
+        amount,
+        description: operation.description ?? 'Test Operation',
+        value,
+      };
+    });
+  }
 
-    const operations = this.operationsData.map<CreateOperationRequestDTO>(
-      (op) => {
-        const amount = Amount.create(op.amount).valueOf();
-        const value = op.value ? Amount.create(op.value).valueOf() : amount;
+  private buildTransactionProps(): CreateTransactionProps {
+    return {
+      currency: this.transactionCurrency,
+      description: this.description,
+      operations: this.operationsData.map((operation) => {
+        const amount = Amount.create(operation.amount);
 
         return {
-          accountId: this.getAccountByKey(op.accountKey).getId().valueOf(),
+          account: this.getAccountByKey(operation.accountKey),
           amount,
-          description: op.description ?? 'Test Operation',
-          transactionId: this.transaction.getId().valueOf(),
-          value,
+          description: operation.description ?? 'Test Operation',
+          value: operation.value ? Amount.create(operation.value) : amount,
         };
-      },
-    );
+      }),
+      postingDate: DateValue.restore(this.postingDate),
+      transactionDate: DateValue.restore(this.transactionDate),
+    };
+  }
 
-    if (this.addOperations) {
-      this.transaction.attachOperations(this.operations);
-    }
-
+  private buildRequest(): TransactionRequestBuilderResult {
     return {
       accounts: Array.from(this.accountsMap.values()),
       accountsMap: this.accountsMap,
       getAccountByKey: this.getAccountByKey.bind(this),
       getSystemAccountByCurrency: this.getSystemAccountByCurrency.bind(this),
-      operations: this.operations,
       operationsData: this.operationsData,
       systemAccounts: this.systemAccounts,
-      transaction: this.transaction,
       transactionContext: {
         accountsMap: this.accountsMap,
         systemAccountsMap: this.systemAccounts,
@@ -263,36 +218,34 @@ export class TransactionBuilder {
       transactionDTO: {
         currencyCode: this.transactionCurrency.valueOf(),
         description: this.description,
-        operations,
+        operations: this.buildOperationsDTO(),
         postingDate: this.postingDate,
         transactionDate: this.transactionDate,
       },
-      transactionWithRelations: {
-        createdAt: this.transaction.getCreatedAt().valueOf(),
-        currency: this.transactionCurrency.valueOf(),
-        description: this.transaction.description,
-        id: this.transaction.getId().valueOf(),
-        isTombstone: this.transaction.isDeleted(),
-        operations: this.operations.map((operation) => ({
-          accountId: operation.getAccountId().valueOf(),
-          amount: operation.amount.valueOf(),
-          createdAt: operation.getCreatedAt().valueOf(),
-          description: operation.description,
-          id: operation.getId().valueOf(),
-          isSystem: operation.isSystem,
-          isTombstone: operation.isDeleted(),
-          transactionId: operation.transactionId.valueOf(),
-          updatedAt: operation.getUpdatedAt().valueOf(),
-          userId: operation.getUserId().valueOf(),
-          value: operation.value.valueOf(),
-        })),
-        postingDate: this.transaction.getPostingDate().valueOf(),
-        transactionDate: this.transaction.getTransactionDate().valueOf(),
-        updatedAt: this.transaction.getUpdatedAt().valueOf(),
-        userId: this.transaction.getUserId().valueOf(),
-        version: this.transaction.getVersion().valueOf(),
-      },
       user: this.user,
+    };
+  }
+
+  private buildTransaction(): TransactionBuilderResult {
+    const requestFixture = this.buildRequest();
+    const transaction = Transaction.create(
+      this.user.getId(),
+      this.buildTransactionProps(),
+    );
+
+    return {
+      ...requestFixture,
+      operations: transaction.getOperations(),
+      transaction,
+    };
+  }
+
+  private buildPersistence(): TransactionPersistenceBuilderResult {
+    const transactionFixture = this.buildTransaction();
+
+    return {
+      ...transactionFixture,
+      transactionWithRelations: transactionFixture.transaction.toSnapshot(),
     };
   }
 }

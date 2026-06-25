@@ -1,25 +1,22 @@
 import { IsoDateString } from '@ledgerly/shared/types';
 import { isoDate } from '@ledgerly/shared/validation';
+import { InvalidDateError } from 'src/domain/domain.errors';
 import { getTodayDateString } from 'src/libs/date';
+
+import { parseValueObject } from './parseValueObject';
 
 export class DateValue {
   private readonly _value: IsoDateString;
   private constructor(value: string) {
-    const parsed = isoDate.parse(value);
-
-    if (!parsed) {
-      throw new Error('Invalid date format');
-    }
-
-    this._value = parsed;
+    this._value = parseValueObject(
+      value,
+      isoDate,
+      (cause) => new InvalidDateError(cause),
+    );
   }
 
   static create(): DateValue {
-    const now = isoDate.parse(getTodayDateString());
-    if (!now) {
-      throw new Error("Failed to parse today's date");
-    }
-    return new DateValue(now);
+    return new DateValue(getTodayDateString());
   }
 
   static restore(value: string): DateValue {

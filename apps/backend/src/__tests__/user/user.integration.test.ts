@@ -1,10 +1,5 @@
 import { ROUTES } from '@ledgerly/shared/routes';
-import {
-  ErrorResponse,
-  UsersResponseDTO,
-  UUID,
-  ValidationError,
-} from '@ledgerly/shared/types';
+import { UsersResponseDTO, UUID } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/server';
@@ -14,6 +9,22 @@ const url = `/api${ROUTES.user}`;
 const fakeUserId = Id.create().valueOf();
 
 const passwordUrl = `${url}/password`;
+
+type LegacyErrorResponse = {
+  error: string;
+  message: string;
+};
+
+type LegacyValidationError = {
+  error: true;
+  errors: [
+    {
+      code: string;
+      field: string;
+      message: string;
+    },
+  ];
+};
 
 describe.skip('User Integration Tests', () => {
   let testDB: TestDB;
@@ -93,7 +104,7 @@ describe.skip('User Integration Tests', () => {
         url,
       });
 
-      const error = JSON.parse(response.body) as ErrorResponse;
+      const error = JSON.parse(response.body) as LegacyErrorResponse;
 
       expect(response.statusCode).toBe(404);
       expect(error.message).toBe(`User with ID ${fakeUserId} not found`);
@@ -187,7 +198,7 @@ describe.skip('User Integration Tests', () => {
         },
         url,
       });
-      const error = JSON.parse(response.body) as ErrorResponse;
+      const error = JSON.parse(response.body) as LegacyErrorResponse;
 
       expect(response.statusCode).toBe(404);
 
@@ -265,7 +276,7 @@ describe.skip('User Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(404);
-      const error = JSON.parse(response.body) as ErrorResponse;
+      const error = JSON.parse(response.body) as LegacyErrorResponse;
       expect(error.message).toBe(`User with ID ${fakeUserId} not found`);
     });
 
@@ -330,7 +341,7 @@ describe.skip('User Integration Tests', () => {
         url: passwordUrl,
       });
 
-      const error = JSON.parse(response.body) as ErrorResponse;
+      const error = JSON.parse(response.body) as LegacyErrorResponse;
 
       expect(response.statusCode).toBe(401);
       expect(error.message).toBe('Invalid password');
@@ -349,7 +360,7 @@ describe.skip('User Integration Tests', () => {
         url: passwordUrl,
       });
 
-      const error = JSON.parse(response.body) as ValidationError;
+      const error = JSON.parse(response.body) as LegacyValidationError;
       const errorMessage = error.errors[0].message;
 
       expect(response.statusCode).toBe(400);
@@ -389,7 +400,7 @@ describe.skip('User Integration Tests', () => {
         },
         url: passwordUrl,
       });
-      const error = JSON.parse(response.body) as ErrorResponse;
+      const error = JSON.parse(response.body) as LegacyErrorResponse;
 
       expect(response.statusCode).toBe(401);
       expect(error.message).toBe('User not found');

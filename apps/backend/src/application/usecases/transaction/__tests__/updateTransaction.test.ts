@@ -1,4 +1,4 @@
-import type { UUID } from '@ledgerly/shared/types';
+import { apiErrorCodes, type UUID } from '@ledgerly/shared/types';
 import { OperationMapper, TransactionMapper } from 'src/application';
 import {
   EntityNotFoundError,
@@ -21,6 +21,7 @@ import { Transaction, User } from 'src/domain';
 import { Amount, Id, Version } from 'src/domain/domain-core';
 import {
   ConflictingOperationIdsError,
+  DeletedEntityOperationError,
   OperationNotFoundInTransactionError,
   UnbalancedTransactionError,
 } from 'src/domain/domain.errors';
@@ -109,11 +110,10 @@ describe('UpdateTransactionUseCase', () => {
     data: UpdateTransactionRequestDTO,
     errorType: new (...args: never[]) => Error,
   ) => {
-    const initialVersion = transaction.getVersion();
+    const initialSnapshot = transaction.toSnapshot();
 
     await expect(execute(data)).rejects.toThrow(errorType);
-
-    expect(transaction.getVersion()).toBe(initialVersion);
+    expect(transaction.toSnapshot()).toEqual(initialSnapshot);
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
   };
 
@@ -122,7 +122,7 @@ describe('UpdateTransactionUseCase', () => {
       user,
       expect.any(Function),
       transaction.getId().valueOf(),
-      'Transaction',
+      Transaction.entityType,
     );
 
     expect(
@@ -146,24 +146,48 @@ describe('UpdateTransactionUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    const data = TransactionBuilder.create(user)
-      .withAccounts(['USD', 'EUR'])
-      .withOperations([
+    const data = TransactionBuilder.transaction({
+      accounts: ['USD', 'EUR'],
+      operations: [
         {
           accountKey: 'USD',
-          amount: Amount.create('10000').valueOf(),
+          amount: '-100000',
           description: 'From Operation',
-          value: Amount.create('10000').valueOf(),
+          value: '-100000',
         },
         {
-          accountKey: 'EUR',
-          amount: Amount.create('-10000').valueOf(),
-          description: 'To Operation',
-          value: Amount.create('-10000').valueOf(),
+          accountKey: 'USD',
+          amount: '60000',
+          description: 'To Operation 1',
+          value: '60000',
         },
-      ])
-      .attachOperations()
-      .build();
+        {
+          accountKey: 'USD',
+          amount: '30000',
+          description: 'From Operation 2',
+          value: '30000',
+        },
+        {
+          accountKey: 'USD',
+          amount: '10000',
+          description: 'To Operation 3',
+          value: '10000',
+        },
+        {
+          accountKey: 'USD',
+          amount: '-30000',
+          description: 'From Operation 3',
+          value: '-30000',
+        },
+        {
+          accountKey: 'USD',
+          amount: '30000',
+          description: 'To Operation 3÷÷',
+          value: '30000',
+        },
+      ],
+      user,
+    });
 
     transaction = data.transaction;
     transactionContext = data.transactionContext;
@@ -248,9 +272,11 @@ describe('UpdateTransactionUseCase', () => {
 
   it('updates existing operations without changing their identities', async () => {
     const operationsToUpdate = [
-      createUpdateOperationRequest(0, '12000', 'Updated debit operation'),
-      createUpdateOperationRequest(1, '-12000', 'Updated credit operation'),
+      createUpdateOperationRequest(1, '20000', 'Updated debit operation'),
+      createUpdateOperationRequest(2, '70000', 'Updated credit operation'),
     ];
+
+    const operationsLength = transaction.getOperations().length;
 
     const data = createRequest({
       operations: {
@@ -263,7 +289,7 @@ describe('UpdateTransactionUseCase', () => {
     const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
-    expect(result.operations).toHaveLength(operationsToUpdate.length);
+    expect(result.operations).toHaveLength(operationsLength);
 
     operationsToUpdate.forEach((operation) => {
       expect(result.operations).toContainEqual(
@@ -276,9 +302,19 @@ describe('UpdateTransactionUseCase', () => {
   });
 
   it('deletes operations from the active response', async () => {
-    const operationIdsToDelete = transaction
+    const operationsCount = transaction.getOperations().length;
+
+    const operationIdsToDelete = [
+      transaction.getOperations()[operationsCount - 2].getId().valueOf(),
+      transaction.getOperations()[operationsCount - 1].getId().valueOf(),
+    ];
+
+    const restOperations = transaction
       .getOperations()
-      .map((operation) => operation.getId().valueOf());
+      .filter(
+        (operation) =>
+          !operationIdsToDelete.includes(operation.getId().valueOf()),
+      );
 
     const data = createRequest({
       operations: {
@@ -291,7 +327,11 @@ describe('UpdateTransactionUseCase', () => {
     const initialVersion = transaction.getVersion().valueOf();
     const result = await execute(data);
 
-    expect(result.operations).toEqual([]);
+    expect(result.operations).toEqual(
+      restOperations.map((operation) =>
+        OperationMapper.toResponseDTO(operation),
+      ),
+    );
 
     operationIdsToDelete.forEach((id) => {
       const deletedOperation = transaction
@@ -307,20 +347,22 @@ describe('UpdateTransactionUseCase', () => {
   });
 
   it('applies create, update, and delete operations in one request', async () => {
-    const operationToUpdate = createUpdateOperationRequest(
-      0,
-      '9000',
+    const operationsCount = transaction.getOperations().length;
+
+    const operationToUpdate1 = createUpdateOperationRequest(
+      1,
+      '60000',
       'Updated remaining operation',
     );
 
     const operationIdToDelete = transaction
-      .getOperations()[1]
+      .getOperations()[3]
       .getId()
       .valueOf();
 
     const operationToCreate = createOperationRequest(
       transaction.getOperations()[1].getAccountId().valueOf(),
-      '-9000',
+      '10000',
       'Replacement operation',
     );
 
@@ -329,7 +371,7 @@ describe('UpdateTransactionUseCase', () => {
       operations: {
         create: [operationToCreate],
         delete: [operationIdToDelete],
-        update: [operationToUpdate],
+        update: [operationToUpdate1],
       },
     });
 
@@ -337,9 +379,9 @@ describe('UpdateTransactionUseCase', () => {
     const result = await execute(data);
 
     expect(result.description).toBe(data.description);
-    expect(result.operations).toHaveLength(2);
+    expect(result.operations).toHaveLength(operationsCount);
     expect(result.operations).toContainEqual(
-      expect.objectContaining(operationToUpdate),
+      expect.objectContaining(operationToUpdate1),
     );
 
     expect(result.operations).toContainEqual(
@@ -468,10 +510,23 @@ describe('UpdateTransactionUseCase', () => {
     });
 
     mockEnsureEntityExistsAndOwned.mockRejectedValue(
-      new EntityNotFoundError('Transaction'),
+      new EntityNotFoundError({
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      }),
     );
 
-    await expect(execute(data)).rejects.toThrow(EntityNotFoundError);
+    const result = execute(data);
+
+    await expect(result).rejects.toThrow(EntityNotFoundError);
+
+    await expect(result).rejects.toMatchObject({
+      code: apiErrorCodes.entityNotFound,
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      },
+    });
 
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
     expect(mockTransactionContextLoader.loadContext).not.toHaveBeenCalled();
@@ -483,10 +538,23 @@ describe('UpdateTransactionUseCase', () => {
     });
 
     mockEnsureEntityExistsAndOwned.mockRejectedValue(
-      new UnauthorizedAccessError('Transaction'),
+      new UnauthorizedAccessError({
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      }),
     );
 
-    await expect(execute(data)).rejects.toThrow(UnauthorizedAccessError);
+    const result = execute(data);
+
+    await expect(result).rejects.toThrow(UnauthorizedAccessError);
+
+    await expect(result).rejects.toMatchObject({
+      code: apiErrorCodes.unauthorizedAccess,
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      },
+    });
 
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
     expect(mockTransactionContextLoader.loadContext).not.toHaveBeenCalled();
@@ -502,9 +570,12 @@ describe('UpdateTransactionUseCase', () => {
 
     await expect(result).rejects.toThrow(VersionConflictError);
     await expect(result).rejects.toMatchObject({
-      code: 'VERSION_CONFLICT',
-      expectedVersion: data.version,
-      message: `Transaction version mismatch for expected version ${data.version}`,
+      code: apiErrorCodes.versionConflict,
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+        expectedVersion: data.version,
+      },
     });
 
     expect(mockTransactionRepository.update).not.toHaveBeenCalled();
@@ -520,7 +591,18 @@ describe('UpdateTransactionUseCase', () => {
       reason: 'VERSION_CONFLICT',
     });
 
-    await expect(execute(data)).rejects.toThrow(VersionConflictError);
+    const result = execute(data);
+
+    await expect(result).rejects.toThrow(VersionConflictError);
+
+    await expect(result).rejects.toMatchObject({
+      code: apiErrorCodes.versionConflict,
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+        expectedVersion: data.version,
+      },
+    });
 
     expect(mockTransactionRepository.update).toHaveBeenCalledExactlyOnceWith(
       user.getId().valueOf(),
@@ -541,7 +623,20 @@ describe('UpdateTransactionUseCase', () => {
 
     await expect(execute(data)).rejects.toThrow(EntityNotFoundError);
   });
-  it.todo(
-    'should propagate error when update is called on a deleted transaction',
-  );
+
+  it('propagates an error when update is called on a deleted transaction', async () => {
+    transaction.markAsDeleted();
+
+    const data = createRequest({
+      description: 'Must not update deleted transaction',
+      version: transaction.getVersion().increment().valueOf(),
+    });
+
+    const deletedSnapshot = transaction.toSnapshot();
+
+    await expect(execute(data)).rejects.toThrow(DeletedEntityOperationError);
+    expect(transaction.toSnapshot()).toEqual(deletedSnapshot);
+    expect(mockTransactionContextLoader.loadContext).not.toHaveBeenCalled();
+    expect(mockTransactionRepository.update).not.toHaveBeenCalled();
+  });
 });

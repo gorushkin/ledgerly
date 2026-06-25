@@ -1,3 +1,5 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
+import { UserOwnershipError } from 'src/domain/domain.errors';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Email, Name, Password } from '../domain-core';
@@ -45,6 +47,28 @@ describe('User Domain Entity', () => {
   });
 
   describe('domain methods', () => {
+    it('returns UNAUTHORIZED_ACCESS for a different user ID', () => {
+      const differentUserId = User.create(validName, validEmail, password)
+        .getId()
+        .valueOf();
+
+      try {
+        user.validateUserOwnership(differentUserId);
+      } catch (error) {
+        expect(error).toBeInstanceOf(UserOwnershipError);
+        expect(error).toMatchObject({
+          code: apiErrorCodes.unauthorizedAccess,
+          context: {
+            entityId: user.getId().valueOf(),
+            entityType: User.entityType,
+          },
+        });
+        return;
+      }
+
+      throw new Error('Expected UserOwnershipError to be thrown');
+    });
+
     it('should update email through changeEmail method', () => {
       const newEmail = Email.create('updated@example.com');
 

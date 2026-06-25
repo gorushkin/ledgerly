@@ -1,15 +1,20 @@
-import { CurrencyCode, AccountTypeValue, UUID } from '@ledgerly/shared/types';
+import {
+  apiErrorCodes,
+  AccountTypeValue,
+  CurrencyCode,
+  UUID,
+} from '@ledgerly/shared/types';
 import dayjs from 'dayjs';
 import { AccountDbInsert, AccountDbRow, UserDbRow } from 'src/db/schema';
 import { Amount } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
-import { RepositoryNotFoundError } from 'src/infrastructure/infrastructure.errors';
 import {
   ForeignKeyConstraintError,
   RecordAlreadyExistsError,
-} from 'src/presentation/errors';
+  RepositoryNotFoundError,
+} from 'src/infrastructure/errors';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
@@ -168,8 +173,8 @@ describe('AccountRepository', () => {
       await expect(accountRepository.create(newAccount)).rejects.toThrowError(
         new ForeignKeyConstraintError({
           context: {
-            field: 'id',
-            tableName: 'users',
+            field: 'userId',
+            tableName: 'accounts',
             value: newAccount.userId,
           },
         }),
@@ -258,6 +263,17 @@ describe('AccountRepository', () => {
       await expect(retrievedAccount).rejects.toThrowError(
         RepositoryNotFoundError,
       );
+    });
+
+    it('returns an allowlisted error contract for a missing account', async () => {
+      const accountId = Id.create().valueOf();
+
+      await expect(
+        accountRepository.getById(user.id, accountId),
+      ).rejects.toMatchObject({
+        code: apiErrorCodes.entityNotFound,
+        context: { entityId: accountId, entityType: 'account' },
+      });
     });
 
     it('should return undefined if user does not own the account', async () => {

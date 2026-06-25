@@ -1,5 +1,10 @@
 import { ROUTES } from '@ledgerly/shared/routes';
-import { MoneyString, UUID } from '@ledgerly/shared/types';
+import {
+  apiErrorCodes,
+  ApiErrorResponse,
+  MoneyString,
+  UUID,
+} from '@ledgerly/shared/types';
 import {
   OperationCreateInput,
   TransactionCreateInput,
@@ -140,6 +145,45 @@ describe('Transactions Integration Tests', () => {
       });
     });
 
+    it('should create a multi-currency transaction balanced by value when amounts do not sum to zero', async () => {
+      const rubAccount = await testDB.createAccount(userId, {
+        currency: Currency.create('RUB').valueOf(),
+        name: 'Cash RUB',
+      });
+
+      const payload: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'USD to RUB exchange',
+        operations: [
+          {
+            accountId: account1.id,
+            amount: Amount.create('-10000').valueOf(),
+            description: 'USD withdrawal',
+            value: Amount.create('-100').valueOf(),
+          },
+          {
+            accountId: rubAccount.id,
+            amount: Amount.create('900000').valueOf(),
+            description: 'RUB deposit',
+            value: Amount.create('100').valueOf(),
+          },
+        ],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(201);
+    });
+
     it('should fail when required fields are missing', async () => {
       const payload = {
         description: 'incomplete transaction',
@@ -155,6 +199,29 @@ describe('Transactions Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(400);
+
+      const errorResponse =
+        parseResponse<
+          Extract<
+            ApiErrorResponse,
+            { code: typeof apiErrorCodes.validationFailed }
+          >
+        >(response);
+
+      expect(errorResponse.code).toBe(apiErrorCodes.validationFailed);
+
+      expect(errorResponse.context.fields).toEqual(
+        expect.arrayContaining([
+          {
+            code: 'REQUIRED',
+            path: 'currencyCode',
+          },
+          {
+            code: 'REQUIRED',
+            path: 'operations',
+          },
+        ]),
+      );
     });
 
     it('should fail with invalid amounts', async () => {
@@ -168,6 +235,49 @@ describe('Transactions Integration Tests', () => {
             amount: 'invalid' as unknown as MoneyString,
             description: 'Transfer to savings',
             value: 'invalid' as unknown as MoneyString,
+          },
+        ],
+        postingDate: DateValue.restore('2025-11-07').valueOf(),
+        transactionDate: DateValue.restore('2025-11-07').valueOf(),
+      };
+
+      const response = await server.inject({
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it.each([
+      ['NaN amount', { amount: 'NaN' as unknown as MoneyString }],
+      ['Infinity amount', { amount: 'Infinity' as unknown as MoneyString }],
+      ['decimal amount', { amount: '12.3' as unknown as MoneyString }],
+      ['empty amount', { amount: '' as unknown as MoneyString }],
+      ['null amount', { amount: null as unknown as MoneyString }],
+      ['missing amount', { amount: undefined as unknown as MoneyString }],
+      ['NaN value', { value: 'NaN' as unknown as MoneyString }],
+      ['Infinity value', { value: 'Infinity' as unknown as MoneyString }],
+      ['decimal value', { value: '12.3' as unknown as MoneyString }],
+      ['empty value', { value: '' as unknown as MoneyString }],
+      ['null value', { value: null as unknown as MoneyString }],
+      ['missing value', { value: undefined as unknown as MoneyString }],
+    ])('should fail with %s', async (_, invalidOperationPatch) => {
+      const payload: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'invalid finite amount',
+        operations: [
+          operation1,
+          {
+            accountId: account2.id,
+            amount: Amount.create('100').valueOf(),
+            description: 'Transfer to savings',
+            value: Amount.create('100').valueOf(),
+            ...invalidOperationPatch,
           },
         ],
         postingDate: DateValue.restore('2025-11-07').valueOf(),
@@ -361,23 +471,31 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 404 for a non-existent transaction ID', async () => {
+      const transactionId = Id.create().valueOf();
       const response = await server.inject({
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
         method: 'GET',
-        url: `${url}/${Id.create().valueOf()}`,
+        url: `${url}/${transactionId}`,
       });
 
-      const body = JSON.parse(response.body) as {
-        error: boolean;
-        message: string;
-      };
+      const body =
+        parseResponse<
+          Extract<
+            ApiErrorResponse,
+            { code: typeof apiErrorCodes.entityNotFound }
+          >
+        >(response);
 
       expect(response.statusCode).toBe(404);
       expect(body).toEqual({
+        code: apiErrorCodes.entityNotFound,
+        context: {
+          entityId: transactionId,
+          entityType: 'transaction',
+        },
         error: true,
-        message: 'Transaction not found',
       });
     });
 
@@ -1611,6 +1729,159 @@ describe('Transactions Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
+    it("should return 404 when creating operations with another user's account", async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId, {
+        operations: [
+          {
+            ...operation1Data,
+            id: Id.create().valueOf(),
+          },
+          {
+            ...operation2Data,
+            id: Id.create().valueOf(),
+          },
+        ],
+      });
+      const createdOperations = transaction.operations;
+
+      const otherUser = await testDB.createUser();
+
+      const otherUserAccount = await testDB.createAccount(otherUser.id, {
+        currency: Currency.create('USD').valueOf(),
+        name: 'Other User Account',
+      });
+
+      const updatedData = createUpdateRequest({
+        description: 'Should not be persisted',
+        operations: {
+          create: [
+            {
+              accountId: otherUserAccount.id,
+              amount: Amount.create('50').valueOf(),
+              description: 'Foreign account operation',
+              value: Amount.create('50').valueOf(),
+            },
+            {
+              accountId: account1Data.id,
+              amount: Amount.create('-50').valueOf(),
+              description: 'Balancing operation',
+              value: Amount.create('-50').valueOf(),
+            },
+          ],
+          delete: [],
+          update: [],
+        },
+        postingDate: transaction.postingDate,
+        transactionDate: transaction.transactionDate,
+        version: transaction.version,
+      });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
+
+      expect(response.statusCode).toBe(404);
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      expect(persistedTransaction?.description).toBe(transaction.description);
+      expect(persistedTransaction?.version).toBe(transaction.version);
+
+      expect(persistedTransaction?.operations).toHaveLength(
+        createdOperations.length,
+      );
+
+      createdOperations.forEach((operation) => {
+        const persistedOperation = persistedTransaction?.operations.find(
+          ({ id }) => id === operation.id,
+        );
+
+        if (!persistedOperation) {
+          throw new Error(
+            `Operation with ID ${operation.id} not found in persisted operations`,
+          );
+        }
+
+        expect(persistedOperation.isTombstone).toBe(false);
+        expect(persistedOperation.accountId).toBe(operation.accountId);
+        compareCommonEntities(operation, persistedOperation);
+      });
+    });
+
+    it("should return 404 when updating operations to another user's account", async () => {
+      const transaction = await testDB.createTransactionWithOperations(userId, {
+        operations: [
+          {
+            ...operation1Data,
+            id: Id.create().valueOf(),
+          },
+          {
+            ...operation2Data,
+            id: Id.create().valueOf(),
+          },
+        ],
+      });
+      const createdOperations = transaction.operations;
+
+      const otherUser = await testDB.createUser();
+
+      const otherUserAccount = await testDB.createAccount(otherUser.id, {
+        currency: Currency.create('USD').valueOf(),
+        name: 'Other User Account',
+      });
+
+      const updatedData = createUpdateRequest({
+        description: 'Should not be persisted',
+        operations: {
+          create: [],
+          delete: [],
+          update: [
+            {
+              accountId: otherUserAccount.id,
+              amount: createdOperations[0].amount,
+              description: 'Foreign account update',
+              id: createdOperations[0].id,
+              value: createdOperations[0].value,
+            },
+          ],
+        },
+        postingDate: transaction.postingDate,
+        transactionDate: transaction.transactionDate,
+        version: transaction.version,
+      });
+
+      const response = await sendUpdateRequest(transaction.id, updatedData);
+
+      expect(response.statusCode).toBe(404);
+
+      const persistedTransaction = await testDB.getTransactionWithRelations(
+        transaction.id,
+      );
+
+      expect(persistedTransaction?.description).toBe(transaction.description);
+      expect(persistedTransaction?.version).toBe(transaction.version);
+
+      expect(persistedTransaction?.operations).toHaveLength(
+        createdOperations.length,
+      );
+
+      createdOperations.forEach((operation) => {
+        const persistedOperation = persistedTransaction?.operations.find(
+          ({ id }) => id === operation.id,
+        );
+
+        if (!persistedOperation) {
+          throw new Error(
+            `Operation with ID ${operation.id} not found in persisted operations`,
+          );
+        }
+
+        expect(persistedOperation.isTombstone).toBe(false);
+        expect(persistedOperation.accountId).toBe(operation.accountId);
+        compareCommonEntities(operation, persistedOperation);
+      });
+    });
+
     it('should return 400 for invalid payload (missing required fields)', async () => {
       const transaction = await testDB.createTransactionWithOperations(userId);
 
@@ -1651,7 +1922,23 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 409 on optimistic locking conflict with a stale version', async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
+      const transaction = await testDB.createTransactionFromSeed(userId, {
+        description: 'Transaction for optimistic locking',
+        operations: [
+          {
+            account: account1Data,
+            amount: '-100',
+            description: 'Transfer from checking',
+            value: '-100',
+          },
+          {
+            account: account2Data,
+            amount: '100',
+            description: 'Transfer to savings',
+            value: '100',
+          },
+        ],
+      });
 
       const firstUpdate = createUpdateRequest({
         description: 'First successful update',
@@ -1685,17 +1972,17 @@ describe('Transactions Integration Tests', () => {
 
       expect(staleResponse.statusCode).toBe(409);
 
-      const errorResponse = parseResponse<{
-        code: string;
-        error: boolean;
-        message: string;
-      }>(staleResponse);
+      const errorResponse = parseResponse<ApiErrorResponse>(staleResponse);
 
-      expect(errorResponse.code).toBe('VERSION_CONFLICT');
-      expect(errorResponse.error).toBe(true);
-      expect(errorResponse.message).toBe(
-        `Transaction version mismatch for expected version ${transaction.version}`,
-      );
+      expect(errorResponse).toEqual({
+        code: apiErrorCodes.versionConflict,
+        context: {
+          entityId: transaction.id,
+          entityType: 'transaction',
+          expectedVersion: transaction.version,
+        },
+        error: true,
+      });
 
       const persistedTransaction = await testDB.getTransactionById(
         transaction.id,
@@ -1740,6 +2027,23 @@ describe('Transactions Integration Tests', () => {
       const response = await sendUpdateRequest(transaction.id, updatedData);
 
       expect(response.statusCode).toBe(400);
+      const errorResponse =
+        parseResponse<
+          Extract<
+            ApiErrorResponse,
+            { code: typeof apiErrorCodes.transactionUnbalanced }
+          >
+        >(response);
+
+      expect(errorResponse).toMatchObject({
+        code: apiErrorCodes.transactionUnbalanced,
+        context: {
+          entityType: 'transaction',
+          transactionId: transaction.id,
+        },
+        error: true,
+      });
+      expect(typeof errorResponse.context.difference).toBe('string');
     });
   });
 });

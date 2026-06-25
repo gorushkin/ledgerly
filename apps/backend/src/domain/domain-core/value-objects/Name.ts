@@ -1,3 +1,5 @@
+import { InvalidNameError } from 'src/domain/domain.errors';
+
 export class Name {
   private readonly value: string;
 
@@ -10,7 +12,7 @@ export class Name {
     const trimmed = raw.trim();
 
     if (trimmed.length === 0) {
-      throw new Error('Invalid name');
+      throw new InvalidNameError();
     }
 
     return new Name(trimmed);

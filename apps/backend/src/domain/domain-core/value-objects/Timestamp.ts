@@ -1,21 +1,21 @@
 import { IsoDatetimeString } from '@ledgerly/shared/types';
 import { isoDatetime } from '@ledgerly/shared/validation';
+import { InvalidTimestampError } from 'src/domain/domain.errors';
+
+import { parseValueObject } from './parseValueObject';
 
 export class Timestamp {
   private readonly _value: IsoDatetimeString;
   private constructor(value: string) {
-    const parsed = isoDatetime.parse(value);
-
-    if (!parsed) {
-      throw new Error('Invalid UUID format');
-    }
-
-    this._value = parsed;
+    this._value = parseValueObject(
+      value,
+      isoDatetime,
+      (cause) => new InvalidTimestampError(cause),
+    );
   }
 
   static create(): Timestamp {
-    const now = isoDatetime.parse(new Date().toISOString());
-    return new Timestamp(now);
+    return new Timestamp(new Date().toISOString());
   }
 
   static restore(value: string): Timestamp {

@@ -1,14 +1,10 @@
+import { apiErrorCodes, type ApiErrorResponse } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { createServer } from 'src/presentation/server';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 type AuthSuccessResponse = {
   token: string;
-};
-
-type AuthErrorResponse = {
-  error: boolean;
-  message: string;
 };
 
 describe('Auth Integration Tests', () => {
@@ -57,8 +53,16 @@ describe('Auth Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(409);
-      const body = JSON.parse(response.body) as AuthErrorResponse;
-      expect(body.error).toBe(true);
+      const body = JSON.parse(response.body) as Extract<
+        ApiErrorResponse,
+        { code: typeof apiErrorCodes.registrationConflict }
+      >;
+
+      expect(body).toEqual({
+        code: apiErrorCodes.registrationConflict,
+        context: {},
+        error: true,
+      });
     });
   });
 
@@ -201,8 +205,8 @@ describe('Auth Integration Tests', () => {
       expect(typeof body.token).toBe('string');
     });
 
-    it('should fail with incorrect password', async () => {
-      const response = await server.inject({
+    it('returns the same public failure for invalid credentials', async () => {
+      const invalidPasswordResponse = await server.inject({
         method: 'POST',
         payload: {
           email: testUser.email,
@@ -211,13 +215,7 @@ describe('Auth Integration Tests', () => {
         url: '/api/auth/login',
       });
 
-      expect(response.statusCode).toBe(401);
-      const body = JSON.parse(response.body) as AuthErrorResponse;
-      expect(body.error).toBe(true);
-    });
-
-    it('should fail with non-existent email', async () => {
-      const response = await server.inject({
+      const unknownUserResponse = await server.inject({
         method: 'POST',
         payload: {
           email: 'nonexistent@example.com',
@@ -226,9 +224,19 @@ describe('Auth Integration Tests', () => {
         url: '/api/auth/login',
       });
 
-      expect(response.statusCode).toBe(401);
-      const body = JSON.parse(response.body) as AuthErrorResponse;
-      expect(body.error).toBe(true);
+      expect(invalidPasswordResponse.statusCode).toBe(401);
+      expect(unknownUserResponse.statusCode).toBe(401);
+      const body = JSON.parse(invalidPasswordResponse.body) as Extract<
+        ApiErrorResponse,
+        { code: typeof apiErrorCodes.authenticationFailed }
+      >;
+
+      expect(body).toEqual({
+        code: apiErrorCodes.authenticationFailed,
+        context: {},
+        error: true,
+      });
+      expect(JSON.parse(unknownUserResponse.body)).toEqual(body);
     });
   });
 

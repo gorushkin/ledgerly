@@ -14,7 +14,7 @@ import {
 import { OperationMapper, TransactionMapper } from 'src/application/mappers';
 import { TransactionContextLoader } from 'src/application/services';
 import { EnsureEntityExistsAndOwnedFn } from 'src/application/shared/ensureEntityExistsAndOwned';
-import { User } from 'src/domain';
+import { Transaction, User } from 'src/domain';
 import { Id, Version } from 'src/domain/domain-core';
 
 export class UpdateTransactionUseCase {
@@ -36,14 +36,17 @@ export class UpdateTransactionUseCase {
         user,
         this.transactionRepository.getById.bind(this.transactionRepository),
         transactionId,
-        'Transaction',
+        Transaction.entityType,
       );
 
-      if (!transaction.getVersion().isEqualTo(expectedVersion)) {
-        throw new VersionConflictError(
-          'Transaction',
-          expectedVersion.valueOf(),
-        );
+      transaction.validateUpdateIsAllowed();
+
+      if (!transaction.matchesVersion(expectedVersion)) {
+        throw new VersionConflictError({
+          entityId: transactionId,
+          entityType: Transaction.entityType,
+          expectedVersion: expectedVersion.valueOf(),
+        });
       }
 
       const operationsData = [
@@ -54,25 +57,22 @@ export class UpdateTransactionUseCase {
       const transactionContext =
         await this.transactionContextLoader.loadContext(user, operationsData);
 
-      const isUpdated = transaction.applyUpdate(
-        {
-          metadata: {
-            description: data.description,
-            postingDate: data.postingDate,
-            transactionDate: data.transactionDate,
-          },
-          operations: {
-            create: data.operations.create.map((data) =>
-              OperationMapper.toCreateOperationProps(data, transactionContext),
-            ),
-            delete: data.operations.delete.map((id) => Id.fromPersistence(id)),
-            update: data.operations.update.map((data) =>
-              OperationMapper.toUpdateOperationProps(data, transactionContext),
-            ),
-          },
+      const isUpdated = transaction.applyUpdate({
+        metadata: {
+          description: data.description,
+          postingDate: data.postingDate,
+          transactionDate: data.transactionDate,
         },
-        transactionContext,
-      );
+        operations: {
+          create: data.operations.create.map((data) =>
+            OperationMapper.toCreateOperationProps(data, transactionContext),
+          ),
+          delete: data.operations.delete.map((id) => Id.fromPersistence(id)),
+          update: data.operations.update.map((data) =>
+            OperationMapper.toUpdateOperationProps(data, transactionContext),
+          ),
+        },
+      });
 
       if (isUpdated) {
         const result = await this.transactionRepository.update(
@@ -82,14 +82,18 @@ export class UpdateTransactionUseCase {
         );
 
         if (!result.ok && result.reason === 'NOT_FOUND') {
-          throw new EntityNotFoundError('Transaction');
+          throw new EntityNotFoundError({
+            entityId: transactionId,
+            entityType: Transaction.entityType,
+          });
         }
 
         if (!result.ok && result.reason === 'VERSION_CONFLICT') {
-          throw new VersionConflictError(
-            'Transaction',
-            expectedVersion.valueOf(),
-          );
+          throw new VersionConflictError({
+            entityId: transactionId,
+            entityType: Transaction.entityType,
+            expectedVersion: expectedVersion.valueOf(),
+          });
         }
       }
 

@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import {
   EntityNotFoundError,
   UnauthorizedAccessError,
@@ -9,7 +10,6 @@ import {
 import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils/testEntityBuilder';
 import { Transaction, User } from 'src/domain';
-import { Amount } from 'src/domain/domain-core/value-objects/Amount';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DeleteTransactionUseCase } from '../DeleteTransaction';
@@ -42,26 +42,24 @@ describe('DeleteTransactionUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    const transactionBuilder = TransactionBuilder.create(user);
-
-    const data = transactionBuilder
-      .withAccounts(['USD', 'EUR'])
-      .withOperations([
+    const data = TransactionBuilder.transaction({
+      accounts: ['USD', 'EUR'],
+      operations: [
         {
           accountKey: 'USD',
-          amount: Amount.create('10000').valueOf(),
+          amount: '10000',
           description: 'From Operation',
-          value: Amount.create('10000').valueOf(),
+          value: '10000',
         },
         {
           accountKey: 'EUR',
-          amount: Amount.create('-10000').valueOf(),
+          amount: '-10000',
           description: 'To Operation',
-          value: Amount.create('-10000').valueOf(),
+          value: '-10000',
         },
-      ])
-      .attachOperations()
-      .build();
+      ],
+      user,
+    });
 
     const predefinedTransaction = data.transaction;
 
@@ -84,24 +82,52 @@ describe('DeleteTransactionUseCase', () => {
 
   it('should propagate error when transaction is not found', async () => {
     mockEnsureEntityExistsAndOwned.mockRejectedValue(
-      new EntityNotFoundError('Transaction'),
+      new EntityNotFoundError({
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      }),
     );
 
-    await expect(
-      deleteTransactionByIdUseCase.execute(user, transaction.getId().valueOf()),
-    ).rejects.toThrow(EntityNotFoundError);
+    const result = deleteTransactionByIdUseCase.execute(
+      user,
+      transaction.getId().valueOf(),
+    );
+
+    await expect(result).rejects.toThrow(EntityNotFoundError);
+
+    await expect(result).rejects.toMatchObject({
+      code: apiErrorCodes.entityNotFound,
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      },
+    });
 
     expect(mockTransactionRepository.softDelete).not.toHaveBeenCalled();
   });
 
   it('should propagate error when user does not own the transaction', async () => {
     mockEnsureEntityExistsAndOwned.mockRejectedValue(
-      new UnauthorizedAccessError('Transaction'),
+      new UnauthorizedAccessError({
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      }),
     );
 
-    await expect(
-      deleteTransactionByIdUseCase.execute(user, transaction.getId().valueOf()),
-    ).rejects.toThrow(UnauthorizedAccessError);
+    const result = deleteTransactionByIdUseCase.execute(
+      user,
+      transaction.getId().valueOf(),
+    );
+
+    await expect(result).rejects.toThrow(UnauthorizedAccessError);
+
+    await expect(result).rejects.toMatchObject({
+      code: apiErrorCodes.unauthorizedAccess,
+      context: {
+        entityId: transaction.getId().valueOf(),
+        entityType: Transaction.entityType,
+      },
+    });
 
     expect(mockTransactionRepository.softDelete).not.toHaveBeenCalled();
   });

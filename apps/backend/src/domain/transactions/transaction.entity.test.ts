@@ -1,3 +1,4 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import { TransactionMapper } from 'src/application';
 import { UpdateOperationRequestDTO } from 'src/application/dto';
 import { createUser } from 'src/db/createTestUser';
@@ -9,6 +10,12 @@ import {
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
 import {
   ConflictingOperationIdsError,
+  DeletedEntityOperationError,
+  ExcessiveOperationsError,
+  InsufficientOperationsError,
+  OperationAlreadyAttachedToTransactionError,
+  OperationDoesNotBelongToTransactionError,
+  OperationNotFoundInTransactionError,
   UnbalancedTransactionError,
 } from 'src/domain/domain.errors';
 import {
@@ -21,16 +28,15 @@ import {
   vi,
 } from 'vitest';
 
-import { Amount, DateValue, Id } from '../domain-core';
-import { DeletedEntityOperationError } from '../domain.errors';
+import { Amount, DateValue, Id, Version } from '../domain-core';
 import {
   CreateOperationProps,
-  OperationProps,
   OperationSnapshot,
   UpdateOperationProps,
 } from '../operations/types';
 import { User } from '../users/user.entity';
 
+import { MAX_TRANSACTION_OPERATIONS } from './constants';
 import { Transaction } from './transaction.entity';
 import { CreateTransactionProps } from './types';
 
@@ -50,6 +56,17 @@ const areOperationsEqual = (
   }
 };
 
+const captureThrownError = (action: () => void): Error => {
+  try {
+    action();
+  } catch (error) {
+    expect(error).toBeInstanceOf(Error);
+    return error as Error;
+  }
+
+  throw new Error('Expected an error to be thrown');
+};
+
 describe('Transaction Domain Entity', () => {
   let user: User;
 
@@ -64,39 +81,76 @@ describe('Transaction Domain Entity', () => {
     transactionDate: '2024-01-01',
   };
 
+  const operationsData1 = {
+    accountKey: 'USD',
+    amount: '10000',
+    description: 'groceries Account',
+  };
+
+  const operationsData2 = {
+    accountKey: 'USD',
+    amount: '-10000',
+    description: 'USD Wallet adjustment',
+  };
+
+  const operationsData3 = {
+    accountKey: 'USD',
+    amount: '50000',
+    description: 'fuel Account',
+  };
+
+  const operationsData4 = {
+    accountKey: 'USD',
+    amount: '-50000',
+    description: 'USD phone bill Account',
+  };
+
   const operationsData = [
-    {
-      accountKey: 'USD',
-      amount: '10000',
-      description: 'groceries Account',
-    },
-    {
-      accountKey: 'USD',
-      amount: '-10000',
-      description: 'USD Wallet adjustment',
-    },
-    {
-      accountKey: 'EUR',
-      amount: '50000',
-      description: 'fuel Account',
-    },
-    {
-      accountKey: 'EUR',
-      amount: '-50000',
-      description: 'EUR Wallet adjustment',
-    },
+    operationsData1,
+    operationsData2,
+    operationsData3,
+    operationsData4,
   ];
+
+  const createBalancedOperations = (count: number): CreateOperationProps[] => {
+    const account = data.getAccountByKey('USD');
+    const operationPairs = Array.from({ length: Math.floor(count / 2) }, () => [
+      {
+        account,
+        amount: Amount.create('1'),
+        description: 'Debit operation',
+        value: Amount.create('1'),
+      },
+      {
+        account,
+        amount: Amount.create('-1'),
+        description: 'Credit operation',
+        value: Amount.create('-1'),
+      },
+    ]).flat();
+
+    return count % 2 === 0
+      ? operationPairs
+      : [
+          ...operationPairs,
+          {
+            account,
+            amount: Amount.create('0'),
+            description: 'Zero operation',
+            value: Amount.create('0'),
+          },
+        ];
+  };
 
   beforeAll(async () => {
     user = await createUser();
 
-    const transactionBuilder = TransactionBuilder.create(user);
-
-    data = transactionBuilder
-      .withSettings(transactionRawData)
-      .withAccounts(['USD', 'EUR', 'RUB', 'TRY'])
-      .withOperations(operationsData)
-      .build();
+    data = TransactionBuilder.transaction({
+      accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+      operations: operationsData,
+      settings: transactionRawData,
+      user,
+    });
 
     transactionData = TransactionMapper.toCreateTransactionProps(
       data.transactionDTO,
@@ -172,20 +226,26 @@ describe('Transaction Domain Entity', () => {
       });
 
       expect(restoredTransaction.getVersion().valueOf()).toBe(7);
+      expect(restoredTransaction.matchesVersion(Version.create(7))).toBe(true);
+      expect(restoredTransaction.matchesVersion(Version.create(6))).toBe(false);
       expect(restoredTransaction.toSnapshot().version).toBe(7);
     });
 
     it('should restore tombstone operations without allowing them to be updated', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
       const transactionSnapshot = transaction.toSnapshot();
-      const [operationToDelete, ...activeOperations] =
+      const [operationToDelete1, operationToDelete2, ...activeOperations] =
         transactionSnapshot.operations;
 
       const restoredTransaction = Transaction.restore({
         ...transactionSnapshot,
         operations: [
           {
-            ...operationToDelete,
+            ...operationToDelete1,
+            isTombstone: true,
+          },
+          {
+            ...operationToDelete2,
             isTombstone: true,
           },
           ...activeOperations,
@@ -200,33 +260,39 @@ describe('Transaction Domain Entity', () => {
       );
 
       const operationAccount = data.accountsMap.get(
-        operationToDelete.accountId,
+        operationToDelete1.accountId,
       );
 
       if (!operationAccount) {
         throw new Error('Test setup failed: Account not found');
       }
 
-      expect(() =>
-        restoredTransaction.applyUpdate(
-          {
-            operations: {
-              create: [],
-              delete: [],
-              update: [
-                {
-                  account: operationAccount,
-                  amount: Amount.create('15000'),
-                  description: 'Updated tombstone operation',
-                  id: Id.fromPersistence(operationToDelete.id),
-                  value: Amount.create('15000'),
-                },
-              ],
-            },
+      const error = captureThrownError(() =>
+        restoredTransaction.applyUpdate({
+          operations: {
+            create: [],
+            delete: [],
+            update: [
+              {
+                account: operationAccount,
+                amount: Amount.create('15000'),
+                description: 'Updated tombstone operation',
+                id: Id.fromPersistence(operationToDelete1.id),
+                value: Amount.create('15000'),
+              },
+            ],
           },
-          data.transactionContext,
-        ),
-      ).toThrow(DeletedEntityOperationError);
+        }),
+      );
+
+      expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.operationNotFoundInTransaction,
+        context: {
+          operationId: operationToDelete1.id,
+          transactionId: restoredTransaction.getId().valueOf(),
+        },
+      });
     });
   });
 
@@ -242,10 +308,7 @@ describe('Transaction Domain Entity', () => {
 
       const metadata = TransactionMapper.toMetadataUpdateData(transaction);
 
-      transaction.applyUpdate(
-        { metadata: { ...metadata, description } },
-        data.transactionContext,
-      );
+      transaction.applyUpdate({ metadata: { ...metadata, description } });
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -280,10 +343,7 @@ describe('Transaction Domain Entity', () => {
 
       vi.advanceTimersByTime(5000);
 
-      transaction.applyUpdate(
-        { metadata: { ...metadata, postingDate } },
-        data.transactionContext,
-      );
+      transaction.applyUpdate({ metadata: { ...metadata, postingDate } });
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -314,10 +374,7 @@ describe('Transaction Domain Entity', () => {
 
       const metadata = TransactionMapper.toMetadataUpdateData(transaction);
 
-      transaction.applyUpdate(
-        { metadata: { ...metadata, transactionDate } },
-        data.transactionContext,
-      );
+      transaction.applyUpdate({ metadata: { ...metadata, transactionDate } });
       const updatedSnapshot = transaction.toSnapshot();
 
       expect(new Date(originalSnapshot.updatedAt).getTime()).toBeLessThan(
@@ -345,12 +402,9 @@ describe('Transaction Domain Entity', () => {
 
       vi.advanceTimersByTime(5000);
 
-      transaction.applyUpdate(
-        {
-          metadata: { description, postingDate, transactionDate },
-        },
-        data.transactionContext,
-      );
+      transaction.applyUpdate({
+        metadata: { description, postingDate, transactionDate },
+      });
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -371,6 +425,47 @@ describe('Transaction Domain Entity', () => {
   });
 
   describe('Manage Operations', () => {
+    it('rejects attaching an operation that is already attached', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operation = transaction.getOperations()[0];
+
+      const error = captureThrownError(() =>
+        transaction.attachOperations([operation]),
+      );
+
+      expect(error).toBeInstanceOf(OperationAlreadyAttachedToTransactionError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.operationAlreadyAttachedToTransaction,
+        context: {
+          operationId: operation.getId().valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
+    });
+
+    it('rejects an operation that belongs to another transaction of the same user', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+
+      const otherTransaction = Transaction.create(
+        user.getId(),
+        transactionData,
+      );
+      const foreignOperation = otherTransaction.getOperations()[0];
+
+      const error = captureThrownError(() =>
+        transaction.attachOperations([foreignOperation]),
+      );
+
+      expect(error).toBeInstanceOf(OperationDoesNotBelongToTransactionError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.operationTransactionMismatch,
+        context: {
+          operationId: foreignOperation.getId().valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
+    });
+
     const toUpdateProps = (
       transaction: Transaction,
       operationIndex: number,
@@ -410,24 +505,25 @@ describe('Transaction Domain Entity', () => {
       const operationId = transaction.getOperations()[0].getId().valueOf();
 
       const error = captureConflictingOperationIdsError(() =>
-        transaction.applyUpdate(
-          {
-            operations: {
-              create: [],
-              delete: [Id.fromPersistence(operationId)],
-              update: [
-                toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
-              ],
-            },
+        transaction.applyUpdate({
+          operations: {
+            create: [],
+            delete: [Id.fromPersistence(operationId)],
+            update: [
+              toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+            ],
           },
-          data.transactionContext,
-        ),
+        }),
       );
 
-      expect(error.conflictingIds).toEqual([operationId]);
-      expect(error.conflictType).toBe(
-        'IDs found in both update and delete arrays',
-      );
+      expect(error).toBeInstanceOf(ConflictingOperationIdsError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.conflictingOperationIds,
+        context: {
+          conflict: 'UPDATE_AND_DELETE',
+          operationIds: [operationId],
+        },
+      });
     });
 
     it('should reject duplicate update IDs represented by different Id instances', () => {
@@ -435,23 +531,25 @@ describe('Transaction Domain Entity', () => {
       const operationId = transaction.getOperations()[0].getId().valueOf();
 
       const error = captureConflictingOperationIdsError(() =>
-        transaction.applyUpdate(
-          {
-            operations: {
-              create: [],
-              delete: [],
-              update: [
-                toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
-                toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
-              ],
-            },
+        transaction.applyUpdate({
+          operations: {
+            create: [],
+            delete: [],
+            update: [
+              toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+              toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+            ],
           },
-          data.transactionContext,
-        ),
+        }),
       );
 
-      expect(error.conflictingIds).toEqual([operationId]);
-      expect(error.conflictType).toBe('Duplicate IDs in update array');
+      expect(error).toMatchObject({
+        code: apiErrorCodes.conflictingOperationIds,
+        context: {
+          conflict: 'DUPLICATE_IN_UPDATE',
+          operationIds: [operationId],
+        },
+      });
     });
 
     it('should reject duplicate delete IDs represented by different Id instances', () => {
@@ -459,23 +557,79 @@ describe('Transaction Domain Entity', () => {
       const operationId = transaction.getOperations()[0].getId().valueOf();
 
       const error = captureConflictingOperationIdsError(() =>
-        transaction.applyUpdate(
-          {
-            operations: {
-              create: [],
-              delete: [
-                Id.fromPersistence(operationId),
-                Id.fromPersistence(operationId),
-              ],
-              update: [],
-            },
+        transaction.applyUpdate({
+          operations: {
+            create: [],
+            delete: [
+              Id.fromPersistence(operationId),
+              Id.fromPersistence(operationId),
+            ],
+            update: [],
           },
-          data.transactionContext,
-        ),
+        }),
       );
 
-      expect(error.conflictingIds).toEqual([operationId]);
-      expect(error.conflictType).toBe('Duplicate IDs in delete array');
+      expect(error).toMatchObject({
+        code: apiErrorCodes.conflictingOperationIds,
+        context: {
+          conflict: 'DUPLICATE_IN_DELETE',
+          operationIds: [operationId],
+        },
+      });
+    });
+
+    it('should reject updating a non-existent operation without changing the transaction', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const originalSnapshot = transaction.toSnapshot();
+      const unknownOperationId = Id.create();
+
+      const error = captureThrownError(() =>
+        transaction.applyUpdate({
+          operations: {
+            create: [],
+            delete: [],
+            update: [toUpdateProps(transaction, 0, unknownOperationId)],
+          },
+        }),
+      );
+
+      expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.operationNotFoundInTransaction,
+        context: {
+          operationId: unknownOperationId.valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
+
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
+    });
+
+    it('should reject deleting a non-existent operation without changing the transaction', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const originalSnapshot = transaction.toSnapshot();
+      const unknownOperationId = Id.create();
+
+      const error = captureThrownError(() =>
+        transaction.applyUpdate({
+          operations: {
+            create: [],
+            delete: [unknownOperationId],
+            update: [],
+          },
+        }),
+      );
+
+      expect(error).toBeInstanceOf(OperationNotFoundInTransactionError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.operationNotFoundInTransaction,
+        context: {
+          operationId: unknownOperationId.valueOf(),
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
+
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
     });
 
     it('Should add a new operation and increase version', () => {
@@ -517,16 +671,13 @@ describe('Transaction Domain Entity', () => {
 
       vi.advanceTimersByTime(5000);
 
-      transaction.applyUpdate(
-        {
-          operations: {
-            create: operationsToAdd,
-            delete: [],
-            update: [],
-          },
+      transaction.applyUpdate({
+        operations: {
+          create: operationsToAdd,
+          delete: [],
+          update: [],
         },
-        data.transactionContext,
-      );
+      });
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -609,16 +760,13 @@ describe('Transaction Domain Entity', () => {
 
       vi.advanceTimersByTime(5000);
 
-      transaction.applyUpdate(
-        {
-          operations: {
-            create: [],
-            delete: [],
-            update: updatedOperationData,
-          },
+      transaction.applyUpdate({
+        operations: {
+          create: [],
+          delete: [],
+          update: updatedOperationData,
         },
-        data.transactionContext,
-      );
+      });
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -677,16 +825,13 @@ describe('Transaction Domain Entity', () => {
 
       vi.advanceTimersByTime(5000);
 
-      transaction.applyUpdate(
-        {
-          operations: {
-            create: [],
-            delete: operationsToDelete,
-            update: [],
-          },
+      transaction.applyUpdate({
+        operations: {
+          create: [],
+          delete: operationsToDelete,
+          update: [],
         },
-        data.transactionContext,
-      );
+      });
 
       const updatedSnapshot = transaction.toSnapshot();
 
@@ -746,11 +891,39 @@ describe('Transaction Domain Entity', () => {
 
       expect(transaction.isDeleted()).toBe(true);
 
-      const operations = transaction.getOperations();
+      const operations = transaction.getAllOperations();
 
       operations.forEach((operation) => {
         expect(operation.isDeleted()).toBe(true);
       });
+    });
+
+    it('should reject updates after transaction is deleted', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      transaction.markAsDeleted();
+
+      const deletedSnapshot = transaction.toSnapshot();
+      const metadata = TransactionMapper.toMetadataUpdateData(transaction);
+
+      const error = captureThrownError(() =>
+        transaction.applyUpdate({
+          metadata: {
+            ...metadata,
+            description: 'Updated deleted transaction',
+          },
+        }),
+      );
+
+      expect(error).toBeInstanceOf(DeletedEntityOperationError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.deletedEntityOperation,
+        context: {
+          entityType: Transaction.entityType,
+          operation: 'update',
+        },
+      });
+
+      expect(transaction.toSnapshot()).toEqual(deletedSnapshot);
     });
 
     it('Should not increase version if transaction is already deleted', () => {
@@ -769,89 +942,512 @@ describe('Transaction Domain Entity', () => {
     });
   });
 
-  describe('Validation', () => {
-    it('Should validate that sum of operation values is 0', () => {
-      expect(() => {
-        Transaction.create(user.getId(), transactionData);
-      }).not.toThrowError(UnbalancedTransactionError);
+  describe('Transaction Domain Invariants coverage', () => {
+    it('should accept a multi-currency transaction balanced by value even when amounts do not sum to zero', () => {
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'RUB'],
+        operations: [
+          {
+            accountKey: 'USD',
+            amount: '-10000',
+            value: '-100',
+          },
+          {
+            accountKey: 'RUB',
+            amount: '900000',
+            value: '100',
+          },
+        ],
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      expect(() =>
+        Transaction.create(user.getId(), transactionData),
+      ).not.toThrow();
     });
 
-    it('Should fail validation if sum of operation values is not 0', () => {
-      const usdAccount = data.getAccountByKey('USD');
+    it('should reject a multi-currency transaction with balanced amounts but unbalanced values', () => {
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'RUB'],
+        operations: [
+          {
+            accountKey: 'USD',
+            amount: '-10000',
+            value: '-100',
+          },
+          {
+            accountKey: 'RUB',
+            amount: '10000',
+            value: '90',
+          },
+        ],
+        settings: transactionRawData,
+        user,
+      });
 
-      const unbalancedOperationsData: OperationProps[] = [
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
+        UnbalancedTransactionError,
+      );
+    });
+
+    it('should validate a multi-currency operation patch by value rather than amount', () => {
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'RUB'],
+        operations: [
+          {
+            accountKey: 'USD',
+            amount: '-10000',
+            value: '-100',
+          },
+          {
+            accountKey: 'RUB',
+            amount: '900000',
+            value: '100',
+          },
+        ],
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const operationToUpdate = transaction.getOperations()[1];
+
+      const error = captureThrownError(() =>
+        transaction.applyUpdate({
+          operations: {
+            create: [],
+            delete: [],
+            update: [
+              {
+                account: data.getAccountByKey('RUB'),
+                amount: Amount.create('10000'),
+                description: operationToUpdate.description,
+                id: operationToUpdate.getId(),
+                value: Amount.create('90'),
+              },
+            ],
+          },
+        }),
+      );
+
+      expect(error).toBeInstanceOf(UnbalancedTransactionError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.transactionUnbalanced,
+        context: {
+          entityType: Transaction.entityType,
+          transactionId: transaction.getId().valueOf(),
+        },
+      });
+    });
+
+    it('should reject create when resulting operations do not sum to zero', () => {
+      const operationsData = [
+        operationsData1,
+        operationsData2,
+        operationsData3,
+      ];
+
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
+        UnbalancedTransactionError,
+      );
+    });
+
+    it('should reject update when resulting operations do not sum to zero', () => {
+      const operationsData = [
         {
-          account: usdAccount,
-          amount: Amount.create('10000'),
+          accountKey: 'USD',
+          amount: '5000',
           description: 'groceries Account',
-          value: Amount.create('10000'),
         },
         {
-          account: usdAccount,
-          amount: Amount.create('10000'),
-          description: 'Wallet adjustment',
-          value: Amount.create('10000'),
+          accountKey: 'USD',
+          amount: '-10000',
+          description: 'USD Wallet adjustment',
+        },
+        {
+          accountKey: 'USD',
+          amount: '4000',
+          description: 'fuel Account',
+        },
+        {
+          accountKey: 'USD',
+          amount: '1000',
+          description: 'USD phone bill Account',
         },
       ];
 
-      expect(() => {
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
+
+      const usdAccount = data.getAccountByKey('USD');
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      const transaction = Transaction.create(user.getId(), transactionData);
+
+      const originalSnapshot = transaction.toSnapshot();
+      const originalVersion = transaction.getVersion();
+
+      const operationsPatchData = {
+        operations: {
+          create: [
+            {
+              account: usdAccount,
+              amount: Amount.create('7777'),
+              description: 'New Operation',
+              value: Amount.create('7777'),
+            },
+          ],
+          delete: [],
+          update: [],
+        },
+      };
+
+      expect(() => transaction.applyUpdate(operationsPatchData)).toThrow(
+        UnbalancedTransactionError,
+      );
+
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
+
+      expect(transaction.getVersion()).toEqual(originalVersion);
+    });
+
+    it('should reject creation with zero operations', () => {
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: [],
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      const error = captureThrownError(() =>
+        Transaction.create(user.getId(), transactionData),
+      );
+
+      expect(error).toBeInstanceOf(InsufficientOperationsError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.insufficientOperations,
+        context: {
+          minimum: 2,
+          received: 0,
+        },
+      });
+    });
+
+    it('should reject creation with one operation', () => {
+      const operationsData = [
+        {
+          accountKey: 'USD',
+          amount: '0',
+          description: 'groceries Account',
+        },
+      ];
+
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
+        InsufficientOperationsError,
+      );
+    });
+
+    it('should allow creation with the maximum number of operations', () => {
+      const transaction = Transaction.create(user.getId(), {
+        ...transactionData,
+        operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS),
+      });
+
+      expect(transaction.getOperations()).toHaveLength(
+        MAX_TRANSACTION_OPERATIONS,
+      );
+    });
+
+    it('should reject creation with more than the maximum number of operations', () => {
+      const error = captureThrownError(() =>
         Transaction.create(user.getId(), {
           ...transactionData,
-          operations: unbalancedOperationsData,
-        });
-      }).toThrowError(UnbalancedTransactionError);
+          operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS + 1),
+        }),
+      );
+
+      expect(error).toBeInstanceOf(ExcessiveOperationsError);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.excessiveOperations,
+        context: {
+          maximum: MAX_TRANSACTION_OPERATIONS,
+          received: MAX_TRANSACTION_OPERATIONS + 1,
+        },
+      });
     });
 
-    describe('Transaction Domain Invariants TODO coverage', () => {
-      it.todo(
-        '[TXN-1] should reject update when resulting operations do not sum to zero',
+    it('should reject updating to fewer than two operations', () => {
+      const operationsData = [
+        {
+          accountKey: 'USD',
+          amount: '-100000',
+          description: 'groceries Account',
+        },
+        {
+          accountKey: 'USD',
+          amount: '100000',
+          description: 'groceries Account',
+        },
+      ];
+
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
       );
 
-      it.todo('[TXN-2] should reject creation with fewer than two operations');
-      it.todo(
-        '[TXN-2] should reject update that leaves fewer than two operations',
+      const transaction = Transaction.create(user.getId(), transactionData);
+
+      const originalSnapshot = transaction.toSnapshot();
+      const originalVersion = transaction.getVersion();
+
+      const operationsPatchData = {
+        operations: {
+          create: [],
+          delete: [transaction.getOperations()[0].getId()],
+          update: [],
+        },
+      };
+
+      expect(() => transaction.applyUpdate(operationsPatchData)).toThrow(
+        InsufficientOperationsError,
       );
 
-      it.todo(
-        '[TXN-3] should allow repeated account usage when account net effect is non-zero',
-      );
-      it.todo(
-        '[TXN-3] should reject repeated account usage when account net effect is zero',
-      );
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
 
-      it.todo(
-        '[TXN-4] should reject creation with fewer than two distinct accounts',
-      );
-      it.todo(
-        '[TXN-4] should reject update that leaves fewer than two distinct accounts',
-      );
+      expect(transaction.getVersion()).toEqual(originalVersion);
+    });
 
-      it.todo('[TXN-5] should reject creation with zero amount operations');
-      it.todo('[TXN-5] should reject update with zero amount operations');
+    it('should reject an update that exceeds the maximum number of operations', () => {
+      const transaction = Transaction.create(user.getId(), {
+        ...transactionData,
+        operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS),
+      });
 
-      it.todo('[TXN-6] should reject missing, NaN, and Infinity amounts');
+      const originalSnapshot = transaction.toSnapshot();
 
-      it.todo('[TXN-7] should reject missing transaction currency');
-      it.todo('[TXN-7] should reject unknown transaction currency');
+      expect(() =>
+        transaction.applyUpdate({
+          operations: {
+            create: createBalancedOperations(2),
+            delete: [],
+            update: [],
+          },
+        }),
+      ).toThrow(ExcessiveOperationsError);
 
-      it.todo(
-        '[TXN-8] should reject operations whose accounts do not belong to transaction user',
-      );
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
+    });
 
-      it.todo('[TXN-9] should reject update when expected version mismatches');
+    it('should allow replacing operations without exceeding the maximum', () => {
+      const transaction = Transaction.create(user.getId(), {
+        ...transactionData,
+        operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS),
+      });
 
-      it.todo('[TXN-10] should reject update after transaction is deleted');
+      const operationsToDelete = transaction
+        .getOperations()
+        .slice(0, 2)
+        .map((operation) => operation.getId());
 
-      it.todo('[TXN-11] should reject creation without transaction date');
-      it.todo('[TXN-11] should reject update without transaction date');
+      transaction.applyUpdate({
+        operations: {
+          create: createBalancedOperations(2),
+          delete: operationsToDelete,
+          update: [],
+        },
+      });
 
-      it.todo('[TXN-12] should reject creation above operations count limit');
-      it.todo('[TXN-12] should reject update above operations count limit');
-
-      it.todo(
-        '[TXN-13] should reject transactions without both positive and negative operations',
+      expect(transaction.getOperations()).toHaveLength(
+        MAX_TRANSACTION_OPERATIONS,
       );
     });
+
+    it('should allow delete and create when two balanced operations remain', () => {
+      const operationsData = [
+        {
+          accountKey: 'USD',
+          amount: '-100000',
+          description: 'groceries Account',
+        },
+        {
+          accountKey: 'USD',
+          amount: '100000',
+          description: 'groceries Account',
+        },
+      ];
+
+      const data = TransactionBuilder.request({
+        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
+
+      const transactionData = TransactionMapper.toCreateTransactionProps(
+        data.transactionDTO,
+        data.transactionContext,
+      );
+
+      const transaction = Transaction.create(user.getId(), transactionData);
+
+      const initialVersion = transaction.getVersion();
+
+      const operationToDelete = transaction.getOperations()[1];
+      const replacementDescription = 'Replacement operation';
+
+      const operationsPatchData = {
+        operations: {
+          create: [
+            {
+              account: data.getAccountByKey('USD'),
+              amount: Amount.create('100000'),
+              description: replacementDescription,
+              value: Amount.create('100000'),
+            },
+          ],
+          delete: [operationToDelete.getId()],
+          update: [],
+        },
+      };
+
+      transaction.applyUpdate(operationsPatchData);
+
+      expect(transaction.getOperations()).toHaveLength(operationsData.length);
+
+      expect(
+        transaction
+          .getOperations()
+          .some(({ description }) => description === replacementDescription),
+      ).toBe(true);
+
+      expect(
+        transaction
+          .getOperations()
+          .some((operation) =>
+            operation.getId().equals(operationToDelete.getId()),
+          ),
+      ).toBe(false);
+
+      expect(
+        transaction
+          .getAllOperations()
+          .find((operation) => operation.getId().equals(operationToDelete.id))
+          ?.isDeleted(),
+      ).toBe(true);
+
+      expect(
+        transaction
+          .getOperations()
+          .reduce(
+            (sum, operation) => sum.add(operation.value),
+            Amount.create('0'),
+          )
+          .isZero(),
+      ).toBe(true);
+
+      expect(transaction.getVersion().valueOf()).toBe(
+        initialVersion.valueOf() + 1,
+      );
+    });
+
+    it.todo(
+      '[TXN-3] should allow repeated account usage when account net effect is non-zero',
+    );
+    it.todo(
+      '[TXN-3] should reject repeated account usage when account net effect is zero',
+    );
+
+    it.todo(
+      '[TXN-4] should allow creation with one distinct account when base invariants hold',
+    );
+    it.todo(
+      '[TXN-4] should allow update that leaves one distinct account when base invariants hold',
+    );
+
+    it.todo('[TXN-5] should reject creation with zero amount operations');
+    it.todo('[TXN-5] should reject update with zero amount operations');
+
+    it.todo('[TXN-6] should reject missing, NaN, and Infinity amounts');
+
+    it.todo('[TXN-7] should reject missing transaction currency');
+    it.todo('[TXN-7] should reject unknown transaction currency');
+
+    it.todo(
+      '[TXN-8] should reject operations whose accounts do not belong to transaction user',
+    );
+
+    it.todo('[TXN-9] should reject update when expected version mismatches');
+
+    it.todo('[TXN-10] should reject update after transaction is deleted');
+
+    it.todo('[TXN-11] should reject creation without transaction date');
+    it.todo('[TXN-11] should reject update without transaction date');
+
+    it.todo('[TXN-12] should reject creation above operations count limit');
+    it.todo('[TXN-12] should reject update above operations count limit');
+
+    it.todo(
+      '[TXN-13] should reject transactions without both positive and negative operations',
+    );
   });
 
   describe('Operations', () => {
