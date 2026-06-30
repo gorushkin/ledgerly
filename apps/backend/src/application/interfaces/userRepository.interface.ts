@@ -1,15 +1,12 @@
 import { UUID } from '@ledgerly/shared/types';
 import { DataBase } from 'src/db';
 import { UserDbRow } from 'src/db/schema';
+import { User } from 'src/domain/users/user.entity';
 
-import {
-  CreateUserRequestDTO,
-  UpdateUserRequestDTO,
-  UserResponseDTO,
-} from '../dto';
+import { UpdateUserRequestDTO, UserResponseDTO } from '../dto';
 
 export type UserRepositoryInterface = {
-  create(userData: CreateUserRequestDTO): Promise<UserResponseDTO>;
+  create(user: User): Promise<UserResponseDTO>;
   getByEmail(email: string): Promise<UserResponseDTO | undefined>;
   update(userId: UUID, userData: Partial<UserDbRow>): Promise<UserDbRow>;
   getById(userId: UUID, tx?: DataBase): Promise<UserResponseDTO>;

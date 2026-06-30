@@ -1,6 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { User } from 'src/domain/users/user.entity';
+import { UserMapper } from 'src/application/mappers';
 
 import { UnauthorizedError } from '../errors';
 
@@ -28,7 +28,7 @@ export async function authMiddleware(
       throw new UnauthorizedError('User not found');
     }
 
-    const user = User.fromPersistence(rawUser);
+    const user = UserMapper.toDomain(rawUser);
 
     request.user = user;
   } catch (error) {

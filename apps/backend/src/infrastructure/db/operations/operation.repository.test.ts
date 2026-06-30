@@ -1,12 +1,12 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationMapper } from 'src/application';
+import { OperationMapper, UserMapper } from 'src/application';
 import { OperationDbRow, UserDbRow } from 'src/db/schema';
 import {
   compareEntities,
   TransactionBuilder,
   TransactionBuilderResult,
 } from 'src/db/test-utils';
-import { Transaction, User } from 'src/domain';
+import { Transaction } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { RepositoryInvariantError } from 'src/infrastructure/errors';
@@ -53,7 +53,7 @@ describe('OperationRepository', () => {
     data = TransactionBuilder.transaction({
       accounts: ['USD', 'EUR'],
       operations: operationsData,
-      user: User.fromPersistence(user),
+      user: UserMapper.toDomain(user),
     });
 
     transaction = data.transaction;

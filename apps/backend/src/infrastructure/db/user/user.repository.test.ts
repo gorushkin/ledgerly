@@ -1,5 +1,6 @@
 import { UserRepositoryInterface } from 'src/application';
-import { Id, Password } from 'src/domain/domain-core';
+import { Email, Id, Name, Password } from 'src/domain/domain-core';
+import { User } from 'src/domain/users/user.entity';
 import { TransactionManager } from 'src/infrastructure/db';
 import { RepositoryNotFoundError } from 'src/infrastructure/errors';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
@@ -22,6 +23,19 @@ describe('UsersRepository', () => {
   const email = 'test@example.com';
   const password = 'password123';
   const name = 'Test User';
+
+  const createUser = async (
+    data: {
+      email: string;
+      name: string;
+      password: string;
+    } = { email, name, password },
+  ) =>
+    User.create(
+      Name.create(data.name),
+      Email.create(data.email),
+      await Password.create(data.password),
+    );
 
   beforeEach(async () => {
     testDB = new TestDB();
@@ -108,7 +122,7 @@ describe('UsersRepository', () => {
     });
   });
 
-  describe.skip('updateUserProfile', () => {
+  describe('updateUserProfile', () => {
     it('should update user profile successfully', async () => {
       const user = await testDB.createUser({ email, name, password });
 
@@ -158,7 +172,7 @@ describe('UsersRepository', () => {
 
   describe('create', () => {
     it('should create a user successfully', async () => {
-      const user = await userRepository.create({ email, name, password });
+      const user = await userRepository.create(await createUser());
 
       expect(user.email).toBe(email);
       expect(user.name).toBe(name);
@@ -167,22 +181,27 @@ describe('UsersRepository', () => {
     });
 
     it('should not return password in create response', async () => {
-      const user = await userRepository.create({ email, name, password });
+      const user = await userRepository.create(await createUser());
 
       expect(user).not.toHaveProperty('password');
     });
 
     it('should generate unique IDs for different users', async () => {
-      const user1 = await userRepository.create({
-        email: 'user1@test.com',
-        name: 'User 1',
-        password,
-      });
-      const user2 = await userRepository.create({
-        email: 'user2@test.com',
-        name: 'User 2',
-        password,
-      });
+      const user1 = await userRepository.create(
+        await createUser({
+          email: 'user1@test.com',
+          name: 'User 1',
+          password,
+        }),
+      );
+
+      const user2 = await userRepository.create(
+        await createUser({
+          email: 'user2@test.com',
+          name: 'User 2',
+          password,
+        }),
+      );
 
       expect(user1.id).not.toBe(user2.id);
     });

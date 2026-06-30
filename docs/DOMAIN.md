@@ -83,6 +83,51 @@ Represents different monetary units used in the system.
 - Currency conversion is handled through trading operations
 - Historical rates can be stored for accurate reporting
 
+## Entity API Conventions
+
+Domain entities use one public API pattern for creation, restoration and plain
+state export. The current reference implementation is `Transaction` together
+with its application mapper.
+
+### Required Pattern
+
+1. `static create(...)` creates a new entity and generates a new identity,
+   timestamps and other behavior state.
+2. `static restore(snapshot)` restores an entity from a plain domain snapshot.
+3. `toSnapshot()` returns the entity's plain domain state.
+4. Domain entities do not import DB schema types, application DTO, shared
+   request/response DTO, or HTTP-specific types.
+5. Domain entities do not expose `toPersistence()`, `toResponseDTO()` or
+   `fromPersistence(...)`.
+6. DB and API transformations live in mappers. For example,
+   `TransactionMapper.toDBRow(transaction)` and
+   `TransactionMapper.toResponseDTO(transaction)` are outside the domain entity.
+
+Snapshot types live next to the entity in `domain/<module>/types.ts`. They use
+primitive/domain-safe fields and must not be aliases for DB rows or response
+DTOs.
+
+### Example Shape
+
+```ts
+export class ExampleEntity {
+  static create(props: CreateExampleProps): ExampleEntity {
+    // Generate identity, timestamps and domain behavior state.
+  }
+
+  static restore(snapshot: ExampleSnapshot): ExampleEntity {
+    // Rebuild value objects and behaviors from plain domain state.
+  }
+
+  toSnapshot(): ExampleSnapshot {
+    // Return primitive/domain-safe state only.
+  }
+}
+```
+
+See [ADR 0011](./architecture/adr/0011-domain-entity-api-conventions.md) for
+the architectural decision and rationale.
+
 ## Business Rules
 
 ### Double-Entry Bookkeeping

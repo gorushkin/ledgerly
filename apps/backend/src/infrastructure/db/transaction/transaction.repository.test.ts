@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationMapper } from 'src/application/mappers/operation.mapper';
+import { OperationMapper, UserMapper } from 'src/application/mappers';
 import { OperationDbRow, UserDbRow } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import {
@@ -7,7 +7,7 @@ import {
   TransactionBuilder,
   TransactionPersistenceBuilderResult,
 } from 'src/db/test-utils';
-import { Account, User } from 'src/domain';
+import { Account } from 'src/domain';
 import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import {
@@ -76,7 +76,7 @@ describe('TransactionRepository', () => {
         },
       ],
       settings: { description },
-      user: User.fromPersistence(user),
+      user: UserMapper.toDomain(user),
     });
 
     usdAccount = data.getAccountByKey('USD');

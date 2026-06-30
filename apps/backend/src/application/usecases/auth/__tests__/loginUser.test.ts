@@ -4,7 +4,6 @@ import {
 } from 'src/application/application.errors';
 import { UserRepositoryInterface } from 'src/application/interfaces';
 import { Password } from 'src/domain/domain-core';
-import { User } from 'src/domain/users/user.entity';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoginUserUseCase } from '../loginUser';
@@ -12,7 +11,8 @@ import { LoginUserUseCase } from '../loginUser';
 describe('LoginUserUseCase', () => {
   const email = 'test@example.com';
   const name = 'Test User';
-  const id = 'some-uuid';
+  const id = '11111111-1111-4111-8111-111111111111';
+  const rawPassword = 'password123';
   let password: Password;
 
   // const password = Password.create('password123').valueOf();
@@ -25,7 +25,7 @@ describe('LoginUserUseCase', () => {
   };
 
   beforeEach(async () => {
-    password = await Password.create('password123');
+    password = await Password.create(rawPassword);
 
     mockUserRepository = {
       getByEmailWithPassword: vi.fn(),
@@ -40,18 +40,15 @@ describe('LoginUserUseCase', () => {
   describe('execute', () => {
     it('should return token if login is successful', async () => {
       mockUserRepository.getByEmailWithPassword.mockResolvedValue({
+        createdAt: '2026-06-25T00:00:00.000Z',
         email,
+        id,
         name,
-        password,
+        password: password.valueOf(),
+        updatedAt: '2026-06-25T00:00:00.000Z',
       });
 
-      vi.spyOn(User, 'fromPersistence').mockReturnValue({
-        name: 'mocked user',
-        toResponseDTO: vi.fn().mockReturnValue({ email, id, name }),
-        validatePassword: vi.fn().mockResolvedValue(true),
-      } as unknown as User);
-
-      const result = await loginUserUseCase.execute(email, password.valueOf());
+      const result = await loginUserUseCase.execute(email, rawPassword);
 
       expect(result).toEqual({ email, id, name });
     });
@@ -59,32 +56,23 @@ describe('LoginUserUseCase', () => {
     it('should throw UserNotFoundError if user does not exist', async () => {
       mockUserRepository.getByEmailWithPassword.mockResolvedValue(null);
 
-      vi.spyOn(User, 'fromPersistence').mockReturnValue({
-        name: 'mocked user',
-        toResponseDTO: vi.fn().mockReturnValue({ email, id, name }),
-        validatePassword: vi.fn().mockResolvedValue(true),
-      } as unknown as User);
-
       await expect(
-        loginUserUseCase.execute(email, password.valueOf()),
+        loginUserUseCase.execute(email, rawPassword),
       ).rejects.toThrow(UserNotFoundError);
     });
 
     it('should throw InvalidPasswordError if password is invalid', async () => {
       mockUserRepository.getByEmailWithPassword.mockResolvedValue({
+        createdAt: '2026-06-25T00:00:00.000Z',
         email,
+        id,
         name,
-        password,
+        password: password.valueOf(),
+        updatedAt: '2026-06-25T00:00:00.000Z',
       });
 
-      vi.spyOn(User, 'fromPersistence').mockReturnValue({
-        name: 'mocked user',
-        toResponseDTO: vi.fn().mockReturnValue({ email, id, name }),
-        validatePassword: vi.fn().mockResolvedValue(false),
-      } as unknown as User);
-
       await expect(
-        loginUserUseCase.execute(email, password.valueOf()),
+        loginUserUseCase.execute(email, 'wrong-password'),
       ).rejects.toThrowError(InvalidPasswordError);
     });
   });
