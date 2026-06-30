@@ -1,12 +1,9 @@
 import { UsersResponseDTO, UsersUpdateDTO, UUID } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
-import {
-  CreateUserRequestDTO,
-  UserRepositoryInterface,
-  UserResponseDTO,
-} from 'src/application';
+import { UserRepositoryInterface, UserResponseDTO } from 'src/application';
 import { UserDbRow } from 'src/db/schema';
 import { usersTable } from 'src/db/schemas';
+import { UserSnapshot } from 'src/domain/users/types';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -119,14 +116,10 @@ export class UserRepository
     }, `Failed to update password for user with ID ${id}`);
   }
 
-  async create(data: CreateUserRequestDTO): Promise<UserResponseDTO> {
+  async create(data: UserSnapshot): Promise<UserResponseDTO> {
     return this.executeDatabaseOperation(
       async () =>
-        this.db
-          .insert(usersTable)
-          .values({ ...data, ...this.uuid, ...this.createTimestamps })
-          .returning(userSelect)
-          .get(),
+        this.db.insert(usersTable).values(data).returning(userSelect).get(),
       'Failed to create user',
     );
   }

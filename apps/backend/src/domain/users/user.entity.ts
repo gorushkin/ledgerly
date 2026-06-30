@@ -1,6 +1,4 @@
 import { UUID } from '@ledgerly/shared/types';
-import { UserResponseDTO } from 'src/application';
-import { UserDbInsert, UserDbRow } from 'src/db/schema';
 import { UserOwnershipError } from 'src/domain/domain.errors';
 
 import {
@@ -12,6 +10,8 @@ import {
   Password,
   Timestamp,
 } from '../domain-core';
+
+import { UserSnapshot } from './types';
 
 export class User {
   static readonly entityType = 'user';
@@ -37,12 +37,14 @@ export class User {
     return new User(identity, timestamps, email, name, password);
   }
 
-  static fromPersistence(data: UserDbRow): User {
-    const identity = EntityIdentity.create(Id.fromPersistence(data.id));
+  static restore(data: UserSnapshot): User {
+    const identity = EntityIdentity.fromPersistence(
+      Id.fromPersistence(data.id),
+    );
 
     const timestamps = EntityTimestamps.fromPersistence(
-      Timestamp.restore(data.createdAt),
       Timestamp.restore(data.updatedAt),
+      Timestamp.restore(data.createdAt),
     );
 
     const email = Email.create(data.email);
@@ -52,7 +54,7 @@ export class User {
     return new User(identity, timestamps, email, name, password);
   }
 
-  toPersistence(): UserDbInsert {
+  toSnapshot(): UserSnapshot {
     return {
       createdAt: this.timestamps.getCreatedAt().valueOf(),
       email: this._email.valueOf(),
@@ -95,15 +97,6 @@ export class User {
 
   validatePassword(password: string): Promise<boolean> {
     return this._password.compare(password);
-  }
-
-  // TODO: move this method to userMapper if it needed
-  toResponseDTO(): UserResponseDTO {
-    return {
-      email: this.email.valueOf(),
-      id: this.getId().valueOf(),
-      name: this.name.valueOf(),
-    };
   }
 
   verifyOwnership(userId: UUID): boolean {

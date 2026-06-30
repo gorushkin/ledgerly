@@ -82,10 +82,7 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const loginUserUseCase = new LoginUserUseCase(userRepository);
 
-  const registerUserUseCase = new RegisterUserUseCase(
-    userRepository,
-    saveWithIdRetry,
-  );
+  const registerUserUseCase = new RegisterUserUseCase(userRepository);
 
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager,

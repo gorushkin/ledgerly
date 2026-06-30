@@ -1,9 +1,7 @@
 import { UserAlreadyExistsError } from 'src/application/application.errors';
 import { CreateUserRequestDTO } from 'src/application/dto';
 import { UserRepositoryInterface } from 'src/application/interfaces';
-import { Email, Name, Password } from 'src/domain/domain-core';
-import { User } from 'src/domain/users/user.entity';
-import { describe, it, vi, expect } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RegisterUserUseCase } from '../registerUser';
 
@@ -12,8 +10,6 @@ describe('RegisterUserUseCase', () => {
   const name = 'Test User';
   const password = 'Password123!';
 
-  const mockedSaveWithIdRetry = vi.fn();
-
   const mockUserRepository = {
     create: vi.fn(),
     getByEmail: vi.fn(),
@@ -21,8 +17,11 @@ describe('RegisterUserUseCase', () => {
 
   const registerUserUseCase = new RegisterUserUseCase(
     mockUserRepository as unknown as UserRepositoryInterface,
-    mockedSaveWithIdRetry,
   );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   describe('execute', () => {
     const validRequest: CreateUserRequestDTO = {
@@ -32,27 +31,36 @@ describe('RegisterUserUseCase', () => {
     };
 
     it('should create a user successfully', async () => {
-      const hashedPassword = await Password.create(password);
-
-      const user = User.create(
-        Name.create(name),
-        Email.create(email),
-        hashedPassword,
-      );
-
       mockUserRepository.getByEmail.mockResolvedValue(null);
-      mockedSaveWithIdRetry.mockResolvedValue(user);
+      mockUserRepository.create.mockResolvedValue({
+        email,
+        id: 'created-user-id',
+        name,
+      });
 
       const result = await registerUserUseCase.execute(validRequest);
 
-      expect(result).toEqual(user.toResponseDTO());
+      expect(result.email).toBe(email);
+      expect(result.name).toBe(name);
+      expect(typeof result.id).toBe('string');
 
       expect(mockUserRepository.getByEmail).toHaveBeenCalledWith(email);
 
-      expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.any(Function),
-      );
+      expect(mockUserRepository.create).toHaveBeenCalledOnce();
+
+      const [createPayload] = mockUserRepository.create.mock.calls[0] as [
+        {
+          email: string;
+          id: string;
+          name: string;
+          password: string;
+        },
+      ];
+
+      expect(createPayload.email).toBe(email);
+      expect(createPayload.name).toBe(name);
+      expect(typeof createPayload.id).toBe('string');
+      expect(typeof createPayload.password).toBe('string');
     });
 
     it('should throw error if user with email already exists', async () => {

@@ -4,7 +4,7 @@ import {
 } from 'src/application/application.errors';
 import { UserResponseDTO } from 'src/application/dto';
 import { UserRepositoryInterface } from 'src/application/interfaces';
-import { User } from 'src/domain/users/user.entity';
+import { UserMapper } from 'src/application/mappers';
 
 export class LoginUserUseCase {
   constructor(private readonly userRepository: UserRepositoryInterface) {}
@@ -17,7 +17,7 @@ export class LoginUserUseCase {
       throw new UserNotFoundError();
     }
 
-    const user = User.fromPersistence(userWithPassword);
+    const user = UserMapper.toDomain(userWithPassword);
 
     const isPasswordValid = await user.validatePassword(password);
 
@@ -25,6 +25,6 @@ export class LoginUserUseCase {
       throw new InvalidPasswordError();
     }
 
-    return user.toResponseDTO();
+    return UserMapper.toResponseDTO(user);
   }
 }
