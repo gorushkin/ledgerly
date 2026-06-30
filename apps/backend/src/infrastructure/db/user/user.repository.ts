@@ -1,9 +1,13 @@
 import { UsersResponseDTO, UsersUpdateDTO, UUID } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
-import { UserRepositoryInterface, UserResponseDTO } from 'src/application';
+import {
+  UserMapper,
+  UserRepositoryInterface,
+  UserResponseDTO,
+} from 'src/application';
 import { UserDbRow } from 'src/db/schema';
 import { usersTable } from 'src/db/schemas';
-import { UserSnapshot } from 'src/domain/users/types';
+import { User } from 'src/domain/users/user.entity';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -101,7 +105,7 @@ export class UserRepository
   }
 
   async updateUserPassword(id: UUID, hashedPassword: string): Promise<void> {
-    await this.executeDatabaseOperation(async () => {
+    return this.executeDatabaseOperation(async () => {
       const { rowsAffected } = await this.db
         .update(usersTable)
         .set({ password: hashedPassword })
@@ -116,7 +120,9 @@ export class UserRepository
     }, `Failed to update password for user with ID ${id}`);
   }
 
-  async create(data: UserSnapshot): Promise<UserResponseDTO> {
+  async create(user: User): Promise<UserResponseDTO> {
+    const data = UserMapper.toDBRow(user);
+
     return this.executeDatabaseOperation(
       async () =>
         this.db.insert(usersTable).values(data).returning(userSelect).get(),

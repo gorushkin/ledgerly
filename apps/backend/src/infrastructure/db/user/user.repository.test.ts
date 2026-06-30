@@ -1,4 +1,4 @@
-import { UserMapper, UserRepositoryInterface } from 'src/application';
+import { UserRepositoryInterface } from 'src/application';
 import { Email, Id, Name, Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 import { TransactionManager } from 'src/infrastructure/db';
@@ -24,19 +24,17 @@ describe('UsersRepository', () => {
   const password = 'password123';
   const name = 'Test User';
 
-  const createUserInsert = async (
+  const createUser = async (
     data: {
       email: string;
       name: string;
       password: string;
     } = { email, name, password },
   ) =>
-    UserMapper.toDBRow(
-      User.create(
-        Name.create(data.name),
-        Email.create(data.email),
-        await Password.create(data.password),
-      ),
+    User.create(
+      Name.create(data.name),
+      Email.create(data.email),
+      await Password.create(data.password),
     );
 
   beforeEach(async () => {
@@ -174,7 +172,7 @@ describe('UsersRepository', () => {
 
   describe('create', () => {
     it('should create a user successfully', async () => {
-      const user = await userRepository.create(await createUserInsert());
+      const user = await userRepository.create(await createUser());
 
       expect(user.email).toBe(email);
       expect(user.name).toBe(name);
@@ -183,14 +181,14 @@ describe('UsersRepository', () => {
     });
 
     it('should not return password in create response', async () => {
-      const user = await userRepository.create(await createUserInsert());
+      const user = await userRepository.create(await createUser());
 
       expect(user).not.toHaveProperty('password');
     });
 
     it('should generate unique IDs for different users', async () => {
       const user1 = await userRepository.create(
-        await createUserInsert({
+        await createUser({
           email: 'user1@test.com',
           name: 'User 1',
           password,
@@ -198,7 +196,7 @@ describe('UsersRepository', () => {
       );
 
       const user2 = await userRepository.create(
-        await createUserInsert({
+        await createUser({
           email: 'user2@test.com',
           name: 'User 2',
           password,

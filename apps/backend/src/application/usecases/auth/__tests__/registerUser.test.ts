@@ -1,6 +1,7 @@
 import { UserAlreadyExistsError } from 'src/application/application.errors';
 import { CreateUserRequestDTO } from 'src/application/dto';
 import { UserRepositoryInterface } from 'src/application/interfaces';
+import { User } from 'src/domain/users/user.entity';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RegisterUserUseCase } from '../registerUser';
@@ -48,19 +49,11 @@ describe('RegisterUserUseCase', () => {
 
       expect(mockUserRepository.create).toHaveBeenCalledOnce();
 
-      const [createPayload] = mockUserRepository.create.mock.calls[0] as [
-        {
-          email: string;
-          id: string;
-          name: string;
-          password: string;
-        },
-      ];
+      const [createPayload] = mockUserRepository.create.mock.calls[0] as [User];
 
-      expect(createPayload.email).toBe(email);
-      expect(createPayload.name).toBe(name);
-      expect(typeof createPayload.id).toBe('string');
-      expect(typeof createPayload.password).toBe('string');
+      expect(createPayload.email.valueOf()).toBe(email);
+      expect(createPayload.name.valueOf()).toBe(name);
+      expect(typeof createPayload.getId().valueOf()).toBe('string');
     });
 
     it('should throw error if user with email already exists', async () => {

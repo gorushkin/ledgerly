@@ -1,10 +1,20 @@
 import { UserResponseDTO } from 'src/application/dto';
 import { UserDbInsert, UserDbRow } from 'src/db/schema';
 import { User } from 'src/domain';
+import { UserSnapshot } from 'src/domain/users/types';
 
 export class UserMapper {
   static toDomain(row: UserDbRow): User {
-    return User.restore(row);
+    const snapshot: UserSnapshot = {
+      createdAt: row.createdAt,
+      email: row.email,
+      id: row.id,
+      name: row.name,
+      password: row.password,
+      updatedAt: row.updatedAt,
+    };
+
+    return User.restore(snapshot);
   }
 
   static toDBRow(user: User): UserDbInsert {

@@ -23,7 +23,7 @@ export class RegisterUserUseCase {
 
     const user = User.create(nameVO, emailVO, passwordVO);
 
-    await this.userRepository.create(UserMapper.toDBRow(user));
+    await this.userRepository.create(user);
 
     return UserMapper.toResponseDTO(user);
   }
