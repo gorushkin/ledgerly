@@ -1,5 +1,9 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationMapper, UserMapper } from 'src/application/mappers';
+import {
+  AccountMapper,
+  OperationMapper,
+  UserMapper,
+} from 'src/application/mappers';
 import { OperationDbRow, UserDbRow } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import {
@@ -85,10 +89,10 @@ describe('TransactionRepository', () => {
     const usdSystemAccount = data.getSystemAccountByCurrency('USD');
     const eurSystemAccount = data.getSystemAccountByCurrency('EUR');
 
-    await testDB.insertAccount(usdAccount.toPersistence());
-    await testDB.insertAccount(eurAccount.toPersistence());
-    await testDB.insertAccount(usdSystemAccount.toPersistence());
-    await testDB.insertAccount(eurSystemAccount.toPersistence());
+    await testDB.insertAccount(AccountMapper.toDBRow(usdAccount));
+    await testDB.insertAccount(AccountMapper.toDBRow(eurAccount));
+    await testDB.insertAccount(AccountMapper.toDBRow(usdSystemAccount));
+    await testDB.insertAccount(AccountMapper.toDBRow(eurSystemAccount));
 
     transactionRepository = new TransactionRepository(
       mockOperationsRepository as unknown as OperationRepository,

@@ -2,7 +2,6 @@ import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
 import { AccountFactory } from 'src/application/services';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
-import { saveWithIdRetry } from 'src/application/shared/saveWithIdRetry';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
 import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
 import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
@@ -61,7 +60,7 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   // Services and Factories
 
-  const accountFactory = new AccountFactory(accountRepository, saveWithIdRetry);
+  const accountFactory = new AccountFactory(accountRepository);
 
   const transactionContextLoader = new TransactionContextLoader(
     accountRepository,

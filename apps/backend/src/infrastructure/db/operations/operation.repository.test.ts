@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationMapper, UserMapper } from 'src/application';
+import { AccountMapper, OperationMapper, UserMapper } from 'src/application';
 import { OperationDbRow, UserDbRow } from 'src/db/schema';
 import {
   compareEntities,
@@ -60,7 +60,7 @@ describe('OperationRepository', () => {
 
     await Promise.all(
       data.accounts.map((account) =>
-        testDB.insertAccount(account.toPersistence()),
+        testDB.insertAccount(AccountMapper.toDBRow(account)),
       ),
     );
 

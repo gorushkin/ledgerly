@@ -1,4 +1,5 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { AccountMapper } from 'src/application/mappers';
 import { Account, User } from 'src/domain';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
 
@@ -32,7 +33,7 @@ export class TransactionContextLoader {
 
     for (const row of accountRows) {
       currenciesSet.add(row.currency);
-      accountsMap.set(row.id, Account.restore(row));
+      accountsMap.set(row.id, AccountMapper.toDomain(row));
     }
 
     return { accountsMap, currenciesSet };

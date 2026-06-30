@@ -1,21 +1,18 @@
-import { apiErrorCodes, CurrencyCode } from '@ledgerly/shared/types';
+import {
+  AccountTypeValue,
+  apiErrorCodes,
+  CurrencyCode,
+} from '@ledgerly/shared/types';
 import { EntityNotFoundError } from 'src/application/application.errors';
+import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
 import { Account } from 'src/domain/accounts/account.entity';
-import { Amount } from 'src/domain/domain-core';
+import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
-import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UpdateAccountUseCase } from '../updateAccount';
-
-vi.mock('src/domain/accounts/account.entity', () => {
-  return {
-    Account: {
-      restore: vi.fn(),
-    },
-  };
-});
 
 describe('UpdateAccount', async () => {
   let updateAccountUseCase: UpdateAccountUseCase;
@@ -36,19 +33,20 @@ describe('UpdateAccount', async () => {
   const description = 'Test account description';
   const initialBalance = Amount.create('1000').valueOf();
   const currency = 'USD' as CurrencyCode;
-  const accountType = 'asset';
+  const accountType = 'asset' as AccountTypeValue;
 
   const mockAccountData = {
-    createdAt: new Date().toISOString(),
+    createdAt: Timestamp.create().valueOf(),
     currency,
     currentClearedBalanceLocal: initialBalance,
     description,
-    id: '550e8400-e29b-41d4-a716-446655440001',
+    id: accountId,
     initialBalance,
+    isSystem: false,
     isTombstone: false,
     name: accountName,
     type: accountType,
-    updatedAt: new Date().toISOString(),
+    updatedAt: Timestamp.create().valueOf(),
     userId: user.id,
   };
 
@@ -67,13 +65,6 @@ describe('UpdateAccount', async () => {
     updateAccountUseCase = new UpdateAccountUseCase(
       mockAccountRepository as unknown as AccountRepository,
     );
-
-    const mockAccountInstance = {
-      toPersistence: vi.fn().mockReturnValue({ name: 'Updated Account' }),
-      updateAccount: vi.fn().mockReturnThis(),
-    };
-
-    (Account.restore as Mock).mockReturnValue(mockAccountInstance);
   });
 
   describe('execute', () => {
@@ -93,10 +84,15 @@ describe('UpdateAccount', async () => {
       expect(mockAccountRepository.update).toHaveBeenCalledWith(
         user.id,
         accountId,
-        { name: 'Updated Account' },
+        expect.objectContaining({ name: 'Updated Account' }),
       );
 
       expect(result.name).toBe('Updated Account');
+      expect(result).toEqual(
+        AccountMapper.toResponseDTO(
+          AccountMapper.toDomain(mockAccountUpdatedData),
+        ),
+      );
     });
 
     it('should throw error when account does not exist', async () => {

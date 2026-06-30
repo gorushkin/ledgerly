@@ -1,10 +1,16 @@
-import { apiErrorCodes, CurrencyCode, Money } from '@ledgerly/shared/types';
+import {
+  AccountTypeValue,
+  apiErrorCodes,
+  CurrencyCode,
+} from '@ledgerly/shared/types';
 import {
   EntityNotFoundError,
   UnauthorizedAccessError,
 } from 'src/application/application.errors';
+import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
 import { Account } from 'src/domain/accounts/account.entity';
+import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,27 +33,29 @@ describe('GetAccountByIdUseCase', async () => {
   ).valueOf();
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = 1000 as Money;
+  const initialBalance = Amount.create('1000').valueOf();
   const currency = 'USD' as CurrencyCode;
-  const accountType = 'asset';
+  const accountType = 'asset' as AccountTypeValue;
 
   const mockUser = {
-    createdAt: new Date().toISOString(),
+    createdAt: Timestamp.create().valueOf(),
     email: 'test@example.com',
     id: user.id,
     name: 'Test User',
   };
 
   const mockSavedAccountData = {
-    createdAt: new Date().toISOString(),
+    createdAt: Timestamp.create().valueOf(),
     currency,
     currentClearedBalanceLocal: initialBalance,
     description,
-    id: '550e8400-e29b-41d4-a716-446655440001',
+    id: accountId,
     initialBalance,
+    isSystem: false,
+    isTombstone: false,
     name: accountName,
     type: accountType,
-    updatedAt: new Date().toISOString(),
+    updatedAt: Timestamp.create().valueOf(),
     userId: user.id,
   };
 
@@ -71,11 +79,16 @@ describe('GetAccountByIdUseCase', async () => {
       mockUserRepository.getById.mockResolvedValue(mockUser);
       mockAccountRepository.getById.mockResolvedValue(mockSavedAccountData);
 
-      await getAccountByIdUseCase.execute(user, accountId);
+      const result = await getAccountByIdUseCase.execute(user, accountId);
 
       expect(mockAccountRepository.getById).toHaveBeenCalledWith(
         user.id,
         accountId,
+      );
+      expect(result).toEqual(
+        AccountMapper.toResponseDTO(
+          AccountMapper.toDomain(mockSavedAccountData),
+        ),
       );
     });
 

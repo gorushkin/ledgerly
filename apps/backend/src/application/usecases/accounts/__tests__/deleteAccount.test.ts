@@ -1,6 +1,8 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
+import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
-import { Amount } from 'src/domain/domain-core';
+import { AccountDbRow } from 'src/db/schema';
+import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,17 +38,18 @@ describe('DeleteAccountUseCase', async () => {
     name: 'Test User',
   };
 
-  const mockAccountData = {
-    createdAt: new Date().toISOString(),
+  const mockAccountData: AccountDbRow = {
+    createdAt: Timestamp.create().valueOf(),
     currency: currencyCode,
     currentClearedBalanceLocal: initialBalance,
     description,
-    id: '550e8400-e29b-41d4-a716-446655440001',
+    id: Id.create().valueOf(),
     initialBalance,
+    isSystem: false,
     isTombstone: false,
     name: accountName,
     type: accountType,
-    updatedAt: new Date().toISOString(),
+    updatedAt: Timestamp.create().valueOf(),
     userId: user.id,
   };
 
@@ -83,7 +86,11 @@ describe('DeleteAccountUseCase', async () => {
         accountId,
       );
 
-      expect(result).toEqual(mockSavedAccountData);
+      expect(result).toEqual(
+        AccountMapper.toResponseDTO(
+          AccountMapper.toDomain(mockSavedAccountData),
+        ),
+      );
     });
 
     // TODO: Add missing tests based on account.service.test.ts:

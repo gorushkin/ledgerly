@@ -20,3 +20,11 @@ export type AccountSnapshot = {
   updatedAt: IsoDatetimeString;
   userId: UUID;
 };
+
+export type AccountUpdateData = Partial<{
+  currency: CurrencyCode;
+  description: string;
+  isSystem: boolean;
+  name: string;
+  type: AccountTypeValue;
+}>;
