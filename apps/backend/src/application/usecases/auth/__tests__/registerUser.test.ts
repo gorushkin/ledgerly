@@ -1,6 +1,7 @@
 import { UserAlreadyExistsError } from 'src/application/application.errors';
 import { CreateUserRequestDTO } from 'src/application/dto';
 import { UserRepositoryInterface } from 'src/application/interfaces';
+import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { User } from 'src/domain/users/user.entity';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,18 +33,18 @@ describe('RegisterUserUseCase', () => {
     };
 
     it('should create a user successfully', async () => {
-      mockUserRepository.getByEmail.mockResolvedValue(null);
-      mockUserRepository.create.mockResolvedValue({
+      const persistedUser = {
         email,
-        id: 'created-user-id',
+        id: Id.create().valueOf(),
         name,
-      });
+      };
+
+      mockUserRepository.getByEmail.mockResolvedValue(null);
+      mockUserRepository.create.mockResolvedValue(persistedUser);
 
       const result = await registerUserUseCase.execute(validRequest);
 
-      expect(result.email).toBe(email);
-      expect(result.name).toBe(name);
-      expect(typeof result.id).toBe('string');
+      expect(result).toBe(persistedUser);
 
       expect(mockUserRepository.getByEmail).toHaveBeenCalledWith(email);
 
@@ -60,7 +61,7 @@ describe('RegisterUserUseCase', () => {
       // Arrange
       mockUserRepository.getByEmail.mockResolvedValue({
         email: 'test@example.com',
-        id: 'existing-user-id',
+        id: Id.create().valueOf(),
       });
 
       // Act & Assert

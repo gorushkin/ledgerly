@@ -48,8 +48,18 @@ export class AccountMapper {
   }
 
   static toResponseDTO(account: Account): AccountResponseDTO {
-    const snapshot = account.toSnapshot();
+    return AccountMapper.toResponseDTOFromSnapshot(account.toSnapshot());
+  }
 
+  static toResponseDTOFromRow(row: AccountDbRow): AccountResponseDTO {
+    return AccountMapper.toResponseDTOFromSnapshot(
+      AccountMapper.toSnapshot(row),
+    );
+  }
+
+  private static toResponseDTOFromSnapshot(
+    snapshot: AccountSnapshot,
+  ): AccountResponseDTO {
     return {
       createdAt: snapshot.createdAt,
       currency: snapshot.currency,

@@ -14,7 +14,7 @@ export class GetAllAccountsUseCase extends AccountUseCaseBase {
     const accounts = await this.accountRepository.getAll(user.id);
 
     return accounts.map((account) =>
-      AccountMapper.toResponseDTO(AccountMapper.toDomain(account)),
+      AccountMapper.toResponseDTOFromRow(account),
     );
   }
 }
