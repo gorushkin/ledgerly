@@ -1,5 +1,6 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
 import { AccountRepositoryInterface } from 'src/application/interfaces';
+import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
 import { User } from 'src/domain';
 import { Account, AccountType } from 'src/domain/';
@@ -16,11 +17,8 @@ describe('CreateAccountUseCase', () => {
     findSystemAccount: vi.fn(),
   };
 
-  const mockedSaveWithIdRetry = vi.fn();
-
   const accountFactory = new AccountFactory(
     mockAccountRepository as unknown as AccountRepositoryInterface,
-    mockedSaveWithIdRetry,
   );
 
   const accountName = 'Test Account';
@@ -35,7 +33,7 @@ describe('CreateAccountUseCase', () => {
 
   describe('createAccount', () => {
     it('should create an account with correct properties', async () => {
-      const mockAccount = Account.create(
+      const expectedAccount = Account.create(
         user,
         Name.create(accountName),
         description,
@@ -44,7 +42,9 @@ describe('CreateAccountUseCase', () => {
         AccountType.create(accountType),
       );
 
-      mockedSaveWithIdRetry.mockResolvedValue(mockAccount);
+      mockAccountRepository.create.mockResolvedValue(
+        AccountMapper.toDBRow(expectedAccount),
+      );
 
       const account = await accountFactory.createAccount(user, {
         currency,
@@ -54,11 +54,9 @@ describe('CreateAccountUseCase', () => {
         type: accountType,
       });
 
-      expect(account).toBe(mockAccount);
-
       expect(account).toBeInstanceOf(Account);
 
-      const accountPersistenceDTO = account.toPersistence();
+      const accountPersistenceDTO = AccountMapper.toDBRow(account);
 
       expect(accountPersistenceDTO.name).toBe(accountName);
       expect(accountPersistenceDTO.description).toBe(description);
@@ -67,55 +65,9 @@ describe('CreateAccountUseCase', () => {
       expect(accountPersistenceDTO.type).toBe(accountType);
       expect(accountPersistenceDTO.isSystem).toBe(false);
 
-      expect(mockedSaveWithIdRetry).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.any(Function),
+      expect(mockAccountRepository.create).toHaveBeenCalledWith(
+        accountPersistenceDTO,
       );
     });
   });
-
-  // describe('findOrCreateSystemAccount', () => {
-  //   it('should create a system account if not found', async () => {
-  //     mockAccountRepository.findSystemAccount.mockRejectedValueOnce(
-  //       new RepositoryNotFoundError('Not found'),
-  //     );
-
-  //     const mockAccount = Account.create(
-  //       user,
-  //       Name.create(`Trading System Account (${currency})`),
-  //       `System account for ${currency} currency trading`,
-  //       Amount.create('0'),
-  //       Currency.create(currency),
-  //       AccountType.create('currencyTrading'),
-  //     );
-
-  //     mockedSaveWithIdRetry.mockResolvedValue(mockAccount);
-
-  //     const account = await accountFactory.findOrCreateSystemAccount(
-  //       user,
-  //       currency,
-  //     );
-
-  //     expect(account).toBeDefined();
-  //     expect(account).toBeInstanceOf(Account);
-
-  //     const accountPersistenceDTO = account.toPersistence();
-
-  //     expect(accountPersistenceDTO.name).toBe(
-  //       `Trading System Account (${currency})`,
-  //     );
-
-  //     expect(accountPersistenceDTO.description).toBe(
-  //       `System account for ${currency} currency trading`,
-  //     );
-
-  //     expect(accountPersistenceDTO.initialBalance).toBe(
-  //       Amount.create('0').valueOf(),
-  //     );
-
-  //     expect(accountPersistenceDTO.currency).toBe(currency);
-  //     expect(accountPersistenceDTO.type).toBe('currencyTrading');
-  //     expect(accountPersistenceDTO.isSystem).toBe(true);
-  //   });
-  // });
 });

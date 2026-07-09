@@ -1,4 +1,5 @@
 import { AccountCreateDTO, AccountResponseDTO } from '@ledgerly/shared/types';
+import { AccountMapper } from 'src/application/mappers';
 import { AccountFactory } from 'src/application/services';
 import { User } from 'src/domain/users/user.entity';
 
@@ -19,6 +20,6 @@ export class CreateAccountUseCase {
       type,
     });
 
-    return account.toResponseDTO();
+    return AccountMapper.toResponseDTO(account);
   }
 }

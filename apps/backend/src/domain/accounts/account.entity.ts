@@ -1,7 +1,3 @@
-import { AccountResponseDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
-import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
-import { AccountType, User } from 'src/domain';
-
 import {
   Amount,
   Currency,
@@ -13,6 +9,10 @@ import {
   EntityTimestamps,
   SoftDelete,
 } from '../domain-core';
+import { User } from '../users/user.entity';
+
+import { AccountType } from './account-type.enum.ts';
+import { AccountSnapshot, AccountUpdateData } from './types';
 
 export class Account {
   static readonly entityType = 'account';
@@ -76,7 +76,7 @@ export class Account {
     );
   }
 
-  static restore(data: AccountDbRow): Account {
+  static restore(data: AccountSnapshot): Account {
     const {
       createdAt,
       currency,
@@ -163,7 +163,7 @@ export class Account {
     return this.ownership.getParentId();
   }
 
-  toPersistence(): AccountRepoInsert {
+  toSnapshot(): AccountSnapshot {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       currency: this.currency.valueOf(),
@@ -184,7 +184,7 @@ export class Account {
     return this.type;
   }
 
-  updateAccount(data: AccountUpdateDTO): void {
+  updateAccount(data: AccountUpdateData): void {
     this.validateUpdateIsAllowed();
 
     const currency = data.currency
@@ -203,23 +203,6 @@ export class Account {
 
   isCurrencySame(currency: Currency): boolean {
     return this.currency.valueOf() === currency.valueOf();
-  }
-
-  toResponseDTO(): AccountResponseDTO {
-    return {
-      createdAt: this.getCreatedAt().valueOf(),
-      currency: this.currency.valueOf(),
-      currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
-      description: this.description,
-      id: this.getId().valueOf(),
-      initialBalance: this.initialBalance.valueOf(),
-      isSystem: this.isSystem,
-      isTombstone: this.softDelete.getIsTombstone(),
-      name: this.name.valueOf(),
-      type: this.type.valueOf(),
-      updatedAt: this.getUpdatedAt().valueOf(),
-      userId: this.ownership.getParentId().valueOf(),
-    };
   }
 
   getCurrency(): Currency {

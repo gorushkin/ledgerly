@@ -56,7 +56,7 @@ describe('Account Domain Entity', () => {
   });
 
   describe('restore', () => {
-    it('should restore operation from database data', () => {
+    it('should restore account from snapshot', () => {
       const accountIdValue = '223e4567-e89b-12d3-a456-426614174000';
       const createdAtValue = '2023-10-01T12:00:00.000Z';
       const updatedAtValue = '2023-10-02T12:00:00.000Z';
@@ -154,13 +154,13 @@ describe('Account Domain Entity', () => {
 
       expect(account.isDeleted()).toBe(false);
 
-      const accountBeforeDeleting = account.toPersistence();
+      const accountBeforeDeleting = account.toSnapshot();
 
       account.markAsDeleted();
 
       expect(account.isDeleted()).toBe(true);
 
-      const accountAfterDeleting = account.toPersistence();
+      const accountAfterDeleting = account.toSnapshot();
 
       expect(accountBeforeDeleting).toEqual({
         ...accountAfterDeleting,

@@ -1,5 +1,8 @@
-import { CurrencyCode, Money } from '@ledgerly/shared/types';
+import { AccountTypeValue, CurrencyCode } from '@ledgerly/shared/types';
+import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
+import { Amount, Timestamp } from 'src/domain/domain-core';
+import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,20 +19,25 @@ describe('GetAllAccounts', async () => {
 
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = 1000 as Money;
+  const accountId = Id.fromPersistence(
+    '550e8400-e29b-41d4-a716-446655440001',
+  ).valueOf();
+  const initialBalance = Amount.create('1000').valueOf();
   const currency = 'USD' as CurrencyCode;
-  const accountType = 'asset';
+  const accountType = 'asset' as AccountTypeValue;
 
   const mockSavedAccountData = {
-    createdAt: new Date().toISOString(),
+    createdAt: Timestamp.create().valueOf(),
     currency,
     currentClearedBalanceLocal: initialBalance,
     description,
-    id: '550e8400-e29b-41d4-a716-446655440001',
+    id: accountId,
     initialBalance,
+    isSystem: false,
+    isTombstone: false,
     name: accountName,
     type: accountType,
-    updatedAt: new Date().toISOString(),
+    updatedAt: Timestamp.create().valueOf(),
     userId: user.id,
   };
 
@@ -51,7 +59,11 @@ describe('GetAllAccounts', async () => {
 
       expect(mockAccountRepository.getAll).toHaveBeenCalledWith(user.id);
 
-      expect(result).toEqual([mockSavedAccountData]);
+      expect(result).toEqual([
+        AccountMapper.toResponseDTO(
+          AccountMapper.toDomain(mockSavedAccountData),
+        ),
+      ]);
     });
 
     // TODO: Add missing tests based on account.service.test.ts:

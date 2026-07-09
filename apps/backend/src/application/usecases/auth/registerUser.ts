@@ -1,7 +1,6 @@
 import { UserAlreadyExistsError } from 'src/application/application.errors';
 import { CreateUserRequestDTO, UserResponseDTO } from 'src/application/dto';
 import { UserRepositoryInterface } from 'src/application/interfaces';
-import { UserMapper } from 'src/application/mappers';
 import { Email, Name, Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 
@@ -23,8 +22,6 @@ export class RegisterUserUseCase {
 
     const user = User.create(nameVO, emailVO, passwordVO);
 
-    await this.userRepository.create(user);
-
-    return UserMapper.toResponseDTO(user);
+    return this.userRepository.create(user);
   }
 }

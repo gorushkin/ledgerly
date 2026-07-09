@@ -3,7 +3,7 @@ import {
   AccountUpdateDTO,
   UUID,
 } from '@ledgerly/shared/types';
-import { Account } from 'src/domain/accounts/account.entity';
+import { AccountMapper } from 'src/application/mappers';
 import { User } from 'src/domain/users/user.entity';
 import { AccountRepository } from 'src/infrastructure/db/';
 
@@ -21,14 +21,16 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
   ): Promise<AccountResponseDTO> {
     const accountData = await this.ensureAccountExistsAndOwned(user, accountId);
 
-    const account = Account.restore(accountData);
+    const account = AccountMapper.toDomain(accountData);
 
-    account.updateAccount(data);
+    account.updateAccount(AccountMapper.toUpdateData(data));
 
-    return this.accountRepository.update(
+    const updatedAccount = await this.accountRepository.update(
       user.id,
       accountId,
-      account.toPersistence(),
+      AccountMapper.toDBRow(account),
     );
+
+    return AccountMapper.toResponseDTO(AccountMapper.toDomain(updatedAccount));
   }
 }

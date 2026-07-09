@@ -4,6 +4,11 @@
 
 Personal finance management system implementing **double-entry bookkeeping** with **multi-currency support** (GnuCash-style trading accounts). Built as a monorepo with pnpm workspaces.
 
+## Language Preference For Reviews
+
+- In VS Code Copilot Chat and code review feedback, write review comments in Russian by default.
+- Keep code snippets, identifiers, file paths, and API names in their original language.
+
 ## Architecture & Domain Model
 
 ### Core Domain Hierarchy (Immutable)

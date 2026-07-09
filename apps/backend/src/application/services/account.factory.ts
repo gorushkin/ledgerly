@@ -1,6 +1,5 @@
-import { AccountCreateDTO, AccountResponseDTO } from '@ledgerly/shared/types';
-import { SaveWithIdRetryType } from 'src/application/shared/saveWithIdRetry';
-import { AccountRepoInsert } from 'src/db/schema';
+import { AccountCreateDTO } from '@ledgerly/shared/types';
+import { AccountMapper } from 'src/application/mappers';
 import { AccountType, Account } from 'src/domain/';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
@@ -10,49 +9,22 @@ import { AccountRepositoryInterface } from '../interfaces';
 export class AccountFactory {
   constructor(
     protected readonly accountRepository: AccountRepositoryInterface,
-    protected readonly saveWithIdRetry: SaveWithIdRetryType,
   ) {}
 
   async createAccount(user: User, data: AccountCreateDTO): Promise<Account> {
     const { currency, description, initialBalance, name, type } = data;
 
-    const createAccount = () =>
-      Account.create(
-        user,
-        Name.create(name),
-        description,
-        Amount.create(initialBalance),
-        Currency.create(currency),
-        AccountType.create(type),
-      );
-
-    return this.saveWithIdRetry<AccountRepoInsert, Account, AccountResponseDTO>(
-      this.accountRepository.create.bind(this.accountRepository),
-      createAccount,
+    const account = Account.create(
+      user,
+      Name.create(name),
+      description,
+      Amount.create(initialBalance),
+      Currency.create(currency),
+      AccountType.create(type),
     );
-  }
 
-  // async findOrCreateSystemAccount(
-  //   user: User,
-  //   currency: CurrencyCode,
-  // ): Promise<Account> {
-  //   try {
-  //     const systemAccount = await this.accountRepository.findSystemAccount(
-  //       user.getId().valueOf(),
-  //       currency,
-  //     );
-  //     return Account.restore(systemAccount);
-  //   } catch (error) {
-  //     if (error instanceof RepositoryNotFoundError) {
-  //       return await this.createAccount(user, {
-  //         currency,
-  //         description: `System account for ${currency} currency trading`,
-  //         initialBalance: Amount.create('0').valueOf(),
-  //         name: `Trading System Account (${currency})`,
-  //         type: 'currencyTrading',
-  //       });
-  //     }
-  //     throw error;
-  //   }
-  // }
+    await this.accountRepository.create(AccountMapper.toDBRow(account));
+
+    return account;
+  }
 }
