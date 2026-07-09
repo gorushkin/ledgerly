@@ -21,10 +21,9 @@ export type AccountSnapshot = {
   userId: UUID;
 };
 
-export type AccountUpdateData = Partial<{
+export type AccountUpdateProps = Partial<{
   currency: CurrencyCode;
   description: string;
-  isSystem: boolean;
   name: string;
   type: AccountTypeValue;
 }>;
