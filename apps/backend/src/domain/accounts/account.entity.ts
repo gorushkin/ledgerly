@@ -12,7 +12,7 @@ import {
 import { User } from '../users/user.entity';
 
 import { AccountType } from './account-type.enum.ts';
-import { AccountSnapshot, AccountUpdateData } from './types';
+import { AccountSnapshot, AccountUpdateProps } from './types';
 
 export class Account {
   static readonly entityType = 'account';
@@ -184,7 +184,7 @@ export class Account {
     return this.type;
   }
 
-  updateAccount(data: AccountUpdateData): void {
+  update(data: AccountUpdateProps): void {
     this.validateUpdateIsAllowed();
 
     const currency = data.currency

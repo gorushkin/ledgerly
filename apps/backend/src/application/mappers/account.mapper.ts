@@ -3,7 +3,7 @@ import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
 import {
   Account,
   AccountSnapshot,
-  AccountUpdateData,
+  AccountUpdateProps,
 } from 'src/domain/accounts';
 
 export class AccountMapper {
@@ -76,11 +76,10 @@ export class AccountMapper {
     };
   }
 
-  static toUpdateData(dto: AccountUpdateDTO): AccountUpdateData {
+  static toUpdateProps(dto: AccountUpdateDTO): AccountUpdateProps {
     return {
       currency: dto.currency,
       description: dto.description,
-      isSystem: dto.isSystem,
       name: dto.name,
       type: dto.type,
     };

@@ -89,4 +89,7 @@ API response DTO.
 - [ADR 0002: Operation application boundary](./0002-operation-application-boundary.md)
 - [Документация домена](../../DOMAIN.md)
 - Jira epic: https://gorushkin.atlassian.net/browse/LED-57
-- Current task: https://gorushkin.atlassian.net/browse/LED-2
+- Implementation tasks:
+  - https://gorushkin.atlassian.net/browse/LED-2
+  - https://gorushkin.atlassian.net/browse/LED-4
+  - https://gorushkin.atlassian.net/browse/LED-5

@@ -99,7 +99,7 @@ describe('AccountMapper', () => {
     });
   });
 
-  it('maps a full update DTO to domain update data', () => {
+  it('maps a full update DTO to domain update props', () => {
     const dto: AccountUpdateDTO = {
       currency: Currency.create('EUR').valueOf(),
       description: 'Updated description',
@@ -108,10 +108,9 @@ describe('AccountMapper', () => {
       type: 'liability',
     };
 
-    expect(AccountMapper.toUpdateData(dto)).toEqual({
+    expect(AccountMapper.toUpdateProps(dto)).toEqual({
       currency: dto.currency,
       description: dto.description,
-      isSystem: dto.isSystem,
       name: dto.name,
       type: dto.type,
     });
@@ -122,10 +121,9 @@ describe('AccountMapper', () => {
       name: 'Only Name Changed',
     };
 
-    expect(AccountMapper.toUpdateData(dto)).toEqual({
+    expect(AccountMapper.toUpdateProps(dto)).toEqual({
       currency: undefined,
       description: undefined,
-      isSystem: undefined,
       name: dto.name,
       type: undefined,
     });

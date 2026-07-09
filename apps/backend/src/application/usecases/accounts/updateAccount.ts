@@ -23,7 +23,7 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
 
     const account = AccountMapper.toDomain(accountData);
 
-    account.updateAccount(AccountMapper.toUpdateData(data));
+    account.update(AccountMapper.toUpdateProps(data));
 
     const updatedAccount = await this.accountRepository.update(
       user.id,
