@@ -1,7 +1,7 @@
 import { DEFAULT_TRANSACTION_QUERY } from '@ledgerly/shared/constants';
 import { UUID } from '@ledgerly/shared/types';
 import { TransactionResponseDTO } from 'src/application/dto';
-import {
+import type {
   AccountRepositoryInterface,
   TransactionQueryRepositoryInterface,
 } from 'src/application/interfaces';

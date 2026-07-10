@@ -1,8 +1,9 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
 import { AccountFactory } from 'src/application/services/account.factory';
 import { createUser } from 'src/db/createTestUser';
+import { AccountType } from 'src/domain';
 import { Account } from 'src/domain/accounts/account.entity';
-import { Amount } from 'src/domain/domain-core';
+import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateAccountUseCase } from '../createAccount';
@@ -34,11 +35,14 @@ describe('CreateAccountUseCase', async () => {
     it('should create a new account successfully', async () => {
       // Arrange
 
-      const mockedResult = { data: 'some account data' };
-
-      const mockedAccount = {
-        toResponseDTO: vi.fn().mockResolvedValue(mockedResult),
-      } as unknown as Account;
+      const mockedAccount = Account.create(
+        user,
+        Name.create(name),
+        description,
+        Amount.create(initialBalance),
+        Currency.create(currency),
+        AccountType.create(type),
+      );
 
       accountFactory.createAccount.mockResolvedValue(mockedAccount);
 
@@ -59,7 +63,15 @@ describe('CreateAccountUseCase', async () => {
         type,
       });
 
-      expect(result).toEqual(mockedResult);
+      expect(result).toMatchObject({
+        currency,
+        description,
+        initialBalance,
+        isSystem: false,
+        name,
+        type,
+        userId: user.id,
+      });
     });
   });
 });

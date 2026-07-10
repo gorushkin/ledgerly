@@ -10,7 +10,7 @@ import {
   UpdateOperationRequestDTO,
   UpdateTransactionRequestDTO,
 } from 'src/application/dto';
-import {
+import type {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';

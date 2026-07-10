@@ -1,4 +1,6 @@
 import type { FastifyRequest } from 'fastify';
+import { Id, Timestamp } from 'src/domain/domain-core';
+import { User } from 'src/domain/users/user.entity';
 import { UnauthorizedError } from 'src/presentation/errors';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -26,6 +28,32 @@ const createRequest = ({
   }) as unknown as FastifyRequest;
 
 describe('authMiddleware', () => {
+  const user = User.restore({
+    createdAt: Timestamp.create().valueOf(),
+    email: 'user@example.com',
+    id: Id.create().valueOf(),
+    name: 'Test User',
+    password: 'hashed-password',
+    updatedAt: Timestamp.create().valueOf(),
+  });
+
+  it('loads the authenticated domain user', async () => {
+    const getByIdWithPassword = vi.fn().mockResolvedValue(user);
+    const request = createRequest({
+      authorization: 'Bearer token',
+      getByIdWithPassword,
+      jwtVerify: vi.fn().mockResolvedValue({
+        email: user.email.valueOf(),
+        userId: user.id,
+      }),
+    });
+
+    await authMiddleware(request, {} as never);
+
+    expect(getByIdWithPassword).toHaveBeenCalledWith(user.id);
+    expect(request.user).toBe(user);
+  });
+
   it('preserves the authentication-required error when the token is missing', async () => {
     await expect(
       authMiddleware(createRequest({}), {} as never),

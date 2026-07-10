@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import {
+import type {
   TransactionContext,
   TransactionManagerInterface,
 } from 'src/application/interfaces';

@@ -1,6 +1,6 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { and, eq, inArray } from 'drizzle-orm';
-import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import {
   AccountDbRow,
   AccountDbUpdate,
