@@ -2,7 +2,7 @@ import {
   CreateTransactionRequestDTO,
   TransactionResponseDTO,
 } from 'src/application/dto';
-import {
+import type {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';

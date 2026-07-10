@@ -87,9 +87,7 @@ describe('DeleteAccountUseCase', async () => {
       );
 
       expect(result).toEqual(
-        AccountMapper.toResponseDTO(
-          AccountMapper.toDomain(mockSavedAccountData),
-        ),
+        AccountMapper.toResponseDTOFromRow(mockSavedAccountData),
       );
     });
 

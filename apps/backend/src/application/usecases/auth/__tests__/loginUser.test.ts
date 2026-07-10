@@ -2,7 +2,7 @@ import {
   InvalidPasswordError,
   UserNotFoundError,
 } from 'src/application/application.errors';
-import { UserRepositoryInterface } from 'src/application/interfaces';
+import type { UserRepositoryInterface } from 'src/application/interfaces';
 import { Password } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

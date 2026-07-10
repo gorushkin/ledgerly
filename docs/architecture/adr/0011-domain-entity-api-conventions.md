@@ -35,10 +35,11 @@ domain state, persistence representation и public API shape.
    shared request/response DTO или HTTP-specific типы.
 5. Domain entity не должна содержать `toPersistence()`, `toResponseDTO()` или
    `fromPersistence(...)`.
-6. Преобразования `entity -> response DTO`, `entity -> DB row` и
-   `DB row -> entity snapshot/entity` выполняются в application или
-   infrastructure mapper, в зависимости от направления и существующей границы
-   модуля.
+6. Преобразования `domain snapshot -> response DTO`,
+   `domain snapshot -> DB row` и `DB row -> entity snapshot/entity`
+   выполняются в application или infrastructure mapper, в зависимости от
+   направления и существующей границы модуля. Entity не должна предоставлять
+   persistence/DTO методы для этих преобразований.
 7. `Transaction` и `Operation` считаются текущим эталоном для entity API.
    Отклонения допустимы только если они явно описаны в документации или ADR.
 
@@ -93,3 +94,4 @@ API response DTO.
   - https://gorushkin.atlassian.net/browse/LED-2
   - https://gorushkin.atlassian.net/browse/LED-4
   - https://gorushkin.atlassian.net/browse/LED-5
+  - https://gorushkin.atlassian.net/browse/LED-6

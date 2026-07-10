@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import {
+import type {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';

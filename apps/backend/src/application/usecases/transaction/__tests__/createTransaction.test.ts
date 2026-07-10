@@ -1,4 +1,4 @@
-import {
+import type {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';

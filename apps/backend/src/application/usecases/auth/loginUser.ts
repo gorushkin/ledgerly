@@ -3,7 +3,7 @@ import {
   UserNotFoundError,
 } from 'src/application/application.errors';
 import { UserResponseDTO } from 'src/application/dto';
-import { UserRepositoryInterface } from 'src/application/interfaces';
+import type { UserRepositoryInterface } from 'src/application/interfaces';
 import { UserMapper } from 'src/application/mappers';
 
 export class LoginUserUseCase {

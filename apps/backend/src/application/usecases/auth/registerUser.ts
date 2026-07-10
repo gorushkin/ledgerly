@@ -1,6 +1,6 @@
 import { UserAlreadyExistsError } from 'src/application/application.errors';
 import { CreateUserRequestDTO, UserResponseDTO } from 'src/application/dto';
-import { UserRepositoryInterface } from 'src/application/interfaces';
+import type { UserRepositoryInterface } from 'src/application/interfaces';
 import { Email, Name, Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 

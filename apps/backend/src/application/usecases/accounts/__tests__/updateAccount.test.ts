@@ -89,9 +89,7 @@ describe('UpdateAccount', async () => {
 
       expect(result.name).toBe('Updated Account');
       expect(result).toEqual(
-        AccountMapper.toResponseDTO(
-          AccountMapper.toDomain(mockAccountUpdatedData),
-        ),
+        AccountMapper.toResponseDTOFromRow(mockAccountUpdatedData),
       );
     });
 
