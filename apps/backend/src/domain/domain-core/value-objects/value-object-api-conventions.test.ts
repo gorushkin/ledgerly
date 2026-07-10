@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AccountType } from '../../accounts';
+import { EntityIdentity, EntityTimestamps, SoftDelete } from '../behaviors';
 
 import { Amount } from './Amount';
 import { Currency } from './Currency';
@@ -77,5 +78,101 @@ describe('value object API conventions', () => {
     expect(
       AccountType.create('asset').equals(AccountType.restore('asset')),
     ).toBe(true);
+  });
+
+  it('keeps fromPersistence aliases equivalent to restore()', () => {
+    const id = '11111111-1111-4111-8111-111111111111';
+    const usd = Currency.create('USD').valueOf();
+    const updatedAt = Timestamp.restore('2026-07-10T10:00:00.000Z');
+    const createdAt = Timestamp.restore('2026-07-09T10:00:00.000Z');
+
+    expect(Amount.fromPersistence('1200').toPersistence()).toBe(
+      Amount.restore('1200').toPersistence(),
+    );
+    expect(Currency.fromPersistence('USD').valueOf()).toBe(
+      Currency.restore('USD').valueOf(),
+    );
+    expect(Email.fromPersistence('user@example.com').valueOf()).toBe(
+      Email.restore('user@example.com').valueOf(),
+    );
+    expect(Id.fromPersistence(id).valueOf()).toBe(Id.restore(id).valueOf());
+    expect(Money.fromPersistence('1200', usd).toPersistence()).toEqual(
+      Money.restore('1200', usd).toPersistence(),
+    );
+    expect(Name.fromPersistence('Restored Name').valueOf()).toBe(
+      Name.restore('Restored Name').valueOf(),
+    );
+    expect(Password.fromPersistence('$2hashed-password').valueOf()).toBe(
+      Password.restore('$2hashed-password').valueOf(),
+    );
+    expect(
+      EntityIdentity.fromPersistence(Id.restore(id)).getId().valueOf(),
+    ).toBe(EntityIdentity.restore(Id.restore(id)).getId().valueOf());
+    expect(
+      EntityTimestamps.fromPersistence(updatedAt, createdAt)
+        .getUpdatedAt()
+        .valueOf(),
+    ).toBe(
+      EntityTimestamps.restore(updatedAt, createdAt).getUpdatedAt().valueOf(),
+    );
+    expect(SoftDelete.fromPersistence(true).isDeleted()).toBe(
+      SoftDelete.restore(true).isDeleted(),
+    );
+  });
+
+  it('keeps isEqualTo aliases equivalent to equals()', () => {
+    const parentId = Id.restore('11111111-1111-4111-8111-111111111111');
+    const childId = Id.restore('22222222-2222-4222-8222-222222222222');
+    const usd = Currency.create('USD').valueOf();
+
+    expect(Amount.create('1200').isEqualTo(Amount.restore('1200'))).toBe(
+      Amount.create('1200').equals(Amount.restore('1200')),
+    );
+    expect(Currency.create('usd').isEqualTo(Currency.restore('USD'))).toBe(
+      Currency.create('usd').equals(Currency.restore('USD')),
+    );
+    expect(
+      DateValue.restore('2026-07-10').isEqualTo(
+        DateValue.restore('2026-07-10'),
+      ),
+    ).toBe(
+      DateValue.restore('2026-07-10').equals(DateValue.restore('2026-07-10')),
+    );
+    expect(
+      Email.create('USER@example.com').isEqualTo(
+        Email.restore('user@example.com'),
+      ),
+    ).toBe(
+      Email.create('USER@example.com').equals(
+        Email.restore('user@example.com'),
+      ),
+    );
+    expect(
+      Money.create('1200', usd).isEqualTo(Money.restore('1200', usd)),
+    ).toBe(Money.create('1200', usd).equals(Money.restore('1200', usd)));
+    expect(
+      Name.create('Restored Name').isEqualTo(Name.restore('Restored Name')),
+    ).toBe(Name.create('Restored Name').equals(Name.restore('Restored Name')));
+    expect(
+      ParentChildRelation.create(parentId, childId).isEqualTo(
+        ParentChildRelation.create(parentId, childId),
+      ),
+    ).toBe(
+      ParentChildRelation.create(parentId, childId).equals(
+        ParentChildRelation.create(parentId, childId),
+      ),
+    );
+    expect(
+      Timestamp.restore('2026-07-10T10:00:00.000Z').isEqualTo(
+        Timestamp.restore('2026-07-10T10:00:00.000Z'),
+      ),
+    ).toBe(
+      Timestamp.restore('2026-07-10T10:00:00.000Z').equals(
+        Timestamp.restore('2026-07-10T10:00:00.000Z'),
+      ),
+    );
+    expect(Version.create(3).isEqualTo(Version.restore(3))).toBe(
+      Version.create(3).equals(Version.restore(3)),
+    );
   });
 });

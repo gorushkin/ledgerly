@@ -11,7 +11,7 @@ import {
 } from '../domain-core';
 import { User } from '../users/user.entity';
 
-import { AccountType } from './account-type.enum.ts';
+import { AccountType } from './account-type.enum';
 import { AccountSnapshot, AccountUpdateProps } from './types';
 
 export class Account {

@@ -45,9 +45,6 @@ export class ParentChildRelation {
   }
 
   /**
-   * Checks if two relations are equal
-   */
-  /**
    * @deprecated Use equals() for value equality.
    * Remove this compatibility alias in LED-80.
    */
