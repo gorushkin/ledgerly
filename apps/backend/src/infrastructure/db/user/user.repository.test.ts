@@ -228,7 +228,13 @@ describe('UsersRepository', () => {
 
       const updatedUser = await userRepository.getByIdWithPassword(user.id);
 
-      await expect(updatedUser?.validatePassword(newPassword)).resolves.toBe(
+      expect(updatedUser).toBeDefined();
+
+      if (!updatedUser) {
+        throw new Error('Expected updated user to exist');
+      }
+
+      await expect(updatedUser.validatePassword(newPassword)).resolves.toBe(
         true,
       );
     });

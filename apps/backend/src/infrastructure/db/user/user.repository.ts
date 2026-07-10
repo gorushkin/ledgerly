@@ -3,10 +3,10 @@ import { eq } from 'drizzle-orm';
 import {
   UserMapper,
   UserRepositoryInterface,
+  UpdateUserRequestDTO,
   UserResponseDTO,
 } from 'src/application';
 import { usersTable } from 'src/db/schemas';
-import { UserSnapshot } from 'src/domain/users/types';
 import { User } from 'src/domain/users/user.entity';
 
 import { BaseRepository } from '../BaseRepository';
@@ -21,7 +21,10 @@ export class UserRepository
   extends BaseRepository
   implements UserRepositoryInterface
 {
-  update(_userId: UUID, _userData: Partial<UserSnapshot>): Promise<User> {
+  update(
+    _userId: UUID,
+    _userData: UpdateUserRequestDTO,
+  ): Promise<UserResponseDTO> {
     throw new Error('Method not implemented.');
   }
 
@@ -82,15 +85,17 @@ export class UserRepository
     data: UsersUpdateDTO,
   ): Promise<UsersResponseDTO> {
     return this.executeDatabaseOperation(async () => {
-      const updateData: Partial<typeof usersTable.$inferInsert> = {};
+      const updateData: Partial<
+        Pick<typeof usersTable.$inferInsert, 'email' | 'name'>
+      > = {};
 
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined) {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          updateData[key as keyof typeof usersTable.$inferInsert] = value;
-        }
-      });
+      if (data.email !== undefined) {
+        updateData.email = data.email;
+      }
+
+      if (data.name !== undefined) {
+        updateData.name = data.name;
+      }
 
       const updatedUserProfile = await this.db
         .update(usersTable)
