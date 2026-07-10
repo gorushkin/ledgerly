@@ -18,11 +18,27 @@ export class Name {
     return new Name(trimmed);
   }
 
-  static fromPersistence(value: string): Name {
+  static restore(value: string): Name {
     return new Name(value);
   }
 
+  /**
+   * @deprecated Use restore() for domain snapshot restoration.
+   * Remove this compatibility alias in LED-81.
+   */
+  static fromPersistence(value: string): Name {
+    return Name.restore(value);
+  }
+
+  /**
+   * @deprecated Use equals() for value equality.
+   * Remove this compatibility alias in LED-80.
+   */
   isEqualTo(other: Name): boolean {
+    return this.value === other.value;
+  }
+
+  equals(other: Name): boolean {
     return this.value === other.value;
   }
 

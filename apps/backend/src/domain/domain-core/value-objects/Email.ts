@@ -18,8 +18,16 @@ export class Email {
     return new Email(trimmed);
   }
 
-  static fromPersistence(value: string): Email {
+  static restore(value: string): Email {
     return new Email(value);
+  }
+
+  /**
+   * @deprecated Use restore() for domain snapshot restoration.
+   * Remove this compatibility alias in LED-81.
+   */
+  static fromPersistence(value: string): Email {
+    return Email.restore(value);
   }
 
   private static isValidEmail(email: string): boolean {
@@ -74,7 +82,15 @@ export class Email {
     return emailRegex.test(email);
   }
 
+  /**
+   * @deprecated Use equals() for value equality.
+   * Remove this compatibility alias in LED-80.
+   */
   isEqualTo(other: Email): boolean {
+    return this.value === other.value;
+  }
+
+  equals(other: Email): boolean {
     return this.value === other.value;
   }
 

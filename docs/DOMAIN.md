@@ -114,6 +114,19 @@ filter, for example `toActiveSnapshot()` for an aggregate view containing only
 active child entities. These projection methods are domain-specific and are not
 required for every entity.
 
+### Identity Access
+
+`getId(): Id` is the canonical domain identity accessor for entities. New
+domain code should use `getId()` while inside domain/application boundaries and
+convert to primitive UUID only at mapper, repository, HTTP or shared DTO
+boundaries through `getId().valueOf()`.
+
+`User.id` currently returns a primitive UUID as a legacy convenience for
+existing application, HTTP and test call sites. Do not copy this pattern to new
+entities or new code. Removing this compatibility getter and normalizing entity
+identity access is tracked by Jira
+[`LED-82`](https://gorushkin.atlassian.net/browse/LED-82).
+
 ### Example Shape
 
 ```ts
@@ -134,6 +147,33 @@ export class ExampleEntity {
 
 See [ADR 0011](./architecture/adr/0011-domain-entity-api-conventions.md) for
 the architectural decision and rationale.
+
+## Value Object API Conventions
+
+Value objects use one public API pattern for validated construction,
+restoration from plain state and comparison.
+
+1. `static create(...)` creates a value object from new user/application input
+   and applies input normalization when needed.
+2. `static restore(...)` restores a value object from already persisted or
+   plain domain state. It must preserve the stored value semantics and should
+   not apply user-input-only normalization unless that normalization is part of
+   the persisted invariant.
+3. `equals(other)` compares value objects by value. `isEqualTo(other)` may
+   exist only as a temporary compatibility wrapper while legacy call sites are
+   migrated. Domain `isEqualTo(...)` aliases are marked `@deprecated`; removing
+   them is tracked by Jira
+   [`LED-80`](https://gorushkin.atlassian.net/browse/LED-80).
+4. `valueOf()` returns the primitive/domain-safe value used in snapshots and
+   mapper boundaries.
+5. `fromPersistence(...)` and `toPersistence()` are legacy compatibility
+   helpers for existing mapper/repository code. New domain code should prefer
+   `restore(...)` and `valueOf()` unless a persistence-specific shape is
+   required outside the domain layer. For example, `Amount.fromPersistence(...)`
+   remains only as a temporary compatibility alias; new `Amount` call sites
+   should use `Amount.restore(...)`. Removing `fromPersistence(...)` aliases
+   from value objects and behaviors is tracked by Jira
+   [`LED-81`](https://gorushkin.atlassian.net/browse/LED-81).
 
 ## Business Rules
 

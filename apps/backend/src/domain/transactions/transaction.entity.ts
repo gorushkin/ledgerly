@@ -159,16 +159,16 @@ export class Transaction {
       version,
     } = data;
 
-    const idVO = Id.fromPersistence(id);
+    const idVO = Id.restore(id);
 
-    const identity = EntityIdentity.fromPersistence(idVO);
-    const timestamps = EntityTimestamps.fromPersistence(
+    const identity = EntityIdentity.restore(idVO);
+    const timestamps = EntityTimestamps.restore(
       Timestamp.restore(updatedAt),
       Timestamp.restore(createdAt),
     );
-    const softDelete = SoftDelete.fromPersistence(isTombstone);
+    const softDelete = SoftDelete.restore(isTombstone);
     const ownership = ParentChildRelation.create(
-      Id.fromPersistence(userId),
+      Id.restore(userId),
       identity.getId(),
     );
 
@@ -179,7 +179,7 @@ export class Transaction {
       ownership,
       DateValue.restore(postingDate),
       DateValue.restore(transactionDate),
-      Currency.fromPersistence(currency),
+      Currency.restore(currency),
       description,
       Version.restore(version),
     );
@@ -210,7 +210,7 @@ export class Transaction {
   }
 
   matchesVersion(expectedVersion: Version): boolean {
-    return this.version.isEqualTo(expectedVersion);
+    return this.version.equals(expectedVersion);
   }
 
   private markUpdated() {
@@ -274,7 +274,7 @@ export class Transaction {
   }
 
   private updatePostingDate(postingDate: DateValue): boolean {
-    if (this.postingDate.isEqualTo(postingDate)) {
+    if (this.postingDate.equals(postingDate)) {
       return false;
     }
 
@@ -283,7 +283,7 @@ export class Transaction {
   }
 
   private updateTransactionDate(transactionDate: DateValue): boolean {
-    if (this.transactionDate.isEqualTo(transactionDate)) {
+    if (this.transactionDate.equals(transactionDate)) {
       return false;
     }
 

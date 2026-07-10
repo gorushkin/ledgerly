@@ -75,6 +75,21 @@ snapshot-focused interface without forcing all entities into one lifecycle.
 4. **Validation at creation** - invariants are checked at creation time
 5. **Replacement instead of modification** - create new object for "changes"
 
+Public API convention:
+
+- `create(...)` builds a value object from new user/application input and runs
+  any input normalization.
+- `restore(...)` rebuilds a value object from persisted/plain domain state.
+- `equals(other)` is the canonical comparison method. `isEqualTo(other)` may
+  remain as a compatibility wrapper during migration. Domain `isEqualTo(...)`
+  aliases are marked `@deprecated` and should be removed in `LED-80`.
+- `valueOf()` returns the primitive/domain-safe value used by snapshots and
+  mappers.
+- `fromPersistence(...)` and `toPersistence()` are legacy compatibility helpers
+  for existing mapper/repository code; new domain code should prefer
+  `restore(...)` and `valueOf()`. Domain `fromPersistence(...)` aliases are
+  marked `@deprecated` and should be removed in `LED-81`.
+
 ```typescript
 // ✅ Correct Value Objects usage
 class User {
@@ -143,7 +158,7 @@ const currency = Currency.create('USD');
 // Value Objects comparison
 const email1 = Email.create('TEST@example.com');
 const email2 = Email.create('test@example.com');
-console.log(email1.isEqualTo(email2)); // true (lowercase normalization)
+console.log(email1.equals(email2)); // true (lowercase normalization)
 ```
 
 #### Usage in User Entity

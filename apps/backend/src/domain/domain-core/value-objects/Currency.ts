@@ -22,13 +22,29 @@ export class Currency {
     return new Currency(parsed);
   }
 
-  static fromPersistence(codeStr: string): Currency {
+  static restore(codeStr: string): Currency {
     const parsed = currencyCode.parse(codeStr);
     return new Currency(parsed);
   }
 
-  isEqualTo(other: Currency): boolean {
+  /**
+   * @deprecated Use restore() for domain snapshot restoration.
+   * Remove this compatibility alias in LED-81.
+   */
+  static fromPersistence(codeStr: string): Currency {
+    return Currency.restore(codeStr);
+  }
+
+  equals(other: Currency): boolean {
     return this.code === other.code;
+  }
+
+  /**
+   * @deprecated Use equals() for value equality.
+   * Remove this compatibility alias in LED-80.
+   */
+  isEqualTo(other: Currency): boolean {
+    return this.equals(other);
   }
 
   valueOf(): CurrencyCode {

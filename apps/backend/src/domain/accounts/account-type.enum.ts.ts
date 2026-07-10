@@ -40,6 +40,10 @@ export class AccountType {
     return new AccountType(type);
   }
 
+  static restore(type: AccountTypeValue): AccountType {
+    return AccountType.create(type);
+  }
+
   toString(): string {
     return this._value;
   }

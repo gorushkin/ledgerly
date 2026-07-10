@@ -38,18 +38,16 @@ export class User {
   }
 
   static restore(data: UserSnapshot): User {
-    const identity = EntityIdentity.fromPersistence(
-      Id.fromPersistence(data.id),
-    );
+    const identity = EntityIdentity.restore(Id.restore(data.id));
 
-    const timestamps = EntityTimestamps.fromPersistence(
+    const timestamps = EntityTimestamps.restore(
       Timestamp.restore(data.updatedAt),
       Timestamp.restore(data.createdAt),
     );
 
-    const email = Email.create(data.email);
-    const name = Name.create(data.name);
-    const password = Password.fromPersistence(data.password);
+    const email = Email.restore(data.email);
+    const name = Name.restore(data.name);
+    const password = Password.restore(data.password);
 
     return new User(identity, timestamps, email, name, password);
   }

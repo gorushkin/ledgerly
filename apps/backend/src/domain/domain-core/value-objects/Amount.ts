@@ -26,12 +26,28 @@ export class Amount {
     return new Amount(value);
   }
 
-  static fromPersistence(value: string): Amount {
+  static restore(value: string): Amount {
     return new Amount(value);
+  }
+
+  /**
+   * @deprecated Use restore() for domain snapshot restoration.
+   * Remove this compatibility alias in LED-81.
+   */
+  static fromPersistence(value: string): Amount {
+    return Amount.restore(value);
   }
 
   equals(other: Amount): boolean {
     return this.minor === other.minor;
+  }
+
+  /**
+   * @deprecated Use equals() for value equality.
+   * Remove this compatibility alias in LED-80.
+   */
+  isEqualTo(other: Amount): boolean {
+    return this.equals(other);
   }
 
   valueOf(): MoneyString {
