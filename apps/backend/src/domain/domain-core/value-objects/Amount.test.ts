@@ -50,11 +50,11 @@ describe('Amount Value Object', () => {
     });
   });
 
-  describe('fromPersistence method', () => {
+  describe('restore method', () => {
     it.each(['100', '-100', '0'])(
       'should restore a valid integer minor-unit amount %s',
       (value) => {
-        expect(Amount.fromPersistence(value).valueOf()).toBe(value);
+        expect(Amount.restore(value).valueOf()).toBe(value);
       },
     );
 
@@ -70,7 +70,7 @@ describe('Amount Value Object', () => {
       ['decimal string', '12.3'],
     ])('should reject invalid persisted amount: %s', (_caseName, value) => {
       const error = captureInvalidAmountError(() =>
-        Amount.fromPersistence(value as string),
+        Amount.restore(value as string),
       );
 
       expect(error).toMatchObject({
@@ -80,6 +80,12 @@ describe('Amount Value Object', () => {
           received: String(value),
         },
       });
+    });
+
+    it('keeps fromPersistence as a temporary compatibility alias', () => {
+      expect(Amount.fromPersistence('100').equals(Amount.restore('100'))).toBe(
+        true,
+      );
     });
   });
 

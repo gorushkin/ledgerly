@@ -11,7 +11,7 @@ import {
 } from '../domain-core';
 import { User } from '../users/user.entity';
 
-import { AccountType } from './account-type.enum.ts';
+import { AccountType } from './account-type.enum';
 import { AccountSnapshot, AccountUpdateProps } from './types';
 
 export class Account {
@@ -92,14 +92,17 @@ export class Account {
       userId,
     } = data;
 
-    const identity = new EntityIdentity(Id.fromPersistence(id));
-    const timestamps = EntityTimestamps.fromPersistence(
+    const identity = EntityIdentity.restore(Id.restore(id));
+
+    const timestamps = EntityTimestamps.restore(
       Timestamp.restore(updatedAt),
       Timestamp.restore(createdAt),
     );
-    const softDelete = SoftDelete.fromPersistence(isTombstone);
+
+    const softDelete = SoftDelete.restore(isTombstone);
+
     const ownership = ParentChildRelation.create(
-      Id.fromPersistence(userId),
+      Id.restore(userId),
       identity.getId(),
     );
 
@@ -108,12 +111,12 @@ export class Account {
       timestamps,
       softDelete,
       ownership,
-      Name.fromPersistence(name),
+      Name.restore(name),
       description,
-      Amount.create(initialBalance),
-      Amount.create(currentClearedBalanceLocal),
-      Currency.create(currency),
-      AccountType.create(type),
+      Amount.restore(initialBalance),
+      Amount.restore(currentClearedBalanceLocal),
+      Currency.restore(currency),
+      AccountType.restore(type),
       isSystem,
     );
   }

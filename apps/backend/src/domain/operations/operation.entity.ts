@@ -85,26 +85,26 @@ export class Operation {
       value,
     } = data;
 
-    const identity = EntityIdentity.fromPersistence(Id.fromPersistence(id));
+    const identity = EntityIdentity.restore(Id.restore(id));
 
-    const timestamps = EntityTimestamps.fromPersistence(
+    const timestamps = EntityTimestamps.restore(
       Timestamp.restore(updatedAt),
       Timestamp.restore(createdAt),
     );
-    const softDelete = SoftDelete.fromPersistence(isTombstone);
+    const softDelete = SoftDelete.restore(isTombstone);
 
     const ownership = ParentChildRelation.create(
-      Id.fromPersistence(userId),
+      Id.restore(userId),
       identity.getId(),
     );
 
     const transactionRelation = ParentChildRelation.create(
-      Id.fromPersistence(transactionId),
+      Id.restore(transactionId),
       identity.getId(),
     );
 
     const accountRelation = ParentChildRelation.create(
-      Id.fromPersistence(accountId),
+      Id.restore(accountId),
       identity.getId(),
     );
 
@@ -115,8 +115,8 @@ export class Operation {
       ownership,
       transactionRelation,
       accountRelation,
-      Amount.fromPersistence(amount),
-      Amount.fromPersistence(value),
+      Amount.restore(amount),
+      Amount.restore(value),
       description,
       isSystem,
     );

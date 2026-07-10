@@ -29,8 +29,16 @@ export class EntityIdentity {
     return new EntityIdentity(id ?? Id.create());
   }
 
-  static fromPersistence(id: Id): EntityIdentity {
+  static restore(id: Id): EntityIdentity {
     return new EntityIdentity(id);
+  }
+
+  /**
+   * @deprecated Use restore() for domain snapshot restoration.
+   * Remove this compatibility alias in LED-81.
+   */
+  static fromPersistence(id: Id): EntityIdentity {
+    return EntityIdentity.restore(id);
   }
 
   equals(other: EntityIdentity): boolean {
