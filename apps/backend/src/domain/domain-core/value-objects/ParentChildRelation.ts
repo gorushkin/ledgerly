@@ -7,7 +7,9 @@ export class ParentChildRelation {
   constructor(
     private readonly parentId: Id,
     private readonly childId: Id,
-  ) {}
+  ) {
+    Object.freeze(this);
+  }
 
   /**
    * Checks if the child belongs to the specified parent

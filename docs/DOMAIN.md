@@ -174,6 +174,12 @@ restoration from plain state and comparison.
    should use `Amount.restore(...)`. Removing `fromPersistence(...)` aliases
    from value objects and behaviors is tracked by Jira
    [`LED-81`](https://gorushkin.atlassian.net/browse/LED-81).
+6. Immutable value objects are frozen at runtime with `Object.freeze(this)`
+   after constructor state is initialized. `create(...)`, `restore(...)` and
+   non-mutating operations such as `add(...)`, `subtract(...)` or
+   `increment()` must return frozen instances. Domain entities are not frozen
+   by this rule because entity lifecycle changes are modeled through explicit
+   domain methods.
 
 ## Business Rules
 

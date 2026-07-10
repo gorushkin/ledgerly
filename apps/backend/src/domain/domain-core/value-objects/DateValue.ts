@@ -6,13 +6,14 @@ import { getTodayDateString } from 'src/libs/date';
 import { parseValueObject } from './parseValueObject';
 
 export class DateValue {
-  private readonly _value: IsoDateString;
+  private readonly value: IsoDateString;
   private constructor(value: string) {
-    this._value = parseValueObject(
+    this.value = parseValueObject(
       value,
       isoDate,
       (cause) => new InvalidDateError(cause),
     );
+    Object.freeze(this);
   }
 
   static create(): DateValue {
@@ -24,7 +25,7 @@ export class DateValue {
   }
 
   toString(): string {
-    return this._value;
+    return this.value;
   }
 
   /**
@@ -32,18 +33,18 @@ export class DateValue {
    * Remove this compatibility alias in LED-80.
    */
   isEqualTo(other: DateValue): boolean {
-    return this._value === other._value;
+    return this.value === other.value;
   }
 
   equals(other: DateValue): boolean {
-    return this._value === other._value;
+    return this.value === other.value;
   }
 
   valueOf(): IsoDateString {
-    return this._value;
+    return this.value;
   }
 
   toDate(): Date {
-    return new Date(this._value);
+    return new Date(this.value);
   }
 }

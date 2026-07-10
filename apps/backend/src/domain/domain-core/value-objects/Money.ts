@@ -20,6 +20,7 @@ export class Money {
       (cause) => new InvalidMoneyAmountError(cause),
     );
     this.currency = currency;
+    Object.freeze(this);
   }
 
   static create(value: string, currency: CurrencyCode): Money {

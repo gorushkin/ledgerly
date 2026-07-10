@@ -12,6 +12,7 @@ export class Amount {
   private constructor(value: string | bigint) {
     if (typeof value === 'bigint') {
       this.minor = value;
+      Object.freeze(this);
       return;
     }
 
@@ -20,6 +21,8 @@ export class Amount {
       moneyAmountBigint,
       (cause, invalidValue) => new InvalidAmountError(invalidValue, cause),
     );
+
+    Object.freeze(this);
   }
 
   static create(value: string): Amount {

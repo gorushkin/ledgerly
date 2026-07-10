@@ -5,13 +5,14 @@ import { InvalidTimestampError } from 'src/domain/domain.errors';
 import { parseValueObject } from './parseValueObject';
 
 export class Timestamp {
-  private readonly _value: IsoDatetimeString;
+  private readonly value: IsoDatetimeString;
   private constructor(value: string) {
-    this._value = parseValueObject(
+    this.value = parseValueObject(
       value,
       isoDatetime,
       (cause) => new InvalidTimestampError(cause),
     );
+    Object.freeze(this);
   }
 
   static create(): Timestamp {
@@ -23,7 +24,7 @@ export class Timestamp {
   }
 
   toString(): string {
-    return this._value;
+    return this.value;
   }
 
   /**
@@ -31,18 +32,18 @@ export class Timestamp {
    * Remove this compatibility alias in LED-80.
    */
   isEqualTo(other: Timestamp): boolean {
-    return this._value === other._value;
+    return this.value === other.value;
   }
 
   equals(other: Timestamp): boolean {
-    return this._value === other._value;
+    return this.value === other.value;
   }
 
   valueOf(): IsoDatetimeString {
-    return this._value;
+    return this.value;
   }
 
   toDate(): Date {
-    return new Date(this._value);
+    return new Date(this.value);
   }
 }
