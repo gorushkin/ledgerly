@@ -3,9 +3,9 @@ import { eq } from 'drizzle-orm';
 import {
   UserMapper,
   UserRepositoryInterface,
+  UpdateUserRequestDTO,
   UserResponseDTO,
 } from 'src/application';
-import { UserDbRow } from 'src/db/schema';
 import { usersTable } from 'src/db/schemas';
 import { User } from 'src/domain/users/user.entity';
 
@@ -21,7 +21,10 @@ export class UserRepository
   extends BaseRepository
   implements UserRepositoryInterface
 {
-  update(_userId: UUID, _userData: Partial<UserDbRow>): Promise<UserDbRow> {
+  update(
+    _userId: UUID,
+    _userData: UpdateUserRequestDTO,
+  ): Promise<UserResponseDTO> {
     throw new Error('Method not implemented.');
   }
 
@@ -37,16 +40,16 @@ export class UserRepository
     );
   }
 
-  async getByEmailWithPassword(email: string): Promise<UserDbRow | undefined> {
-    return this.executeDatabaseOperation(
-      async () =>
-        this.db
-          .select()
-          .from(usersTable)
-          .where(eq(usersTable.email, email))
-          .get(),
-      `Failed to find user with email ${email}`,
-    );
+  async getByEmailWithPassword(email: string): Promise<User | undefined> {
+    return this.executeDatabaseOperation(async () => {
+      const user = await this.db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, email))
+        .get();
+
+      return user ? UserMapper.toDomain(user) : undefined;
+    }, `Failed to find user with email ${email}`);
   }
 
   async getById(id: UUID): Promise<UserResponseDTO> {
@@ -65,12 +68,16 @@ export class UserRepository
     }, `Failed to fetch user with ID ${id}`);
   }
 
-  async getByIdWithPassword(id: UUID): Promise<UserDbRow | undefined> {
-    return this.executeDatabaseOperation(
-      async () =>
-        this.db.select().from(usersTable).where(eq(usersTable.id, id)).get(),
-      `Failed to fetch user with password for ID ${id}`,
-    );
+  async getByIdWithPassword(id: UUID): Promise<User | undefined> {
+    return this.executeDatabaseOperation(async () => {
+      const user = await this.db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, id))
+        .get();
+
+      return user ? UserMapper.toDomain(user) : undefined;
+    }, `Failed to fetch user with password for ID ${id}`);
   }
 
   async updateUserProfile(
@@ -78,16 +85,17 @@ export class UserRepository
     data: UsersUpdateDTO,
   ): Promise<UsersResponseDTO> {
     return this.executeDatabaseOperation(async () => {
-      const updateData: Partial<typeof usersTable.$inferInsert> = {};
+      const updateData: Partial<
+        Pick<typeof usersTable.$inferInsert, 'email' | 'name'>
+      > = {};
 
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined) {
-          // TODO: fix
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          updateData[key as keyof typeof usersTable.$inferInsert] = value;
-        }
-      });
+      if (data.email !== undefined) {
+        updateData.email = data.email;
+      }
+
+      if (data.name !== undefined) {
+        updateData.name = data.name;
+      }
 
       const updatedUserProfile = await this.db
         .update(usersTable)

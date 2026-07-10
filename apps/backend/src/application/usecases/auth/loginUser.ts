@@ -10,14 +10,11 @@ export class LoginUserUseCase {
   constructor(private readonly userRepository: UserRepositoryInterface) {}
 
   async execute(email: string, password: string): Promise<UserResponseDTO> {
-    const userWithPassword =
-      await this.userRepository.getByEmailWithPassword(email);
+    const user = await this.userRepository.getByEmailWithPassword(email);
 
-    if (!userWithPassword) {
+    if (!user) {
       throw new UserNotFoundError();
     }
-
-    const user = UserMapper.toDomain(userWithPassword);
 
     const isPasswordValid = await user.validatePassword(password);
 

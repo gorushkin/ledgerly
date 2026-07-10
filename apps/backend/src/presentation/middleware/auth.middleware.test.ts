@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify';
-import { UserDbRow } from 'src/db/schema';
 import { Id, Timestamp } from 'src/domain/domain-core';
+import { User } from 'src/domain/users/user.entity';
 import { UnauthorizedError } from 'src/presentation/errors';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -28,37 +28,30 @@ const createRequest = ({
   }) as unknown as FastifyRequest;
 
 describe('authMiddleware', () => {
-  const userRow: UserDbRow = {
+  const user = User.restore({
     createdAt: Timestamp.create().valueOf(),
     email: 'user@example.com',
     id: Id.create().valueOf(),
     name: 'Test User',
     password: 'hashed-password',
     updatedAt: Timestamp.create().valueOf(),
-  };
+  });
 
-  it('loads a password-bearing user row for domain restoration', async () => {
-    const getByIdWithPassword = vi.fn().mockResolvedValue(userRow);
+  it('loads the authenticated domain user', async () => {
+    const getByIdWithPassword = vi.fn().mockResolvedValue(user);
     const request = createRequest({
       authorization: 'Bearer token',
       getByIdWithPassword,
       jwtVerify: vi.fn().mockResolvedValue({
-        email: userRow.email,
-        userId: userRow.id,
+        email: user.email.valueOf(),
+        userId: user.id,
       }),
     });
 
     await authMiddleware(request, {} as never);
 
-    expect(getByIdWithPassword).toHaveBeenCalledWith(userRow.id);
-    expect(request.user.toSnapshot()).toEqual({
-      createdAt: userRow.createdAt,
-      email: userRow.email,
-      id: userRow.id,
-      name: userRow.name,
-      password: userRow.password,
-      updatedAt: userRow.updatedAt,
-    });
+    expect(getByIdWithPassword).toHaveBeenCalledWith(user.id);
+    expect(request.user).toBe(user);
   });
 
   it('preserves the authentication-required error when the token is missing', async () => {

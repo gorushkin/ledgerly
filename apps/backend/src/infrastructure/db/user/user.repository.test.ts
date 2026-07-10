@@ -73,14 +73,10 @@ describe('UsersRepository', () => {
 
       expect(foundUser).toBeDefined();
       expect(foundUser?.id).toBe(user.id);
-      expect(foundUser?.email).toBe(email);
-      expect(foundUser?.name).toBe(name);
+      expect(foundUser?.email.valueOf()).toBe(email);
+      expect(foundUser?.name.valueOf()).toBe(name);
 
-      const foundUserPassword = Password.fromPersistence(
-        foundUser?.password ?? '',
-      );
-
-      const compareResult = await foundUserPassword.compare(password);
+      const compareResult = await foundUser?.validatePassword(password);
 
       expect(compareResult).toBe(true);
     });
@@ -101,14 +97,10 @@ describe('UsersRepository', () => {
       const foundUser = await userRepository.getByEmailWithPassword(email);
 
       expect(foundUser).toBeDefined();
-      expect(foundUser?.email).toBe(email);
-      expect(foundUser?.name).toBe(name);
+      expect(foundUser?.email.valueOf()).toBe(email);
+      expect(foundUser?.name.valueOf()).toBe(name);
 
-      const foundUserPassword = Password.fromPersistence(
-        foundUser?.password ?? '',
-      );
-
-      const compareResult = await foundUserPassword.compare(password);
+      const compareResult = await foundUser?.validatePassword(password);
 
       expect(compareResult).toBe(true);
     });
@@ -229,13 +221,22 @@ describe('UsersRepository', () => {
     it('should update user password', async () => {
       const user = await testDB.createUser({ email, name, password });
 
-      const newHashedPassword = 'newpassword123';
+      const newPassword = 'newpassword123';
+      const newHashedPassword = (await Password.create(newPassword)).valueOf();
 
       await userRepository.updateUserPassword(user.id, newHashedPassword);
 
       const updatedUser = await userRepository.getByIdWithPassword(user.id);
 
-      expect(updatedUser?.password).toBe(newHashedPassword);
+      expect(updatedUser).toBeDefined();
+
+      if (!updatedUser) {
+        throw new Error('Expected updated user to exist');
+      }
+
+      await expect(updatedUser.validatePassword(newPassword)).resolves.toBe(
+        true,
+      );
     });
 
     it.todo('should handle database errors when updating user password');
