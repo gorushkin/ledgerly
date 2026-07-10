@@ -66,7 +66,9 @@ describe('AccountMapper', () => {
   it('maps a domain account to a response DTO', () => {
     const account = AccountMapper.toDomain(row);
 
-    expect(AccountMapper.toResponseDTOFromSnapshot(account.toSnapshot())).toEqual({
+    expect(
+      AccountMapper.toResponseDTOFromSnapshot(account.toSnapshot()),
+    ).toEqual({
       createdAt: row.createdAt,
       currency: row.currency,
       currentClearedBalanceLocal: row.currentClearedBalanceLocal,

@@ -56,7 +56,9 @@ describe('CreateAccountUseCase', () => {
 
       expect(account).toBeInstanceOf(Account);
 
-      const accountPersistenceDTO = AccountMapper.toDBRowFromSnapshot(account.toSnapshot());
+      const accountPersistenceDTO = AccountMapper.toDBRowFromSnapshot(
+        account.toSnapshot(),
+      );
 
       expect(accountPersistenceDTO.name).toBe(accountName);
       expect(accountPersistenceDTO.description).toBe(description);

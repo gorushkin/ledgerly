@@ -71,7 +71,9 @@ describe('TransactionContextLoader', () => {
     ];
 
     mockAccountRepository.getByIds.mockResolvedValueOnce(
-      accounts.map((acc) => AccountMapper.toDBRowFromSnapshot(acc.toSnapshot())),
+      accounts.map((acc) =>
+        AccountMapper.toDBRowFromSnapshot(acc.toSnapshot()),
+      ),
     );
 
     const { accountsMap } = await transactionContextLoader.loadContext(
