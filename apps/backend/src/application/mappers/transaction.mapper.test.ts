@@ -37,8 +37,18 @@ describe('TransactionMapper', () => {
 
   it('maps a transaction response from the active snapshot only', () => {
     const transactionSnapshot = fixture.transaction.toSnapshot();
-    const [activeOperation, tombstoneOperation] =
-      transactionSnapshot.operations;
+
+    const activeOperation = transactionSnapshot.operations.find(
+      (operation) => operation.description === 'Active debit',
+    );
+
+    const tombstoneOperation = transactionSnapshot.operations.find(
+      (operation) => operation.description === 'Tombstone credit',
+    );
+
+    if (!activeOperation || !tombstoneOperation) {
+      throw new Error('Test setup failed: expected operations were not found');
+    }
 
     const transaction = Transaction.restore({
       ...transactionSnapshot,

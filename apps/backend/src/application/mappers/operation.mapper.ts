@@ -22,6 +22,11 @@ export class OperationMapper {
     return OperationMapper.toResponseDTOFromSnapshot(snapshot);
   }
 
+  /**
+   * @internal Maps trusted domain snapshots produced by Operation/Transaction
+   * entities. Do not use this as a validation boundary for external input or
+   * raw persistence data.
+   */
   static toResponseDTOFromSnapshot(
     snapshot: OperationSnapshot,
   ): OperationResponseDTO {

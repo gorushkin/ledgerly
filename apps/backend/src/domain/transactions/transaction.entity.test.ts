@@ -298,8 +298,23 @@ describe('Transaction Domain Entity', () => {
     it('should expose full and active snapshots explicitly', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
       const transactionSnapshot = transaction.toSnapshot();
-      const [operationToDelete, ...activeOperations] =
-        transactionSnapshot.operations;
+
+      const operationToDelete = transactionSnapshot.operations.find(
+        (operation) => operation.description === operationsData1.description,
+      );
+
+      expect(transactionSnapshot.operations).toHaveLength(
+        operationsData.length,
+      );
+      expect(operationToDelete).toBeDefined();
+
+      if (!operationToDelete) {
+        throw new Error('Test setup failed: operation to tombstone not found');
+      }
+
+      const activeOperations = transactionSnapshot.operations.filter(
+        (operation) => operation.id !== operationToDelete.id,
+      );
 
       const restoredTransaction = Transaction.restore({
         ...transactionSnapshot,

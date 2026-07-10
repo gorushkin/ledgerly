@@ -234,9 +234,7 @@ export class Transaction {
     return !this.isDeleted();
   }
 
-  private toSnapshotWithOperations(
-    operations: Operation[],
-  ): TransactionSnapshot {
+  private buildSnapshot(operations: Operation[]): TransactionSnapshot {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       currency: this.currency.valueOf(),
@@ -253,11 +251,11 @@ export class Transaction {
   }
 
   toSnapshot(): TransactionSnapshot {
-    return this.toSnapshotWithOperations(this.operations);
+    return this.buildSnapshot(this.operations);
   }
 
   toActiveSnapshot(): TransactionSnapshot {
-    return this.toSnapshotWithOperations(this.getOperations());
+    return this.buildSnapshot(this.getOperations());
   }
 
   validateUpdateIsAllowed(): void {
