@@ -28,9 +28,7 @@ export class AccountMapper {
     };
   }
 
-  static toDBRow(account: Account): AccountRepoInsert {
-    const snapshot = account.toSnapshot();
-
+  static toDBRow(snapshot: AccountSnapshot): AccountRepoInsert {
     return {
       createdAt: snapshot.createdAt,
       currency: snapshot.currency,
@@ -47,33 +45,25 @@ export class AccountMapper {
     };
   }
 
-  static toResponseDTO(account: Account): AccountResponseDTO {
-    return AccountMapper.toResponseDTOFromSnapshot(account.toSnapshot());
+  static toResponseDTO(snapshot: AccountSnapshot): AccountResponseDTO {
+    return {
+      createdAt: snapshot.createdAt,
+      currency: snapshot.currency,
+      currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
+      description: snapshot.description,
+      id: snapshot.id,
+      initialBalance: snapshot.initialBalance,
+      isSystem: snapshot.isSystem,
+      isTombstone: snapshot.isTombstone,
+      name: snapshot.name,
+      type: snapshot.type,
+      updatedAt: snapshot.updatedAt,
+      userId: snapshot.userId,
+    };
   }
 
   static toResponseDTOFromRow(row: AccountDbRow): AccountResponseDTO {
-    return AccountMapper.toResponseDTOFromSnapshot(
-      AccountMapper.toSnapshot(row),
-    );
-  }
-
-  private static toResponseDTOFromSnapshot(
-    snapshot: AccountSnapshot,
-  ): AccountResponseDTO {
-    return {
-      createdAt: snapshot.createdAt,
-      currency: snapshot.currency,
-      currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
-      description: snapshot.description,
-      id: snapshot.id,
-      initialBalance: snapshot.initialBalance,
-      isSystem: snapshot.isSystem,
-      isTombstone: snapshot.isTombstone,
-      name: snapshot.name,
-      type: snapshot.type,
-      updatedAt: snapshot.updatedAt,
-      userId: snapshot.userId,
-    };
+    return AccountMapper.toResponseDTO(AccountMapper.toSnapshot(row));
   }
 
   static toUpdateProps(dto: AccountUpdateDTO): AccountUpdateProps {

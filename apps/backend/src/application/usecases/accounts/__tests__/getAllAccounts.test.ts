@@ -60,9 +60,7 @@ describe('GetAllAccounts', async () => {
       expect(mockAccountRepository.getAll).toHaveBeenCalledWith(user.id);
 
       expect(result).toEqual([
-        AccountMapper.toResponseDTO(
-          AccountMapper.toDomain(mockSavedAccountData),
-        ),
+        AccountMapper.toResponseDTOFromRow(mockSavedAccountData),
       ]);
     });
 

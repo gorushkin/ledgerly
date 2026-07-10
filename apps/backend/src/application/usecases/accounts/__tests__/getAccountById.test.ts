@@ -86,9 +86,7 @@ describe('GetAccountByIdUseCase', async () => {
         accountId,
       );
       expect(result).toEqual(
-        AccountMapper.toResponseDTO(
-          AccountMapper.toDomain(mockSavedAccountData),
-        ),
+        AccountMapper.toResponseDTOFromRow(mockSavedAccountData),
       );
     });
 

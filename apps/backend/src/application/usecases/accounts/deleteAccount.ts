@@ -19,6 +19,6 @@ export class DeleteAccountUseCase extends AccountUseCaseBase {
       accountId,
     );
 
-    return AccountMapper.toResponseDTO(AccountMapper.toDomain(deletedAccount));
+    return AccountMapper.toResponseDTOFromRow(deletedAccount);
   }
 }

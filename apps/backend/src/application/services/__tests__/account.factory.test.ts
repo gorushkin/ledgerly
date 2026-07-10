@@ -43,7 +43,7 @@ describe('CreateAccountUseCase', () => {
       );
 
       mockAccountRepository.create.mockResolvedValue(
-        AccountMapper.toDBRow(expectedAccount),
+        AccountMapper.toDBRow(expectedAccount.toSnapshot()),
       );
 
       const account = await accountFactory.createAccount(user, {
@@ -56,7 +56,7 @@ describe('CreateAccountUseCase', () => {
 
       expect(account).toBeInstanceOf(Account);
 
-      const accountPersistenceDTO = AccountMapper.toDBRow(account);
+      const accountPersistenceDTO = AccountMapper.toDBRow(account.toSnapshot());
 
       expect(accountPersistenceDTO.name).toBe(accountName);
       expect(accountPersistenceDTO.description).toBe(description);

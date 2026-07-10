@@ -1,6 +1,6 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
 import { OperationRequestDTO } from 'src/application/dto';
-import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
+import { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { createAccount } from 'src/db/createTestUser';
 import { User } from 'src/domain';
@@ -71,7 +71,7 @@ describe('TransactionContextLoader', () => {
     ];
 
     mockAccountRepository.getByIds.mockResolvedValueOnce(
-      accounts.map((acc) => AccountMapper.toDBRow(acc)),
+      accounts.map((acc) => AccountMapper.toDBRow(acc.toSnapshot())),
     );
 
     const { accountsMap } = await transactionContextLoader.loadContext(
@@ -110,7 +110,7 @@ describe('TransactionContextLoader', () => {
     ];
 
     mockAccountRepository.getByIds.mockResolvedValueOnce([
-      AccountMapper.toDBRow(account),
+      AccountMapper.toDBRow(account.toSnapshot()),
     ]);
 
     await transactionContextLoader.loadContext(user, rawOperations);

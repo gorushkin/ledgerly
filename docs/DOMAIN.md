@@ -99,9 +99,10 @@ with its application mapper.
    request/response DTO, or HTTP-specific types.
 5. Domain entities do not expose `toPersistence()`, `toResponseDTO()` or
    `fromPersistence(...)`.
-6. DB and API transformations live in mappers. For example,
-   `TransactionMapper.toDBRow(transaction)` and
-   `TransactionMapper.toResponseDTO(transaction)` are outside the domain entity.
+6. DB and API transformations live in mappers. Persistence and response output
+   should be derived from a domain snapshot, not from entity-owned
+   persistence/DTO methods. For example, `AccountMapper.toDBRow(snapshot)` and
+   `AccountMapper.toResponseDTO(snapshot)` are outside the domain entity.
 
 Snapshot types live next to the entity in `domain/<module>/types.ts`. They use
 primitive/domain-safe fields and must not be aliases for DB rows or response

@@ -47,7 +47,7 @@ describe('AccountMapper', () => {
   it('maps a domain account to a persistence row', () => {
     const account = AccountMapper.toDomain(row);
 
-    expect(AccountMapper.toDBRow(account)).toEqual({
+    expect(AccountMapper.toDBRow(account.toSnapshot())).toEqual({
       createdAt: row.createdAt,
       currency: row.currency,
       currentClearedBalanceLocal: row.currentClearedBalanceLocal,
@@ -66,7 +66,7 @@ describe('AccountMapper', () => {
   it('maps a domain account to a response DTO', () => {
     const account = AccountMapper.toDomain(row);
 
-    expect(AccountMapper.toResponseDTO(account)).toEqual({
+    expect(AccountMapper.toResponseDTO(account.toSnapshot())).toEqual({
       createdAt: row.createdAt,
       currency: row.currency,
       currentClearedBalanceLocal: row.currentClearedBalanceLocal,

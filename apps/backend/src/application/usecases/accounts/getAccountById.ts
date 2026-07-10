@@ -18,6 +18,6 @@ export class GetAccountByIdUseCase extends AccountUseCaseBase {
   ): Promise<AccountResponseDTO> {
     const account = await this.ensureAccountExistsAndOwned(user, id);
 
-    return AccountMapper.toResponseDTO(AccountMapper.toDomain(account));
+    return AccountMapper.toResponseDTOFromRow(account);
   }
 }

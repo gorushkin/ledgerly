@@ -187,19 +187,21 @@ export class BaseRepository {
     }
   }
 
-  async writeNewEntryToDatabase<T, E extends { toPersistence: () => T }, K>(
+  async writeNewEntryToDatabase<T, E, K>(
     entity: E,
+    mapEntityToRecord: (entity: E) => T,
     promise: (data: T) => Promise<K>,
     generateEntity: (prevEntity: E) => E,
     retries: number = DEFAULT_MAX_RETRIES,
   ): Promise<K> {
     try {
-      return await promise(entity.toPersistence());
+      return await promise(mapEntityToRecord(entity));
     } catch (error) {
       if (error instanceof RecordAlreadyExistsError && retries > 0) {
         const regeneratedEntity = generateEntity(entity);
         return await this.writeNewEntryToDatabase(
           regeneratedEntity,
+          mapEntityToRecord,
           promise,
           generateEntity,
           retries - 1,

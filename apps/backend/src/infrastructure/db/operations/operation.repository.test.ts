@@ -60,7 +60,7 @@ describe('OperationRepository', () => {
 
     await Promise.all(
       data.accounts.map((account) =>
-        testDB.insertAccount(AccountMapper.toDBRow(account)),
+        testDB.insertAccount(AccountMapper.toDBRow(account.toSnapshot())),
       ),
     );
 

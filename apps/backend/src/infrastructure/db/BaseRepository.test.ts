@@ -14,14 +14,16 @@ class TestRepository extends BaseRepository {
     } as unknown as TransactionManager);
   }
 
-  write<T, E extends { toPersistence: () => T }, K>(
+  write<T, E, K>(
     entity: E,
+    mapEntityToRecord: (entity: E) => T,
     promise: (data: T) => Promise<K>,
     generateEntity: (prevEntity: E) => E,
     retries = 0,
   ): Promise<K> {
     return this.writeNewEntryToDatabase(
       entity,
+      mapEntityToRecord,
       promise,
       generateEntity,
       retries,
@@ -33,10 +35,11 @@ describe('BaseRepository', () => {
   it('wraps exhausted create failures in a concrete database operation error', async () => {
     const repository = new TestRepository();
     const diagnostic = new Error('database password is secret');
-    const entity = { toPersistence: () => ({ id: 'entity-id' }) };
+    const entity = { id: 'entity-id' };
 
     const result = repository.write(
       entity,
+      (data) => data,
       vi.fn().mockRejectedValue(diagnostic),
       vi.fn(),
     );
