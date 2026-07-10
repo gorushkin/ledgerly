@@ -17,7 +17,7 @@ class TestRepository extends BaseRepository {
   write<T, E, K>(
     entity: E,
     mapEntityToRecord: (entity: E) => T,
-    promise: (data: T) => Promise<K>,
+    promise: (entity: T) => Promise<K>,
     generateEntity: (prevEntity: E) => E,
     retries = 0,
   ): Promise<K> {

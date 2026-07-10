@@ -20,6 +20,6 @@ export class CreateAccountUseCase {
       type,
     });
 
-    return AccountMapper.toResponseDTO(account.toSnapshot());
+    return AccountMapper.toResponseDTOFromSnapshot(account.toSnapshot());
   }
 }

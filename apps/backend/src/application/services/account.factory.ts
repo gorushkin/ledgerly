@@ -24,7 +24,7 @@ export class AccountFactory {
     );
 
     await this.accountRepository.create(
-      AccountMapper.toDBRow(account.toSnapshot()),
+      AccountMapper.toDBRowFromSnapshot(account.toSnapshot()),
     );
 
     return account;

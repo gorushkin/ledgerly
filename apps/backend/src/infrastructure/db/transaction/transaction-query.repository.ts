@@ -1,6 +1,6 @@
 import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
 import { and, asc, count, desc, eq, gte, inArray, lte } from 'drizzle-orm';
-import {
+import type {
   PaginatedResult,
   TransactionQueryRepositoryInterface,
 } from 'src/application/interfaces';

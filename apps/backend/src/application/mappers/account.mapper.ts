@@ -28,7 +28,7 @@ export class AccountMapper {
     };
   }
 
-  static toDBRow(snapshot: AccountSnapshot): AccountRepoInsert {
+  static toDBRowFromSnapshot(snapshot: AccountSnapshot): AccountRepoInsert {
     return {
       createdAt: snapshot.createdAt,
       currency: snapshot.currency,
@@ -45,7 +45,7 @@ export class AccountMapper {
     };
   }
 
-  static toResponseDTO(snapshot: AccountSnapshot): AccountResponseDTO {
+  static toResponseDTOFromSnapshot(snapshot: AccountSnapshot): AccountResponseDTO {
     return {
       createdAt: snapshot.createdAt,
       currency: snapshot.currency,
@@ -63,7 +63,7 @@ export class AccountMapper {
   }
 
   static toResponseDTOFromRow(row: AccountDbRow): AccountResponseDTO {
-    return AccountMapper.toResponseDTO(AccountMapper.toSnapshot(row));
+    return AccountMapper.toResponseDTOFromSnapshot(AccountMapper.toSnapshot(row));
   }
 
   static toUpdateProps(dto: AccountUpdateDTO): AccountUpdateProps {

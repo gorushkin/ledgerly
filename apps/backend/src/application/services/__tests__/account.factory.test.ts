@@ -1,5 +1,5 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
-import { AccountRepositoryInterface } from 'src/application/interfaces';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
 import { User } from 'src/domain';
@@ -43,7 +43,7 @@ describe('CreateAccountUseCase', () => {
       );
 
       mockAccountRepository.create.mockResolvedValue(
-        AccountMapper.toDBRow(expectedAccount.toSnapshot()),
+        AccountMapper.toDBRowFromSnapshot(expectedAccount.toSnapshot()),
       );
 
       const account = await accountFactory.createAccount(user, {
@@ -56,7 +56,7 @@ describe('CreateAccountUseCase', () => {
 
       expect(account).toBeInstanceOf(Account);
 
-      const accountPersistenceDTO = AccountMapper.toDBRow(account.toSnapshot());
+      const accountPersistenceDTO = AccountMapper.toDBRowFromSnapshot(account.toSnapshot());
 
       expect(accountPersistenceDTO.name).toBe(accountName);
       expect(accountPersistenceDTO.description).toBe(description);

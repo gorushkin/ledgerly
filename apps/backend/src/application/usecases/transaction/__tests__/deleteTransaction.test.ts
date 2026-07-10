@@ -3,7 +3,7 @@ import {
   EntityNotFoundError,
   UnauthorizedAccessError,
 } from 'src/application/application.errors';
-import {
+import type {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';

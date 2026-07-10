@@ -28,7 +28,7 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
     const updatedAccount = await this.accountRepository.update(
       user.id,
       accountId,
-      AccountMapper.toDBRow(account.toSnapshot()),
+      AccountMapper.toDBRowFromSnapshot(account.toSnapshot()),
     );
 
     return AccountMapper.toResponseDTOFromRow(updatedAccount);

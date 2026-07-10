@@ -1,5 +1,5 @@
 import { AccountResponseDTO, UUID } from '@ledgerly/shared/types';
-import { AccountRepositoryInterface } from 'src/application/interfaces';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { DataBase } from 'src/db';
 import { User } from 'src/domain/users/user.entity';

@@ -89,13 +89,17 @@ describe('TransactionRepository', () => {
     const usdSystemAccount = data.getSystemAccountByCurrency('USD');
     const eurSystemAccount = data.getSystemAccountByCurrency('EUR');
 
-    await testDB.insertAccount(AccountMapper.toDBRow(usdAccount.toSnapshot()));
-    await testDB.insertAccount(AccountMapper.toDBRow(eurAccount.toSnapshot()));
     await testDB.insertAccount(
-      AccountMapper.toDBRow(usdSystemAccount.toSnapshot()),
+      AccountMapper.toDBRowFromSnapshot(usdAccount.toSnapshot()),
     );
     await testDB.insertAccount(
-      AccountMapper.toDBRow(eurSystemAccount.toSnapshot()),
+      AccountMapper.toDBRowFromSnapshot(eurAccount.toSnapshot()),
+    );
+    await testDB.insertAccount(
+      AccountMapper.toDBRowFromSnapshot(usdSystemAccount.toSnapshot()),
+    );
+    await testDB.insertAccount(
+      AccountMapper.toDBRowFromSnapshot(eurSystemAccount.toSnapshot()),
     );
 
     transactionRepository = new TransactionRepository(

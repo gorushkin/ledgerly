@@ -1,6 +1,6 @@
 import { UserAlreadyExistsError } from 'src/application/application.errors';
 import { CreateUserRequestDTO } from 'src/application/dto';
-import { UserRepositoryInterface } from 'src/application/interfaces';
+import type { UserRepositoryInterface } from 'src/application/interfaces';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { User } from 'src/domain/users/user.entity';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
