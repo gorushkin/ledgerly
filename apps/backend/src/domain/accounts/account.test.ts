@@ -48,7 +48,7 @@ describe('Account Domain Entity', () => {
       expect(account).toHaveProperty('description', 'account-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('0'));
       expect(account).toHaveProperty('currency', currencyUSD);
-      expect(account).toHaveProperty('type', { value: 'asset' });
+      expect(account.getType().valueOf()).toBe(userTypeValue);
       expect(account.getUserId().equals(userId)).toBe(true);
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account.getType().equals(accountType)).toBe(true);
