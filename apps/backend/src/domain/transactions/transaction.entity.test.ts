@@ -294,6 +294,46 @@ describe('Transaction Domain Entity', () => {
         },
       });
     });
+
+    it('should expose full and active snapshots explicitly', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const transactionSnapshot = transaction.toSnapshot();
+      const [operationToDelete, ...activeOperations] =
+        transactionSnapshot.operations;
+
+      const restoredTransaction = Transaction.restore({
+        ...transactionSnapshot,
+        operations: [
+          {
+            ...operationToDelete,
+            isTombstone: true,
+          },
+          ...activeOperations,
+        ],
+      });
+
+      const fullSnapshot = restoredTransaction.toSnapshot();
+      const activeSnapshot = restoredTransaction.toActiveSnapshot();
+
+      expect(fullSnapshot.operations).toHaveLength(
+        transactionSnapshot.operations.length,
+      );
+
+      expect(fullSnapshot.operations).toContainEqual(
+        expect.objectContaining({
+          id: operationToDelete.id,
+          isTombstone: true,
+        }),
+      );
+
+      expect(activeSnapshot.operations).toHaveLength(activeOperations.length);
+
+      expect(activeSnapshot.operations).not.toContainEqual(
+        expect.objectContaining({
+          id: operationToDelete.id,
+        }),
+      );
+    });
   });
 
   describe('Updating Transaction data', () => {

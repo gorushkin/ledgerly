@@ -250,6 +250,15 @@ export class Transaction {
     };
   }
 
+  toActiveSnapshot(): TransactionSnapshot {
+    return {
+      ...this.toSnapshot(),
+      operations: this.getOperations().map((operation) =>
+        operation.toSnapshot(),
+      ),
+    };
+  }
+
   validateUpdateIsAllowed(): void {
     this.softDelete.validateUpdateIsAllowed(
       DeletedEntityOperationError.forUpdate(Transaction.entityType),

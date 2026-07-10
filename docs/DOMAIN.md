@@ -94,7 +94,8 @@ with its application mapper.
 1. `static create(...)` creates a new entity and generates a new identity,
    timestamps and other behavior state.
 2. `static restore(snapshot)` restores an entity from a plain domain snapshot.
-3. `toSnapshot()` returns the entity's plain domain state.
+3. `toSnapshot()` returns the entity's full plain domain state. It must not
+   silently filter child state, soft-deleted state or raw aggregate members.
 4. Domain entities do not import DB schema types, application DTO, shared
    request/response DTO, or HTTP-specific types.
 5. Domain entities do not expose `toPersistence()`, `toResponseDTO()` or
@@ -107,6 +108,11 @@ with its application mapper.
 Snapshot types live next to the entity in `domain/<module>/types.ts`. They use
 primitive/domain-safe fields and must not be aliases for DB rows or response
 DTOs.
+
+Filtered snapshots or projections must use explicit names that describe the
+filter, for example `toActiveSnapshot()` for an aggregate view containing only
+active child entities. These projection methods are domain-specific and are not
+required for every entity.
 
 ### Example Shape
 
@@ -121,7 +127,7 @@ export class ExampleEntity {
   }
 
   toSnapshot(): ExampleSnapshot {
-    // Return primitive/domain-safe state only.
+    // Return the full primitive/domain-safe state.
   }
 }
 ```
@@ -167,6 +173,8 @@ the architectural decision and rationale.
 3. Operations may also be marked with `isTombstone` in persistence
 4. Transaction repositories restore the full raw aggregate state, including tombstone operations
 5. The `Transaction` aggregate separates raw and active operation access:
+   - `toSnapshot()` returns the full aggregate snapshot, including tombstone operations
+   - `toActiveSnapshot()` returns an active-only snapshot when a snapshot-shaped projection is needed
    - `getAllOperations()` returns all known operations for persistence
    - `getOperations()` returns active operations only for domain logic
    - tombstone operations are not returned to clients and are ignored by normal read flows
