@@ -49,6 +49,16 @@ class Account {
 }
 ```
 
+This also applies to a potential abstract `DomainEntity` base class. Domain
+entities do not inherit common identity, timestamp, deletion, ownership or
+versioning behavior from a shared superclass. They compose only the behavior
+objects they actually need.
+
+If cross-entity generic code appears later, introduce a narrow interface for
+that concrete consumer instead of adding a broad base class preemptively. For
+example, a future helper that only needs `toSnapshot()` can depend on a
+snapshot-focused interface without forcing all entities into one lifecycle.
+
 ### 🎯 Benefits
 
 1. **Flexibility** - can combine any behaviors

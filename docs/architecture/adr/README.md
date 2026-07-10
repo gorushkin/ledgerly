@@ -44,3 +44,4 @@
 - [ADR 0010: Entity not found API code](./0010-entity-not-found-api-code.md)
 - [ADR 0011: Domain entity API conventions](./0011-domain-entity-api-conventions.md)
 - [ADR 0012: User repository application boundary](./0012-user-repository-application-boundary.md)
+- [ADR 0013: No DomainEntity base class](./0013-no-domain-entity-base-class.md)
