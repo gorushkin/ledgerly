@@ -52,6 +52,22 @@ describe('money and account type value objects', () => {
     throw new Error('Expected CurrencyMismatchError to be thrown');
   });
 
+  it('performs money arithmetic without mutating the source values', () => {
+    const usdCurrency = Currency.create('USD');
+    const first = Money.create('100', usdCurrency.valueOf());
+    const second = Money.create('50', usdCurrency.valueOf());
+
+    const sum = first.add(second);
+    const difference = first.subtract(second);
+
+    expect(sum.valueOf()).toBe('150');
+    expect(difference.valueOf()).toBe('50');
+    expect(first.valueOf()).toBe('100');
+    expect(second.valueOf()).toBe('50');
+    expect(Object.isFrozen(sum)).toBe(true);
+    expect(Object.isFrozen(difference)).toBe(true);
+  });
+
   it('returns INVALID_ACCOUNT_TYPE for unsupported account types', () => {
     try {
       AccountType.create('unsupported' as never);

@@ -7,27 +7,27 @@ import { InvalidAmountError } from 'src/domain/domain.errors';
 
 import { parseValueObject } from './parseValueObject';
 
-export class Amount {
-  private readonly minor: bigint;
-  private constructor(value: string | bigint) {
-    if (typeof value === 'bigint') {
-      this.minor = value;
-      return;
-    }
+const parseAmount = (value: string): bigint => {
+  const minor = parseValueObject(
+    value,
+    moneyAmountBigint,
+    (cause, invalidValue) => new InvalidAmountError(invalidValue, cause),
+  );
 
-    this.minor = parseValueObject(
-      value,
-      moneyAmountBigint,
-      (cause, invalidValue) => new InvalidAmountError(invalidValue, cause),
-    );
+  return minor;
+};
+
+export class Amount {
+  private constructor(private readonly minor: bigint) {
+    Object.freeze(this);
   }
 
   static create(value: string): Amount {
-    return new Amount(value);
+    return new Amount(parseAmount(value));
   }
 
   static restore(value: string): Amount {
-    return new Amount(value);
+    return new Amount(parseAmount(value));
   }
 
   /**

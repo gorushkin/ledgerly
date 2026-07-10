@@ -74,6 +74,10 @@ snapshot-focused interface without forcing all entities into one lifecycle.
 3. **No identity** - do not have unique ID
 4. **Validation at creation** - invariants are checked at creation time
 5. **Replacement instead of modification** - create new object for "changes"
+6. **Runtime freeze** - immutable value objects call `Object.freeze(this)`
+   after constructor state is initialized. `create(...)`, `restore(...)` and
+   non-mutating operations such as `add(...)`, `subtract(...)` or
+   `increment()` return frozen instances.
 
 Public API convention:
 

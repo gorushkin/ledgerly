@@ -30,7 +30,9 @@ const SYSTEM_ACCOUNT_TYPE_VALUES = SYSTEM_ACCOUNT_TYPES as [
 ];
 
 export class AccountType {
-  private constructor(private readonly _value: AccountTypeValue) {}
+  private constructor(private readonly value: AccountTypeValue) {
+    Object.freeze(this);
+  }
 
   static create(type: AccountTypeValue): AccountType {
     if (!ACCOUNT_TYPE_VALUES.includes(type)) {
@@ -45,18 +47,18 @@ export class AccountType {
   }
 
   toString(): string {
-    return this._value;
+    return this.value;
   }
 
   equals(other: AccountType): boolean {
-    return this._value === other._value;
+    return this.value === other.value;
   }
 
   valueOf(): AccountTypeValue {
-    return this._value;
+    return this.value;
   }
 
   isSystemType(): boolean {
-    return SYSTEM_ACCOUNT_TYPE_VALUES.includes(this._value);
+    return SYSTEM_ACCOUNT_TYPE_VALUES.includes(this.value);
   }
 }

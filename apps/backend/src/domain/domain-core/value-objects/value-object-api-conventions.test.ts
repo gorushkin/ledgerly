@@ -175,4 +175,40 @@ describe('value object API conventions', () => {
       Version.create(3).equals(Version.restore(3)),
     );
   });
+
+  it('freezes immutable value objects at runtime', async () => {
+    const parentId = Id.restore('11111111-1111-4111-8111-111111111111');
+    const childId = Id.restore('22222222-2222-4222-8222-222222222222');
+    const usd = Currency.create('USD').valueOf();
+
+    const valueObjects = [
+      Amount.create('1200'),
+      Amount.restore('1200'),
+      Currency.create('usd'),
+      Currency.restore('USD'),
+      DateValue.create(),
+      DateValue.restore('2026-07-10'),
+      Email.create('USER@example.com'),
+      Email.restore('user@example.com'),
+      Id.create(),
+      Id.restore(parentId.valueOf()),
+      Money.create('1200', usd),
+      Money.restore('1200', usd),
+      Name.create('Restored Name'),
+      Name.restore('Restored Name'),
+      ParentChildRelation.create(parentId, childId),
+      Password.restore('$2hashed-password'),
+      await Password.create('ValidPassword123!'),
+      Timestamp.create(),
+      Timestamp.restore('2026-07-10T10:00:00.000Z'),
+      Version.create(3),
+      Version.restore(3),
+      AccountType.create('asset'),
+      AccountType.restore('asset'),
+    ];
+
+    valueObjects.forEach((valueObject) => {
+      expect(Object.isFrozen(valueObject)).toBe(true);
+    });
+  });
 });

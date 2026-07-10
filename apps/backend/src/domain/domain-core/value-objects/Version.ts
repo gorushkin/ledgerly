@@ -1,14 +1,11 @@
 import { InvalidVersionError } from 'src/domain/domain.errors';
 
 export class Version {
-  private readonly _value: number;
-
-  private constructor(value: number) {
+  private constructor(private readonly value: number) {
     if (!Number.isInteger(value) || value < 0) {
       throw new InvalidVersionError(value);
     }
 
-    this._value = value;
     Object.freeze(this);
   }
 
@@ -21,7 +18,7 @@ export class Version {
   }
 
   toString(): string {
-    return this._value.toString();
+    return this.value.toString();
   }
 
   /**
@@ -29,18 +26,18 @@ export class Version {
    * Remove this compatibility alias in LED-80.
    */
   isEqualTo(other: Version): boolean {
-    return this._value === other._value;
+    return this.value === other.value;
   }
 
   equals(other: Version): boolean {
-    return this._value === other._value;
+    return this.value === other.value;
   }
 
   valueOf(): number {
-    return this._value;
+    return this.value;
   }
 
   increment(): Version {
-    return new Version(this._value + 1);
+    return new Version(this.value + 1);
   }
 }

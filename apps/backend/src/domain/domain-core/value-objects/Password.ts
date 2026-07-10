@@ -7,10 +7,11 @@ import { parseValueObject } from './parseValueObject';
 const hashingSaltRounds = 10;
 
 export class Password {
-  private _value: string;
+  private readonly value: string;
 
   private constructor(value: string) {
-    this._value = value;
+    this.value = value;
+    Object.freeze(this);
   }
 
   static async create(value: string): Promise<Password> {
@@ -26,7 +27,7 @@ export class Password {
   }
 
   async compare(password: string): Promise<boolean> {
-    return bcrypt.compare(password, this._value);
+    return bcrypt.compare(password, this.value);
   }
 
   static restore(encryptedPassword: string): Password {
@@ -44,10 +45,10 @@ export class Password {
   private static readonly BCRYPT_HASH_PREFIX = '$2';
 
   verify(): boolean {
-    return this._value.startsWith(Password.BCRYPT_HASH_PREFIX);
+    return this.value.startsWith(Password.BCRYPT_HASH_PREFIX);
   }
 
   valueOf(): string {
-    return this._value;
+    return this.value;
   }
 }
