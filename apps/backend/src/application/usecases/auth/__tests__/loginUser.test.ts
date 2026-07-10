@@ -3,7 +3,8 @@ import {
   UserNotFoundError,
 } from 'src/application/application.errors';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
-import { Password } from 'src/domain/domain-core';
+import { Id, Password, Timestamp } from 'src/domain/domain-core';
+import { User } from 'src/domain/users/user.entity';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoginUserUseCase } from '../loginUser';
@@ -11,11 +12,11 @@ import { LoginUserUseCase } from '../loginUser';
 describe('LoginUserUseCase', () => {
   const email = 'test@example.com';
   const name = 'Test User';
-  const id = '11111111-1111-4111-8111-111111111111';
+  const id = Id.create().valueOf();
   const rawPassword = 'password123';
+  const createdAt = Timestamp.create().valueOf();
+  const updatedAt = Timestamp.create().valueOf();
   let password: Password;
-
-  // const password = Password.create('password123').valueOf();
 
   let loginUserUseCase: LoginUserUseCase;
 
@@ -39,14 +40,16 @@ describe('LoginUserUseCase', () => {
 
   describe('execute', () => {
     it('should return token if login is successful', async () => {
-      mockUserRepository.getByEmailWithPassword.mockResolvedValue({
-        createdAt: '2026-06-25T00:00:00.000Z',
-        email,
-        id,
-        name,
-        password: password.valueOf(),
-        updatedAt: '2026-06-25T00:00:00.000Z',
-      });
+      mockUserRepository.getByEmailWithPassword.mockResolvedValue(
+        User.restore({
+          createdAt,
+          email,
+          id,
+          name,
+          password: password.valueOf(),
+          updatedAt,
+        }),
+      );
 
       const result = await loginUserUseCase.execute(email, rawPassword);
 
@@ -62,14 +65,16 @@ describe('LoginUserUseCase', () => {
     });
 
     it('should throw InvalidPasswordError if password is invalid', async () => {
-      mockUserRepository.getByEmailWithPassword.mockResolvedValue({
-        createdAt: '2026-06-25T00:00:00.000Z',
-        email,
-        id,
-        name,
-        password: password.valueOf(),
-        updatedAt: '2026-06-25T00:00:00.000Z',
-      });
+      mockUserRepository.getByEmailWithPassword.mockResolvedValue(
+        User.restore({
+          createdAt,
+          email,
+          id,
+          name,
+          password: password.valueOf(),
+          updatedAt,
+        }),
+      );
 
       await expect(
         loginUserUseCase.execute(email, 'wrong-password'),

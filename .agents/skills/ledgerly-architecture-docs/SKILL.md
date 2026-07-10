@@ -18,8 +18,13 @@ Use this skill when the user asks to:
 - archive completed plan documents;
 - replace obsolete decisions and mark superseded status.
 
-Do not use this skill for runtime bug fixing, feature coding, or non-document
-changes unless explicitly requested.
+Also use this skill during Ledgerly implementation work when the current change
+creates, changes, or invalidates an architectural decision, plan document, or
+documented boundary. In that case, update the relevant docs or ADR in the same
+branch without waiting for a separate explicit documentation request.
+
+Do not use this skill for routine runtime bug fixing, feature coding, or
+non-document changes when there is no architectural/documentation impact.
 
 ## Source of Truth
 
@@ -67,6 +72,8 @@ Keep each section concise and decision-focused.
 4. If direction changed, create new ADR and mark old one as `Superseded`.
 5. Keep links stable; when moving plan docs to archive, update ADR links.
 6. Prefer explicit links to Jira issue and PR once available.
+7. When updating docs alongside code, keep the doc change scoped to the same
+   Jira task and explain the code/docs relationship in the final response.
 
 ## Plan Doc Workflow
 

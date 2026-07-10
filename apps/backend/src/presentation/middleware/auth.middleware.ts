@@ -1,6 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { UserMapper } from 'src/application/mappers';
 
 import { UnauthorizedError } from '../errors';
 
@@ -22,13 +21,11 @@ export async function authMiddleware(
 
     const userRepository = request.server.container.repositories.user;
 
-    const rawUser = await userRepository.getByIdWithPassword(decoded.userId);
+    const user = await userRepository.getByIdWithPassword(decoded.userId);
 
-    if (!rawUser) {
+    if (!user) {
       throw new UnauthorizedError('User not found');
     }
-
-    const user = UserMapper.toDomain(rawUser);
 
     request.user = user;
   } catch (error) {
