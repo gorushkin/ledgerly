@@ -234,14 +234,16 @@ export class Transaction {
     return !this.isDeleted();
   }
 
-  toSnapshot(): TransactionSnapshot {
+  private toSnapshotWithOperations(
+    operations: Operation[],
+  ): TransactionSnapshot {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       currency: this.currency.valueOf(),
       description: this.description,
       id: this.getId().valueOf(),
       isTombstone: this.isDeleted(),
-      operations: this.operations.map((operation) => operation.toSnapshot()),
+      operations: operations.map((operation) => operation.toSnapshot()),
       postingDate: this.postingDate.valueOf(),
       transactionDate: this.transactionDate.valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),
@@ -250,13 +252,12 @@ export class Transaction {
     };
   }
 
+  toSnapshot(): TransactionSnapshot {
+    return this.toSnapshotWithOperations(this.operations);
+  }
+
   toActiveSnapshot(): TransactionSnapshot {
-    return {
-      ...this.toSnapshot(),
-      operations: this.getOperations().map((operation) =>
-        operation.toSnapshot(),
-      ),
-    };
+    return this.toSnapshotWithOperations(this.getOperations());
   }
 
   validateUpdateIsAllowed(): void {
