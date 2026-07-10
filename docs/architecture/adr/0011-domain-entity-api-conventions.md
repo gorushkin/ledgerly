@@ -29,8 +29,9 @@ domain state, persistence representation и public API shape.
 1. `static create(...)` создает новую entity и генерирует новую identity,
    timestamps и другие behavior-компоненты.
 2. `static restore(snapshot)` восстанавливает entity из plain domain snapshot.
-3. `toSnapshot()` возвращает plain domain snapshot, пригодный для передачи в
-   mapper или repository boundary.
+3. `toSnapshot()` возвращает полный plain domain snapshot entity или aggregate,
+   пригодный для передачи в mapper или repository boundary. Метод не должен
+   скрыто фильтровать дочерние элементы или soft-deleted/raw state.
 4. Domain entity не должна импортировать `src/db/schema`, application DTO,
    shared request/response DTO или HTTP-specific типы.
 5. Domain entity не должна содержать `toPersistence()`, `toResponseDTO()` или
@@ -46,6 +47,11 @@ domain state, persistence representation и public API shape.
 Snapshot-типы должны жить рядом с entity в `domain/<module>/types.ts` и
 использовать primitive/domain-safe типы. Они не должны быть alias для DB row или
 API response DTO.
+
+Если aggregate дополнительно предоставляет отфильтрованное представление, метод
+должен иметь явное имя по семантике фильтра, например `toActiveSnapshot()`.
+Такой метод является domain-specific projection и не входит в обязательный API
+каждой entity.
 
 ## Alternatives Considered
 

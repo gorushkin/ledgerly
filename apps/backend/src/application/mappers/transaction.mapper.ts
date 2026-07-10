@@ -14,16 +14,16 @@ import { OperationMapper } from './operation.mapper';
 
 export class TransactionMapper {
   static toResponseDTO(transaction: Transaction): TransactionResponseDTO {
-    const snapshot = transaction.toSnapshot();
+    const snapshot = transaction.toActiveSnapshot();
 
     return {
       createdAt: snapshot.createdAt,
       currency: snapshot.currency,
       description: snapshot.description,
       id: snapshot.id,
-      operations: transaction
-        .getOperations()
-        .map((operation) => OperationMapper.toResponseDTO(operation)),
+      operations: snapshot.operations.map((operation) =>
+        OperationMapper.toResponseDTOFromSnapshot(operation),
+      ),
       postingDate: snapshot.postingDate,
       transactionDate: snapshot.transactionDate,
       updatedAt: snapshot.updatedAt,

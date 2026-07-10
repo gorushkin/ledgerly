@@ -294,6 +294,61 @@ describe('Transaction Domain Entity', () => {
         },
       });
     });
+
+    it('should expose full and active snapshots explicitly', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const transactionSnapshot = transaction.toSnapshot();
+
+      const operationToDelete = transactionSnapshot.operations.find(
+        (operation) => operation.description === operationsData1.description,
+      );
+
+      expect(transactionSnapshot.operations).toHaveLength(
+        operationsData.length,
+      );
+      expect(operationToDelete).toBeDefined();
+
+      if (!operationToDelete) {
+        throw new Error('Test setup failed: operation to tombstone not found');
+      }
+
+      const activeOperations = transactionSnapshot.operations.filter(
+        (operation) => operation.id !== operationToDelete.id,
+      );
+
+      const restoredTransaction = Transaction.restore({
+        ...transactionSnapshot,
+        operations: [
+          {
+            ...operationToDelete,
+            isTombstone: true,
+          },
+          ...activeOperations,
+        ],
+      });
+
+      const fullSnapshot = restoredTransaction.toSnapshot();
+      const activeSnapshot = restoredTransaction.toActiveSnapshot();
+
+      expect(fullSnapshot.operations).toHaveLength(
+        transactionSnapshot.operations.length,
+      );
+
+      expect(fullSnapshot.operations).toContainEqual(
+        expect.objectContaining({
+          id: operationToDelete.id,
+          isTombstone: true,
+        }),
+      );
+
+      expect(activeSnapshot.operations).toHaveLength(activeOperations.length);
+
+      expect(activeSnapshot.operations).not.toContainEqual(
+        expect.objectContaining({
+          id: operationToDelete.id,
+        }),
+      );
+    });
   });
 
   describe('Updating Transaction data', () => {

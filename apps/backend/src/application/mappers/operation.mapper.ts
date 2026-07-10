@@ -4,6 +4,7 @@ import { AccountNotFoundInContextError } from 'src/domain/domain.errors';
 import { Operation } from 'src/domain/operations/operation.entity';
 import {
   CreateOperationProps,
+  OperationSnapshot,
   UpdateOperationProps,
 } from 'src/domain/operations/types';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
@@ -18,6 +19,17 @@ export class OperationMapper {
   static toResponseDTO(operation: Operation): OperationResponseDTO {
     const snapshot = operation.toSnapshot();
 
+    return OperationMapper.toResponseDTOFromSnapshot(snapshot);
+  }
+
+  /**
+   * @internal Maps trusted domain snapshots produced by Operation/Transaction
+   * entities. Do not use this as a validation boundary for external input or
+   * raw persistence data.
+   */
+  static toResponseDTOFromSnapshot(
+    snapshot: OperationSnapshot,
+  ): OperationResponseDTO {
     return {
       accountId: snapshot.accountId,
       amount: snapshot.amount,
