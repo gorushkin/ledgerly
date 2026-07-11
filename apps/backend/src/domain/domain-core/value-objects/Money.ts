@@ -31,14 +31,6 @@ export class Money {
     return new Money(value, currency);
   }
 
-  /**
-   * @deprecated Use restore() for domain snapshot restoration.
-   * Remove this compatibility alias in LED-81.
-   */
-  static fromPersistence(value: string, currency: CurrencyCode): Money {
-    return Money.restore(value, currency);
-  }
-
   equals(other: Money): boolean {
     return this.minor === other.minor && this.currency === other.currency;
   }

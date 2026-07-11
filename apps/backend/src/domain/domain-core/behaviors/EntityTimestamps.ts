@@ -44,15 +44,4 @@ export class EntityTimestamps {
   static restore(updatedAt: Timestamp, createdAt: Timestamp): EntityTimestamps {
     return new EntityTimestamps(updatedAt, createdAt);
   }
-
-  /**
-   * @deprecated Use restore() for domain snapshot restoration.
-   * Remove this compatibility alias in LED-81.
-   */
-  static fromPersistence(
-    updatedAt: Timestamp,
-    createdAt: Timestamp,
-  ): EntityTimestamps {
-    return EntityTimestamps.restore(updatedAt, createdAt);
-  }
 }

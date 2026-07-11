@@ -19,7 +19,7 @@ import { createUser } from '../helpers';
 describe('AccountController', () => {
   let user: User;
 
-  const accountId = Id.fromPersistence(
+  const accountId = Id.restore(
     'b2035d76-f6b1-4546-8637-6f034f4ade50',
   ).valueOf();
 

@@ -80,44 +80,23 @@ describe('value object API conventions', () => {
     ).toBe(true);
   });
 
-  it('keeps fromPersistence aliases equivalent to restore()', () => {
-    const id = '11111111-1111-4111-8111-111111111111';
-    const usd = Currency.create('USD').valueOf();
-    const updatedAt = Timestamp.restore('2026-07-10T10:00:00.000Z');
-    const createdAt = Timestamp.restore('2026-07-09T10:00:00.000Z');
+  it('does not expose domain fromPersistence restoration aliases', () => {
+    const constructors = [
+      Amount,
+      Currency,
+      Email,
+      Id,
+      Money,
+      Name,
+      Password,
+      EntityIdentity,
+      EntityTimestamps,
+      SoftDelete,
+    ];
 
-    expect(Amount.fromPersistence('1200').toPersistence()).toBe(
-      Amount.restore('1200').toPersistence(),
-    );
-    expect(Currency.fromPersistence('USD').valueOf()).toBe(
-      Currency.restore('USD').valueOf(),
-    );
-    expect(Email.fromPersistence('user@example.com').valueOf()).toBe(
-      Email.restore('user@example.com').valueOf(),
-    );
-    expect(Id.fromPersistence(id).valueOf()).toBe(Id.restore(id).valueOf());
-    expect(Money.fromPersistence('1200', usd).toPersistence()).toEqual(
-      Money.restore('1200', usd).toPersistence(),
-    );
-    expect(Name.fromPersistence('Restored Name').valueOf()).toBe(
-      Name.restore('Restored Name').valueOf(),
-    );
-    expect(Password.fromPersistence('$2hashed-password').valueOf()).toBe(
-      Password.restore('$2hashed-password').valueOf(),
-    );
-    expect(
-      EntityIdentity.fromPersistence(Id.restore(id)).getId().valueOf(),
-    ).toBe(EntityIdentity.restore(Id.restore(id)).getId().valueOf());
-    expect(
-      EntityTimestamps.fromPersistence(updatedAt, createdAt)
-        .getUpdatedAt()
-        .valueOf(),
-    ).toBe(
-      EntityTimestamps.restore(updatedAt, createdAt).getUpdatedAt().valueOf(),
-    );
-    expect(SoftDelete.fromPersistence(true).isDeleted()).toBe(
-      SoftDelete.restore(true).isDeleted(),
-    );
+    constructors.forEach((constructor) => {
+      expect('fromPersistence' in constructor).toBe(false);
+    });
   });
 
   it('freezes immutable value objects at runtime', async () => {

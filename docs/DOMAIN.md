@@ -163,20 +163,22 @@ restoration from plain state and comparison.
    must not expose alternate equality aliases.
 4. `valueOf()` returns the primitive/domain-safe value used in snapshots and
    mapper boundaries.
-5. `fromPersistence(...)` and `toPersistence()` are legacy compatibility
-   helpers for existing mapper/repository code. New domain code should prefer
-   `restore(...)` and `valueOf()` unless a persistence-specific shape is
-   required outside the domain layer. For example, `Amount.fromPersistence(...)`
-   remains only as a temporary compatibility alias; new `Amount` call sites
-   should use `Amount.restore(...)`. Removing `fromPersistence(...)` aliases
-   from value objects and behaviors is tracked by Jira
-   [`LED-81`](https://gorushkin.atlassian.net/browse/LED-81).
+5. Domain value objects and behaviors do not expose `fromPersistence(...)`.
+   Domain code restores persisted/plain state through `restore(...)` and
+   exports primitive/domain-safe values through `valueOf()`. Mapper or
+   repository classes outside the domain layer may still use
+   `fromPersistence(...)` as a method name when their input shape is explicitly
+   persistence-specific, for example DB row to read model mapping.
 6. Immutable value objects are frozen at runtime with `Object.freeze(this)`
    after constructor state is initialized. `create(...)`, `restore(...)` and
    non-mutating operations such as `add(...)`, `subtract(...)` or
    `increment()` must return frozen instances. Domain entities are not frozen
    by this rule because entity lifecycle changes are modeled through explicit
    domain methods.
+
+See
+[ADR 0015](./architecture/adr/0015-domain-restoration-factory-naming.md) for
+the restoration naming decision.
 
 ## Business Rules
 

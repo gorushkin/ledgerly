@@ -13,7 +13,7 @@ import { Timestamp } from './Timestamp';
 describe('temporal and identifier value objects', () => {
   it('returns INVALID_IDENTIFIER for malformed persistence IDs', () => {
     try {
-      Id.fromPersistence('not-a-uuid');
+      Id.restore('not-a-uuid');
     } catch (error) {
       expect(error).toBeInstanceOf(InvalidIdentifierError);
       expect(error).toMatchObject({

@@ -19,7 +19,7 @@ describe('GetAllAccounts', async () => {
 
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const accountId = Id.fromPersistence(
+  const accountId = Id.restore(
     '550e8400-e29b-41d4-a716-446655440001',
   ).valueOf();
   const initialBalance = Amount.create('1000').valueOf();

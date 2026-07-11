@@ -7,7 +7,7 @@ import { User } from '../users/user.entity';
 
 import { Account } from './account.entity';
 
-const userIdValue = Id.fromPersistence(
+const userIdValue = Id.restore(
   '123e4567-e89b-12d3-a456-426614174000',
 ).valueOf();
 const userTypeValue = 'asset';
@@ -23,7 +23,7 @@ describe('Account Domain Entity', () => {
   const accountType = AccountType.create(userTypeValue);
 
   let user: User;
-  let userId: ReturnType<typeof Id.fromPersistence>;
+  let userId: ReturnType<typeof Id.restore>;
 
   beforeAll(async () => {
     user = await createUser();
@@ -61,7 +61,7 @@ describe('Account Domain Entity', () => {
       const createdAtValue = '2023-10-01T12:00:00.000Z';
       const updatedAtValue = '2023-10-02T12:00:00.000Z';
 
-      const accountId = Id.fromPersistence(accountIdValue);
+      const accountId = Id.restore(accountIdValue);
       const createdAt = Timestamp.restore(createdAtValue);
       const updatedAt = Timestamp.restore(updatedAtValue);
 

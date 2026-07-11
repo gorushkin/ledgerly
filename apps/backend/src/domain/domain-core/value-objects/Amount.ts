@@ -33,14 +33,6 @@ export class Amount {
     return new Amount(parseAmount(value));
   }
 
-  /**
-   * @deprecated Use restore() for domain snapshot restoration.
-   * Remove this compatibility alias in LED-81.
-   */
-  static fromPersistence(value: string): Amount {
-    return Amount.restore(value);
-  }
-
   equals(other: Amount): boolean {
     return this.minor === other.minor;
   }

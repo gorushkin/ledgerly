@@ -56,7 +56,7 @@ describe('EntityTimestamps', () => {
     const createdAt = Timestamp.restore('2024-01-01T00:00:00.000Z');
     const updatedAt = Timestamp.restore('2024-01-02T00:00:00.000Z');
 
-    const timestamps = EntityTimestamps.fromPersistence(updatedAt, createdAt);
+    const timestamps = EntityTimestamps.restore(updatedAt, createdAt);
 
     expect(timestamps.getCreatedAt()).toBe(createdAt);
     expect(timestamps.getUpdatedAt()).toBe(updatedAt);

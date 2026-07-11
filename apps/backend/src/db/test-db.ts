@@ -387,7 +387,7 @@ export class TestDB {
 
       const formatter = new AmountFormatter();
 
-      const amount = Amount.fromPersistence(operation.amount);
+      const amount = Amount.restore(operation.amount);
       const userFriendlyAmount = formatter.formatForTable(amount, 'en-US');
       const accountName = account.name;
       const currency = account.currency;

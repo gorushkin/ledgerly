@@ -46,3 +46,4 @@
 - [ADR 0012: User repository application boundary](./0012-user-repository-application-boundary.md)
 - [ADR 0013: No DomainEntity base class](./0013-no-domain-entity-base-class.md)
 - [ADR 0014: Keep Amount value object name](./0014-keep-amount-value-object-name.md)
+- [ADR 0015: Domain restoration factory naming](./0015-domain-restoration-factory-naming.md)
