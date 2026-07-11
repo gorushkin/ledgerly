@@ -88,10 +88,11 @@ Public API convention:
   not expose alternate equality aliases.
 - `valueOf()` returns the primitive/domain-safe value used by snapshots and
   mappers.
-- `fromPersistence(...)` and `toPersistence()` are legacy compatibility helpers
-  for existing mapper/repository code; new domain code should prefer
-  `restore(...)` and `valueOf()`. Domain `fromPersistence(...)` aliases are
-  marked `@deprecated` and should be removed in `LED-81`.
+- Domain value objects and behaviors do not expose `fromPersistence(...)`.
+  Domain code should use `restore(...)` for persisted/plain state and
+  `valueOf()` for primitive/domain-safe mapper boundaries. Infrastructure
+  mappers may still use `fromPersistence(...)` as a method name when their input
+  is explicitly persistence-specific.
 
 ```typescript
 // ✅ Correct Value Objects usage

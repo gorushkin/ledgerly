@@ -60,9 +60,9 @@ describe('Email Value Object', () => {
     });
   });
 
-  describe('fromPersistence method', () => {
-    it('should restore email from persistence', () => {
-      const email = Email.fromPersistence('test@example.com');
+  describe('restore method', () => {
+    it('should restore email from plain state', () => {
+      const email = Email.restore('test@example.com');
 
       expect(email.valueOf()).toBe('test@example.com');
     });

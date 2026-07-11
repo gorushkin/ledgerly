@@ -34,14 +34,6 @@ export class Password {
     return new Password(encryptedPassword);
   }
 
-  /**
-   * @deprecated Use restore() for domain snapshot restoration.
-   * Remove this compatibility alias in LED-81.
-   */
-  static fromPersistence(encryptedPassword: string): Password {
-    return Password.restore(encryptedPassword);
-  }
-
   private static readonly BCRYPT_HASH_PREFIX = '$2';
 
   verify(): boolean {

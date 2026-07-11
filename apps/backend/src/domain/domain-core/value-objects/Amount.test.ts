@@ -82,10 +82,8 @@ describe('Amount Value Object', () => {
       });
     });
 
-    it('keeps fromPersistence as a temporary compatibility alias', () => {
-      expect(Amount.fromPersistence('100').equals(Amount.restore('100'))).toBe(
-        true,
-      );
+    it('restores equivalent values as equal value objects', () => {
+      expect(Amount.restore('100').equals(Amount.restore('100'))).toBe(true);
     });
   });
 

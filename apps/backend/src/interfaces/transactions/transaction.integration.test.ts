@@ -63,7 +63,7 @@ describe('Transactions Integration Tests', () => {
     authToken = token;
 
     const decoded = server.jwt.decode(token) as unknown as { userId: UUID };
-    userId = Id.fromPersistence(decoded.userId).valueOf();
+    userId = Id.restore(decoded.userId).valueOf();
   });
 
   afterEach(async () => {

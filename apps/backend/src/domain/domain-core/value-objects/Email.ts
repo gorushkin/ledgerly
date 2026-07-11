@@ -22,14 +22,6 @@ export class Email {
     return new Email(value);
   }
 
-  /**
-   * @deprecated Use restore() for domain snapshot restoration.
-   * Remove this compatibility alias in LED-81.
-   */
-  static fromPersistence(value: string): Email {
-    return Email.restore(value);
-  }
-
   private static isValidEmail(email: string): boolean {
     // Базовые проверки
     if (email.length === 0 || email.length > 320) {

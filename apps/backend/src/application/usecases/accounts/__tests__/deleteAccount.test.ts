@@ -21,7 +21,7 @@ describe('DeleteAccountUseCase', async () => {
 
   let mockUserRepository: { getById: ReturnType<typeof vi.fn> };
 
-  const accountId = Id.fromPersistence(
+  const accountId = Id.restore(
     '550e8400-e29b-41d4-a716-446655440001',
   ).valueOf();
 

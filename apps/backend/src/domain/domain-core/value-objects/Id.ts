@@ -24,14 +24,6 @@ export class Id {
     return new Id(value);
   }
 
-  /**
-   * @deprecated Use restore() for domain snapshot restoration.
-   * Remove this compatibility alias in LED-81.
-   */
-  static fromPersistence(value: string): Id {
-    return Id.restore(value);
-  }
-
   toString(): string {
     return this.value;
   }

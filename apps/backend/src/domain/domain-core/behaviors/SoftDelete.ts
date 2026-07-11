@@ -48,12 +48,4 @@ export class SoftDelete {
   static restore(isTombstone: boolean): SoftDelete {
     return new SoftDelete(isTombstone);
   }
-
-  /**
-   * @deprecated Use restore() for domain snapshot restoration.
-   * Remove this compatibility alias in LED-81.
-   */
-  static fromPersistence(isTombstone: boolean): SoftDelete {
-    return SoftDelete.restore(isTombstone);
-  }
 }

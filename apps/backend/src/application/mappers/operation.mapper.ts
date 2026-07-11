@@ -93,7 +93,7 @@ export class OperationMapper {
       account: account,
       amount: Amount.create(dto.amount),
       description: dto.description,
-      id: Id.fromPersistence(dto.id),
+      id: Id.restore(dto.id),
       value: Amount.create(dto.value),
     };
   }

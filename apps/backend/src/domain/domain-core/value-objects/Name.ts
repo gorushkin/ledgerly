@@ -22,14 +22,6 @@ export class Name {
     return new Name(value);
   }
 
-  /**
-   * @deprecated Use restore() for domain snapshot restoration.
-   * Remove this compatibility alias in LED-81.
-   */
-  static fromPersistence(value: string): Name {
-    return Name.restore(value);
-  }
-
   equals(other: Name): boolean {
     return this.value === other.value;
   }

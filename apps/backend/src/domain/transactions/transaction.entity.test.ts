@@ -277,7 +277,7 @@ describe('Transaction Domain Entity', () => {
                 account: operationAccount,
                 amount: Amount.create('15000'),
                 description: 'Updated tombstone operation',
-                id: Id.fromPersistence(operationToDelete1.id),
+                id: Id.restore(operationToDelete1.id),
                 value: Amount.create('15000'),
               },
             ],
@@ -563,10 +563,8 @@ describe('Transaction Domain Entity', () => {
         transaction.applyUpdate({
           operations: {
             create: [],
-            delete: [Id.fromPersistence(operationId)],
-            update: [
-              toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
-            ],
+            delete: [Id.restore(operationId)],
+            update: [toUpdateProps(transaction, 0, Id.restore(operationId))],
           },
         }),
       );
@@ -591,8 +589,8 @@ describe('Transaction Domain Entity', () => {
             create: [],
             delete: [],
             update: [
-              toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
-              toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+              toUpdateProps(transaction, 0, Id.restore(operationId)),
+              toUpdateProps(transaction, 0, Id.restore(operationId)),
             ],
           },
         }),
@@ -615,10 +613,7 @@ describe('Transaction Domain Entity', () => {
         transaction.applyUpdate({
           operations: {
             create: [],
-            delete: [
-              Id.fromPersistence(operationId),
-              Id.fromPersistence(operationId),
-            ],
+            delete: [Id.restore(operationId), Id.restore(operationId)],
             update: [],
           },
         }),

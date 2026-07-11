@@ -69,10 +69,10 @@ describe('Accounts Integration Tests', () => {
     authToken = token;
 
     const decoded = server.jwt.decode(token) as unknown as { userId: UUID };
-    userId = Id.fromPersistence(decoded.userId).valueOf();
+    userId = Id.restore(decoded.userId).valueOf();
 
     const testAccounts = getUserTestAccounts(
-      Id.fromPersistence(decoded.userId).valueOf(),
+      Id.restore(decoded.userId).valueOf(),
     );
 
     const promises = testAccounts.map((account) =>
