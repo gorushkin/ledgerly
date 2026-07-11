@@ -21,14 +21,6 @@ export class Version {
     return this.value.toString();
   }
 
-  /**
-   * @deprecated Use equals() for value equality.
-   * Remove this compatibility alias in LED-80.
-   */
-  isEqualTo(other: Version): boolean {
-    return this.value === other.value;
-  }
-
   equals(other: Version): boolean {
     return this.value === other.value;
   }

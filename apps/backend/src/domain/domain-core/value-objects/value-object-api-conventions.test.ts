@@ -120,62 +120,6 @@ describe('value object API conventions', () => {
     );
   });
 
-  it('keeps isEqualTo aliases equivalent to equals()', () => {
-    const parentId = Id.restore('11111111-1111-4111-8111-111111111111');
-    const childId = Id.restore('22222222-2222-4222-8222-222222222222');
-    const usd = Currency.create('USD').valueOf();
-
-    expect(Amount.create('1200').isEqualTo(Amount.restore('1200'))).toBe(
-      Amount.create('1200').equals(Amount.restore('1200')),
-    );
-    expect(Currency.create('usd').isEqualTo(Currency.restore('USD'))).toBe(
-      Currency.create('usd').equals(Currency.restore('USD')),
-    );
-    expect(
-      DateValue.restore('2026-07-10').isEqualTo(
-        DateValue.restore('2026-07-10'),
-      ),
-    ).toBe(
-      DateValue.restore('2026-07-10').equals(DateValue.restore('2026-07-10')),
-    );
-    expect(
-      Email.create('USER@example.com').isEqualTo(
-        Email.restore('user@example.com'),
-      ),
-    ).toBe(
-      Email.create('USER@example.com').equals(
-        Email.restore('user@example.com'),
-      ),
-    );
-    expect(
-      Money.create('1200', usd).isEqualTo(Money.restore('1200', usd)),
-    ).toBe(Money.create('1200', usd).equals(Money.restore('1200', usd)));
-    expect(
-      Name.create('Restored Name').isEqualTo(Name.restore('Restored Name')),
-    ).toBe(Name.create('Restored Name').equals(Name.restore('Restored Name')));
-    expect(
-      ParentChildRelation.create(parentId, childId).isEqualTo(
-        ParentChildRelation.create(parentId, childId),
-      ),
-    ).toBe(
-      ParentChildRelation.create(parentId, childId).equals(
-        ParentChildRelation.create(parentId, childId),
-      ),
-    );
-    expect(
-      Timestamp.restore('2026-07-10T10:00:00.000Z').isEqualTo(
-        Timestamp.restore('2026-07-10T10:00:00.000Z'),
-      ),
-    ).toBe(
-      Timestamp.restore('2026-07-10T10:00:00.000Z').equals(
-        Timestamp.restore('2026-07-10T10:00:00.000Z'),
-      ),
-    );
-    expect(Version.create(3).isEqualTo(Version.restore(3))).toBe(
-      Version.create(3).equals(Version.restore(3)),
-    );
-  });
-
   it('freezes immutable value objects at runtime', async () => {
     const parentId = Id.restore('11111111-1111-4111-8111-111111111111');
     const childId = Id.restore('22222222-2222-4222-8222-222222222222');

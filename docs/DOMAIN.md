@@ -159,11 +159,8 @@ restoration from plain state and comparison.
    plain domain state. It must preserve the stored value semantics and should
    not apply user-input-only normalization unless that normalization is part of
    the persisted invariant.
-3. `equals(other)` compares value objects by value. `isEqualTo(other)` may
-   exist only as a temporary compatibility wrapper while legacy call sites are
-   migrated. Domain `isEqualTo(...)` aliases are marked `@deprecated`; removing
-   them is tracked by Jira
-   [`LED-80`](https://gorushkin.atlassian.net/browse/LED-80).
+3. `equals(other)` is the single public value equality method. Value objects
+   must not expose alternate equality aliases.
 4. `valueOf()` returns the primitive/domain-safe value used in snapshots and
    mapper boundaries.
 5. `fromPersistence(...)` and `toPersistence()` are legacy compatibility

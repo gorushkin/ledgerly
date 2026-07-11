@@ -30,14 +30,6 @@ export class Name {
     return Name.restore(value);
   }
 
-  /**
-   * @deprecated Use equals() for value equality.
-   * Remove this compatibility alias in LED-80.
-   */
-  isEqualTo(other: Name): boolean {
-    return this.value === other.value;
-  }
-
   equals(other: Name): boolean {
     return this.value === other.value;
   }
