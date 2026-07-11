@@ -17,6 +17,9 @@ const parseAmount = (value: string): bigint => {
   return minor;
 };
 
+/**
+ * Signed monetary amount stored as integer minor units without currency.
+ */
 export class Amount {
   private constructor(private readonly minor: bigint) {
     Object.freeze(this);
