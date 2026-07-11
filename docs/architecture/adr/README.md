@@ -45,3 +45,4 @@
 - [ADR 0011: Domain entity API conventions](./0011-domain-entity-api-conventions.md)
 - [ADR 0012: User repository application boundary](./0012-user-repository-application-boundary.md)
 - [ADR 0013: No DomainEntity base class](./0013-no-domain-entity-base-class.md)
+- [ADR 0014: Keep Amount value object name](./0014-keep-amount-value-object-name.md)
