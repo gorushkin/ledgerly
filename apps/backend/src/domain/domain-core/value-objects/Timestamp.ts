@@ -27,14 +27,6 @@ export class Timestamp {
     return this.value;
   }
 
-  /**
-   * @deprecated Use equals() for value equality.
-   * Remove this compatibility alias in LED-80.
-   */
-  isEqualTo(other: Timestamp): boolean {
-    return this.value === other.value;
-  }
-
   equals(other: Timestamp): boolean {
     return this.value === other.value;
   }

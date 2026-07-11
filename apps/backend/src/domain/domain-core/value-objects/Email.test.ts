@@ -68,26 +68,26 @@ describe('Email Value Object', () => {
     });
   });
 
-  describe('isEqualTo method', () => {
+  describe('equals method', () => {
     it('should return true for equal emails', () => {
       const email1 = Email.create('test@example.com');
       const email2 = Email.create('test@example.com');
 
-      expect(email1.isEqualTo(email2)).toBe(true);
+      expect(email1.equals(email2)).toBe(true);
     });
 
     it('should return false for different emails', () => {
       const email1 = Email.create('test1@example.com');
       const email2 = Email.create('test2@example.com');
 
-      expect(email1.isEqualTo(email2)).toBe(false);
+      expect(email1.equals(email2)).toBe(false);
     });
 
     it('should handle case normalization', () => {
       const email1 = Email.create('TEST@example.com');
       const email2 = Email.create('test@example.com');
 
-      expect(email1.isEqualTo(email2)).toBe(true);
+      expect(email1.equals(email2)).toBe(true);
     });
   });
 

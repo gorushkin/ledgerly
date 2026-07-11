@@ -43,14 +43,6 @@ export class Money {
     return this.minor === other.minor && this.currency === other.currency;
   }
 
-  /**
-   * @deprecated Use equals() for value equality.
-   * Remove this compatibility alias in LED-80.
-   */
-  isEqualTo(other: Money): boolean {
-    return this.equals(other);
-  }
-
   valueOf(): MoneyString {
     return moneyAmountString.parse(String(this.minor));
   }

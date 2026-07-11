@@ -28,14 +28,6 @@ export class DateValue {
     return this.value;
   }
 
-  /**
-   * @deprecated Use equals() for value equality.
-   * Remove this compatibility alias in LED-80.
-   */
-  isEqualTo(other: DateValue): boolean {
-    return this.value === other.value;
-  }
-
   equals(other: DateValue): boolean {
     return this.value === other.value;
   }

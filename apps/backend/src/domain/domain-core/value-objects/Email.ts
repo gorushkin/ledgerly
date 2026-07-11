@@ -82,14 +82,6 @@ export class Email {
     return emailRegex.test(email);
   }
 
-  /**
-   * @deprecated Use equals() for value equality.
-   * Remove this compatibility alias in LED-80.
-   */
-  isEqualTo(other: Email): boolean {
-    return this.value === other.value;
-  }
-
   equals(other: Email): boolean {
     return this.value === other.value;
   }

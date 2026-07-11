@@ -39,14 +39,6 @@ export class Currency {
     return this.code === other.code;
   }
 
-  /**
-   * @deprecated Use equals() for value equality.
-   * Remove this compatibility alias in LED-80.
-   */
-  isEqualTo(other: Currency): boolean {
-    return this.equals(other);
-  }
-
   valueOf(): CurrencyCode {
     return this.code;
   }

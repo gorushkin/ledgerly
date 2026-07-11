@@ -95,7 +95,7 @@ export class Transaction {
     this.validateUpdateIsAllowed();
     
     const entryIndex = this.entries.findIndex((entry) =>
-      entry.getId().isEqualTo(entryId),
+      entry.getId().equals(entryId),
     );
     
     if (entryIndex === -1) {

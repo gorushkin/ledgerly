@@ -84,9 +84,8 @@ Public API convention:
 - `create(...)` builds a value object from new user/application input and runs
   any input normalization.
 - `restore(...)` rebuilds a value object from persisted/plain domain state.
-- `equals(other)` is the canonical comparison method. `isEqualTo(other)` may
-  remain as a compatibility wrapper during migration. Domain `isEqualTo(...)`
-  aliases are marked `@deprecated` and should be removed in `LED-80`.
+- `equals(other)` is the single public value equality method. Value objects do
+  not expose alternate equality aliases.
 - `valueOf()` returns the primitive/domain-safe value used by snapshots and
   mappers.
 - `fromPersistence(...)` and `toPersistence()` are legacy compatibility helpers
