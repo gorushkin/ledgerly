@@ -70,7 +70,7 @@ describe('CreateAccountUseCase', async () => {
         isSystem: false,
         name,
         type,
-        userId: user.id,
+        userId: user.getId().valueOf(),
       });
     });
   });

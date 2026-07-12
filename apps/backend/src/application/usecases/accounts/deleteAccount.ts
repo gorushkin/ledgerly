@@ -15,7 +15,7 @@ export class DeleteAccountUseCase extends AccountUseCaseBase {
     await this.ensureAccountExistsAndOwned(user, accountId);
 
     const deletedAccount = await this.accountRepository.delete(
-      user.id,
+      user.getId().valueOf(),
       accountId,
     );
 

@@ -40,7 +40,7 @@ describe('GetAccountByIdUseCase', async () => {
   const mockUser = {
     createdAt: Timestamp.create().valueOf(),
     email: 'test@example.com',
-    id: user.id,
+    id: user.getId().valueOf(),
     name: 'Test User',
   };
 
@@ -56,7 +56,7 @@ describe('GetAccountByIdUseCase', async () => {
     name: accountName,
     type: accountType,
     updatedAt: Timestamp.create().valueOf(),
-    userId: user.id,
+    userId: user.getId().valueOf(),
   };
 
   beforeEach(() => {
@@ -82,7 +82,7 @@ describe('GetAccountByIdUseCase', async () => {
       const result = await getAccountByIdUseCase.execute(user, accountId);
 
       expect(mockAccountRepository.getById).toHaveBeenCalledWith(
-        user.id,
+        user.getId().valueOf(),
         accountId,
       );
       expect(result).toEqual(

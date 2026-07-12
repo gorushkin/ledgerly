@@ -127,10 +127,6 @@ export class Account {
     return this.identity.getId();
   }
 
-  get id(): Id {
-    return this.identity.getId();
-  }
-
   // Delegation methods for timestamps
   getUpdatedAt(): Timestamp {
     return this.timestamps.getUpdatedAt();

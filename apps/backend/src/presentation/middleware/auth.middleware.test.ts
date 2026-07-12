@@ -44,13 +44,13 @@ describe('authMiddleware', () => {
       getByIdWithPassword,
       jwtVerify: vi.fn().mockResolvedValue({
         email: user.email.valueOf(),
-        userId: user.id,
+        userId: user.getId().valueOf(),
       }),
     });
 
     await authMiddleware(request, {} as never);
 
-    expect(getByIdWithPassword).toHaveBeenCalledWith(user.id);
+    expect(getByIdWithPassword).toHaveBeenCalledWith(user.getId().valueOf());
     expect(request.user).toBe(user);
   });
 

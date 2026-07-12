@@ -86,7 +86,7 @@ describe('Operation Domain Entity', () => {
       usdAccount.getId().valueOf(),
     );
 
-    expect(operation.id).toBeDefined();
+    expect(operation.getId()).toBeDefined();
     expect(operation.getCreatedAt()).toBeDefined();
     expect(operation.getUpdatedAt()).toBeDefined();
     expect(operation.value.equals(operationData.value)).toEqual(true);
@@ -121,7 +121,7 @@ describe('Operation Domain Entity', () => {
       account: usdAccount,
       amount: newAmount,
       description: newDescription,
-      id: operation.id,
+      id: operation.getId(),
       value: newValue,
     });
 
@@ -166,7 +166,7 @@ describe('Operation Domain Entity', () => {
       account: eurAccount,
       amount: operationData.amount,
       description: operationData.description,
-      id: operation.id,
+      id: operation.getId(),
       value: operationData.value,
     });
 
@@ -209,7 +209,7 @@ describe('Operation Domain Entity', () => {
       account: usdAccount,
       amount: operationData.amount,
       description: operationData.description,
-      id: operation.id,
+      id: operation.getId(),
       value: operationData.value,
     });
 
@@ -237,7 +237,7 @@ describe('Operation Domain Entity', () => {
         account: eurAccount,
         amount: Amount.create('150'),
         description: 'Updated deleted operation',
-        id: operation.id,
+        id: operation.getId(),
         value: Amount.create('350'),
       }),
     ).toThrow(DeletedEntityOperationError);

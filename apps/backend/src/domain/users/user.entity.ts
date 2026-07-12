@@ -67,10 +67,6 @@ export class User {
     return this.identity.getId();
   }
 
-  get id(): UUID {
-    return this.identity.getId().valueOf();
-  }
-
   // Public getters for read access
   get email(): Email {
     return this._email;

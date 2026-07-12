@@ -47,7 +47,7 @@ describe('UpdateAccount', async () => {
     name: accountName,
     type: accountType,
     updatedAt: Timestamp.create().valueOf(),
-    userId: user.id,
+    userId: user.getId().valueOf(),
   };
 
   const mockAccountUpdatedData = {
@@ -77,12 +77,12 @@ describe('UpdateAccount', async () => {
       });
 
       expect(mockAccountRepository.getById).toHaveBeenCalledWith(
-        user.id,
+        user.getId().valueOf(),
         accountId,
       );
 
       expect(mockAccountRepository.update).toHaveBeenCalledWith(
-        user.id,
+        user.getId().valueOf(),
         accountId,
         expect.objectContaining({ name: 'Updated Account' }),
       );
@@ -110,7 +110,7 @@ describe('UpdateAccount', async () => {
       });
 
       expect(mockAccountRepository.getById).toHaveBeenCalledWith(
-        user.id,
+        user.getId().valueOf(),
         accountId,
       );
       expect(mockAccountRepository.update).not.toHaveBeenCalled();
