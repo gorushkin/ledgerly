@@ -1,7 +1,8 @@
-import { TransactionQueryParams, UUID } from '@ledgerly/shared/types';
 import {
+  getTransactionsQuerySchema,
   transactionCreateSchema,
   transactionUpdateSchema,
+  uniqueIdSchema,
 } from '@ledgerly/shared/validation';
 import {
   CreateTransactionRequestDTO,
@@ -31,32 +32,32 @@ export class TransactionController {
     return this.createTransaction.execute(user, transactionCreateDto);
   }
 
-  async getById(user: User, transactionId: UUID) {
-    return this.getTransactionById.execute(
-      user.getId().valueOf(),
-      transactionId,
-    );
+  async getById(user: User, requestParams: unknown) {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.getTransactionById.execute(user.getId().valueOf(), id);
   }
 
-  async getAll(user: User, query: TransactionQueryParams) {
+  async getAll(user: User, requestQuery: unknown) {
+    const query = getTransactionsQuerySchema.parse(requestQuery);
+
     return this.getAllTransactions.execute(user.getId().valueOf(), query);
   }
 
   async update(
     user: User,
-    transactionId: UUID,
+    requestParams: unknown,
     requestBody: UpdateTransactionRequestDTO,
   ) {
+    const { id } = uniqueIdSchema.parse(requestParams);
     const transactionUpdateDto = transactionUpdateSchema.parse(requestBody);
 
-    return this.updateTransaction.execute(
-      user,
-      transactionId,
-      transactionUpdateDto,
-    );
+    return this.updateTransaction.execute(user, id, transactionUpdateDto);
   }
 
-  delete(user: User, transactionId: UUID): Promise<void> {
-    return this.deleteTransaction.execute(user, transactionId);
+  async delete(user: User, requestParams: unknown): Promise<void> {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.deleteTransaction.execute(user, id);
   }
 }

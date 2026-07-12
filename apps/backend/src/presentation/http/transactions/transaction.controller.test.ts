@@ -162,13 +162,23 @@ describe('TransactionController', () => {
   describe('getById', () => {
     it('should call GetTransactionByIdUseCase with correct parameters', async () => {
       const transactionId = Id.create().valueOf();
-      const result = await transactionController.getById(user, transactionId);
+      const result = await transactionController.getById(user, {
+        id: transactionId,
+      });
       expect(mockGetTransactionByIdUseCase.execute).toHaveBeenCalledWith(
         user.getId().valueOf(),
         transactionId,
       );
       expect(mockGetTransactionByIdUseCase.execute).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockTransaction);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      await expect(
+        transactionController.getById(user, { id: 'not-a-uuid' }),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockGetTransactionByIdUseCase.execute).not.toHaveBeenCalled();
     });
   });
 
@@ -194,6 +204,16 @@ describe('TransactionController', () => {
 
       expect(mockGetAllTransactionsUseCase.execute).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockTransactionsOutput);
+    });
+
+    it('should throw ZodError for invalid request query', async () => {
+      await expect(
+        transactionController.getAll(user, {
+          page: 'not-a-number',
+        }),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockGetAllTransactionsUseCase.execute).not.toHaveBeenCalled();
     });
   });
 
@@ -227,7 +247,7 @@ describe('TransactionController', () => {
 
       const result = await transactionController.update(
         user,
-        transactionId,
+        { id: transactionId },
         requestBody as unknown as UpdateTransactionRequestDTO,
       );
 
@@ -258,10 +278,34 @@ describe('TransactionController', () => {
       await expect(
         transactionController.update(
           user,
-          transactionId,
+          { id: transactionId },
           invalidRequestBody as unknown as UpdateTransactionRequestDTO,
         ),
       ).rejects.toThrow(ZodError);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      const requestBody: UpdateTransactionRequestDTO = {
+        description: 'Updated Transaction',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+        version: 0,
+      };
+
+      await expect(
+        transactionController.update(
+          user,
+          { id: 'not-a-uuid' },
+          requestBody as unknown as UpdateTransactionRequestDTO,
+        ),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockUpdateTransactionUseCase.execute).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -303,7 +347,7 @@ describe('TransactionController', () => {
         await expect(
           transactionController.update(
             user,
-            transactionId,
+            { id: transactionId },
             requestBody as unknown as UpdateTransactionRequestDTO,
           ),
         ).rejects.toThrow(ZodError);
@@ -328,7 +372,7 @@ describe('TransactionController', () => {
       await expect(
         transactionController.update(
           user,
-          transactionId,
+          { id: transactionId },
           requestBody as unknown as UpdateTransactionRequestDTO,
         ),
       ).rejects.toThrow(ZodError);
@@ -338,7 +382,7 @@ describe('TransactionController', () => {
   describe('delete', () => {
     it('should call DeleteTransactionUseCase with correct parameters', async () => {
       const transactionId = Id.create().valueOf();
-      await transactionController.delete(user, transactionId);
+      await transactionController.delete(user, { id: transactionId });
 
       expect(mockDeleteTransactionUseCase.execute).toHaveBeenCalledWith(
         user,
@@ -346,6 +390,14 @@ describe('TransactionController', () => {
       );
 
       expect(mockDeleteTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      await expect(
+        transactionController.delete(user, { id: 'not-a-uuid' }),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockDeleteTransactionUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });
