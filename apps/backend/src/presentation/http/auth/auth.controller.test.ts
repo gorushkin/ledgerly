@@ -1,8 +1,9 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
-import { AuthController } from 'src/interfaces/';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ZodError } from 'zod';
+
+import { AuthController } from './auth.controller';
 
 describe('AuthController', () => {
   const mockToken = 'mock-jwt-token';

@@ -1,6 +1,6 @@
 import { apiErrorCodes, type ApiErrorResponse } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
-import { createServer } from 'src/presentation/server';
+import { createServer } from 'src/presentation/http';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 type AuthSuccessResponse = {

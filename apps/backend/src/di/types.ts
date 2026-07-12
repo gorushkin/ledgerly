@@ -22,11 +22,11 @@ import {
   UserRepository,
 } from 'src/infrastructure/db';
 import {
-  AuthController,
   AccountController,
+  AuthController,
   TransactionController,
-} from 'src/interfaces/';
-import { UserController } from 'src/presentation/controllers/user.controller';
+  UserController,
+} from 'src/presentation/http';
 
 type Repositories = {
   currency: CurrencyRepository;

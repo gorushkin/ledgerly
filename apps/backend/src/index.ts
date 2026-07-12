@@ -1,4 +1,4 @@
-import { createServer } from './presentation/server';
+import { createServer } from './presentation/http';
 
 const start = async () => {
   const server = createServer();

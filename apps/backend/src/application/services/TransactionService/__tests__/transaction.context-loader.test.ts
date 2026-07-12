@@ -5,7 +5,7 @@ import { AccountMapper } from 'src/application/mappers';
 import { createAccount } from 'src/db/createTestUser';
 import { User } from 'src/domain';
 import { Amount, Currency } from 'src/domain/domain-core';
-import { createUser } from 'src/interfaces/helpers';
+import { createUser } from 'src/testing';
 import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { TransactionContextLoader } from '..';

@@ -4,9 +4,10 @@ import { config } from 'src/config/config';
 import { createContainer } from 'src/di/container';
 import { errorHandler } from 'src/libs/errorHandler';
 
-import { db as defaultDb } from '../db';
+import { db as defaultDb } from '../../db';
 
-import { registerRoutes } from './routes';
+import { registerRoutes } from './register-routes';
+
 export function createServer(db = defaultDb) {
   const fastify = Fastify({
     logger: false,

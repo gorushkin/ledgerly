@@ -24,7 +24,7 @@ import { CreateTransactionProps, TestDB } from 'src/db/test-db';
 import { compareEntities } from 'src/db/test-utils';
 import { compareCommonEntities } from 'src/db/test-utils/entityComparer';
 import { Amount, Currency, DateValue, Id } from 'src/domain/domain-core';
-import { createServer } from 'src/presentation/server';
+import { createServer } from 'src/presentation/http';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const parseResponse = <T>(response: { body: string }): T => {

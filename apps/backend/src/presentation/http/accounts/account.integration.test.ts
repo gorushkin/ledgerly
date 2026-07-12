@@ -9,7 +9,7 @@ import { TestDB } from 'src/db/test-db';
 import { Amount } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { createServer } from 'src/presentation/server';
+import { createServer } from 'src/presentation/http';
 import { describe, beforeEach, it, expect } from 'vitest';
 
 const url = `/api${ROUTES.accounts}`;

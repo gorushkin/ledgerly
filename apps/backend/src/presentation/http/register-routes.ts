@@ -1,12 +1,12 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import type { FastifyInstance } from 'fastify';
 
-import { authRoutes, transactionsRoutes } from '../../interfaces/';
-import { accountsRoutes } from '../../interfaces/';
-import { authMiddleware } from '../middleware';
-
-import { registerCurrenciesRoutes } from './currencies.routes';
-import { registerUserRoutes } from './user.routes';
+import { accountsRoutes } from './accounts';
+import { authRoutes } from './auth';
+import { registerCurrenciesRoutes } from './currencies';
+import { authMiddleware } from './middleware';
+import { transactionsRoutes } from './transactions';
+import { registerUserRoutes } from './users';
 
 export const registerRoutes = (fastify: FastifyInstance) => {
   // Public routes

@@ -156,12 +156,14 @@ Neutral/cost:
 - [ADR 0008: Structured API error contract](./0008-structured-api-error-contract.md)
 - [ADR 0011: Domain entity API conventions](./0011-domain-entity-api-conventions.md)
 - [ADR 0012: User repository application boundary](./0012-user-repository-application-boundary.md)
+- [ADR 0017: Backend HTTP adapter boundary](./0017-backend-http-adapter-boundary.md)
 - Jira: https://gorushkin.atlassian.net/browse/LED-84
 
 Follow-up deviations:
 
 - `LED-85`: migrate user profile endpoints from legacy service to use cases.
-- `LED-86`: consolidate backend presentation and interfaces modules.
+- `LED-86`: consolidate backend presentation and interfaces modules
+  (resolved by ADR 0017).
 - `LED-87`: standardize route and controller responsibilities.
 - `LED-88`: decouple use cases from infrastructure types.
 - `LED-90`: move persistence mapping out of application mappers.

@@ -14,10 +14,9 @@ import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/
 import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
 import { User } from 'src/domain';
 import { Amount, Currency, DateValue, Id } from 'src/domain/domain-core';
+import { createUser } from 'src/testing';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ZodError } from 'zod';
-
-import { createUser } from '../helpers';
 
 import { TransactionController } from './transaction.controller';
 
