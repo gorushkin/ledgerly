@@ -1,4 +1,3 @@
-import { uniqueIdSchema } from '@ledgerly/shared/validation';
 import type { FastifyInstance } from 'fastify';
 
 export const accountsRoutes = (app: FastifyInstance) => {
@@ -11,10 +10,9 @@ export const accountsRoutes = (app: FastifyInstance) => {
   });
 
   app.get('/:id', async (request) => {
-    const { id } = uniqueIdSchema.parse(request.params);
     const user = request.user;
 
-    return accountController.getById(user, id);
+    return accountController.getById(user, request.params);
   });
 
   app.post('/', async (request, reply) => {
@@ -25,22 +23,20 @@ export const accountsRoutes = (app: FastifyInstance) => {
   });
 
   app.delete('/:id', async (request, reply) => {
-    const { id } = uniqueIdSchema.parse(request.params);
     const user = request.user;
 
-    await accountController.deleteAccount(user, id);
+    await accountController.deleteAccount(user, request.params);
 
     reply.status(204).send();
   });
 
   // or patch
   app.put('/:id', async (request, reply) => {
-    const { id } = uniqueIdSchema.parse(request.params);
     const user = request.user;
 
     const updatedAccount = await accountController.update(
       user,
-      id,
+      request.params,
       request.body,
     );
     reply.status(200).send(updatedAccount);

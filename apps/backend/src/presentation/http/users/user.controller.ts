@@ -1,27 +1,27 @@
-import { UUID } from '@ledgerly/shared/types';
+import { User } from 'src/domain/users/user.entity';
+
+const notImplemented = () => Promise.reject(new Error('Not implemented yet'));
 
 export class UserController {
-  getById(_id: UUID) {
-    // return this.userService.getById(id);
-    throw new Error('Not implemented yet');
+  getById(_user: User): Promise<never> {
+    // return this.getUserProfileUseCase.execute(user);
+    return notImplemented();
   }
 
-  update(_id: UUID, _requestBody: unknown) {
+  update(_user: User, _requestBody: unknown): Promise<never> {
     // const updatedProfileDTO = usersUpdateSchema.parse(requestBody);
-
-    // return this.userService.update(id, updatedProfileDTO);
-    throw new Error('Not implemented yet');
+    // return this.updateUserProfileUseCase.execute(user, updatedProfileDTO);
+    return notImplemented();
   }
 
-  changePassword(_id: UUID, _requestBody: unknown) {
+  changePassword(_user: User, _requestBody: unknown): Promise<never> {
     // const passwordChangeDTO = passwordChangeSchema.parse(requestBody);
-
-    // await this.userService.changePassword(id, passwordChangeDTO);
-    throw new Error('Not implemented yet');
+    // return this.changeUserPasswordUseCase.execute(user, passwordChangeDTO);
+    return notImplemented();
   }
 
-  delete(_id: UUID) {
-    // return this.userService.delete(id);
-    throw new Error('Not implemented yet');
+  delete(_user: User): Promise<never> {
+    // return this.deleteUserProfileUseCase.execute(user);
+    return notImplemented();
   }
 }

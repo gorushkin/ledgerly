@@ -1,8 +1,5 @@
-import { TransactionQueryInput } from '@ledgerly/shared/types';
 import {
-  getTransactionsQuerySchema,
   TransactionUpdateInput,
-  uniqueIdSchema,
   type TransactionCreateInput,
 } from '@ledgerly/shared/validation';
 import type { FastifyInstance } from 'fastify';
@@ -11,9 +8,10 @@ export const transactionsRoutes = (app: FastifyInstance) => {
   const transactionController = app.container.controllers.transaction;
 
   app.get('/:id', async (request, response) => {
-    const { id } = uniqueIdSchema.parse(request.params);
-
-    const transaction = await transactionController.getById(request.user, id);
+    const transaction = await transactionController.getById(
+      request.user,
+      request.params,
+    );
 
     response.send(transaction);
   });
@@ -25,28 +23,25 @@ export const transactionsRoutes = (app: FastifyInstance) => {
     response.status(201).send(transaction);
   });
 
-  app.get<{ Querystring: TransactionQueryInput }>(
-    '/',
-    async (request, response) => {
-      const user = request.user;
+  app.get('/', async (request, response) => {
+    const user = request.user;
 
-      const query = getTransactionsQuerySchema.parse(request.query);
+    const transactions = await transactionController.getAll(
+      user,
+      request.query,
+    );
 
-      const transactions = await transactionController.getAll(user, query);
-
-      response.send(transactions);
-    },
-  );
+    response.send(transactions);
+  });
 
   app.put<{ Body: TransactionUpdateInput; Params: { id: string } }>(
     '/:id',
     async (request, response) => {
-      const { id } = uniqueIdSchema.parse(request.params);
       const user = request.user;
 
       const transaction = await transactionController.update(
         user,
-        id,
+        request.params,
         request.body,
       );
 
@@ -55,10 +50,9 @@ export const transactionsRoutes = (app: FastifyInstance) => {
   );
 
   app.delete('/:id', async (request, response) => {
-    const { id } = uniqueIdSchema.parse(request.params);
     const user = request.user;
 
-    await transactionController.delete(user, id);
+    await transactionController.delete(user, request.params);
     response.status(204).send();
   });
 };

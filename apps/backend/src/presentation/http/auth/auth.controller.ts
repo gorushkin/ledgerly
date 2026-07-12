@@ -1,10 +1,19 @@
 import { loginSchema, registerSchema } from '@ledgerly/shared/validation';
 import { env } from 'env.config';
-import { FastifyReply, FastifyRequest } from 'fastify';
 import {
   RegisterUserUseCase,
   LoginUserUseCase,
 } from 'src/application/usecases';
+import type { JWTPayload } from 'src/types';
+
+type JwtSignOptions = {
+  expiresIn: string;
+};
+
+export type AuthJwtSigner = (
+  payload: JWTPayload,
+  options: JwtSignOptions,
+) => Promise<string>;
 
 export class AuthController {
   constructor(
@@ -12,11 +21,11 @@ export class AuthController {
     private readonly loginUserUseCase: LoginUserUseCase,
   ) {}
 
-  async login(request: FastifyRequest, reply: FastifyReply) {
-    const data = loginSchema.parse(request.body);
+  async login(requestBody: unknown, signJwt: AuthJwtSigner) {
+    const data = loginSchema.parse(requestBody);
     const user = await this.loginUserUseCase.execute(data.email, data.password);
 
-    const token = await reply.jwtSign(
+    const token = await signJwt(
       {
         email: user.email,
         userId: user.id,
@@ -29,11 +38,11 @@ export class AuthController {
     return { token };
   }
 
-  async register(request: FastifyRequest, reply: FastifyReply) {
-    const data = registerSchema.parse(request.body);
+  async register(requestBody: unknown, signJwt: AuthJwtSigner) {
+    const data = registerSchema.parse(requestBody);
     const user = await this.registerUserUseCase.execute(data);
 
-    const token = await reply.jwtSign(
+    const token = await signJwt(
       {
         email: user.email,
         userId: user.id,

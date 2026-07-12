@@ -84,19 +84,37 @@ Responsibilities:
 
 Validation placement:
 
-- Request body, params and query validation may happen in route or controller
-  during the migration period, but each endpoint group should pick one local
-  pattern and keep it consistent.
+- Request body, params and query validation belongs in controllers for
+  endpoint operations that have a controller. Routes pass `request.body`,
+  `request.params` and `request.query` as transport input without parsing them.
+- Routes may only perform transport extraction that cannot be delegated, such
+  as reading `request.user` or passing a Fastify-bound capability.
+- Routes without a controller, such as simple framework probes or temporary
+  stubs, must document the exception or be migrated before growing endpoint
+  behavior.
 - Normalized application invariants belong in use cases or domain objects, not
   in route handlers.
 
 JWT and authentication:
 
 - Authentication middleware restores the authenticated user context.
-- Login/register controllers may sign JWTs because signing requires the
-  Fastify reply adapter.
+- Login/register controllers own session response assembly and may sign JWTs
+  through an explicit signer function supplied by the route. Controllers must
+  not accept whole `FastifyRequest` or `FastifyReply` objects solely to sign a
+  token.
 - Use cases return authenticated user data but do not depend on Fastify or JWT
   APIs.
+
+HTTP status and response shaping:
+
+- Routes own transport status codes and `reply.send`, including `201 Created`
+  and empty `204 No Content` responses.
+- Controllers return response payloads or `void`; they do not set HTTP status
+  codes.
+- Response mapping from application output to public response DTOs belongs in
+  controllers or dedicated mappers called by controllers. Domain entities and
+  use cases must not also produce HTTP response contracts for the same endpoint
+  unless a separate ADR documents the exception.
 
 Transaction boundaries:
 

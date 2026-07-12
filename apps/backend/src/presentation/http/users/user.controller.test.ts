@@ -1,12 +1,13 @@
 import { UserChangePasswordDTO, UsersUpdateDTO } from '@ledgerly/shared/types';
-import { Id } from 'src/domain/domain-core';
+import { User } from 'src/domain/users/user.entity';
+import { createUser } from 'src/testing';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ZodError } from 'zod';
 
 import { UserController } from './user.controller';
 
 describe.skip('UserController', () => {
-  const userId = Id.create().valueOf();
+  let user: User;
 
   // const mockUserService = {
   //   changePassword: vi.fn(),
@@ -17,7 +18,9 @@ describe.skip('UserController', () => {
 
   const controller = new UserController();
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    user = await createUser();
+
     vi.clearAllMocks();
   });
 
@@ -101,9 +104,9 @@ describe.skip('UserController', () => {
         name: 'Valid Name',
       };
 
-      await expect(
-        controller.update(Id.create().valueOf(), invalidData),
-      ).rejects.toThrow(ZodError);
+      await expect(controller.update(user, invalidData)).rejects.toThrow(
+        ZodError,
+      );
     });
 
     it('should throw ZodError for invalid name type', async () => {
@@ -112,13 +115,13 @@ describe.skip('UserController', () => {
         name: 123,
       } as unknown as UsersUpdateDTO;
 
-      await expect(controller.update(userId, invalidData)).rejects.toThrow(
+      await expect(controller.update(user, invalidData)).rejects.toThrow(
         ZodError,
       );
     });
 
     it('should throw ZodError for empty object', async () => {
-      await expect(controller.update(userId, {})).rejects.toThrow(ZodError);
+      await expect(controller.update(user, {})).rejects.toThrow(ZodError);
     });
 
     it('should throw ZodError for unexpected fields', async () => {
@@ -128,9 +131,9 @@ describe.skip('UserController', () => {
         unexpectedField: 'should not be here',
       };
 
-      await expect(
-        controller.update(Id.create().valueOf(), invalidData),
-      ).rejects.toThrow(ZodError);
+      await expect(controller.update(user, invalidData)).rejects.toThrow(
+        ZodError,
+      );
     });
 
     it.todo('should validate email format strictly');
@@ -147,7 +150,7 @@ describe.skip('UserController', () => {
       } as unknown as UserChangePasswordDTO;
 
       await expect(
-        controller.changePassword(userId, invalidData),
+        controller.changePassword(user, invalidData),
       ).rejects.toThrow(ZodError);
     });
 
@@ -157,7 +160,7 @@ describe.skip('UserController', () => {
       } as UserChangePasswordDTO;
 
       await expect(
-        controller.changePassword(userId, invalidData),
+        controller.changePassword(user, invalidData),
       ).rejects.toThrow(ZodError);
     });
 
@@ -168,7 +171,7 @@ describe.skip('UserController', () => {
       };
 
       await expect(
-        controller.changePassword(userId, invalidData),
+        controller.changePassword(user, invalidData),
       ).rejects.toThrow(ZodError);
     });
 

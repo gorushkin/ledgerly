@@ -74,11 +74,12 @@ describe('AccountController', () => {
   describe('getById', () => {
     it('should call accountService.getById with correct userId and id', async () => {
       const accountId = Id.create().valueOf();
+      const requestParams = { id: accountId };
       const mockAccount = { id: accountId, name: 'Test Account' };
 
       mockGetAccountByIdUseCase.execute.mockResolvedValue(mockAccount);
 
-      const result = await accountController.getById(user, accountId);
+      const result = await accountController.getById(user, requestParams);
 
       expect(mockGetAccountByIdUseCase.execute).toHaveBeenCalledWith(
         user,
@@ -86,6 +87,14 @@ describe('AccountController', () => {
       );
       expect(mockGetAccountByIdUseCase.execute).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockAccount);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      await expect(
+        accountController.getById(user, { id: 'not-a-uuid' }),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockGetAccountByIdUseCase.execute).not.toHaveBeenCalled();
     });
   });
 
@@ -136,7 +145,7 @@ describe('AccountController', () => {
     };
 
     it('should call accountService.update with correct data', async () => {
-      await accountController.update(user, accountId, requestBody);
+      await accountController.update(user, { id: accountId }, requestBody);
 
       const { ...mockAccountResponse } = {
         ...requestBody,
@@ -159,8 +168,16 @@ describe('AccountController', () => {
       };
 
       await expect(
-        accountController.update(user, accountId, invalidRequestBody),
+        accountController.update(user, { id: accountId }, invalidRequestBody),
       ).rejects.toThrow(ZodError);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      await expect(
+        accountController.update(user, { id: 'not-a-uuid' }, requestBody),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockUpdateAccountUseCase.execute).not.toHaveBeenCalled();
     });
   });
 
@@ -168,13 +185,21 @@ describe('AccountController', () => {
     it('should call accountService.delete with correct id and userId', async () => {
       mockDeleteAccountUseCase.execute.mockResolvedValue(undefined);
 
-      await accountController.deleteAccount(user, accountId);
+      await accountController.deleteAccount(user, { id: accountId });
 
       expect(mockDeleteAccountUseCase.execute).toHaveBeenCalledWith(
         user,
         accountId,
       );
       expect(mockDeleteAccountUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      await expect(
+        accountController.deleteAccount(user, { id: 'not-a-uuid' }),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockDeleteAccountUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });

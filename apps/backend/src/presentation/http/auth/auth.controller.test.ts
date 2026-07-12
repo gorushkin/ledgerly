@@ -1,4 +1,3 @@
-import { FastifyReply, FastifyRequest } from 'fastify';
 import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ZodError } from 'zod';
@@ -20,9 +19,7 @@ describe('AuthController', () => {
     execute: vi.fn(),
   };
 
-  const mockReply = {
-    jwtSign: vi.fn().mockResolvedValue(mockToken),
-  };
+  const signJwt = vi.fn().mockResolvedValue(mockToken);
 
   const controller = new AuthController(
     mockRegisterUserUseCase as unknown as RegisterUserUseCase,
@@ -35,12 +32,10 @@ describe('AuthController', () => {
 
   describe('register', () => {
     it('should register a user successfully and return a JWT token', async () => {
-      const mockRequest = {
-        body: {
-          email,
-          name,
-          password,
-        },
+      const requestBody = {
+        email,
+        name,
+        password,
       };
 
       mockRegisterUserUseCase.execute.mockResolvedValue({
@@ -49,10 +44,7 @@ describe('AuthController', () => {
         name,
       });
 
-      const result = await controller.register(
-        mockRequest as unknown as FastifyRequest,
-        mockReply as unknown as FastifyReply,
-      );
+      const result = await controller.register(requestBody, signJwt);
 
       expect(mockRegisterUserUseCase.execute).toHaveBeenCalledWith({
         email,
@@ -60,7 +52,7 @@ describe('AuthController', () => {
         password,
       });
 
-      expect(mockReply.jwtSign).toHaveBeenCalledWith(
+      expect(signJwt).toHaveBeenCalledWith(
         {
           email,
           userId: id,
@@ -76,88 +68,63 @@ describe('AuthController', () => {
 
   describe('register validation', () => {
     it('should throw ZodError when email is invalid', async () => {
-      const mockRequest = {
-        body: {
-          email: 'invalid-email',
-          name: 'Test User',
-          password: 'password123',
-        },
+      const requestBody = {
+        email: 'invalid-email',
+        name: 'Test User',
+        password: 'password123',
       };
 
-      await expect(
-        controller.register(
-          mockRequest as unknown as FastifyRequest,
-          mockReply as unknown as FastifyReply,
-        ),
-      ).rejects.toThrow(ZodError);
+      await expect(controller.register(requestBody, signJwt)).rejects.toThrow(
+        ZodError,
+      );
     });
 
     it('should throw ZodError when name is empty', async () => {
-      const mockRequest = {
-        body: {
-          email: 'test@example.com',
-          name: '',
-          password: 'password123',
-        },
+      const requestBody = {
+        email: 'test@example.com',
+        name: '',
+        password: 'password123',
       };
 
-      await expect(
-        controller.register(
-          mockRequest as unknown as FastifyRequest,
-          mockReply as unknown as FastifyReply,
-        ),
-      ).rejects.toThrow(ZodError);
+      await expect(controller.register(requestBody, signJwt)).rejects.toThrow(
+        ZodError,
+      );
     });
 
     it('should throw ZodError when password is too short', async () => {
-      const mockRequest = {
-        body: {
-          email: 'test@example.com',
-          name: 'Test User',
-          password: '123',
-        },
+      const requestBody = {
+        email: 'test@example.com',
+        name: 'Test User',
+        password: '123',
       };
 
-      await expect(
-        controller.register(
-          mockRequest as unknown as FastifyRequest,
-          mockReply as unknown as FastifyReply,
-        ),
-      ).rejects.toThrow(ZodError);
+      await expect(controller.register(requestBody, signJwt)).rejects.toThrow(
+        ZodError,
+      );
     });
   });
 
   describe('login validation', () => {
     it('should throw ZodError when email is invalid', async () => {
-      const mockRequest = {
-        body: {
-          email: 'invalid-email',
-          password: 'password123',
-        },
+      const requestBody = {
+        email: 'invalid-email',
+        password: 'password123',
       };
 
-      await expect(
-        controller.login(
-          mockRequest as unknown as FastifyRequest,
-          mockReply as unknown as FastifyReply,
-        ),
-      ).rejects.toThrow(ZodError);
+      await expect(controller.login(requestBody, signJwt)).rejects.toThrow(
+        ZodError,
+      );
     });
 
     it('should throw ZodError when password is empty', async () => {
-      const mockRequest = {
-        body: {
-          email: 'test@example.com',
-          password: '',
-        },
+      const requestBody = {
+        email: 'test@example.com',
+        password: '',
       };
 
-      await expect(
-        controller.login(
-          mockRequest as unknown as FastifyRequest,
-          mockReply as unknown as FastifyReply,
-        ),
-      ).rejects.toThrow(ZodError);
+      await expect(controller.login(requestBody, signJwt)).rejects.toThrow(
+        ZodError,
+      );
     });
 
     it.todo('should throw ZodError when email is missing', async () => {
