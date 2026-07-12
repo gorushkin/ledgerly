@@ -17,7 +17,7 @@ export type AccountRepositoryUpdateInput = Partial<
 export type AccountRepositoryInterface = {
   getAll(userId: UUID): Promise<AccountSnapshot[]>;
   create(data: AccountSnapshot): Promise<AccountSnapshot>;
-  getById(userId: UUID, id: UUID): Promise<AccountSnapshot | null>;
+  getById(userId: UUID, id: UUID): Promise<AccountSnapshot>;
   update(
     userId: UUID,
     id: UUID,

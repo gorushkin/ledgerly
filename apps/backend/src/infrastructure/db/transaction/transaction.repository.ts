@@ -96,11 +96,9 @@ export class TransactionRepository
     userId: UUID,
     transaction: Transaction,
   ): Promise<void> {
-    const operations: OperationSnapshot[] = [];
-
-    transaction.getAllOperations().forEach((operation) => {
-      operations.push(operation.toSnapshot());
-    });
+    const operations = transaction
+      .getAllOperations()
+      .map((op) => op.toSnapshot());
 
     const snapshot = await this.getTransactionSnapshot(
       userId,

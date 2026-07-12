@@ -88,10 +88,10 @@ const toCreateOperationProps = (
 const toCreateTransactionProps = (
   fixture: Pick<
     TransactionRequestBuilderResult,
-    'getAccountByKey' | 'operationsData' | 'transactionData'
+    'getAccountByKey' | 'operationsData' | 'transactionDTO' | 'transactionData'
   >,
 ): CreateTransactionProps => ({
-  currency: Currency.create('USD'),
+  currency: Currency.create(fixture.transactionDTO.currencyCode),
   description: fixture.transactionData.description,
   operations: toCreateOperationProps(
     fixture.operationsData,

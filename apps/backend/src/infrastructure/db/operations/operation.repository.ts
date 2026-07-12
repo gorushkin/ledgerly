@@ -45,9 +45,17 @@ export class OperationRepository
     return this.executeDatabaseOperation(
       async () => {
         for (const operation of operations) {
+          const safeData = this.getSafeUpdate(operation, [
+            'accountId',
+            'amount',
+            'description',
+            'isTombstone',
+            'value',
+          ]);
+
           await this.db
             .update(operationsTable)
-            .set({ ...operation, ...this.updateTimestamp })
+            .set({ ...safeData, ...this.updateTimestamp })
             .where(
               and(
                 eq(operationsTable.id, operation.id),
