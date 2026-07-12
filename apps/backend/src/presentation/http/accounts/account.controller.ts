@@ -3,15 +3,14 @@ import {
   accountCreateSchema,
   accountUpdateSchema,
 } from '@ledgerly/shared/validation';
-import { User } from 'src/domain/users/user.entity';
-
 import {
   DeleteAccountUseCase,
   CreateAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
   UpdateAccountUseCase,
-} from '../../application/usecases/accounts';
+} from 'src/application/usecases/accounts';
+import { User } from 'src/domain/users/user.entity';
 
 export class AccountController {
   constructor(

@@ -10,11 +10,11 @@ import { Amount } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { User } from 'src/domain/users/user.entity';
-import { AccountController } from 'src/interfaces/';
+import { createUser } from 'src/testing';
 import { describe, vi, beforeEach, it, expect } from 'vitest';
 import { ZodError } from 'zod';
 
-import { createUser } from '../helpers';
+import { AccountController } from './account.controller';
 
 describe('AccountController', () => {
   let user: User;

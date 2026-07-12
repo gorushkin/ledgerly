@@ -1,8 +1,9 @@
 import { UserChangePasswordDTO, UsersUpdateDTO } from '@ledgerly/shared/types';
 import { Id } from 'src/domain/domain-core';
-import { UserController } from 'src/presentation/controllers/user.controller';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ZodError } from 'zod';
+
+import { UserController } from './user.controller';
 
 describe.skip('UserController', () => {
   const userId = Id.create().valueOf();
