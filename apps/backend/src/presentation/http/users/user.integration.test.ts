@@ -2,7 +2,7 @@ import { ROUTES } from '@ledgerly/shared/routes';
 import { UsersResponseDTO, UUID } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { Id } from 'src/domain/domain-core';
-import { createServer } from 'src/presentation/server';
+import { createServer } from 'src/presentation/http';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 const url = `/api${ROUTES.user}`;
