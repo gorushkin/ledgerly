@@ -32,11 +32,14 @@ export class TransactionController {
   }
 
   async getById(user: User, transactionId: UUID) {
-    return this.getTransactionById.execute(user.id, transactionId);
+    return this.getTransactionById.execute(
+      user.getId().valueOf(),
+      transactionId,
+    );
   }
 
   async getAll(user: User, query: TransactionQueryParams) {
-    return this.getAllTransactions.execute(user.id, query);
+    return this.getAllTransactions.execute(user.getId().valueOf(), query);
   }
 
   async update(

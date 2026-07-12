@@ -165,7 +165,7 @@ describe('TransactionController', () => {
       const transactionId = Id.create().valueOf();
       const result = await transactionController.getById(user, transactionId);
       expect(mockGetTransactionByIdUseCase.execute).toHaveBeenCalledWith(
-        user.id,
+        user.getId().valueOf(),
         transactionId,
       );
       expect(mockGetTransactionByIdUseCase.execute).toHaveBeenCalledTimes(1);
@@ -186,7 +186,7 @@ describe('TransactionController', () => {
       });
 
       expect(mockGetAllTransactionsUseCase.execute).toHaveBeenCalledWith(
-        user.id,
+        user.getId().valueOf(),
         {
           ...DEFAULT_TRANSACTION_QUERY,
           accountId,

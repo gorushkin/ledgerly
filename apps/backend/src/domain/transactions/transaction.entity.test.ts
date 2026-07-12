@@ -796,14 +796,14 @@ describe('Transaction Domain Entity', () => {
           account: account1,
           amount: Amount.create('20000'),
           description: 'Updated Operation',
-          id: operationToUpdate1.id,
+          id: operationToUpdate1.getId(),
           value: Amount.create('20000'),
         },
         {
           account: account2,
           amount: Amount.create('-20000'),
           description: 'Updated Operation',
-          id: operationToUpdate2.id,
+          id: operationToUpdate2.getId(),
           value: Amount.create('-20000'),
         },
       ];
@@ -1440,7 +1440,9 @@ describe('Transaction Domain Entity', () => {
       expect(
         transaction
           .getAllOperations()
-          .find((operation) => operation.getId().equals(operationToDelete.id))
+          .find((operation) =>
+            operation.getId().equals(operationToDelete.getId()),
+          )
           ?.isDeleted(),
       ).toBe(true);
 

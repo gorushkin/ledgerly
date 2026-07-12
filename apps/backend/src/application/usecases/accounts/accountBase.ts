@@ -18,7 +18,10 @@ export class AccountUseCaseBase {
     user: User,
     accountId: UUID,
   ): Promise<AccountDbRow> {
-    const account = await this.accountRepository.getById(user.id, accountId);
+    const account = await this.accountRepository.getById(
+      user.getId().valueOf(),
+      accountId,
+    );
 
     if (!account) {
       throw new EntityNotFoundError({

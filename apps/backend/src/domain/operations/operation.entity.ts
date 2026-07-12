@@ -157,10 +157,6 @@ export class Operation {
     return this.transactionRelation.belongsToParent(transaction.getId());
   }
 
-  get id(): Id {
-    return this.identity.getId();
-  }
-
   get transactionId(): Id {
     return this.transactionRelation.getParentId();
   }
@@ -171,7 +167,7 @@ export class Operation {
       amount: this.amount.valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
-      id: this.id.valueOf(),
+      id: this.getId().valueOf(),
       isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
       transactionId: this.transactionRelation.getParentId().valueOf(),

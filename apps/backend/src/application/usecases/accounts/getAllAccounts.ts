@@ -11,7 +11,9 @@ export class GetAllAccountsUseCase extends AccountUseCaseBase {
   }
 
   async execute(user: User): Promise<AccountResponseDTO[]> {
-    const accounts = await this.accountRepository.getAll(user.id);
+    const accounts = await this.accountRepository.getAll(
+      user.getId().valueOf(),
+    );
 
     return accounts.map((account) =>
       AccountMapper.toResponseDTOFromRow(account),

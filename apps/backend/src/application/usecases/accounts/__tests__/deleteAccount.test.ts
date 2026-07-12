@@ -34,7 +34,7 @@ describe('DeleteAccountUseCase', async () => {
   const mockUser = {
     createdAt: new Date().toISOString(),
     email: 'test@example.com',
-    id: user.id,
+    id: user.getId().valueOf(),
     name: 'Test User',
   };
 
@@ -50,7 +50,7 @@ describe('DeleteAccountUseCase', async () => {
     name: accountName,
     type: accountType,
     updatedAt: Timestamp.create().valueOf(),
-    userId: user.id,
+    userId: user.getId().valueOf(),
   };
 
   const mockSavedAccountData = {
@@ -82,7 +82,7 @@ describe('DeleteAccountUseCase', async () => {
       const result = await deleteAccountUseCase.execute(user, accountId);
 
       expect(mockAccountRepository.delete).toHaveBeenCalledWith(
-        user.id,
+        user.getId().valueOf(),
         accountId,
       );
 

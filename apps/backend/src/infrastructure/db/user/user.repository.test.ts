@@ -72,7 +72,7 @@ describe('UsersRepository', () => {
       const foundUser = await userRepository.getByIdWithPassword(user.id);
 
       expect(foundUser).toBeDefined();
-      expect(foundUser?.id).toBe(user.id);
+      expect(foundUser?.getId().valueOf()).toBe(user.id);
       expect(foundUser?.email.valueOf()).toBe(email);
       expect(foundUser?.name.valueOf()).toBe(name);
 

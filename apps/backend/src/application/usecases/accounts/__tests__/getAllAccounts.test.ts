@@ -38,7 +38,7 @@ describe('GetAllAccounts', async () => {
     name: accountName,
     type: accountType,
     updatedAt: Timestamp.create().valueOf(),
-    userId: user.id,
+    userId: user.getId().valueOf(),
   };
 
   beforeEach(() => {
@@ -57,7 +57,9 @@ describe('GetAllAccounts', async () => {
 
       const result = await getAllAccounts.execute(user);
 
-      expect(mockAccountRepository.getAll).toHaveBeenCalledWith(user.id);
+      expect(mockAccountRepository.getAll).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+      );
 
       expect(result).toEqual([
         AccountMapper.toResponseDTOFromRow(mockSavedAccountData),
