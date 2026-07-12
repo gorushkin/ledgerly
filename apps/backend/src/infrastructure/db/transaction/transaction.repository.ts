@@ -1,17 +1,12 @@
 import { UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import {
-  OperationMapper,
   OperationRepositoryInterface,
   TransactionMapper,
   TransactionRepositoryInterface,
   TransactionUpdateResult,
 } from 'src/application';
-import {
-  OperationDbRow,
-  TransactionWithRelations,
-  transactionsTable,
-} from 'src/db/schema';
+import { TransactionWithRelations, transactionsTable } from 'src/db/schema';
 import { Transaction } from 'src/domain';
 import { Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
@@ -101,11 +96,9 @@ export class TransactionRepository
     userId: UUID,
     transaction: Transaction,
   ): Promise<void> {
-    const operations: OperationDbRow[] = [];
-
-    transaction.getAllOperations().forEach((operation) => {
-      operations.push(OperationMapper.toDBRow(operation));
-    });
+    const operations = transaction
+      .getAllOperations()
+      .map((op) => op.toSnapshot());
 
     const snapshot = await this.getTransactionSnapshot(
       userId,
@@ -247,7 +240,7 @@ export class TransactionRepository
       async () => {
         const operationsDataToInsert = transaction
           .getAllOperations()
-          .map((operation) => OperationMapper.toDBRow(operation));
+          .map((operation) => operation.toSnapshot());
 
         await this.insertTransactionRow(userId, transaction);
 

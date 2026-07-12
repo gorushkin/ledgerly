@@ -1,6 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { and, eq, inArray } from 'drizzle-orm';
-import { OperationRepositoryInterface } from 'src/application';
+import { OperationMapper, OperationRepositoryInterface } from 'src/application';
 import {
   OperationDbInsert,
   OperationDbRow,
@@ -41,13 +41,21 @@ export class OperationRepository
     );
   }
 
-  private update(userId: UUID, operations: OperationDbRow[]): Promise<void> {
+  private update(userId: UUID, operations: OperationDbInsert[]): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
         for (const operation of operations) {
+          const safeData = this.getSafeUpdate(operation, [
+            'accountId',
+            'amount',
+            'description',
+            'isTombstone',
+            'value',
+          ]);
+
           await this.db
             .update(operationsTable)
-            .set({ ...operation, ...this.updateTimestamp })
+            .set({ ...safeData, ...this.updateTimestamp })
             .where(
               and(
                 eq(operationsTable.id, operation.id),
@@ -89,20 +97,22 @@ export class OperationRepository
 
   async save(
     userId: UUID,
-    operations: OperationDbRow[],
+    operations: OperationSnapshot[],
     snapshots?: Map<UUID, OperationSnapshot>,
   ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        const operationsToInsert: OperationDbRow[] = [];
-        const operationsToUpdate: OperationDbRow[] = [];
+        const operationsToInsert: OperationDbInsert[] = [];
+        const operationsToUpdate: OperationDbInsert[] = [];
         const operationsToDelete: UUID[] = [];
 
         operations.forEach((operation) => {
           const matchedOperationSnapshot = snapshots?.get(operation.id);
 
           if (!matchedOperationSnapshot) {
-            operationsToInsert.push(operation);
+            operationsToInsert.push(
+              OperationMapper.toDBRowFromSnapshot(operation),
+            );
             return;
           }
 
@@ -117,7 +127,9 @@ export class OperationRepository
             return;
           }
 
-          operationsToUpdate.push(operation);
+          operationsToUpdate.push(
+            OperationMapper.toDBRowFromSnapshot(operation),
+          );
         });
 
         if (operationsToInsert.length > 0) {

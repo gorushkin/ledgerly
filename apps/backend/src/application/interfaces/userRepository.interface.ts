@@ -1,5 +1,4 @@
 import { UUID } from '@ledgerly/shared/types';
-import { DataBase } from 'src/db';
 import { User } from 'src/domain/users/user.entity';
 
 import { UpdateUserRequestDTO, UserResponseDTO } from '../dto';
@@ -11,7 +10,7 @@ export type UserRepositoryInterface = {
     userId: UUID,
     userData: UpdateUserRequestDTO,
   ): Promise<UserResponseDTO>;
-  getById(userId: UUID, tx?: DataBase): Promise<UserResponseDTO>;
+  getById(userId: UUID): Promise<UserResponseDTO>;
   getByIdWithPassword(userId: UUID): Promise<User | undefined>;
   getByEmailWithPassword(email: string): Promise<User | undefined>;
   updateUserProfile(

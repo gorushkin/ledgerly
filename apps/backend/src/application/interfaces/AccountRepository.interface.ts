@@ -1,20 +1,36 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
-import {
-  AccountDbRow,
-  AccountDbUpdate,
-  AccountRepoInsert,
-} from 'src/db/schema';
+import { AccountSnapshot } from 'src/domain/accounts';
+
+export type AccountRepositoryUpdateInput = Partial<
+  Pick<
+    AccountSnapshot,
+    | 'currency'
+    | 'currentClearedBalanceLocal'
+    | 'description'
+    | 'initialBalance'
+    | 'isSystem'
+    | 'name'
+    | 'type'
+  >
+>;
 
 export type AccountRepositoryInterface = {
-  getAll(userId: UUID): Promise<AccountDbRow[]>;
-  create(data: AccountRepoInsert): Promise<AccountDbRow>;
-  getById(userId: UUID, id: UUID): Promise<AccountDbRow>;
-  update(userId: UUID, id: UUID, data: AccountDbUpdate): Promise<AccountDbRow>;
-  delete(userId: UUID, id: UUID): Promise<AccountDbRow>;
+  getAll(userId: UUID): Promise<AccountSnapshot[]>;
+  create(data: AccountSnapshot): Promise<AccountSnapshot>;
+  getById(userId: UUID, id: UUID): Promise<AccountSnapshot>;
+  update(
+    userId: UUID,
+    id: UUID,
+    data: AccountRepositoryUpdateInput,
+  ): Promise<AccountSnapshot>;
+  delete(userId: UUID, id: UUID): Promise<AccountSnapshot>;
   findSystemAccount(
     userId: UUID,
     currency: CurrencyCode,
-  ): Promise<AccountDbRow>;
-  ensureUserOwnsAccount(userId: UUID, accountId: UUID): Promise<AccountDbRow>;
-  getByIds(userId: UUID, accountIds: UUID[]): Promise<AccountDbRow[]>;
+  ): Promise<AccountSnapshot>;
+  ensureUserOwnsAccount(
+    userId: UUID,
+    accountId: UUID,
+  ): Promise<AccountSnapshot>;
+  getByIds(userId: UUID, accountIds: UUID[]): Promise<AccountSnapshot[]>;
 };

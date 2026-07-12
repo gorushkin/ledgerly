@@ -16,7 +16,7 @@ export class GetAllAccountsUseCase extends AccountUseCaseBase {
     );
 
     return accounts.map((account) =>
-      AccountMapper.toResponseDTOFromRow(account),
+      AccountMapper.toResponseDTOFromSnapshot(account),
     );
   }
 }

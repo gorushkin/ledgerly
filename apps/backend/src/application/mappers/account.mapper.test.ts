@@ -84,23 +84,6 @@ describe('AccountMapper', () => {
     });
   });
 
-  it('maps a persistence row directly to a response DTO', () => {
-    expect(AccountMapper.toResponseDTOFromRow(row)).toEqual({
-      createdAt: row.createdAt,
-      currency: row.currency,
-      currentClearedBalanceLocal: row.currentClearedBalanceLocal,
-      description: row.description,
-      id: row.id,
-      initialBalance: row.initialBalance,
-      isSystem: row.isSystem,
-      isTombstone: row.isTombstone,
-      name: row.name,
-      type: row.type,
-      updatedAt: row.updatedAt,
-      userId: row.userId,
-    });
-  });
-
   it('maps a full update DTO to domain update props', () => {
     const dto: AccountUpdateDTO = {
       currency: Currency.create('EUR').valueOf(),

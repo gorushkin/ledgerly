@@ -45,7 +45,10 @@ export class OperationMapper {
   }
 
   static toDBRow(operation: Operation): OperationRepoInsert {
-    const snapshot = operation.toSnapshot();
+    return OperationMapper.toDBRowFromSnapshot(operation.toSnapshot());
+  }
+
+  static toDBRowFromSnapshot(snapshot: OperationSnapshot): OperationRepoInsert {
     return {
       accountId: snapshot.accountId,
       amount: snapshot.amount,

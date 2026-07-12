@@ -1,6 +1,5 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
-import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
 import { User } from 'src/domain';
 import { Account, AccountType } from 'src/domain/';
@@ -43,7 +42,7 @@ describe('CreateAccountUseCase', () => {
       );
 
       mockAccountRepository.create.mockResolvedValue(
-        AccountMapper.toDBRowFromSnapshot(expectedAccount.toSnapshot()),
+        expectedAccount.toSnapshot(),
       );
 
       const account = await accountFactory.createAccount(user, {
@@ -56,19 +55,17 @@ describe('CreateAccountUseCase', () => {
 
       expect(account).toBeInstanceOf(Account);
 
-      const accountPersistenceDTO = AccountMapper.toDBRowFromSnapshot(
-        account.toSnapshot(),
-      );
+      const accountSnapshot = account.toSnapshot();
 
-      expect(accountPersistenceDTO.name).toBe(accountName);
-      expect(accountPersistenceDTO.description).toBe(description);
-      expect(accountPersistenceDTO.initialBalance).toBe(initialBalance);
-      expect(accountPersistenceDTO.currency).toBe(currency);
-      expect(accountPersistenceDTO.type).toBe(accountType);
-      expect(accountPersistenceDTO.isSystem).toBe(false);
+      expect(accountSnapshot.name).toBe(accountName);
+      expect(accountSnapshot.description).toBe(description);
+      expect(accountSnapshot.initialBalance).toBe(initialBalance);
+      expect(accountSnapshot.currency).toBe(currency);
+      expect(accountSnapshot.type).toBe(accountType);
+      expect(accountSnapshot.isSystem).toBe(false);
 
       expect(mockAccountRepository.create).toHaveBeenCalledWith(
-        accountPersistenceDTO,
+        accountSnapshot,
       );
     });
   });
