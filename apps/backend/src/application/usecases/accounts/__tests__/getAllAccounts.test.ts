@@ -1,9 +1,9 @@
 import { AccountTypeValue, CurrencyCode } from '@ledgerly/shared/types';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
 import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { AccountRepository } from 'src/infrastructure/db/';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAllAccountsUseCase } from '../getAllAccounts';
@@ -47,7 +47,7 @@ describe('GetAllAccounts', async () => {
     };
 
     getAllAccounts = new GetAllAccountsUseCase(
-      mockAccountRepository as unknown as AccountRepository,
+      mockAccountRepository as unknown as AccountRepositoryInterface,
     );
   });
 
@@ -62,7 +62,7 @@ describe('GetAllAccounts', async () => {
       );
 
       expect(result).toEqual([
-        AccountMapper.toResponseDTOFromRow(mockSavedAccountData),
+        AccountMapper.toResponseDTOFromSnapshot(mockSavedAccountData),
       ]);
     });
 

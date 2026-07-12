@@ -1,5 +1,4 @@
 import { AccountCreateDTO } from '@ledgerly/shared/types';
-import { AccountMapper } from 'src/application/mappers';
 import { AccountType, Account } from 'src/domain/';
 import { Amount, Currency, Name } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
@@ -23,9 +22,7 @@ export class AccountFactory {
       AccountType.create(type),
     );
 
-    await this.accountRepository.create(
-      AccountMapper.toDBRowFromSnapshot(account.toSnapshot()),
-    );
+    await this.accountRepository.create(account.toSnapshot());
 
     return account;
   }

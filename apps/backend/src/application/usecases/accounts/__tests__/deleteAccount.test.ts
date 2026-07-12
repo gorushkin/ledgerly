@@ -1,10 +1,10 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
-import { AccountDbRow } from 'src/db/schema';
+import { AccountSnapshot } from 'src/domain/accounts';
 import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { AccountRepository } from 'src/infrastructure/db/';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DeleteAccountUseCase } from '../deleteAccount';
@@ -38,7 +38,7 @@ describe('DeleteAccountUseCase', async () => {
     name: 'Test User',
   };
 
-  const mockAccountData: AccountDbRow = {
+  const mockAccountData: AccountSnapshot = {
     createdAt: Timestamp.create().valueOf(),
     currency: currencyCode,
     currentClearedBalanceLocal: initialBalance,
@@ -69,7 +69,7 @@ describe('DeleteAccountUseCase', async () => {
     };
 
     deleteAccountUseCase = new DeleteAccountUseCase(
-      mockAccountRepository as unknown as AccountRepository,
+      mockAccountRepository as unknown as AccountRepositoryInterface,
     );
   });
 
@@ -87,7 +87,7 @@ describe('DeleteAccountUseCase', async () => {
       );
 
       expect(result).toEqual(
-        AccountMapper.toResponseDTOFromRow(mockSavedAccountData),
+        AccountMapper.toResponseDTOFromSnapshot(mockSavedAccountData),
       );
     });
 

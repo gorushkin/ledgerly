@@ -1,12 +1,12 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import {
-  AccountDbRow,
-  AccountDbUpdate,
-  AccountRepoInsert,
-  accountsTable,
-} from 'src/db/schemas/accounts';
+  AccountMapper,
+  type AccountRepositoryInterface,
+  type AccountRepositoryUpdateInput,
+} from 'src/application';
+import { accountsTable } from 'src/db/schemas/accounts';
+import { AccountSnapshot } from 'src/domain/accounts';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -14,34 +14,37 @@ export class AccountRepository
   extends BaseRepository
   implements AccountRepositoryInterface
 {
-  async getAll(userId: UUID): Promise<AccountDbRow[]> {
-    return this.executeDatabaseOperation<AccountDbRow[]>(
-      () =>
-        this.db
-          .select()
-          .from(accountsTable)
-          .where(
-            and(
-              eq(accountsTable.userId, userId),
-              eq(accountsTable.isTombstone, false),
-            ),
-          )
-          .all(),
-      'Failed to fetch accounts',
-    );
+  async getAll(userId: UUID): Promise<AccountSnapshot[]> {
+    return this.executeDatabaseOperation<AccountSnapshot[]>(async () => {
+      const accounts = await this.db
+        .select()
+        .from(accountsTable)
+        .where(
+          and(
+            eq(accountsTable.userId, userId),
+            eq(accountsTable.isTombstone, false),
+          ),
+        )
+        .all();
+
+      return accounts.map((account) => AccountMapper.toSnapshot(account));
+    }, 'Failed to fetch accounts');
   }
 
-  create(data: AccountRepoInsert): Promise<AccountDbRow> {
+  create(data: AccountSnapshot): Promise<AccountSnapshot> {
     return this.executeDatabaseOperation(
-      async () =>
-        this.db
+      async () => {
+        const account = await this.db
           .insert(accountsTable)
           .values({
-            ...data,
-            currentClearedBalanceLocal: data.currentClearedBalanceLocal ?? 0,
+            ...AccountMapper.toDBRowFromSnapshot(data),
+            currentClearedBalanceLocal: data.currentClearedBalanceLocal ?? '0',
           })
           .returning()
-          .get(),
+          .get();
+
+        return AccountMapper.toSnapshot(account);
+      },
       'Failed to create account',
       {
         foreignKey: {
@@ -58,8 +61,8 @@ export class AccountRepository
     );
   }
 
-  getById(userId: UUID, id: UUID): Promise<AccountDbRow> {
-    return this.executeDatabaseOperation<AccountDbRow>(async () => {
+  getById(userId: UUID, id: UUID): Promise<AccountSnapshot> {
+    return this.executeDatabaseOperation<AccountSnapshot>(async () => {
       const account = await this.db
         .select()
         .from(accountsTable)
@@ -72,22 +75,25 @@ export class AccountRepository
         )
         .get();
 
-      return this.ensureEntityExists(
+      const existingAccount = this.ensureEntityExists(
         account,
         `Account with ID ${id} not found`,
         this.entityNotFoundContext('account', id),
       );
+
+      return AccountMapper.toSnapshot(existingAccount);
     }, 'Failed to fetch account by ID');
   }
 
   async update(
     userId: UUID,
     id: UUID,
-    data: AccountDbUpdate,
-  ): Promise<AccountDbRow> {
+    data: AccountRepositoryUpdateInput,
+  ): Promise<AccountSnapshot> {
     return this.executeDatabaseOperation(
       async () => {
         const safeData = this.getSafeUpdate(data, [
+          'description',
           'initialBalance',
           'name',
           'currency',
@@ -103,11 +109,13 @@ export class AccountRepository
           .returning()
           .get();
 
-        return this.ensureEntityExists(
+        const existingAccount = this.ensureEntityExists(
           updatedAccount,
           `Account with ID ${id} not found`,
           this.entityNotFoundContext('account', id),
         );
+
+        return AccountMapper.toSnapshot(existingAccount);
       },
       `Failed to update account with ID ${id}`,
       {
@@ -118,8 +126,8 @@ export class AccountRepository
     );
   }
 
-  async delete(userId: UUID, id: UUID): Promise<AccountDbRow> {
-    return this.executeDatabaseOperation<AccountDbRow>(async () => {
+  async delete(userId: UUID, id: UUID): Promise<AccountSnapshot> {
+    return this.executeDatabaseOperation<AccountSnapshot>(async () => {
       const updatedAccount = await this.db
         .update(accountsTable)
         .set({ isTombstone: true })
@@ -127,19 +135,21 @@ export class AccountRepository
         .returning()
         .get();
 
-      return this.ensureEntityExists(
+      const existingAccount = this.ensureEntityExists(
         updatedAccount,
         `Account with ID ${id} not found`,
         this.entityNotFoundContext('account', id),
       );
+
+      return AccountMapper.toSnapshot(existingAccount);
     }, `Failed to delete account with ID ${id}`);
   }
 
   async findSystemAccount(
     userId: UUID,
     currency: CurrencyCode,
-  ): Promise<AccountDbRow> {
-    return this.executeDatabaseOperation<AccountDbRow>(async () => {
+  ): Promise<AccountSnapshot> {
+    return this.executeDatabaseOperation<AccountSnapshot>(async () => {
       const account = await this.db
         .select()
         .from(accountsTable)
@@ -153,16 +163,18 @@ export class AccountRepository
         )
         .get();
 
-      return this.ensureEntityExists(
+      const existingAccount = this.ensureEntityExists(
         account,
         `System account not found for currency: ${currency}`,
         this.entityNotFoundContext('account'),
       );
+
+      return AccountMapper.toSnapshot(existingAccount);
     }, 'Failed to fetch system account');
   }
 
   async ensureUserOwnsAccount(userId: UUID, accountId: UUID) {
-    return this.executeDatabaseOperation<AccountDbRow>(async () => {
+    return this.executeDatabaseOperation<AccountSnapshot>(async () => {
       const account = await this.db
         .select()
         .from(accountsTable)
@@ -185,12 +197,12 @@ export class AccountRepository
         this.unauthorizedAccessContext('account', accountId),
       );
 
-      return existingAccount;
+      return AccountMapper.toSnapshot(existingAccount);
     }, 'Failed to verify account ownership');
   }
 
-  async getByIds(userId: UUID, accountIds: UUID[]): Promise<AccountDbRow[]> {
-    return this.executeDatabaseOperation<AccountDbRow[]>(async () => {
+  async getByIds(userId: UUID, accountIds: UUID[]): Promise<AccountSnapshot[]> {
+    return this.executeDatabaseOperation<AccountSnapshot[]>(async () => {
       const accounts = await this.db
         .select()
         .from(accountsTable)
@@ -213,7 +225,7 @@ export class AccountRepository
         this.entityNotFoundContext('account'),
       );
 
-      return accounts;
+      return accounts.map((account) => AccountMapper.toSnapshot(account));
     }, 'Failed to fetch accounts by IDs');
   }
 }

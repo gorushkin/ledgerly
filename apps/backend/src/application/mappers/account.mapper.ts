@@ -64,12 +64,6 @@ export class AccountMapper {
     };
   }
 
-  static toResponseDTOFromRow(row: AccountDbRow): AccountResponseDTO {
-    return AccountMapper.toResponseDTOFromSnapshot(
-      AccountMapper.toSnapshot(row),
-    );
-  }
-
   static toUpdateProps(dto: AccountUpdateDTO): AccountUpdateProps {
     return {
       currency: dto.currency,
