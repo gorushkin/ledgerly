@@ -180,6 +180,30 @@ See
 [ADR 0015](./architecture/adr/0015-domain-restoration-factory-naming.md) for
 the restoration naming decision.
 
+## Backend Request Flow
+
+HTTP endpoints use `route -> controller -> use case -> repository/domain` as
+the canonical backend request flow.
+
+Routes own Fastify registration, transport URL shape, authenticated request
+context extraction, params/query parsing where appropriate and simple transport
+statuses such as `201` or `204`. Controllers orchestrate request/response
+concerns that need Fastify objects, including body validation where that is the
+chosen local pattern and JWT signing for auth endpoints. Use cases own
+application operations, authorization/ownership checks, domain coordination,
+repository interfaces and transaction boundaries. Mappers own conversion
+between domain snapshots, read models, response DTOs and persistence shapes.
+Repositories own persistence access.
+
+New endpoint operations should be implemented as application use cases.
+`apps/backend/src/application/services/*` is reserved for helper orchestration
+used by use cases. Root-level `apps/backend/src/services/*` is legacy and must
+not be used for new HTTP endpoint operations.
+
+See [ADR 0016](./architecture/adr/0016-backend-request-flow.md) for the full
+decision, validation/JWT/transaction-boundary guidance and follow-up migration
+tasks.
+
 ## Business Rules
 
 ### Double-Entry Bookkeeping
