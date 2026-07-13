@@ -1,8 +1,8 @@
-import { TransactionDbRow } from 'src/db/schema';
+import { TransactionDbInsert } from 'src/db/schema';
 import { Transaction } from 'src/domain';
 
 export class TransactionPersistenceMapper {
-  static toDBRow(transaction: Transaction): TransactionDbRow {
+  static toDBRow(transaction: Transaction): TransactionDbInsert {
     const snapshot = transaction.toSnapshot();
 
     return {
