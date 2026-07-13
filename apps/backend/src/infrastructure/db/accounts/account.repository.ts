@@ -3,6 +3,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import {
   AccountMapper,
   type AccountRepositoryInterface,
+  type AccountRepositorySoftDeleteInput,
   type AccountRepositoryUpdateInput,
 } from 'src/application';
 import { accountsTable } from 'src/db/schemas/accounts';
@@ -98,11 +99,12 @@ export class AccountRepository
           'name',
           'currency',
           'type',
+          'updatedAt',
         ]);
 
         const updatedAccount = await this.db
           .update(accountsTable)
-          .set({ ...safeData, ...this.updateTimestamp })
+          .set(safeData)
           .where(
             and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)),
           )
@@ -126,17 +128,21 @@ export class AccountRepository
     );
   }
 
-  async delete(userId: UUID, id: UUID): Promise<AccountSnapshot> {
+  async delete(
+    userId: UUID,
+    id: UUID,
+    data: AccountRepositorySoftDeleteInput,
+  ): Promise<AccountSnapshot> {
     return this.executeDatabaseOperation<AccountSnapshot>(async () => {
-      const updatedAccount = await this.db
+      const deletedAccount = await this.db
         .update(accountsTable)
-        .set({ isTombstone: true })
+        .set({ isTombstone: true, updatedAt: data.updatedAt })
         .where(and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)))
         .returning()
         .get();
 
       const existingAccount = this.ensureEntityExists(
-        updatedAccount,
+        deletedAccount,
         `Account with ID ${id} not found`,
         this.entityNotFoundContext('account', id),
       );

@@ -7,7 +7,7 @@ import {
   TransactionBuilderResult,
 } from 'src/db/test-utils';
 import { Transaction } from 'src/domain';
-import { Amount } from 'src/domain/domain-core';
+import { Amount, Timestamp } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { RepositoryInvariantError } from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -142,11 +142,13 @@ describe('OperationRepository', () => {
           ...operationsToUpdate[0],
           amount: Amount.create('5000').valueOf(),
           description: 'Updated Operation One',
+          updatedAt: Timestamp.restore('2026-01-01T00:00:00.000Z').valueOf(),
         },
         {
           ...operationsToUpdate[1],
           amount: Amount.create('-5000').valueOf(),
           description: 'Updated Operation Two',
+          updatedAt: Timestamp.restore('2026-01-01T00:00:01.000Z').valueOf(),
         },
       ];
 
@@ -154,10 +156,12 @@ describe('OperationRepository', () => {
         {
           ...operationsToDelete[0],
           isTombstone: true,
+          updatedAt: Timestamp.restore('2026-01-01T00:00:02.000Z').valueOf(),
         },
         {
           ...operationsToDelete[1],
           isTombstone: true,
+          updatedAt: Timestamp.restore('2026-01-01T00:00:03.000Z').valueOf(),
         },
       ];
 
@@ -229,17 +233,21 @@ describe('OperationRepository', () => {
         }
 
         if (mappedOp?.result === 'updated') {
-          compareEntities<OperationDbRow>(op, mappedOp.operation, [
-            'updatedAt',
-          ]);
+          compareEntities<OperationDbRow>(op, mappedOp.operation);
+          expect(op.updatedAt).toBe(mappedOp.operation.updatedAt);
+          expect(op.updatedAt).not.toBe(
+            operationsSnapshot.get(op.id)?.updatedAt,
+          );
           updateOps.push(op);
           return;
         }
 
         if (mappedOp?.result === 'deleted') {
-          compareEntities<OperationDbRow>(op, mappedOp.operation, [
-            'updatedAt',
-          ]);
+          expect(op.isTombstone).toBe(true);
+          expect(op.updatedAt).toBe(mappedOp.operation.updatedAt);
+          expect(op.updatedAt).not.toBe(
+            operationsSnapshot.get(op.id)?.updatedAt,
+          );
           deleteOps.push(op);
         }
       });

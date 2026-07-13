@@ -143,6 +143,7 @@ export class Account {
   // Delegation methods for soft delete
   markAsDeleted(): void {
     this.softDelete = this.softDelete.markAsDeleted();
+    this.touch();
   }
 
   isDeleted(): boolean {
@@ -197,7 +198,7 @@ export class Account {
     this.currency = currency;
     this.name = name;
 
-    this.touch(Timestamp.create());
+    this.touch();
   }
 
   isCurrencySame(currency: Currency): boolean {

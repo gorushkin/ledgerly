@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { OperationMapper, OperationRepositoryInterface } from 'src/application';
 import {
   OperationDbInsert,
@@ -51,11 +51,12 @@ export class OperationRepository
             'description',
             'isTombstone',
             'value',
+            'updatedAt',
           ]);
 
           await this.db
             .update(operationsTable)
-            .set({ ...safeData, ...this.updateTimestamp })
+            .set(safeData)
             .where(
               and(
                 eq(operationsTable.id, operation.id),
@@ -73,24 +74,29 @@ export class OperationRepository
     );
   }
 
-  private softDelete(userId: UUID, operationIds: UUID[]): Promise<void> {
+  private softDelete(
+    userId: UUID,
+    operations: OperationDbInsert[],
+  ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        await this.db
-          .update(operationsTable)
-          .set({ isTombstone: true, ...this.updateTimestamp })
-          .where(
-            and(
-              eq(operationsTable.userId, userId),
-              inArray(operationsTable.id, operationIds),
-            ),
-          );
+        for (const operation of operations) {
+          await this.db
+            .update(operationsTable)
+            .set({ isTombstone: true, updatedAt: operation.updatedAt })
+            .where(
+              and(
+                eq(operationsTable.id, operation.id),
+                eq(operationsTable.userId, userId),
+              ),
+            );
+        }
       },
       'OperationRepository.softDelete',
       {
         field: 'operationIds',
         tableName: 'operations',
-        value: operationIds.join(', '),
+        value: operations.map((op) => op.id).join(', '),
       },
     );
   }
@@ -104,7 +110,7 @@ export class OperationRepository
       async () => {
         const operationsToInsert: OperationDbInsert[] = [];
         const operationsToUpdate: OperationDbInsert[] = [];
-        const operationsToDelete: UUID[] = [];
+        const operationsToDelete: OperationDbInsert[] = [];
 
         operations.forEach((operation) => {
           const matchedOperationSnapshot = snapshots?.get(operation.id);
@@ -123,7 +129,9 @@ export class OperationRepository
           }
 
           if (operation.isTombstone) {
-            operationsToDelete.push(operation.id);
+            operationsToDelete.push(
+              OperationMapper.toDBRowFromSnapshot(operation),
+            );
             return;
           }
 

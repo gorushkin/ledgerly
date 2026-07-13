@@ -28,9 +28,11 @@ export class TransactionRepository
   async softDelete(userId: UUID, transaction: Transaction): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
+        const transactionData = TransactionMapper.toDBRow(transaction);
+
         await this.db
           .update(transactionsTable)
-          .set({ isTombstone: true, ...this.updateTimestamp })
+          .set({ isTombstone: true, updatedAt: transactionData.updatedAt })
           .where(
             and(
               eq(transactionsTable.id, transaction.getId().valueOf()),

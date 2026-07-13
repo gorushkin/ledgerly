@@ -11,7 +11,13 @@ export type AccountRepositoryUpdateInput = Partial<
     | 'isSystem'
     | 'name'
     | 'type'
+    | 'updatedAt'
   >
+>;
+
+export type AccountRepositorySoftDeleteInput = Pick<
+  AccountSnapshot,
+  'isTombstone' | 'updatedAt'
 >;
 
 export type AccountRepositoryInterface = {
@@ -23,7 +29,11 @@ export type AccountRepositoryInterface = {
     id: UUID,
     data: AccountRepositoryUpdateInput,
   ): Promise<AccountSnapshot>;
-  delete(userId: UUID, id: UUID): Promise<AccountSnapshot>;
+  delete(
+    userId: UUID,
+    id: UUID,
+    data: AccountRepositorySoftDeleteInput,
+  ): Promise<AccountSnapshot>;
   findSystemAccount(
     userId: UUID,
     currency: CurrencyCode,

@@ -636,7 +636,7 @@ describe('TransactionRepository', () => {
       );
     });
 
-    it('should soft delete the transaction and its operations', async () => {
+    it('should soft delete the transaction and its operations and update timestamps', async () => {
       const transaction = data.transaction;
 
       await testDB.insertTransaction(transaction.toSnapshot());
@@ -650,7 +650,12 @@ describe('TransactionRepository', () => {
       );
 
       expect(deletedTransaction).not.toBeNull();
+
       expect(deletedTransaction?.isTombstone).toBe(true);
+
+      expect(deletedTransaction?.updatedAt).toBe(
+        transaction.toSnapshot().updatedAt,
+      );
 
       expect(transaction.description).toBe(deletedTransaction?.description);
 
