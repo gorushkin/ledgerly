@@ -15,9 +15,9 @@
 - построение API response внутри domain entity через `toResponseDTO`.
 
 `Transaction` и `Operation` уже используют более чистую модель: entity работает
-с domain snapshot, а преобразование в DB rows и response DTO вынесено в mapper
-слой. `User` и `Account` пока частично нарушают эту границу и знают о
-`src/db/schema` или application/shared DTO.
+с domain snapshot, а преобразование в persistence и response формы вынесено за
+пределы domain слоя. `User` и `Account` пока частично нарушают эту границу и
+знают о `src/db/schema` или application/shared DTO.
 
 Без общего правила новые entities и refactoring старых будут снова смешивать
 domain state, persistence representation и public API shape.
@@ -36,10 +36,11 @@ domain state, persistence representation и public API shape.
    shared request/response DTO или HTTP-specific типы.
 5. Domain entity не должна содержать `toPersistence()`, `toResponseDTO()` или
    `fromPersistence(...)`.
-6. Преобразования `domain snapshot -> response DTO`,
-   `domain snapshot -> DB row` и `DB row -> entity snapshot/entity`
-   выполняются в application или infrastructure mapper, в зависимости от
-   направления и существующей границы модуля. Entity не должна предоставлять
+6. Преобразования `domain snapshot -> response DTO` выполняются в application
+   или presentation mapper, в зависимости от endpoint boundary.
+   Преобразования `domain snapshot -> DB row` и
+   `DB row -> entity snapshot/entity` выполняются в infrastructure persistence
+   mapper рядом с repository boundary. Entity не должна предоставлять
    persistence/DTO методы для этих преобразований.
 7. `Transaction` и `Operation` считаются текущим эталоном для entity API.
    Отклонения допустимы только если они явно описаны в документации или ADR.

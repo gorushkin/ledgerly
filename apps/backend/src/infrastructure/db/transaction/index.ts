@@ -1,2 +1,3 @@
 export { TransactionRepository } from './transaction.repository';
 export { TransactionQueryRepository } from './transaction-query.repository';
+export { TransactionPersistenceMapper } from './transaction-persistence.mapper';

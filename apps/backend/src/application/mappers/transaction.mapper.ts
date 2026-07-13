@@ -1,4 +1,3 @@
-import { TransactionDbRow } from 'src/db/schema';
 import { Transaction } from 'src/domain';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { DateValue } from 'src/domain/domain-core/value-objects/DateValue';
@@ -24,23 +23,6 @@ export class TransactionMapper {
       operations: snapshot.operations.map((operation) =>
         OperationMapper.toResponseDTOFromSnapshot(operation),
       ),
-      postingDate: snapshot.postingDate,
-      transactionDate: snapshot.transactionDate,
-      updatedAt: snapshot.updatedAt,
-      userId: snapshot.userId,
-      version: snapshot.version,
-    };
-  }
-
-  static toDBRow(transaction: Transaction): TransactionDbRow {
-    const snapshot = transaction.toSnapshot();
-
-    return {
-      createdAt: snapshot.createdAt,
-      currency: snapshot.currency,
-      description: snapshot.description,
-      id: snapshot.id,
-      isTombstone: snapshot.isTombstone,
       postingDate: snapshot.postingDate,
       transactionDate: snapshot.transactionDate,
       updatedAt: snapshot.updatedAt,

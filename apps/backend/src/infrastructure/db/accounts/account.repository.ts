@@ -1,7 +1,6 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
-  AccountMapper,
   type AccountRepositoryInterface,
   type AccountRepositorySoftDeleteInput,
   type AccountRepositoryUpdateInput,
@@ -10,6 +9,8 @@ import { accountsTable } from 'src/db/schemas/accounts';
 import { AccountSnapshot } from 'src/domain/accounts';
 
 import { BaseRepository } from '../BaseRepository';
+
+import { AccountPersistenceMapper } from './account-persistence.mapper';
 
 export class AccountRepository
   extends BaseRepository
@@ -28,7 +29,9 @@ export class AccountRepository
         )
         .all();
 
-      return accounts.map((account) => AccountMapper.toSnapshot(account));
+      return accounts.map((account) =>
+        AccountPersistenceMapper.toSnapshot(account),
+      );
     }, 'Failed to fetch accounts');
   }
 
@@ -38,13 +41,13 @@ export class AccountRepository
         const account = await this.db
           .insert(accountsTable)
           .values({
-            ...AccountMapper.toDBRowFromSnapshot(data),
+            ...AccountPersistenceMapper.toDBRowFromSnapshot(data),
             currentClearedBalanceLocal: data.currentClearedBalanceLocal ?? '0',
           })
           .returning()
           .get();
 
-        return AccountMapper.toSnapshot(account);
+        return AccountPersistenceMapper.toSnapshot(account);
       },
       'Failed to create account',
       {
@@ -82,7 +85,7 @@ export class AccountRepository
         this.entityNotFoundContext('account', id),
       );
 
-      return AccountMapper.toSnapshot(existingAccount);
+      return AccountPersistenceMapper.toSnapshot(existingAccount);
     }, 'Failed to fetch account by ID');
   }
 
@@ -117,7 +120,7 @@ export class AccountRepository
           this.entityNotFoundContext('account', id),
         );
 
-        return AccountMapper.toSnapshot(existingAccount);
+        return AccountPersistenceMapper.toSnapshot(existingAccount);
       },
       `Failed to update account with ID ${id}`,
       {
@@ -147,7 +150,7 @@ export class AccountRepository
         this.entityNotFoundContext('account', id),
       );
 
-      return AccountMapper.toSnapshot(existingAccount);
+      return AccountPersistenceMapper.toSnapshot(existingAccount);
     }, `Failed to delete account with ID ${id}`);
   }
 
@@ -175,7 +178,7 @@ export class AccountRepository
         this.entityNotFoundContext('account'),
       );
 
-      return AccountMapper.toSnapshot(existingAccount);
+      return AccountPersistenceMapper.toSnapshot(existingAccount);
     }, 'Failed to fetch system account');
   }
 
@@ -203,7 +206,7 @@ export class AccountRepository
         this.unauthorizedAccessContext('account', accountId),
       );
 
-      return AccountMapper.toSnapshot(existingAccount);
+      return AccountPersistenceMapper.toSnapshot(existingAccount);
     }, 'Failed to verify account ownership');
   }
 
@@ -231,7 +234,9 @@ export class AccountRepository
         this.entityNotFoundContext('account'),
       );
 
-      return accounts.map((account) => AccountMapper.toSnapshot(account));
+      return accounts.map((account) =>
+        AccountPersistenceMapper.toSnapshot(account),
+      );
     }, 'Failed to fetch accounts by IDs');
   }
 }

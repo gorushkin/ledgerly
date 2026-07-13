@@ -1,5 +1,4 @@
 import { UUID } from '@ledgerly/shared/types';
-import { AccountMapper, OperationMapper, UserMapper } from 'src/application';
 import { OperationDbRow, UserDbRow } from 'src/db/schema';
 import {
   compareEntities,
@@ -13,8 +12,11 @@ import { RepositoryInvariantError } from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
+import { AccountPersistenceMapper } from '../accounts';
 import { TransactionManager } from '../TransactionManager';
+import { UserPersistenceMapper } from '../user';
 
+import { OperationPersistenceMapper } from './operation-persistence.mapper';
 import { OperationRepository } from './operation.repository';
 
 describe('OperationRepository', () => {
@@ -53,7 +55,7 @@ describe('OperationRepository', () => {
     data = TransactionBuilder.transaction({
       accounts: ['USD', 'EUR'],
       operations: operationsData,
-      user: UserMapper.toDomain(user),
+      user: UserPersistenceMapper.toDomain(user),
     });
 
     transaction = data.transaction;
@@ -61,7 +63,7 @@ describe('OperationRepository', () => {
     await Promise.all(
       data.accounts.map((account) =>
         testDB.insertAccount(
-          AccountMapper.toDBRowFromSnapshot(account.toSnapshot()),
+          AccountPersistenceMapper.toDBRowFromSnapshot(account.toSnapshot()),
         ),
       ),
     );
@@ -83,7 +85,7 @@ describe('OperationRepository', () => {
       expect(operationsCountBeforeSaving).toBe(0);
 
       const operations = data.operations.map((operation) =>
-        OperationMapper.toDBRow(operation),
+        OperationPersistenceMapper.toDBRow(operation),
       );
 
       await operationRepository.save(user.id, operations, new Map());
@@ -106,7 +108,7 @@ describe('OperationRepository', () => {
 
     it('should update and delete operations successfully based on the snapshot', async () => {
       const operations = data.operations.map((operation) =>
-        OperationMapper.toDBRow(operation),
+        OperationPersistenceMapper.toDBRow(operation),
       );
 
       await Promise.all(
@@ -271,7 +273,7 @@ describe('OperationRepository', () => {
 
     it('should reject saving an operation that is already tombstone in the snapshot', async () => {
       const operations = data.operations.map((operation) =>
-        OperationMapper.toDBRow(operation),
+        OperationPersistenceMapper.toDBRow(operation),
       );
 
       await Promise.all(

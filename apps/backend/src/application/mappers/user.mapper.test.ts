@@ -1,53 +1,28 @@
-import { UserDbRow } from 'src/db/schema';
+import { User } from 'src/domain';
+import { UserSnapshot } from 'src/domain/users/types';
 import { describe, expect, it } from 'vitest';
 
 import { UserMapper } from './user.mapper';
 
 describe('UserMapper', () => {
-  const row: UserDbRow = {
-    createdAt: '2026-06-24T10:00:00.000Z' as UserDbRow['createdAt'],
+  const snapshot: UserSnapshot = {
+    createdAt: '2026-06-24T10:00:00.000Z' as UserSnapshot['createdAt'],
     email: 'user@example.com',
-    id: '11111111-1111-4111-8111-111111111111' as UserDbRow['id'],
+    id: '11111111-1111-4111-8111-111111111111' as UserSnapshot['id'],
     name: 'Test User',
     password: 'hashed-password',
-    updatedAt: '2026-06-25T10:00:00.000Z' as UserDbRow['updatedAt'],
+    updatedAt: '2026-06-25T10:00:00.000Z' as UserSnapshot['updatedAt'],
   };
 
-  it('maps a persistence row to a domain user snapshot explicitly', () => {
-    const user = UserMapper.toDomain(row);
-
-    expect(user.toSnapshot()).toEqual({
-      createdAt: row.createdAt,
-      email: row.email,
-      id: row.id,
-      name: row.name,
-      password: row.password,
-      updatedAt: row.updatedAt,
-    });
-  });
-
-  it('maps a domain user to a persistence row', () => {
-    const user = UserMapper.toDomain(row);
-
-    expect(UserMapper.toDBRow(user)).toEqual({
-      createdAt: row.createdAt,
-      email: row.email,
-      id: row.id,
-      name: row.name,
-      password: row.password,
-      updatedAt: row.updatedAt,
-    });
-  });
-
   it('maps a domain user to a response DTO without password', () => {
-    const user = UserMapper.toDomain(row);
+    const user = User.restore(snapshot);
 
     const dto = UserMapper.toResponseDTO(user);
 
     expect(dto).toEqual({
-      email: row.email,
-      id: row.id,
-      name: row.name,
+      email: snapshot.email,
+      id: snapshot.id,
+      name: snapshot.name,
     });
     expect(dto).not.toHaveProperty('password');
   });

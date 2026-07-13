@@ -165,8 +165,8 @@ Neutral/cost:
 - Existing user and currency stubs need migration or removal tasks.
 - Route/controller validation is not fully uniform yet; it is tracked as
   follow-up work.
-- Some application mappers and use cases still need cleanup to remove
-  persistence and infrastructure coupling.
+- Some use cases still need cleanup to remove remaining infrastructure
+  coupling.
 
 ## Related
 

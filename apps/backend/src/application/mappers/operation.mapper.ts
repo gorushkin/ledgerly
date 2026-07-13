@@ -1,4 +1,3 @@
-import { OperationRepoInsert } from 'src/db/schema';
 import { Amount, Id } from 'src/domain/domain-core';
 import { AccountNotFoundInContextError } from 'src/domain/domain.errors';
 import { Operation } from 'src/domain/operations/operation.entity';
@@ -37,26 +36,6 @@ export class OperationMapper {
       description: snapshot.description,
       id: snapshot.id,
       isSystem: snapshot.isSystem,
-      transactionId: snapshot.transactionId,
-      updatedAt: snapshot.updatedAt,
-      userId: snapshot.userId,
-      value: snapshot.value,
-    };
-  }
-
-  static toDBRow(operation: Operation): OperationRepoInsert {
-    return OperationMapper.toDBRowFromSnapshot(operation.toSnapshot());
-  }
-
-  static toDBRowFromSnapshot(snapshot: OperationSnapshot): OperationRepoInsert {
-    return {
-      accountId: snapshot.accountId,
-      amount: snapshot.amount,
-      createdAt: snapshot.createdAt,
-      description: snapshot.description,
-      id: snapshot.id,
-      isSystem: snapshot.isSystem,
-      isTombstone: snapshot.isTombstone,
       transactionId: snapshot.transactionId,
       updatedAt: snapshot.updatedAt,
       userId: snapshot.userId,
