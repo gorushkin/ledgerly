@@ -1,7 +1,7 @@
 import { createUser } from 'src/db/createTestUser';
 import { AccountType } from 'src/domain/';
 import { Amount, Name, Currency, Id, Timestamp } from 'src/domain/domain-core/';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { User } from '../users/user.entity';
 
@@ -28,6 +28,10 @@ describe('Account Domain Entity', () => {
   beforeAll(async () => {
     user = await createUser();
     userId = user.getId();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('create method', () => {
@@ -142,7 +146,43 @@ describe('Account Domain Entity', () => {
       );
     });
 
-    it('should not update account during soft deletion', () => {
+    it('should not allow deleting an already deleted account', () => {
+      const account = Account.create(
+        user,
+        name,
+        'account-description',
+        Amount.create('0'),
+        currencyUSD,
+        accountType,
+      );
+
+      account.markAsDeleted();
+
+      const deletedSnapshot = account.toSnapshot();
+
+      let thrownError: unknown;
+
+      try {
+        account.markAsDeleted();
+      } catch (error) {
+        thrownError = error;
+      }
+
+      expect(thrownError).toMatchObject({
+        code: 'DELETED_ENTITY_OPERATION',
+        context: {
+          entityType: Account.entityType,
+          operation: 'delete',
+        },
+      });
+      expect(account.toSnapshot()).toEqual(deletedSnapshot);
+    });
+
+    it('should only mark account as deleted and update timestamp during soft deletion', () => {
+      vi.useFakeTimers();
+
+      vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
       const account = Account.create(
         user,
         name,
@@ -156,20 +196,22 @@ describe('Account Domain Entity', () => {
 
       const accountBeforeDeleting = account.toSnapshot();
 
+      vi.setSystemTime(new Date('2026-01-01T00:00:01.000Z'));
+
       account.markAsDeleted();
 
       expect(account.isDeleted()).toBe(true);
 
       const accountAfterDeleting = account.toSnapshot();
 
-      expect(accountBeforeDeleting).toEqual({
-        ...accountAfterDeleting,
-        isTombstone: false,
+      expect(accountAfterDeleting).toEqual({
+        ...accountBeforeDeleting,
+        isTombstone: true,
+        updatedAt: accountAfterDeleting.updatedAt,
       });
-
-      // expect(() => account.update({ name: 'new-name' })).toThrowError(
-      //   'Cannot update a deleted entity',
-      // );
+      expect(accountAfterDeleting.updatedAt).not.toBe(
+        accountBeforeDeleting.updatedAt,
+      );
     });
   });
 

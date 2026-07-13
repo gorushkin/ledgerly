@@ -44,6 +44,19 @@ domain state, persistence representation и public API shape.
 7. `Transaction` и `Operation` считаются текущим эталоном для entity API.
    Отклонения допустимы только если они явно описаны в документации или ADR.
 
+Entity timestamps являются частью domain state, а не persistence side effect.
+Repository layer не должен генерировать entity `id`, `createdAt` или
+`updatedAt`. `Entity.create(...)` создает identity и initial timestamps, а
+domain behavior methods вроде `update(...)` и `markAsDeleted()` обновляют
+`updatedAt`, когда меняют состояние entity. Repository сохраняет timestamps,
+полученные через snapshot/mapper.
+
+Soft-delete является domain state transition. Повторный вызов
+`markAsDeleted()` для уже deleted entity должен завершаться domain error
+`DELETED_ENTITY_OPERATION`, а не быть idempotent no-op и не обновлять
+`updatedAt` повторно. Generic behavior `SoftDelete` централизует invariant, а
+конкретная entity передает typed domain error для своего `entityType`.
+
 Snapshot-типы должны жить рядом с entity в `domain/<module>/types.ts` и
 использовать primitive/domain-safe типы. Они не должны быть alias для DB row или
 API response DTO.
@@ -82,6 +95,8 @@ API response DTO.
   serialization.
 - Refactoring persistence и response contracts не требует менять domain entity,
   если business state не изменился.
+- Repository layer перестает скрыто менять entity state при save/update/delete;
+  persisted state должен приходить из explicit domain transition.
 
 Нейтральные/стоимость:
 

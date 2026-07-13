@@ -250,7 +250,7 @@ export class ExcessiveOperationsError extends CodedDomainError<'EXCESSIVE_OPERAT
 /**
  * Thrown when attempting to perform operations on a deleted entity.
  */
-type DeletedEntityOperation = 'update';
+type DeletedEntityOperation = 'delete' | 'update';
 
 export class DeletedEntityOperationError extends CodedDomainError<'DELETED_ENTITY_OPERATION'> {
   constructor(entityType: string, operation: DeletedEntityOperation) {
@@ -263,6 +263,10 @@ export class DeletedEntityOperationError extends CodedDomainError<'DELETED_ENTIT
 
   static forUpdate(entityType: string): DeletedEntityOperationError {
     return new DeletedEntityOperationError(entityType, 'update');
+  }
+
+  static forDelete(entityType: string): DeletedEntityOperationError {
+    return new DeletedEntityOperationError(entityType, 'delete');
   }
 }
 

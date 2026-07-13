@@ -178,7 +178,9 @@ export class Operation {
   }
 
   markAsDeleted(): void {
-    this.softDelete = this.softDelete.markAsDeleted();
+    this.softDelete = this.softDelete.markAsDeleted(
+      DeletedEntityOperationError.forDelete(Operation.entityType),
+    );
     this.timestamps = this.timestamps.touch();
   }
 

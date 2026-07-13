@@ -1014,19 +1014,22 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.toSnapshot()).toEqual(deletedSnapshot);
     });
 
-    it('Should not increase version if transaction is already deleted', () => {
+    it('should not allow deleting an already deleted transaction', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
       transaction.markAsDeleted();
 
       const originalSnapshot = transaction.toSnapshot();
 
-      transaction.markAsDeleted();
+      const error = captureThrownError(() => transaction.markAsDeleted());
 
-      const updatedSnapshot = transaction.toSnapshot();
-
-      expect(transaction.isDeleted()).toBe(true);
-      expect(updatedSnapshot.version).toBe(originalSnapshot.version);
-      expect(updatedSnapshot.updatedAt).toBe(originalSnapshot.updatedAt);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.deletedEntityOperation,
+        context: {
+          entityType: Transaction.entityType,
+          operation: 'delete',
+        },
+      });
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
     });
   });
 

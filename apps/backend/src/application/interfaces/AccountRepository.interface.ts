@@ -1,17 +1,17 @@
 import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { AccountSnapshot } from 'src/domain/accounts';
 
-export type AccountRepositoryUpdateInput = Partial<
-  Pick<
-    AccountSnapshot,
-    | 'currency'
-    | 'currentClearedBalanceLocal'
-    | 'description'
-    | 'initialBalance'
-    | 'isSystem'
-    | 'name'
-    | 'type'
-  >
+export type AccountRepositoryUpdateInput = Pick<AccountSnapshot, 'updatedAt'> &
+  Partial<
+    Pick<
+      AccountSnapshot,
+      'currency' | 'description' | 'initialBalance' | 'name' | 'type'
+    >
+  >;
+
+export type AccountRepositorySoftDeleteInput = Pick<
+  AccountSnapshot,
+  'updatedAt'
 >;
 
 export type AccountRepositoryInterface = {
@@ -23,7 +23,11 @@ export type AccountRepositoryInterface = {
     id: UUID,
     data: AccountRepositoryUpdateInput,
   ): Promise<AccountSnapshot>;
-  delete(userId: UUID, id: UUID): Promise<AccountSnapshot>;
+  delete(
+    userId: UUID,
+    id: UUID,
+    data: AccountRepositorySoftDeleteInput,
+  ): Promise<AccountSnapshot>;
   findSystemAccount(
     userId: UUID,
     currency: CurrencyCode,

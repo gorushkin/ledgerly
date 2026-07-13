@@ -577,13 +577,15 @@ export class Transaction {
   }
 
   markAsDeleted(): void {
-    if (this.isDeleted()) {
-      return;
-    }
+    this.softDelete = this.softDelete.markAsDeleted(
+      DeletedEntityOperationError.forDelete(Transaction.entityType),
+    );
 
-    this.softDelete = this.softDelete.markAsDeleted();
-
-    this.operations.forEach((operation) => operation.markAsDeleted());
+    this.operations.forEach((operation) => {
+      if (!operation.isDeleted()) {
+        operation.markAsDeleted();
+      }
+    });
 
     this.markUpdated();
   }

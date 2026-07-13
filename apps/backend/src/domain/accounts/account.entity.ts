@@ -9,6 +9,7 @@ import {
   EntityTimestamps,
   SoftDelete,
 } from '../domain-core';
+import { DeletedEntityOperationError } from '../domain.errors';
 import { User } from '../users/user.entity';
 
 import { AccountType } from './account-type.enum';
@@ -142,7 +143,10 @@ export class Account {
 
   // Delegation methods for soft delete
   markAsDeleted(): void {
-    this.softDelete = this.softDelete.markAsDeleted();
+    this.softDelete = this.softDelete.markAsDeleted(
+      DeletedEntityOperationError.forDelete(Account.entityType),
+    );
+    this.touch();
   }
 
   isDeleted(): boolean {
@@ -197,7 +201,7 @@ export class Account {
     this.currency = currency;
     this.name = name;
 
-    this.touch(Timestamp.create());
+    this.touch();
   }
 
   isCurrencySame(currency: Currency): boolean {

@@ -58,12 +58,18 @@ describe('SoftDelete', () => {
     expect(() => deleted.validateUpdateIsAllowed(error)).toThrow(error);
   });
 
-  it('markAsDeleted should return a new instance even for already deleted entity', () => {
-    const deleted1 = SoftDelete.create().markAsDeleted();
-    const deleted2 = deleted1.markAsDeleted();
+  it('markAsDeleted should reject an already deleted entity', () => {
+    const deleted = SoftDelete.create().markAsDeleted();
 
-    expect(deleted1).not.toBe(deleted2);
-    expect(deleted1.isDeleted()).toBe(true);
-    expect(deleted2.isDeleted()).toBe(true);
+    expect(() => deleted.markAsDeleted()).toThrow(
+      'Cannot delete a deleted entity',
+    );
+  });
+
+  it('markAsDeleted should throw the provided error when deletion is forbidden', () => {
+    const deleted = SoftDelete.create().markAsDeleted();
+    const error = new Error('Custom delete error');
+
+    expect(() => deleted.markAsDeleted(error)).toThrow(error);
   });
 });

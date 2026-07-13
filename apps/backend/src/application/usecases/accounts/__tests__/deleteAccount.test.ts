@@ -55,7 +55,7 @@ describe('DeleteAccountUseCase', async () => {
 
   const mockSavedAccountData = {
     ...mockAccountData,
-    isTombstone: false,
+    isTombstone: true,
   };
 
   beforeEach(() => {
@@ -80,10 +80,15 @@ describe('DeleteAccountUseCase', async () => {
       mockAccountRepository.delete.mockResolvedValue(mockSavedAccountData);
 
       const result = await deleteAccountUseCase.execute(user, accountId);
+      const { updatedAt: _updatedAt, ...expectedAccountData } = mockAccountData;
 
       expect(mockAccountRepository.delete).toHaveBeenCalledWith(
         user.getId().valueOf(),
         accountId,
+        expect.objectContaining({
+          ...expectedAccountData,
+          isTombstone: true,
+        }),
       );
 
       expect(result).toEqual(

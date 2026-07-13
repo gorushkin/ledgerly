@@ -6,7 +6,7 @@ import {
 } from '@ledgerly/shared/types';
 import dayjs from 'dayjs';
 import { AccountDbInsert, AccountDbRow, UserDbRow } from 'src/db/schema';
-import { Amount } from 'src/domain/domain-core';
+import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
@@ -391,6 +391,7 @@ describe('AccountRepository', () => {
           currency: USD,
           name: accountData.name,
           type: 'asset',
+          updatedAt: Timestamp.create().valueOf(),
         },
       );
 
@@ -403,13 +404,13 @@ describe('AccountRepository', () => {
 
     it('should only update allowed fields', async () => {
       const maliciousData = {
-        createdAt: new Date().toISOString(),
+        createdAt: Timestamp.create().valueOf(),
         currency: Currency.create('EUR').valueOf(),
         id: 'malicious-id',
         initialBalance: Amount.create('2000').valueOf(),
         name: 'Updated Account',
         type: 'expense' as const,
-        updatedAt: new Date().toISOString(),
+        updatedAt: Timestamp.create().valueOf(),
       };
 
       const result = await accountRepository.update(
@@ -433,9 +434,21 @@ describe('AccountRepository', () => {
     });
 
     it('should delete account when it exists and belongs to user', async () => {
-      const deleted = await accountRepository.delete(user.id, account.id);
+      const deletedData = {
+        isTombstone: true,
+        updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
+      };
+
+      const deleted = await accountRepository.delete(
+        user.id,
+        account.id,
+        deletedData,
+      );
 
       expect(deleted).toBeDefined();
+      expect(deleted.isTombstone).toBe(true);
+      expect(deleted.updatedAt).toBe(deletedData.updatedAt);
+      expect(deleted.updatedAt).not.toBe(account.updatedAt);
 
       const retrievedAccount = accountRepository.getById(user.id, account.id);
 
@@ -448,7 +461,7 @@ describe('AccountRepository', () => {
       expect(userAccounts.length).toBe(0);
     });
 
-    it('should return undefined when account belongs to different user', async () => {
+    it('should throw RepositoryNotFoundError when account belongs to different user', async () => {
       const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
@@ -461,16 +474,22 @@ describe('AccountRepository', () => {
         type: 'asset',
       });
 
-      const deleted = accountRepository.delete(account.id, secondUser.id);
-      await expect(deleted).rejects.toThrowError(RepositoryNotFoundError);
+      await expect(
+        accountRepository.delete(secondUser.id, account.id, {
+          updatedAt: Timestamp.create().valueOf(),
+        }),
+      ).rejects.toThrowError(RepositoryNotFoundError);
 
       const secondUserAccounts = await accountRepository.getAll(secondUser.id);
 
       expect(secondUserAccounts.length).toBe(1);
     });
 
-    it('should return undefined when account does not exist', async () => {
-      const result = accountRepository.delete(Id.create().valueOf(), user.id);
+    it('should throw RepositoryNotFoundError when account does not exist', async () => {
+      const result = accountRepository.delete(user.id, Id.create().valueOf(), {
+        updatedAt: Timestamp.create().valueOf(),
+      });
+
       await expect(result).rejects.toThrowError(RepositoryNotFoundError);
     });
   });
@@ -520,7 +539,8 @@ describe('AccountRepository', () => {
 
       const newUpdatedAt = dayjs(updatedAccount?.updatedAt);
 
-      expect(updatedAccount?.updatedAt).not.toBe(originalUpdatedAt);
+      expect(updatedAccount?.updatedAt).toBe(updatedData.updatedAt);
+      expect(updatedAccount?.updatedAt).not.toBe(account.updatedAt);
       expect(originalUpdatedAt.unix()).toBeLessThanOrEqual(newUpdatedAt.unix());
     });
   });

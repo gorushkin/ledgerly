@@ -1,5 +1,6 @@
 export type {
   AccountRepositoryInterface,
+  AccountRepositorySoftDeleteInput,
   AccountRepositoryUpdateInput,
 } from './AccountRepository.interface';
 export type { UserRepositoryInterface } from './userRepository.interface';
