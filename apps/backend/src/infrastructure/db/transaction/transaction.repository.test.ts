@@ -18,7 +18,7 @@ import {
   ForeignKeyConstraintError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   OperationRepository,
@@ -38,6 +38,10 @@ describe('TransactionRepository', () => {
   const mockOperationsRepository = {
     save: vi.fn(),
   };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   const transactionManager = {
     getCurrentTransaction: () => testDB.db,
@@ -637,11 +641,21 @@ describe('TransactionRepository', () => {
     });
 
     it('should soft delete the transaction and its operations and update timestamps', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
       const transaction = data.transaction;
 
       await testDB.insertTransaction(transaction.toSnapshot());
 
+      const transactionBeforeDelete = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
+
+      vi.setSystemTime(new Date('2026-01-01T00:00:01.000Z'));
+
       transaction.markAsDeleted();
+      const deletedSnapshot = transaction.toSnapshot();
 
       await transactionRepository.softDelete(user.id, transaction);
 
@@ -653,8 +667,9 @@ describe('TransactionRepository', () => {
 
       expect(deletedTransaction?.isTombstone).toBe(true);
 
-      expect(deletedTransaction?.updatedAt).toBe(
-        transaction.toSnapshot().updatedAt,
+      expect(deletedTransaction?.updatedAt).toBe(deletedSnapshot.updatedAt);
+      expect(deletedTransaction?.updatedAt).not.toBe(
+        transactionBeforeDelete?.updatedAt,
       );
 
       expect(transaction.description).toBe(deletedTransaction?.description);

@@ -73,7 +73,7 @@ export type ErrorContextByCode = {
   };
   DELETED_ENTITY_OPERATION: {
     entityType: string;
-    operation: "update";
+    operation: "delete" | "update";
   };
   EMPTY_OPERATIONS: Record<string, never>;
   ENTITY_NOT_FOUND: {

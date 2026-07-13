@@ -146,6 +146,38 @@ describe('Account Domain Entity', () => {
       );
     });
 
+    it('should not allow deleting an already deleted account', () => {
+      const account = Account.create(
+        user,
+        name,
+        'account-description',
+        Amount.create('0'),
+        currencyUSD,
+        accountType,
+      );
+
+      account.markAsDeleted();
+
+      const deletedSnapshot = account.toSnapshot();
+
+      let thrownError: unknown;
+
+      try {
+        account.markAsDeleted();
+      } catch (error) {
+        thrownError = error;
+      }
+
+      expect(thrownError).toMatchObject({
+        code: 'DELETED_ENTITY_OPERATION',
+        context: {
+          entityType: Account.entityType,
+          operation: 'delete',
+        },
+      });
+      expect(account.toSnapshot()).toEqual(deletedSnapshot);
+    });
+
     it('should only mark account as deleted and update timestamp during soft deletion', () => {
       vi.useFakeTimers();
 

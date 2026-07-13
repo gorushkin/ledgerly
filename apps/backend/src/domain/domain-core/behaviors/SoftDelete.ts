@@ -9,7 +9,10 @@ export class SoftDelete {
   /**
    * Marks the entity as deleted
    */
-  markAsDeleted(): SoftDelete {
+  markAsDeleted(
+    error: Error = new Error('Cannot delete a deleted entity'),
+  ): SoftDelete {
+    this.validateUpdateIsAllowed(error);
     return new SoftDelete(true);
   }
 

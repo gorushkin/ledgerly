@@ -80,6 +80,8 @@ export class OperationRepository
   ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
+        // LED-107: optimize this into a batched update while preserving
+        // per-operation updatedAt values from domain snapshots.
         for (const operation of operations) {
           await this.db
             .update(operationsTable)

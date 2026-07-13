@@ -105,6 +105,16 @@ with its application mapper.
    persistence/DTO methods. For example, `AccountMapper.toDBRowFromSnapshot(snapshot)` and
    `AccountMapper.toResponseDTOFromSnapshot(snapshot)` are outside the domain entity.
 
+Entity timestamps are domain state. Repositories must not generate entity
+`id`, `createdAt` or `updatedAt` values. `create(...)` creates identity and
+initial timestamps, and behavior methods such as `update(...)` or
+`markAsDeleted()` update `updatedAt` when they change entity state.
+Repositories persist timestamps received through snapshots/mappers.
+
+Soft-delete is a domain state transition, not an idempotent repository command.
+Calling `markAsDeleted()` on an already deleted entity must fail with
+`DELETED_ENTITY_OPERATION` and must not mutate `updatedAt` again.
+
 Snapshot types live next to the entity in `domain/<module>/types.ts`. They use
 primitive/domain-safe fields and must not be aliases for DB rows or response
 DTOs.

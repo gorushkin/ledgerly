@@ -317,6 +317,38 @@ describe('Operation Domain Entity', () => {
     expect(operation.isDeleted()).toBe(true);
   });
 
+  it('should not allow deleting an already deleted operation', () => {
+    const operation = Operation.create(
+      userId,
+      usdAccount,
+      transaction,
+      Amount.create('100'),
+      Amount.create('300'),
+      'Test operation',
+    );
+
+    operation.markAsDeleted();
+
+    const deletedSnapshot = operation.toSnapshot();
+
+    let error: unknown;
+
+    try {
+      operation.markAsDeleted();
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(error).toMatchObject({
+      code: apiErrorCodes.deletedEntityOperation,
+      context: {
+        entityType: Operation.entityType,
+        operation: 'delete',
+      },
+    });
+    expect(operation.toSnapshot()).toEqual(deletedSnapshot);
+  });
+
   it('should serialize and deserialize correctly', () => {
     const operation = Operation.create(
       userId,

@@ -391,6 +391,7 @@ describe('AccountRepository', () => {
           currency: USD,
           name: accountData.name,
           type: 'asset',
+          updatedAt: Timestamp.create().valueOf(),
         },
       );
 
@@ -435,7 +436,7 @@ describe('AccountRepository', () => {
     it('should delete account when it exists and belongs to user', async () => {
       const deletedData = {
         isTombstone: true,
-        updatedAt: Timestamp.create().valueOf(),
+        updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       };
 
       const deleted = await accountRepository.delete(
@@ -475,7 +476,6 @@ describe('AccountRepository', () => {
 
       await expect(
         accountRepository.delete(secondUser.id, account.id, {
-          isTombstone: true,
           updatedAt: Timestamp.create().valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
@@ -487,7 +487,6 @@ describe('AccountRepository', () => {
 
     it('should throw RepositoryNotFoundError when account does not exist', async () => {
       const result = accountRepository.delete(user.id, Id.create().valueOf(), {
-        isTombstone: true,
         updatedAt: Timestamp.create().valueOf(),
       });
 
