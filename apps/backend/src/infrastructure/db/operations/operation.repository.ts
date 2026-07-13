@@ -1,6 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
-import { OperationMapper, OperationRepositoryInterface } from 'src/application';
+import { OperationRepositoryInterface } from 'src/application';
 import {
   OperationDbInsert,
   OperationDbRow,
@@ -10,6 +10,8 @@ import { OperationSnapshot } from 'src/domain/operations/types';
 import { RepositoryInvariantError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
+
+import { OperationPersistenceMapper } from './operation-persistence.mapper';
 
 export class OperationRepository
   extends BaseRepository
@@ -119,7 +121,7 @@ export class OperationRepository
 
           if (!matchedOperationSnapshot) {
             operationsToInsert.push(
-              OperationMapper.toDBRowFromSnapshot(operation),
+              OperationPersistenceMapper.toDBRowFromSnapshot(operation),
             );
             return;
           }
@@ -132,13 +134,13 @@ export class OperationRepository
 
           if (operation.isTombstone) {
             operationsToDelete.push(
-              OperationMapper.toDBRowFromSnapshot(operation),
+              OperationPersistenceMapper.toDBRowFromSnapshot(operation),
             );
             return;
           }
 
           operationsToUpdate.push(
-            OperationMapper.toDBRowFromSnapshot(operation),
+            OperationPersistenceMapper.toDBRowFromSnapshot(operation),
           );
         });
 

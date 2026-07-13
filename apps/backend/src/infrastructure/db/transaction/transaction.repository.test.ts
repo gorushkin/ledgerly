@@ -1,9 +1,4 @@
 import { UUID } from '@ledgerly/shared/types';
-import {
-  AccountMapper,
-  OperationMapper,
-  UserMapper,
-} from 'src/application/mappers';
 import { OperationDbRow, UserDbRow } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import {
@@ -25,6 +20,9 @@ import {
   TransactionManager,
   TransactionRepository,
 } from '../';
+import { AccountPersistenceMapper } from '../accounts';
+import { OperationPersistenceMapper } from '../operations';
+import { UserPersistenceMapper } from '../user';
 
 describe('TransactionRepository', () => {
   let testDB: TestDB;
@@ -84,7 +82,7 @@ describe('TransactionRepository', () => {
         },
       ],
       settings: { description },
-      user: UserMapper.toDomain(user),
+      user: UserPersistenceMapper.toDomain(user),
     });
 
     usdAccount = data.getAccountByKey('USD');
@@ -94,16 +92,20 @@ describe('TransactionRepository', () => {
     const eurSystemAccount = data.getSystemAccountByCurrency('EUR');
 
     await testDB.insertAccount(
-      AccountMapper.toDBRowFromSnapshot(usdAccount.toSnapshot()),
+      AccountPersistenceMapper.toDBRowFromSnapshot(usdAccount.toSnapshot()),
     );
     await testDB.insertAccount(
-      AccountMapper.toDBRowFromSnapshot(eurAccount.toSnapshot()),
+      AccountPersistenceMapper.toDBRowFromSnapshot(eurAccount.toSnapshot()),
     );
     await testDB.insertAccount(
-      AccountMapper.toDBRowFromSnapshot(usdSystemAccount.toSnapshot()),
+      AccountPersistenceMapper.toDBRowFromSnapshot(
+        usdSystemAccount.toSnapshot(),
+      ),
     );
     await testDB.insertAccount(
-      AccountMapper.toDBRowFromSnapshot(eurSystemAccount.toSnapshot()),
+      AccountPersistenceMapper.toDBRowFromSnapshot(
+        eurSystemAccount.toSnapshot(),
+      ),
     );
 
     transactionRepository = new TransactionRepository(
@@ -293,7 +295,7 @@ describe('TransactionRepository', () => {
 
       const expectedOperations = transaction
         .getAllOperations()
-        .map((op) => OperationMapper.toDBRow(op));
+        .map((op) => OperationPersistenceMapper.toDBRow(op));
 
       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
         user.id,
@@ -401,7 +403,7 @@ describe('TransactionRepository', () => {
       const expectedOperations: OperationDbRow[] = [];
 
       transaction.getAllOperations().forEach((operation) => {
-        expectedOperations.push(OperationMapper.toDBRow(operation));
+        expectedOperations.push(OperationPersistenceMapper.toDBRow(operation));
       });
 
       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
@@ -582,7 +584,7 @@ describe('TransactionRepository', () => {
       const expectedOperations = restoredTransaction
         .getAllOperations()
         .filter((operation) => !operation.isDeleted())
-        .map((operation) => OperationMapper.toDBRow(operation));
+        .map((operation) => OperationPersistenceMapper.toDBRow(operation));
 
       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
         user.id,
@@ -687,7 +689,7 @@ describe('TransactionRepository', () => {
       const expectedOperations: OperationDbRow[] = [];
 
       transaction.getAllOperations().forEach((operation) => {
-        expectedOperations.push(OperationMapper.toDBRow(operation));
+        expectedOperations.push(OperationPersistenceMapper.toDBRow(operation));
       });
 
       const expectedOperationsSnapshots = new Map<UUID, OperationSnapshot>();

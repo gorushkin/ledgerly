@@ -1,12 +1,12 @@
 import { AccountUpdateDTO } from '@ledgerly/shared/types';
-import { AccountDbRow } from 'src/db/schema';
+import { AccountSnapshot } from 'src/domain/accounts';
 import { Amount, Currency, Id, Timestamp } from 'src/domain/domain-core';
 import { describe, expect, it } from 'vitest';
 
 import { AccountMapper } from './account.mapper';
 
 describe('AccountMapper', () => {
-  const row: AccountDbRow = {
+  const snapshot: AccountSnapshot = {
     createdAt: Timestamp.create().valueOf(),
     currency: Currency.create('USD').valueOf(),
     currentClearedBalanceLocal: Amount.create('2500').valueOf(),
@@ -21,66 +21,20 @@ describe('AccountMapper', () => {
     userId: Id.create().valueOf(),
   };
 
-  it('maps a persistence row to an account snapshot explicitly', () => {
-    expect(AccountMapper.toSnapshot(row)).toEqual({
-      createdAt: row.createdAt,
-      currency: row.currency,
-      currentClearedBalanceLocal: row.currentClearedBalanceLocal,
-      description: row.description,
-      id: row.id,
-      initialBalance: row.initialBalance,
-      isSystem: row.isSystem,
-      isTombstone: row.isTombstone,
-      name: row.name,
-      type: row.type,
-      updatedAt: row.updatedAt,
-      userId: row.userId,
-    });
-  });
-
-  it('maps a persistence row to a domain account snapshot', () => {
-    const account = AccountMapper.toDomain(row);
-
-    expect(account.toSnapshot()).toEqual(AccountMapper.toSnapshot(row));
-  });
-
-  it('maps a domain account to a persistence row', () => {
-    const account = AccountMapper.toDomain(row);
-
-    expect(AccountMapper.toDBRowFromSnapshot(account.toSnapshot())).toEqual({
-      createdAt: row.createdAt,
-      currency: row.currency,
-      currentClearedBalanceLocal: row.currentClearedBalanceLocal,
-      description: row.description,
-      id: row.id,
-      initialBalance: row.initialBalance,
-      isSystem: row.isSystem,
-      isTombstone: row.isTombstone,
-      name: row.name,
-      type: row.type,
-      updatedAt: row.updatedAt,
-      userId: row.userId,
-    });
-  });
-
-  it('maps a domain account to a response DTO', () => {
-    const account = AccountMapper.toDomain(row);
-
-    expect(
-      AccountMapper.toResponseDTOFromSnapshot(account.toSnapshot()),
-    ).toEqual({
-      createdAt: row.createdAt,
-      currency: row.currency,
-      currentClearedBalanceLocal: row.currentClearedBalanceLocal,
-      description: row.description,
-      id: row.id,
-      initialBalance: row.initialBalance,
-      isSystem: row.isSystem,
-      isTombstone: row.isTombstone,
-      name: row.name,
-      type: row.type,
-      updatedAt: row.updatedAt,
-      userId: row.userId,
+  it('maps an account snapshot to a response DTO', () => {
+    expect(AccountMapper.toResponseDTOFromSnapshot(snapshot)).toEqual({
+      createdAt: snapshot.createdAt,
+      currency: snapshot.currency,
+      currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
+      description: snapshot.description,
+      id: snapshot.id,
+      initialBalance: snapshot.initialBalance,
+      isSystem: snapshot.isSystem,
+      isTombstone: snapshot.isTombstone,
+      name: snapshot.name,
+      type: snapshot.type,
+      updatedAt: snapshot.updatedAt,
+      userId: snapshot.userId,
     });
   });
 

@@ -87,7 +87,7 @@ Represents different monetary units used in the system.
 
 Domain entities use one public API pattern for creation, restoration and plain
 state export. The current reference implementation is `Transaction` together
-with its application mapper.
+with application response mappers and infrastructure persistence mappers.
 
 ### Required Pattern
 
@@ -100,10 +100,13 @@ with its application mapper.
    request/response DTO, or HTTP-specific types.
 5. Domain entities do not expose `toPersistence()`, `toResponseDTO()` or
    `fromPersistence(...)`.
-6. DB and API transformations live in mappers. Persistence and response output
-   should be derived from a domain snapshot, not from entity-owned
-   persistence/DTO methods. For example, `AccountMapper.toDBRowFromSnapshot(snapshot)` and
-   `AccountMapper.toResponseDTOFromSnapshot(snapshot)` are outside the domain entity.
+6. DB and API transformations live in boundary-specific mappers. Persistence
+   mapping belongs at the infrastructure boundary, while response output
+   mapping belongs in application or presentation code. Both should be derived
+   from domain snapshots, not from entity-owned persistence/DTO methods. For
+   example, `AccountPersistenceMapper.toDBRowFromSnapshot(snapshot)` and
+   `AccountMapper.toResponseDTOFromSnapshot(snapshot)` are outside the domain
+   entity.
 
 Entity timestamps are domain state. Repositories must not generate entity
 `id`, `createdAt` or `updatedAt` values. `create(...)` creates identity and

@@ -1,7 +1,6 @@
 import { UsersResponseDTO, UsersUpdateDTO, UUID } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import {
-  UserMapper,
   UserRepositoryInterface,
   UpdateUserRequestDTO,
   UserResponseDTO,
@@ -10,6 +9,8 @@ import { usersTable } from 'src/db/schemas';
 import { User } from 'src/domain/users/user.entity';
 
 import { BaseRepository } from '../BaseRepository';
+
+import { UserPersistenceMapper } from './user-persistence.mapper';
 
 const userSelect = {
   email: usersTable.email,
@@ -48,7 +49,7 @@ export class UserRepository
         .where(eq(usersTable.email, email))
         .get();
 
-      return user ? UserMapper.toDomain(user) : undefined;
+      return user ? UserPersistenceMapper.toDomain(user) : undefined;
     }, `Failed to find user with email ${email}`);
   }
 
@@ -76,7 +77,7 @@ export class UserRepository
         .where(eq(usersTable.id, id))
         .get();
 
-      return user ? UserMapper.toDomain(user) : undefined;
+      return user ? UserPersistenceMapper.toDomain(user) : undefined;
     }, `Failed to fetch user with password for ID ${id}`);
   }
 
@@ -129,7 +130,7 @@ export class UserRepository
   }
 
   async create(user: User): Promise<UserResponseDTO> {
-    const data = UserMapper.toDBRow(user);
+    const data = UserPersistenceMapper.toDBRow(user);
 
     return this.executeDatabaseOperation(
       async () =>

@@ -10,7 +10,6 @@ import {
   AccountNotFoundInContextError,
   InvalidAmountError,
 } from 'src/domain/domain.errors';
-import type { OperationSnapshot } from 'src/domain/operations';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { OperationMapper } from './operation.mapper';
@@ -41,33 +40,6 @@ describe('OperationMapper', () => {
       ...validCreateDTO,
       id: crypto.randomUUID() as UpdateOperationRequestDTO['id'],
     };
-  });
-
-  it('maps an operation snapshot to a persistence row', () => {
-    const { operations } = TransactionBuilder.transaction({
-      accounts: ['USD'],
-      operations: [
-        { accountKey: 'USD', amount: '100', description: 'Debit' },
-        { accountKey: 'USD', amount: '-100', description: 'Credit' },
-      ],
-      user,
-    });
-    const operation = operations[0];
-    const snapshot: OperationSnapshot = operation.toSnapshot();
-
-    expect(OperationMapper.toDBRowFromSnapshot(snapshot)).toEqual({
-      accountId: snapshot.accountId,
-      amount: snapshot.amount,
-      createdAt: snapshot.createdAt,
-      description: snapshot.description,
-      id: snapshot.id,
-      isSystem: snapshot.isSystem,
-      isTombstone: snapshot.isTombstone,
-      transactionId: snapshot.transactionId,
-      updatedAt: snapshot.updatedAt,
-      userId: snapshot.userId,
-      value: snapshot.value,
-    });
   });
 
   describe('toCreateOperationProps', () => {

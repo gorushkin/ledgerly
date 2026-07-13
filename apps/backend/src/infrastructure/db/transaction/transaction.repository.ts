@@ -2,7 +2,6 @@ import { UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import {
   OperationRepositoryInterface,
-  TransactionMapper,
   TransactionRepositoryInterface,
   TransactionUpdateResult,
 } from 'src/application';
@@ -13,6 +12,8 @@ import { OperationSnapshot } from 'src/domain/operations/types';
 import { RepositoryNotFoundError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
+
+import { TransactionPersistenceMapper } from './transaction-persistence.mapper';
 
 export class TransactionRepository
   extends BaseRepository
@@ -28,7 +29,8 @@ export class TransactionRepository
   async softDelete(userId: UUID, transaction: Transaction): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        const transactionData = TransactionMapper.toDBRow(transaction);
+        const transactionData =
+          TransactionPersistenceMapper.toDBRow(transaction);
 
         await this.db
           .update(transactionsTable)
@@ -55,7 +57,7 @@ export class TransactionRepository
     userId: UUID,
     transaction: Transaction,
   ): Promise<void> {
-    const transactionData = TransactionMapper.toDBRow(transaction);
+    const transactionData = TransactionPersistenceMapper.toDBRow(transaction);
 
     await this.db
       .insert(transactionsTable)
@@ -67,7 +69,7 @@ export class TransactionRepository
     transaction: Transaction,
     expectedVersion: Version,
   ): Promise<boolean> {
-    const transactionData = TransactionMapper.toDBRow(transaction);
+    const transactionData = TransactionPersistenceMapper.toDBRow(transaction);
 
     const safeData = this.getSafeUpdate(transactionData, [
       'description',
