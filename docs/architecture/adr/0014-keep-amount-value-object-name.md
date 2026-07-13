@@ -16,8 +16,9 @@ object is intentionally broader than that field. `Operation.amount` is an
 `Amount` denominated in the account currency, while `Operation.value` is an
 `Amount` denominated in the transaction currency.
 
-Ledgerly also has a separate `Money` value object for amount plus currency
-semantics.
+Ledgerly previously had a separate `Money` value object for amount plus
+currency semantics, but it was unused by the current domain model and removed
+in LED-104.
 
 ## Decision
 
@@ -34,7 +35,8 @@ Do not rename `Amount` as part of domain invariant cleanup.
 1. Rename to `MoneyAmount`.
 
 - Pros: highlights that the magnitude is monetary.
-- Cons: overlaps with `Money`, which already means amount plus currency.
+- Cons: historically overlapped with `Money`, which meant amount plus
+  currency.
 
 2. Rename to `MinorUnitAmount`.
 
@@ -59,7 +61,9 @@ Positive:
 
 - Existing domain code keeps the short, established name.
 - `Amount` remains usable for both `Operation.amount` and `Operation.value`.
-- The distinction between `Amount` and `Money` stays explicit.
+- The distinction between `Amount` and currency denomination stays explicit:
+  `Amount` carries only the signed minor-unit magnitude, and surrounding domain
+  context supplies the currency.
 
 Neutral/cost:
 
