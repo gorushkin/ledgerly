@@ -427,7 +427,7 @@ Settings
    - Schema validation (Zod)
    - Domain validation (business rules)
    - Database constraints (Drizzle)
-2. Branded types for Money and CurrencyCode
+2. Branded types for CurrencyCode and other primitive domain values where useful
 3. Operation hash-based idempotent updates
 4. Enhanced error handling with domain-specific errors
 
@@ -459,7 +459,7 @@ Settings
    - Domain business accessors expose active operations by default
 6. **Type safety**:
    - Branded types for dates (`IsoDatetimeString`)
-   - Planned branded types for `Money` and `CurrencyCode`
+   - Planned branded types for `CurrencyCode` and other primitive domain values where useful
    - Strict TypeScript configuration
    - Error handling
    - Response serialization

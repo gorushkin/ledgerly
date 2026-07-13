@@ -8,7 +8,6 @@ import { Currency } from './Currency';
 import { DateValue } from './DateValue';
 import { Email } from './Email';
 import { Id } from './Id';
-import { Money } from './Money';
 import { Name } from './Name';
 import { ParentChildRelation } from './ParentChildRelation';
 import { Password } from './Password';
@@ -18,7 +17,6 @@ import { Version } from './Version';
 describe('value object API conventions', () => {
   it('restores persisted/plain values through restore()', () => {
     const id = '11111111-1111-4111-8111-111111111111';
-    const usd = Currency.create('USD').valueOf();
 
     expect(Amount.restore('1200').valueOf()).toBe('1200');
     expect(Currency.restore('USD').valueOf()).toBe('USD');
@@ -27,10 +25,6 @@ describe('value object API conventions', () => {
       'user@example.com',
     );
     expect(Id.restore(id).valueOf()).toBe(id);
-    expect(Money.restore('1200', usd).toPersistence()).toEqual({
-      amount: '1200',
-      currency: usd,
-    });
     expect(Name.restore('Restored Name').valueOf()).toBe('Restored Name');
     expect(Password.restore('$2hashed-password').valueOf()).toBe(
       '$2hashed-password',
@@ -45,7 +39,6 @@ describe('value object API conventions', () => {
   it('compares value objects through equals()', () => {
     const parentId = Id.restore('11111111-1111-4111-8111-111111111111');
     const childId = Id.restore('22222222-2222-4222-8222-222222222222');
-    const usd = Currency.create('USD').valueOf();
 
     expect(Amount.create('1200').equals(Amount.restore('1200'))).toBe(true);
     expect(Currency.create('usd').equals(Currency.restore('USD'))).toBe(true);
@@ -58,9 +51,6 @@ describe('value object API conventions', () => {
       ),
     ).toBe(true);
     expect(Id.restore(parentId.valueOf()).equals(parentId)).toBe(true);
-    expect(Money.create('1200', usd).equals(Money.restore('1200', usd))).toBe(
-      true,
-    );
     expect(
       Name.create('Restored Name').equals(Name.restore('Restored Name')),
     ).toBe(true);
@@ -86,7 +76,6 @@ describe('value object API conventions', () => {
       Currency,
       Email,
       Id,
-      Money,
       Name,
       Password,
       EntityIdentity,
@@ -102,7 +91,6 @@ describe('value object API conventions', () => {
   it('freezes immutable value objects at runtime', async () => {
     const parentId = Id.restore('11111111-1111-4111-8111-111111111111');
     const childId = Id.restore('22222222-2222-4222-8222-222222222222');
-    const usd = Currency.create('USD').valueOf();
 
     const valueObjects = [
       Amount.create('1200'),
@@ -115,8 +103,6 @@ describe('value object API conventions', () => {
       Email.restore('user@example.com'),
       Id.create(),
       Id.restore(parentId.valueOf()),
-      Money.create('1200', usd),
-      Money.restore('1200', usd),
       Name.create('Restored Name'),
       Name.restore('Restored Name'),
       ParentChildRelation.create(parentId, childId),

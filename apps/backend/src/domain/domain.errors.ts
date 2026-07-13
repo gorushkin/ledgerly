@@ -96,19 +96,6 @@ export class InvalidEmailError extends CodedDomainError<'INVALID_EMAIL'> {
   }
 }
 
-export class InvalidMoneyAmountError extends CodedDomainError<'INVALID_MONEY_AMOUNT'> {
-  constructor(cause?: Error) {
-    super(
-      'money amount must be an integer minor-unit value',
-      apiErrorCodes.invalidMoneyAmount,
-      {
-        reason: 'INVALID_INTEGER_MINOR_UNITS',
-      },
-      cause,
-    );
-  }
-}
-
 export class InvalidIdentifierError extends CodedDomainError<'INVALID_IDENTIFIER'> {
   constructor(cause?: Error) {
     super(
@@ -139,19 +126,6 @@ export class InvalidPasswordError extends CodedDomainError<'INVALID_PASSWORD'> {
         reason: 'POLICY_VIOLATION',
       },
       cause,
-    );
-  }
-}
-
-export class CurrencyMismatchError extends CodedDomainError<'CURRENCY_MISMATCH'> {
-  constructor(
-    public readonly expectedCurrency: string,
-    public readonly receivedCurrency: string,
-  ) {
-    super(
-      `currency ${receivedCurrency} does not match ${expectedCurrency}`,
-      apiErrorCodes.currencyMismatch,
-      { expectedCurrency, receivedCurrency },
     );
   }
 }

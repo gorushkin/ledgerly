@@ -17,7 +17,6 @@ Value Objects - immutable objects that are described by their attributes, not by
 - **`Id`** - unique identifier
 - **`Timestamp`** - timestamp
 - **`Amount`** - signed integer minor-unit monetary amount without currency
-- **`Money`** - money with currency
 - **`Currency`** - currency
 - **`DateValue`** - date value
 - **`Name`** - name/title
