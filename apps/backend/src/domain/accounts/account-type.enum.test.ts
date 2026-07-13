@@ -6,8 +6,12 @@ import { AccountType } from './account-type.enum';
 
 describe('AccountType', () => {
   it('returns INVALID_ACCOUNT_TYPE for unsupported account types', () => {
+    const unsupportedType = 'unsupported' as unknown as Parameters<
+      typeof AccountType.create
+    >[0];
+
     try {
-      AccountType.create('unsupported' as never);
+      AccountType.create(unsupportedType);
     } catch (error) {
       expect(error).toBeInstanceOf(InvalidAccountTypeError);
       expect(error).toMatchObject({
