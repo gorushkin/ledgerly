@@ -1,4 +1,4 @@
-import { HttpApiError } from 'src/presentation/errors/HttpError';
+import { HttpApiError } from './HttpError';
 
 /**
  * Thrown when authentication is required or token is invalid.

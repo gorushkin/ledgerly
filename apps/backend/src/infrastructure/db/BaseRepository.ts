@@ -9,7 +9,7 @@ import {
   RecordAlreadyExistsError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
-import { reportDatabaseError } from 'src/shared/errors/reportDatabaseError';
+import { reportDatabaseError } from 'src/shared/errors';
 
 import { adaptLibsqlError } from './libsql-adapter';
 import { TransactionManager } from './TransactionManager';

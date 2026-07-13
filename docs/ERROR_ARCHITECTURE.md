@@ -2,336 +2,212 @@
 
 ## Hierarchy
 
-All application errors inherit from a single base class to enable consistent error handling across layers.
+All backend errors inherit from `BaseError`, but only expected public failures
+carry API response codes and allowlisted context.
 
-```
+```text
 BaseError (shared/errors)
 ├── DomainError (domain)
-│   ├── UnbalancedTransactionError
-│   ├── EmptyOperationsError
-│   ├── DeletedEntityOperationError
-│   ├── OperationOwnershipError
-│   ├── MissingOperationsError
-│   ├── ConflictingOperationIdsError
-│   ├── OperationNotFoundInTransactionError
-│   ├── OperationDoesNotBelongToTransactionError
-│   ├── AccountNotFoundInContextError
-│   ├── OperationUserMismatchError
-│   └── MissingTransactionContextError
 ├── ApplicationError (application)
-│   ├── EntityNotFoundError
-│   ├── UnauthorizedAccessError
-│   ├── UserNotFoundError
-│   ├── InvalidPasswordError
-│   └── UserAlreadyExistsError
 ├── InfrastructureError (infrastructure)
-│   ├── RepositoryNotFoundError
-│   └── ForbiddenAccessError
-└── HttpApiError (presentation)
-    └── AuthErrors
-        └── UnauthorizedError
+├── DatabaseError (infrastructure/db)
+└── HttpApiError (presentation/http/errors)
+    └── UnauthorizedError
 ```
+
+`CodedError` mixins in domain, application and infrastructure expose stable
+`ApiErrorCode` values and typed public context. They do not expose HTTP status
+codes.
 
 ## Layer Responsibilities
 
-### BaseError (`shared/errors/BaseError.ts`)
-- **Purpose**: Root of all application errors
-- **Contains**: message, cause (optional)
-- **Does NOT contain**: HTTP status codes or layer-specific details
-- **Used by**: All layers
+### Shared
 
-### DomainError (`domain/domain.errors.ts`)
-- **Purpose**: Business rule violations and domain invariants
-- **Examples**: 
-  - `UnbalancedTransactionError` - Transaction operations don't sum to zero
-  - `EmptyOperationsError` - Attempting to add empty operations array
-  - `DeletedEntityOperationError` - Performing operations on a deleted entity
-  - `OperationOwnershipError` - Operation doesn't belong to expected transaction
-  - `MissingOperationsError` - Validating transaction without operations
-  - `ConflictingOperationIdsError` - Same operation ID in multiple patch arrays
-  - `OperationNotFoundInTransactionError` - Update/delete operation not in transaction
-  - `OperationUserMismatchError` - Operation belongs to different user than transaction
-  - `MissingTransactionContextError` - Build context required but not provided
+`BaseError` is the common diagnostic base class. `CodedError` and
+`isCodedError` define the transport-independent public error contract used by
+presentation adapters.
 
-### ApplicationError (`application/application.errors.ts`)
-- **Purpose**: Use case failures and authentication/authorization
-- **Examples**:
-  - `EntityNotFoundError` - Entity doesn't exist
-  - `UnauthorizedAccessError` - User doesn't own entity
-  - `UserNotFoundError` - User not found during login (401)
-  - `InvalidPasswordError` - Invalid password during login (401)
-  - `UserAlreadyExistsError` - Duplicate user registration (409)
-- **Characteristics**:
-  - Orchestration failures
-  - Cross-entity rules
-  - Authentication/authorization business logic
-  - No infrastructure details
+Shared errors do not know about HTTP, Fastify or response serialization.
 
-### InfrastructureError (`infrastructure/infrastructure.errors.ts`)
-- **Purpose**: External system failures
-- **Examples**:
-  - `RepositoryNotFoundError` - Database record not found
-  - `ForbiddenAccessError` - User tries to access resource they don't own
-- **Characteristics**:
-  - Database errors
-  - File system errors
-  - External service errors
-  - Access control at data layer
+### Domain
 
-### HttpApiError (`presentation/errors/HttpError.ts`)
-- **Purpose**: HTTP-specific errors for REST API and middleware
-- **Contains**: statusCode, message
-- **Examples**:
-  - `AuthErrors` - middleware authentication errors
-    - `UnauthorizedError` (401) - Missing/invalid token
-- **Characteristics**:
-  - HTTP status codes
-  - REST API specific
-  - Presentation layer only
-  - Used by middleware for HTTP-level auth
-  - Maps domain/application/infrastructure errors to HTTP responses
+Domain errors represent invariant and value-object failures. They may expose a
+stable API code and context, but they do not decide how that code is transported.
+
+Examples include invalid amounts, invalid identifiers, transaction balance
+violations and operation ownership mismatches.
+
+### Application
+
+Application errors represent use-case failures and authorization decisions at
+the orchestration boundary.
+
+Examples include:
+
+- `EntityNotFoundError`
+- `UnauthorizedAccessError`
+- `UserNotFoundError`
+- `InvalidPasswordError`
+- `UserAlreadyExistsError`
+- `VersionConflictError`
+
+Authentication failures intentionally map to the same public
+`AUTHENTICATION_FAILED` code with empty context.
+
+### Infrastructure
+
+Infrastructure errors represent persistence, database and external-system
+failures.
+
+Expected repository failures such as `RepositoryNotFoundError` and
+`ForbiddenAccessError` are coded and may expose allowlisted context. Lower-level
+database errors are diagnostic only and are serialized as
+`INTERNAL_SERVER_ERROR`.
+
+Infrastructure must not throw presentation-layer errors.
+
+### HTTP Presentation
+
+The backend HTTP adapter owns HTTP error translation under:
+
+```text
+apps/backend/src/presentation/http/
+├── error-handler.ts
+└── errors/
+```
+
+`error-handler.ts` is the Fastify error boundary. It translates:
+
+- `ZodError` to `VALIDATION_FAILED`
+- coded domain/application/infrastructure errors to API responses
+- `DatabaseError` to `INTERNAL_SERVER_ERROR` after diagnostic reporting
+- `HttpApiError` subclasses to their HTTP-specific status and code
+- unknown errors to `INTERNAL_SERVER_ERROR`
+
+`HttpApiError` and concrete subclasses are for HTTP adapter concerns only, such
+as middleware authentication. Domain, application and infrastructure code should
+not import them.
+
+Public imports from outside the HTTP module should go through:
+
+```typescript
+import { HttpApiError, UnauthorizedError, errorHandler } from 'src/presentation/http';
+```
+
+## HTTP Response Contract
+
+Public API error responses use stable codes and allowlisted context:
+
+```json
+{
+  "error": true,
+  "code": "ENTITY_NOT_FOUND",
+  "context": {
+    "entityType": "account"
+  }
+}
+```
+
+Diagnostic `message`, stack traces, database details and raw validation-library
+payloads are not serialized as public API contract.
 
 ## Error Flow
 
-```
-1. Domain/Application/Infrastructure throws specific error
+```text
+1. Domain/Application/Infrastructure throws an error
                     ↓
-2. Error propagates up through layers
+2. Error propagates to the HTTP adapter
                     ↓
-3. errorHandler (presentation) catches error
+3. presentation/http/error-handler.ts catches it
                     ↓
-4. Maps to appropriate HTTP response
-   - DomainError → 400 (Bad Request)
-   - ApplicationError → 401/403/404/409
-     * UserNotFoundError → 401
-     * InvalidPasswordError → 401
-     * UserAlreadyExistsError → 409
-     * EntityNotFoundError → 404
-     * UnauthorizedAccessError → 403
-   - InfrastructureError → 404/403
-     * RepositoryNotFoundError → 404
-     * ForbiddenAccessError → 403
-   - HttpApiError → Uses error.statusCode
+4. Handler maps the error code to HTTP status and sends the safe API response
 ```
 
-## Usage Examples
-
-### Domain Layer
-```typescript
-// domain/transactions/transaction.entity.ts
-import { UnbalancedTransactionError } from '../domain.errors';
-
-validateBalance(): void {
-  if (!total.isZero()) {
-    throw new UnbalancedTransactionError(this, total);
-  }
-}
-```
-
-### Application Layer
-```typescript
-// application/usecases/auth/loginUser.ts
-import { UserNotFoundError, InvalidPasswordError } from 'src/application/application.errors';
-
-if (!userWithPassword) {
-  throw new UserNotFoundError();
-}
-
-if (!isPasswordValid) {
-  throw new InvalidPasswordError();
-}
-```
-
-```typescript
-// application/usecases/auth/registerUser.ts
-import { UserAlreadyExistsError } from 'src/application/application.errors';
-
-if (existingUser) {
-  throw new UserAlreadyExistsError();
-}
-```
-
-```typescript
-// application/shared/ensureEntityExistsAndOwned.ts
-import { EntityNotFoundError, UnauthorizedAccessError } from '../application.errors';
-
-if (!entity) {
-  throw new EntityNotFoundError('Account');
-}
-
-if (!user.verifyOwnership(entity.userId)) {
-  throw new UnauthorizedAccessError('Account');
-}
-```
-
-### Infrastructure Layer
-```typescript
-// infrastructure/db/AccountRepository.ts
-import { RepositoryNotFoundError, ForbiddenAccessError } from '../infrastructure.errors';
-
-if (!account) {
-  throw new RepositoryNotFoundError(`Account with ID ${id} not found`);
-}
-
-if (account.userId !== userId) {
-  throw new ForbiddenAccessError('You do not have permission to access this account');
-}
-```
-
-### Presentation Layer
-```typescript
-// libs/errorHandler.ts
-import { 
-  UserNotFoundError, 
-  InvalidPasswordError, 
-  UserAlreadyExistsError,
-  EntityNotFoundError,
-  UnauthorizedAccessError 
-} from 'src/application/application.errors';
-import { 
-  RepositoryNotFoundError, 
-  ForbiddenAccessError 
-} from 'src/infrastructure/infrastructure.errors';
-
-// Map application auth errors
-if (error instanceof UserNotFoundError) {
-  return reply.status(401).send({ error: true, message: error.message });
-}
-
-if (error instanceof InvalidPasswordError) {
-  return reply.status(401).send({ error: true, message: error.message });
-}
-
-if (error instanceof UserAlreadyExistsError) {
-  return reply.status(409).send({ error: true, message: error.message });
-}
-
-// Map application entity errors
-if (error instanceof EntityNotFoundError) {
-  return reply.status(404).send({ error: true, message: error.message });
-}
-
-if (error instanceof UnauthorizedAccessError) {
-  return reply.status(403).send({ error: true, message: error.message });
-}
-
-// Map infrastructure errors
-if (error instanceof RepositoryNotFoundError) {
-  return reply.status(404).send({ error: true, message: error.message });
-}
-
-if (error instanceof ForbiddenAccessError) {
-  return reply.status(403).send({ error: true, message: error.message });
-}
-```
-
-## Benefits
-
-1. **Single Source of Truth**: All errors inherit from `BaseError`
-2. **Type Safety**: TypeScript can check error types across layers
-3. **Consistent Handling**: errorHandler can handle any `BaseError`
-4. **Layer Independence**: Domain/Application don't depend on HTTP details
-5. **Testing**: Easy to test error handling without HTTP concerns
-6. **Extensibility**: Easy to add new error types at any layer
+The status mapping lives in the HTTP adapter. This keeps non-presentation layers
+transport-independent and preserves the option to add other adapters later.
 
 ## Adding New Errors
 
-### Domain Error
+### Domain or Application Error
+
+Use a coded error when the failure is expected and should be represented to API
+clients.
+
 ```typescript
-// domain/domain.errors.ts
-export class InvalidAccountBalanceError extends DomainError {
-  constructor(accountId: string, balance: string) {
-    super(`Account ${accountId} has invalid balance: ${balance}`);
+export class VersionConflictError extends CodedApplicationError<'VERSION_CONFLICT'> {
+  constructor(context: ErrorContextByCode['VERSION_CONFLICT']) {
+    super('Version conflict', apiErrorCodes.versionConflict, context);
   }
 }
 ```
 
-### Application Error
-```typescript
-// application/application.errors.ts
-export class DuplicateEntityError extends ApplicationError {
-  constructor(entityName: string) {
-    super(`${entityName} already exists`);
-  }
-}
-```
+Then add or verify its HTTP status mapping in
+`apps/backend/src/presentation/http/error-handler.ts`.
 
 ### Infrastructure Error
+
+Use a coded infrastructure error only when the public response can safely expose
+allowlisted context.
+
 ```typescript
-// infrastructure/infrastructure.errors.ts
-export class ForbiddenAccessError extends InfrastructureError {
-  constructor(message: string) {
-    super(message);
+export class RepositoryNotFoundError extends CodedInfrastructureError<'ENTITY_NOT_FOUND'> {
+  constructor(message: string, context: ErrorContextByCode['ENTITY_NOT_FOUND']) {
+    super(message, apiErrorCodes.entityNotFound, context);
   }
 }
 ```
 
-### Presentation Error (HTTP-specific)
+Use a non-coded `DatabaseError` for diagnostic persistence failures that should
+always become a safe internal-server response.
+
+### HTTP-Specific Error
+
+Use `HttpApiError` only inside the HTTP adapter.
+
 ```typescript
-// presentation/errors/auth.errors.ts
-// Only for middleware HTTP-level authentication
-class UnauthorizedError extends HttpApiError {
+export class UnauthorizedError extends HttpApiError {
   constructor(message = 'Unauthorized') {
     super(message, 401);
   }
 }
-
-export const AuthErrors = {
-  UnauthorizedError,
-};
 ```
 
-**Note**: Auth business logic errors (UserNotFoundError, InvalidPasswordError, UserAlreadyExistsError) are in Application layer, not Presentation.
+HTTP-specific errors live in `presentation/http/errors` and are exported through
+`presentation/http/index.ts`.
 
-## Important Notes
+## Clean Architecture Rules
 
-### Clean Architecture Compliance
+Correct:
 
-**✅ CORRECT: Application throws application errors**
 ```typescript
-// application/usecases/auth/loginUser.ts
 import { UserNotFoundError } from 'src/application/application.errors';
 
-if (!user) {
-  throw new UserNotFoundError();
-}
+throw new UserNotFoundError();
 ```
 
-**✅ CORRECT: Infrastructure throws infrastructure errors**
+Correct:
+
 ```typescript
-// infrastructure/db/AccountRepository.ts
-import { RepositoryNotFoundError } from '../infrastructure.errors';
+import { RepositoryNotFoundError } from 'src/infrastructure/errors';
 
-if (!account) {
-  throw new RepositoryNotFoundError(`Account not found`);
-}
+throw new RepositoryNotFoundError('Account not found', {
+  entityType: 'account',
+});
 ```
 
-**❌ WRONG: Application throwing presentation errors**
+Wrong:
+
 ```typescript
-// application/usecases/auth/loginUser.ts
-import { AuthErrors } from 'src/presentation/errors/auth.errors';
+import { UnauthorizedError } from 'src/presentation/http';
 
-if (!user) {
-  throw new AuthErrors.UserNotFoundError(); // VIOLATES ARCHITECTURE!
-}
+throw new UnauthorizedError();
 ```
 
-**❌ WRONG: Infrastructure throwing presentation errors**
-```typescript
-// infrastructure/db/AccountRepository.ts
-import { NotFoundError } from 'src/presentation/errors/businessLogic.error';
+Application, domain and infrastructure code must not throw HTTP presentation
+errors.
 
-if (!account) {
-  throw new NotFoundError(`Account not found`); // VIOLATES ARCHITECTURE!
-}
-```
+## Related
 
-### Layer Dependencies
-
-- **Domain**: No dependencies on other layers
-- **Application**: Can use Domain errors only (never Infrastructure or Presentation)
-- **Infrastructure**: Should only throw Infrastructure errors (never Presentation)
-- **Presentation**: Can catch and transform any error type to HTTP response
-
-## Benefits
+- [ADR 0008: Structured API error contract](./architecture/adr/0008-structured-api-error-contract.md)
+- [ADR 0017: Backend HTTP adapter boundary](./architecture/adr/0017-backend-http-adapter-boundary.md)
+- [ADR 0018: Backend HTTP error boundary](./architecture/adr/0018-backend-http-error-boundary.md)

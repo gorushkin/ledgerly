@@ -1,5 +1,5 @@
 import { apiErrorCodes, type ApiErrorCode } from '@ledgerly/shared/types';
-import { BaseError } from 'src/shared/errors/BaseError';
+import { BaseError } from 'src/shared/errors';
 
 type HttpApiStatusCode = 400 | 401 | 409 | 500;
 
