@@ -15,11 +15,11 @@ import {
   RepositoryInvariantError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
-import { HttpApiError, UnauthorizedError } from 'src/presentation/errors';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-import { errorHandler, getValidationFieldErrorCode } from './errorHandler';
+import { errorHandler, getValidationFieldErrorCode } from './error-handler';
+import { HttpApiError, UnauthorizedError } from './errors';
 
 const createReply = () => {
   let payload: unknown;

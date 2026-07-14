@@ -70,11 +70,12 @@ Positive:
 Neutral/cost:
 
 - Existing imports and tests had to move with the HTTP adapter.
-- `presentation/errors` and `libs/errorHandler` still need a separate decision
-  if the project wants one fully contained HTTP error boundary.
+- HTTP-specific errors and `libs/errorHandler` were intentionally left for a
+  separate decision, now recorded in ADR 0018.
 
 ## Related
 
 - [ADR 0016: Backend request flow](./0016-backend-request-flow.md)
+- [ADR 0018: Backend HTTP error boundary](./0018-backend-http-error-boundary.md)
 - Jira: https://gorushkin.atlassian.net/browse/LED-86
 - Follow-up: https://gorushkin.atlassian.net/browse/LED-106

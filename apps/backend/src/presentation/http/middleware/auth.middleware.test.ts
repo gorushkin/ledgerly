@@ -1,7 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 import { Id, Timestamp } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
-import { UnauthorizedError } from 'src/presentation/errors';
+import { UnauthorizedError } from 'src/presentation/http';
 import { describe, expect, it, vi } from 'vitest';
 
 import { authMiddleware } from './auth.middleware';

@@ -6,10 +6,10 @@ import {
   ForbiddenAccessError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
-import { UnauthorizedError } from 'src/presentation/errors';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { errorHandler } from './errorHandler';
+import { errorHandler } from './error-handler';
+import { UnauthorizedError } from './errors';
 
 describe('errorHandler HTTP integration', () => {
   const servers: FastifyInstance[] = [];

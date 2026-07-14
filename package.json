@@ -32,6 +32,7 @@
     "build": "pnpm run -r build",
     "lint": "pnpm run -r --parallel lint:fix",
     "lint:fix": "pnpm run -r --parallel lint",
+    "lint-staged": "lint-staged",
     "clean:node_modules": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
     "drop:tables": "pnpm --filter backend run drop:tables",
     "seed": "pnpm --filter backend run seed",
@@ -49,6 +50,14 @@
     "dayjs": "^1.11.13",
     "tsconfig-paths": "^4.2.0",
     "zod": "^3.24.3"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "packageManager": "pnpm@10.10.0",
   "engines": {

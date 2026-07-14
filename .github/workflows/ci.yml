@@ -18,7 +18,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          # Remove cache: "npm" since we use pnpm
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -31,22 +30,17 @@ jobs:
           echo "DATABASE_URL=file:./data/sqlite.db" > .env
           echo "JWT_SECRET=test-secret-key" >> .env
 
-      - name: Display .env file contents
-        run: |
-          echo "Contents of .env file:"
-          cat .env
-
       - name: Create data directory for SQLite
         run: mkdir -p apps/backend/data
 
       - name: TypeScript type check (backend only)
-        run: pnpm --filter backend run type-check
+        run: pnpm --filter @ledgerly/backend ts-check
 
       - name: Run linting (backend only)
-        run: pnpm --filter backend run lint
+        run: pnpm --filter @ledgerly/backend lint
 
       - name: Run tests (backend only)
-        run: pnpm --filter backend run test
+        run: pnpm --filter @ledgerly/backend test
 
       - name: Build projects (backend only)
-        run: pnpm --filter backend run build
+        run: pnpm --filter @ledgerly/backend build

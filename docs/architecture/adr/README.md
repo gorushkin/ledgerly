@@ -7,7 +7,7 @@
 - Один файл = одно решение.
 - Именование: `NNNN-short-kebab-case-title.md`.
 - Статусы: `Proposed`, `Accepted`, `Superseded`, `Deprecated`.
-- ADR должен ссылаться на Jira и PR, если они есть.
+- ADR должен ссылаться на Jira. PR указываем только если ссылка уже есть.
 
 ## Рекомендуемый шаблон
 
@@ -17,7 +17,6 @@
 - Status: Proposed|Accepted|Superseded|Deprecated
 - Date: YYYY-MM-DD
 - Jira: <link-or-N/A>
-- PR: <link-or-TBD>
 
 ## Context
 
@@ -49,3 +48,4 @@
 - [ADR 0015: Domain restoration factory naming](./0015-domain-restoration-factory-naming.md)
 - [ADR 0016: Backend request flow](./0016-backend-request-flow.md)
 - [ADR 0017: Backend HTTP adapter boundary](./0017-backend-http-adapter-boundary.md)
+- [ADR 0018: Backend HTTP error boundary](./0018-backend-http-error-boundary.md)

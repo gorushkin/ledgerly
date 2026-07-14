@@ -1,4 +1,4 @@
-import { BaseError } from 'src/shared/errors/BaseError';
+import { BaseError } from 'src/shared/errors';
 
 type DB_ERROR_CODES =
   | 'ALREADY_EXISTS'

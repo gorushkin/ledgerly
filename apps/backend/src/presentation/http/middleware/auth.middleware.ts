@@ -1,7 +1,7 @@
 import { UUID } from '@ledgerly/shared/types';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
-import { UnauthorizedError } from '../../errors';
+import { UnauthorizedError } from '../errors';
 
 export async function authMiddleware(
   request: FastifyRequest,
