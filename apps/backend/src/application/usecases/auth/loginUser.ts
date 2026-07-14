@@ -3,21 +3,18 @@ import {
   UserNotFoundError,
 } from 'src/application/application.errors';
 import { UserResponseDTO } from 'src/application/dto';
-import { UserRepositoryInterface } from 'src/application/interfaces';
-import { User } from 'src/domain/users/user.entity';
+import type { UserRepositoryInterface } from 'src/application/interfaces';
+import { UserMapper } from 'src/application/mappers';
 
 export class LoginUserUseCase {
   constructor(private readonly userRepository: UserRepositoryInterface) {}
 
   async execute(email: string, password: string): Promise<UserResponseDTO> {
-    const userWithPassword =
-      await this.userRepository.getByEmailWithPassword(email);
+    const user = await this.userRepository.getByEmailWithPassword(email);
 
-    if (!userWithPassword) {
+    if (!user) {
       throw new UserNotFoundError();
     }
-
-    const user = User.fromPersistence(userWithPassword);
 
     const isPasswordValid = await user.validatePassword(password);
 
@@ -25,6 +22,6 @@ export class LoginUserUseCase {
       throw new InvalidPasswordError();
     }
 
-    return user.toResponseDTO();
+    return UserMapper.toResponseDTO(user);
   }
 }

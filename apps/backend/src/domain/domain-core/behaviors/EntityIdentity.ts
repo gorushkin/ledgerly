@@ -29,7 +29,7 @@ export class EntityIdentity {
     return new EntityIdentity(id ?? Id.create());
   }
 
-  static fromPersistence(id: Id): EntityIdentity {
+  static restore(id: Id): EntityIdentity {
     return new EntityIdentity(id);
   }
 

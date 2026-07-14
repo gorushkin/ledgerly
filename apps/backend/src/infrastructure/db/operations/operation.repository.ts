@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { OperationRepositoryInterface } from 'src/application';
 import {
   OperationDbInsert,
@@ -10,6 +10,10 @@ import { OperationSnapshot } from 'src/domain/operations/types';
 import { RepositoryInvariantError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
+
+import { OperationPersistenceMapper } from './operation-persistence.mapper';
+
+const SOFT_DELETE_BATCH_SIZE = 200;
 
 export class OperationRepository
   extends BaseRepository
@@ -41,13 +45,22 @@ export class OperationRepository
     );
   }
 
-  private update(userId: UUID, operations: OperationDbRow[]): Promise<void> {
+  private update(userId: UUID, operations: OperationDbInsert[]): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
         for (const operation of operations) {
+          const safeData = this.getSafeUpdate(operation, [
+            'accountId',
+            'amount',
+            'description',
+            'isTombstone',
+            'value',
+            'updatedAt',
+          ]);
+
           await this.db
             .update(operationsTable)
-            .set({ ...operation, ...this.updateTimestamp })
+            .set(safeData)
             .where(
               and(
                 eq(operationsTable.id, operation.id),
@@ -65,44 +78,76 @@ export class OperationRepository
     );
   }
 
-  private softDelete(userId: UUID, operationIds: UUID[]): Promise<void> {
+  private softDelete(
+    userId: UUID,
+    operations: OperationDbInsert[],
+  ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        await this.db
-          .update(operationsTable)
-          .set({ isTombstone: true, ...this.updateTimestamp })
-          .where(
-            and(
-              eq(operationsTable.userId, userId),
-              inArray(operationsTable.id, operationIds),
-            ),
+        if (operations.length === 0) {
+          return;
+        }
+
+        for (
+          let offset = 0;
+          offset < operations.length;
+          offset += SOFT_DELETE_BATCH_SIZE
+        ) {
+          const batch = operations.slice(
+            offset,
+            offset + SOFT_DELETE_BATCH_SIZE,
           );
+          const operationIds = batch.map((operation) => operation.id);
+          const updatedAtCase = sql.join(
+            [
+              sql`case ${operationsTable.id}`,
+              ...batch.map(
+                (operation) =>
+                  sql`when ${operation.id} then ${operation.updatedAt}`,
+              ),
+              sql`else ${operationsTable.updatedAt} end`,
+            ],
+            sql.raw(' '),
+          );
+
+          await this.db
+            .update(operationsTable)
+            .set({ isTombstone: true, updatedAt: updatedAtCase })
+            .where(
+              and(
+                eq(operationsTable.userId, userId),
+                inArray(operationsTable.id, operationIds),
+              ),
+            );
+        }
       },
       'OperationRepository.softDelete',
       {
         field: 'operationIds',
         tableName: 'operations',
-        value: operationIds.join(', '),
+        value: operations.map((op) => op.id).join(', '),
       },
     );
   }
 
   async save(
     userId: UUID,
-    operations: OperationDbRow[],
+    operations: OperationSnapshot[],
     snapshots?: Map<UUID, OperationSnapshot>,
   ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        const operationsToInsert: OperationDbRow[] = [];
-        const operationsToUpdate: OperationDbRow[] = [];
-        const operationsToDelete: UUID[] = [];
+        const operationsToInsert: OperationDbInsert[] = [];
+        const operationsToUpdate: OperationDbInsert[] = [];
+        const operationsToDelete: OperationDbInsert[] = [];
 
         operations.forEach((operation) => {
           const matchedOperationSnapshot = snapshots?.get(operation.id);
 
           if (!matchedOperationSnapshot) {
-            operationsToInsert.push(operation);
+            operationsToInsert.push(
+              OperationPersistenceMapper.toDBRowFromSnapshot(operation),
+            );
             return;
           }
 
@@ -113,11 +158,15 @@ export class OperationRepository
           }
 
           if (operation.isTombstone) {
-            operationsToDelete.push(operation.id);
+            operationsToDelete.push(
+              OperationPersistenceMapper.toDBRowFromSnapshot(operation),
+            );
             return;
           }
 
-          operationsToUpdate.push(operation);
+          operationsToUpdate.push(
+            OperationPersistenceMapper.toDBRowFromSnapshot(operation),
+          );
         });
 
         if (operationsToInsert.length > 0) {

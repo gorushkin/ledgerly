@@ -3,7 +3,7 @@ import {
   type ApiErrorCode,
   type ErrorContextByCode,
 } from '@ledgerly/shared/types';
-import { BaseError } from 'src/shared/errors/BaseError';
+import { BaseError } from 'src/shared/errors';
 
 /**
  * Base class for all infrastructure layer errors.

@@ -22,12 +22,12 @@ export class Currency {
     return new Currency(parsed);
   }
 
-  static fromPersistence(codeStr: string): Currency {
+  static restore(codeStr: string): Currency {
     const parsed = currencyCode.parse(codeStr);
     return new Currency(parsed);
   }
 
-  isEqualTo(other: Currency): boolean {
+  equals(other: Currency): boolean {
     return this.code === other.code;
   }
 

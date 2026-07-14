@@ -1,6 +1,9 @@
-import { CurrencyCode, Money } from '@ledgerly/shared/types';
+import { AccountTypeValue, CurrencyCode } from '@ledgerly/shared/types';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
+import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
-import { AccountRepository } from 'src/infrastructure/db/';
+import { Amount, Timestamp } from 'src/domain/domain-core';
+import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAllAccountsUseCase } from '../getAllAccounts';
@@ -16,21 +19,26 @@ describe('GetAllAccounts', async () => {
 
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = 1000 as Money;
+  const accountId = Id.restore(
+    '550e8400-e29b-41d4-a716-446655440001',
+  ).valueOf();
+  const initialBalance = Amount.create('1000').valueOf();
   const currency = 'USD' as CurrencyCode;
-  const accountType = 'asset';
+  const accountType = 'asset' as AccountTypeValue;
 
   const mockSavedAccountData = {
-    createdAt: new Date().toISOString(),
+    createdAt: Timestamp.create().valueOf(),
     currency,
     currentClearedBalanceLocal: initialBalance,
     description,
-    id: '550e8400-e29b-41d4-a716-446655440001',
+    id: accountId,
     initialBalance,
+    isSystem: false,
+    isTombstone: false,
     name: accountName,
     type: accountType,
-    updatedAt: new Date().toISOString(),
-    userId: user.id,
+    updatedAt: Timestamp.create().valueOf(),
+    userId: user.getId().valueOf(),
   };
 
   beforeEach(() => {
@@ -39,7 +47,7 @@ describe('GetAllAccounts', async () => {
     };
 
     getAllAccounts = new GetAllAccountsUseCase(
-      mockAccountRepository as unknown as AccountRepository,
+      mockAccountRepository as unknown as AccountRepositoryInterface,
     );
   });
 
@@ -49,9 +57,13 @@ describe('GetAllAccounts', async () => {
 
       const result = await getAllAccounts.execute(user);
 
-      expect(mockAccountRepository.getAll).toHaveBeenCalledWith(user.id);
+      expect(mockAccountRepository.getAll).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+      );
 
-      expect(result).toEqual([mockSavedAccountData]);
+      expect(result).toEqual([
+        AccountMapper.toResponseDTOFromSnapshot(mockSavedAccountData),
+      ]);
     });
 
     // TODO: Add missing tests based on account.service.test.ts:

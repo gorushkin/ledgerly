@@ -1,13 +1,13 @@
 import { createUser } from 'src/db/createTestUser';
 import { AccountType } from 'src/domain/';
 import { Amount, Name, Currency, Id, Timestamp } from 'src/domain/domain-core/';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { User } from '../users/user.entity';
 
 import { Account } from './account.entity';
 
-const userIdValue = Id.fromPersistence(
+const userIdValue = Id.restore(
   '123e4567-e89b-12d3-a456-426614174000',
 ).valueOf();
 const userTypeValue = 'asset';
@@ -23,11 +23,15 @@ describe('Account Domain Entity', () => {
   const accountType = AccountType.create(userTypeValue);
 
   let user: User;
-  let userId: ReturnType<typeof Id.fromPersistence>;
+  let userId: ReturnType<typeof Id.restore>;
 
   beforeAll(async () => {
     user = await createUser();
     userId = user.getId();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('create method', () => {
@@ -48,7 +52,7 @@ describe('Account Domain Entity', () => {
       expect(account).toHaveProperty('description', 'account-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('0'));
       expect(account).toHaveProperty('currency', currencyUSD);
-      expect(account).toHaveProperty('type', { _value: 'asset' });
+      expect(account.getType().valueOf()).toBe(userTypeValue);
       expect(account.getUserId().equals(userId)).toBe(true);
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account.getType().equals(accountType)).toBe(true);
@@ -56,12 +60,12 @@ describe('Account Domain Entity', () => {
   });
 
   describe('restore', () => {
-    it('should restore operation from database data', () => {
+    it('should restore account from snapshot', () => {
       const accountIdValue = '223e4567-e89b-12d3-a456-426614174000';
       const createdAtValue = '2023-10-01T12:00:00.000Z';
       const updatedAtValue = '2023-10-02T12:00:00.000Z';
 
-      const accountId = Id.fromPersistence(accountIdValue);
+      const accountId = Id.restore(accountIdValue);
       const createdAt = Timestamp.restore(createdAtValue);
       const updatedAt = Timestamp.restore(updatedAtValue);
 
@@ -101,7 +105,7 @@ describe('Account Domain Entity', () => {
         accountType,
       );
 
-      account.updateAccount({ name: 'updated-name' });
+      account.update({ name: 'updated-name' });
 
       expect(account).toHaveProperty('name', Name.create('updated-name'));
     });
@@ -137,12 +141,48 @@ describe('Account Domain Entity', () => {
 
       account.markAsDeleted();
 
-      expect(() => account.updateAccount({ name: 'new-name' })).toThrowError(
+      expect(() => account.update({ name: 'new-name' })).toThrowError(
         'Cannot update a deleted entity',
       );
     });
 
-    it('should not update account during soft deletion', () => {
+    it('should not allow deleting an already deleted account', () => {
+      const account = Account.create(
+        user,
+        name,
+        'account-description',
+        Amount.create('0'),
+        currencyUSD,
+        accountType,
+      );
+
+      account.markAsDeleted();
+
+      const deletedSnapshot = account.toSnapshot();
+
+      let thrownError: unknown;
+
+      try {
+        account.markAsDeleted();
+      } catch (error) {
+        thrownError = error;
+      }
+
+      expect(thrownError).toMatchObject({
+        code: 'DELETED_ENTITY_OPERATION',
+        context: {
+          entityType: Account.entityType,
+          operation: 'delete',
+        },
+      });
+      expect(account.toSnapshot()).toEqual(deletedSnapshot);
+    });
+
+    it('should only mark account as deleted and update timestamp during soft deletion', () => {
+      vi.useFakeTimers();
+
+      vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
       const account = Account.create(
         user,
         name,
@@ -154,22 +194,24 @@ describe('Account Domain Entity', () => {
 
       expect(account.isDeleted()).toBe(false);
 
-      const accountBeforeDeleting = account.toPersistence();
+      const accountBeforeDeleting = account.toSnapshot();
+
+      vi.setSystemTime(new Date('2026-01-01T00:00:01.000Z'));
 
       account.markAsDeleted();
 
       expect(account.isDeleted()).toBe(true);
 
-      const accountAfterDeleting = account.toPersistence();
+      const accountAfterDeleting = account.toSnapshot();
 
-      expect(accountBeforeDeleting).toEqual({
-        ...accountAfterDeleting,
-        isTombstone: false,
+      expect(accountAfterDeleting).toEqual({
+        ...accountBeforeDeleting,
+        isTombstone: true,
+        updatedAt: accountAfterDeleting.updatedAt,
       });
-
-      // expect(() => account.updateAccount({ name: 'new-name' })).toThrowError(
-      //   'Cannot update a deleted entity',
-      // );
+      expect(accountAfterDeleting.updatedAt).not.toBe(
+        accountBeforeDeleting.updatedAt,
+      );
     });
   });
 

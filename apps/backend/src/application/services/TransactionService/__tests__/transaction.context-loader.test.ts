@@ -1,10 +1,10 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
 import { OperationRequestDTO } from 'src/application/dto';
-import { AccountRepositoryInterface } from 'src/application/interfaces/AccountRepository.interface';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { createAccount } from 'src/db/createTestUser';
 import { User } from 'src/domain';
 import { Amount, Currency } from 'src/domain/domain-core';
-import { createUser } from 'src/interfaces/helpers';
+import { createUser } from 'src/testing';
 import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { TransactionContextLoader } from '..';
@@ -70,7 +70,7 @@ describe('TransactionContextLoader', () => {
     ];
 
     mockAccountRepository.getByIds.mockResolvedValueOnce(
-      accounts.map((acc) => acc.toPersistence()),
+      accounts.map((acc) => acc.toSnapshot()),
     );
 
     const { accountsMap } = await transactionContextLoader.loadContext(
@@ -109,7 +109,7 @@ describe('TransactionContextLoader', () => {
     ];
 
     mockAccountRepository.getByIds.mockResolvedValueOnce([
-      account.toPersistence(),
+      account.toSnapshot(),
     ]);
 
     await transactionContextLoader.loadContext(user, rawOperations);

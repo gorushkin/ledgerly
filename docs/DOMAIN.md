@@ -83,6 +83,140 @@ Represents different monetary units used in the system.
 - Currency conversion is handled through trading operations
 - Historical rates can be stored for accurate reporting
 
+## Entity API Conventions
+
+Domain entities use one public API pattern for creation, restoration and plain
+state export. The current reference implementation is `Transaction` together
+with application response mappers and infrastructure persistence mappers.
+
+### Required Pattern
+
+1. `static create(...)` creates a new entity and generates a new identity,
+   timestamps and other behavior state.
+2. `static restore(snapshot)` restores an entity from a plain domain snapshot.
+3. `toSnapshot()` returns the entity's full plain domain state. It must not
+   silently filter child state, soft-deleted state or raw aggregate members.
+4. Domain entities do not import DB schema types, application DTO, shared
+   request/response DTO, or HTTP-specific types.
+5. Domain entities do not expose `toPersistence()`, `toResponseDTO()` or
+   `fromPersistence(...)`.
+6. DB and API transformations live in boundary-specific mappers. Persistence
+   mapping belongs at the infrastructure boundary, while response output
+   mapping belongs in application or presentation code. Both should be derived
+   from domain snapshots, not from entity-owned persistence/DTO methods. For
+   example, `AccountPersistenceMapper.toDBRowFromSnapshot(snapshot)` and
+   `AccountMapper.toResponseDTOFromSnapshot(snapshot)` are outside the domain
+   entity.
+
+Entity timestamps are domain state. Repositories must not generate entity
+`id`, `createdAt` or `updatedAt` values. `create(...)` creates identity and
+initial timestamps, and behavior methods such as `update(...)` or
+`markAsDeleted()` update `updatedAt` when they change entity state.
+Repositories persist timestamps received through snapshots/mappers.
+
+Soft-delete is a domain state transition, not an idempotent repository command.
+Calling `markAsDeleted()` on an already deleted entity must fail with
+`DELETED_ENTITY_OPERATION` and must not mutate `updatedAt` again.
+
+Snapshot types live next to the entity in `domain/<module>/types.ts`. They use
+primitive/domain-safe fields and must not be aliases for DB rows or response
+DTOs.
+
+Filtered snapshots or projections must use explicit names that describe the
+filter, for example `toActiveSnapshot()` for an aggregate view containing only
+active child entities. These projection methods are domain-specific and are not
+required for every entity.
+
+### Identity Access
+
+`getId(): Id` is the canonical domain identity accessor for entities. New
+domain code should use `getId()` while inside domain/application boundaries and
+convert to primitive UUID only at mapper, repository, HTTP or shared DTO
+boundaries through `getId().valueOf()`.
+
+`User.id` currently returns a primitive UUID as a legacy convenience for
+existing application, HTTP and test call sites. Do not copy this pattern to new
+entities or new code. Removing this compatibility getter and normalizing entity
+identity access is tracked by Jira
+[`LED-82`](https://gorushkin.atlassian.net/browse/LED-82).
+
+### Example Shape
+
+```ts
+export class ExampleEntity {
+  static create(props: CreateExampleProps): ExampleEntity {
+    // Generate identity, timestamps and domain behavior state.
+  }
+
+  static restore(snapshot: ExampleSnapshot): ExampleEntity {
+    // Rebuild value objects and behaviors from plain domain state.
+  }
+
+  toSnapshot(): ExampleSnapshot {
+    // Return the full primitive/domain-safe state.
+  }
+}
+```
+
+See [ADR 0011](./architecture/adr/0011-domain-entity-api-conventions.md) for
+the architectural decision and rationale.
+
+## Value Object API Conventions
+
+Value objects use one public API pattern for validated construction,
+restoration from plain state and comparison.
+
+1. `static create(...)` creates a value object from new user/application input
+   and applies input normalization when needed.
+2. `static restore(...)` restores a value object from already persisted or
+   plain domain state. It must preserve the stored value semantics and should
+   not apply user-input-only normalization unless that normalization is part of
+   the persisted invariant.
+3. `equals(other)` is the single public value equality method. Value objects
+   must not expose alternate equality aliases.
+4. `valueOf()` returns the primitive/domain-safe value used in snapshots and
+   mapper boundaries.
+5. Domain value objects and behaviors do not expose `fromPersistence(...)`.
+   Domain code restores persisted/plain state through `restore(...)` and
+   exports primitive/domain-safe values through `valueOf()`. Mapper or
+   repository classes outside the domain layer may still use
+   `fromPersistence(...)` as a method name when their input shape is explicitly
+   persistence-specific, for example DB row to read model mapping.
+6. Immutable value objects are frozen at runtime with `Object.freeze(this)`
+   after constructor state is initialized. `create(...)`, `restore(...)` and
+   non-mutating operations such as `add(...)`, `subtract(...)` or
+   `increment()` must return frozen instances. Domain entities are not frozen
+   by this rule because entity lifecycle changes are modeled through explicit
+   domain methods.
+
+See
+[ADR 0015](./architecture/adr/0015-domain-restoration-factory-naming.md) for
+the restoration naming decision.
+
+## Backend Request Flow
+
+HTTP endpoints use `route -> controller -> use case -> repository/domain` as
+the canonical backend request flow.
+
+Routes own Fastify registration, transport URL shape, authenticated request
+context extraction, params/query parsing where appropriate and simple transport
+statuses such as `201` or `204`. Controllers orchestrate request/response
+concerns that need Fastify objects, including body validation where that is the
+chosen local pattern and JWT signing for auth endpoints. Use cases own
+application operations, authorization/ownership checks, domain coordination,
+repository interfaces and transaction boundaries. Mappers own conversion
+between domain snapshots, read models, response DTOs and persistence shapes.
+Repositories own persistence access.
+
+New endpoint operations should be implemented as application use cases.
+`apps/backend/src/application/services/*` is reserved for helper orchestration
+used by use cases. Root-level `apps/backend/src/services/*` is legacy and must
+not be used for new HTTP endpoint operations.
+
+See [ADR 0016](./architecture/adr/0016-backend-request-flow.md) for the full
+decision, validation/JWT/transaction-boundary guidance and follow-up migration
+tasks.
+
 ## Business Rules
 
 ### Double-Entry Bookkeeping
@@ -121,6 +255,8 @@ Represents different monetary units used in the system.
 3. Operations may also be marked with `isTombstone` in persistence
 4. Transaction repositories restore the full raw aggregate state, including tombstone operations
 5. The `Transaction` aggregate separates raw and active operation access:
+   - `toSnapshot()` returns the full aggregate snapshot, including tombstone operations
+   - `toActiveSnapshot()` returns an active-only snapshot when a snapshot-shaped projection is needed
    - `getAllOperations()` returns all known operations for persistence
    - `getOperations()` returns active operations only for domain logic
    - tombstone operations are not returned to clients and are ignored by normal read flows
@@ -291,7 +427,7 @@ Settings
    - Schema validation (Zod)
    - Domain validation (business rules)
    - Database constraints (Drizzle)
-2. Branded types for Money and CurrencyCode
+2. Branded types for CurrencyCode and other primitive domain values where useful
 3. Operation hash-based idempotent updates
 4. Enhanced error handling with domain-specific errors
 
@@ -323,7 +459,7 @@ Settings
    - Domain business accessors expose active operations by default
 6. **Type safety**:
    - Branded types for dates (`IsoDatetimeString`)
-   - Planned branded types for `Money` and `CurrencyCode`
+   - Planned branded types for `CurrencyCode` and other primitive domain values where useful
    - Strict TypeScript configuration
    - Error handling
    - Response serialization

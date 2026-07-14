@@ -1,4 +1,8 @@
-export type { AccountRepositoryInterface } from './AccountRepository.interface';
+export type {
+  AccountRepositoryInterface,
+  AccountRepositorySoftDeleteInput,
+  AccountRepositoryUpdateInput,
+} from './AccountRepository.interface';
 export type { UserRepositoryInterface } from './userRepository.interface';
 export type {
   TransactionRepositoryInterface,

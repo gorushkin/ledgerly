@@ -9,7 +9,7 @@ import {
   updatedAt,
   id,
   isTombstone,
-  getMoneyColumn,
+  getAmountColumn,
   isSystem,
 } from './common';
 import { usersTable } from './users';
@@ -23,10 +23,12 @@ export const accountsTable = sqliteTable(
     // but creates a risk of data inconsistency in production.
     // Consider implementing application-level validation for currency codes.
     currency: text('currency').notNull().$type<CurrencyCode>(),
-    currentClearedBalanceLocal: getMoneyColumn('current_cleared_balance_local'),
+    currentClearedBalanceLocal: getAmountColumn(
+      'current_cleared_balance_local',
+    ),
     description,
     id,
-    initialBalance: getMoneyColumn('initial_balance'),
+    initialBalance: getAmountColumn('initial_balance'),
     isSystem,
     isTombstone,
     name: text('name').notNull(),

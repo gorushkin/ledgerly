@@ -7,7 +7,7 @@
 - Один файл = одно решение.
 - Именование: `NNNN-short-kebab-case-title.md`.
 - Статусы: `Proposed`, `Accepted`, `Superseded`, `Deprecated`.
-- ADR должен ссылаться на Jira и PR, если они есть.
+- ADR должен ссылаться на Jira. PR указываем только если ссылка уже есть.
 
 ## Рекомендуемый шаблон
 
@@ -17,7 +17,6 @@
 - Status: Proposed|Accepted|Superseded|Deprecated
 - Date: YYYY-MM-DD
 - Jira: <link-or-N/A>
-- PR: <link-or-TBD>
 
 ## Context
 
@@ -42,3 +41,11 @@
 - [ADR 0008: Structured API error contract](./0008-structured-api-error-contract.md)
 - [ADR 0009: Repository error-code migration](./0009-repository-error-code-migration.md)
 - [ADR 0010: Entity not found API code](./0010-entity-not-found-api-code.md)
+- [ADR 0011: Domain entity API conventions](./0011-domain-entity-api-conventions.md)
+- [ADR 0012: User repository application boundary](./0012-user-repository-application-boundary.md)
+- [ADR 0013: No DomainEntity base class](./0013-no-domain-entity-base-class.md)
+- [ADR 0014: Keep Amount value object name](./0014-keep-amount-value-object-name.md)
+- [ADR 0015: Domain restoration factory naming](./0015-domain-restoration-factory-naming.md)
+- [ADR 0016: Backend request flow](./0016-backend-request-flow.md)
+- [ADR 0017: Backend HTTP adapter boundary](./0017-backend-http-adapter-boundary.md)
+- [ADR 0018: Backend HTTP error boundary](./0018-backend-http-error-boundary.md)

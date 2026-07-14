@@ -7,7 +7,7 @@ import {
   TransactionResponseDTO,
   UpdateTransactionRequestDTO,
 } from 'src/application/dto';
-import {
+import type {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -67,7 +67,7 @@ export class UpdateTransactionUseCase {
           create: data.operations.create.map((data) =>
             OperationMapper.toCreateOperationProps(data, transactionContext),
           ),
-          delete: data.operations.delete.map((id) => Id.fromPersistence(id)),
+          delete: data.operations.delete.map((id) => Id.restore(id)),
           update: data.operations.update.map((data) =>
             OperationMapper.toUpdateOperationProps(data, transactionContext),
           ),

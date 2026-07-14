@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Email, Name, Password } from '../domain-core';
 
+import { UserSnapshot } from './types';
 import { User } from './user.entity';
 
 describe('User Domain Entity', () => {
@@ -47,6 +48,51 @@ describe('User Domain Entity', () => {
   });
 
   describe('domain methods', () => {
+    it('should return a domain snapshot', () => {
+      const snapshot = user.toSnapshot();
+
+      expect(snapshot.email).toBe(validEmail.valueOf());
+      expect(snapshot.id).toBe(user.getId().valueOf());
+      expect(snapshot.name).toBe(validName.valueOf());
+      expect(snapshot.password).toBe(password.valueOf());
+      expect(typeof snapshot.createdAt).toBe('string');
+      expect(typeof snapshot.updatedAt).toBe('string');
+    });
+
+    it('should restore a user from a domain snapshot', async () => {
+      const snapshot = {
+        createdAt: '2026-06-24T10:00:00.000Z',
+        email: validEmail.valueOf(),
+        id: '11111111-1111-4111-8111-111111111111',
+        name: validName.valueOf(),
+        password: password.valueOf(),
+        updatedAt: '2026-06-25T10:00:00.000Z',
+      } as UserSnapshot;
+
+      const restoredUser = User.restore(snapshot);
+
+      expect(restoredUser.toSnapshot()).toEqual(snapshot);
+      await expect(restoredUser.validatePassword('password123')).resolves.toBe(
+        true,
+      );
+    });
+
+    it('should preserve createdAt and updatedAt order when restored', () => {
+      const snapshot = {
+        createdAt: '2026-06-24T10:00:00.000Z',
+        email: validEmail.valueOf(),
+        id: '11111111-1111-4111-8111-111111111111',
+        name: validName.valueOf(),
+        password: password.valueOf(),
+        updatedAt: '2026-06-25T10:00:00.000Z',
+      } as UserSnapshot;
+
+      const restoredSnapshot = User.restore(snapshot).toSnapshot();
+
+      expect(restoredSnapshot.createdAt).toBe(snapshot.createdAt);
+      expect(restoredSnapshot.updatedAt).toBe(snapshot.updatedAt);
+    });
+
     it('returns UNAUTHORIZED_ACCESS for a different user ID', () => {
       const differentUserId = User.create(validName, validEmail, password)
         .getId()

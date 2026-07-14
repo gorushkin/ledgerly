@@ -1,9 +1,9 @@
-import { OperationRepoInsert } from 'src/db/schema';
 import { Amount, Id } from 'src/domain/domain-core';
 import { AccountNotFoundInContextError } from 'src/domain/domain.errors';
 import { Operation } from 'src/domain/operations/operation.entity';
 import {
   CreateOperationProps,
+  OperationSnapshot,
   UpdateOperationProps,
 } from 'src/domain/operations/types';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
@@ -18,22 +18,17 @@ export class OperationMapper {
   static toResponseDTO(operation: Operation): OperationResponseDTO {
     const snapshot = operation.toSnapshot();
 
-    return {
-      accountId: snapshot.accountId,
-      amount: snapshot.amount,
-      createdAt: snapshot.createdAt,
-      description: snapshot.description,
-      id: snapshot.id,
-      isSystem: snapshot.isSystem,
-      transactionId: snapshot.transactionId,
-      updatedAt: snapshot.updatedAt,
-      userId: snapshot.userId,
-      value: snapshot.value,
-    };
+    return OperationMapper.toResponseDTOFromSnapshot(snapshot);
   }
 
-  static toDBRow(operation: Operation): OperationRepoInsert {
-    const snapshot = operation.toSnapshot();
+  /**
+   * @internal Maps trusted domain snapshots produced by Operation/Transaction
+   * entities. Do not use this as a validation boundary for external input or
+   * raw persistence data.
+   */
+  static toResponseDTOFromSnapshot(
+    snapshot: OperationSnapshot,
+  ): OperationResponseDTO {
     return {
       accountId: snapshot.accountId,
       amount: snapshot.amount,
@@ -41,7 +36,6 @@ export class OperationMapper {
       description: snapshot.description,
       id: snapshot.id,
       isSystem: snapshot.isSystem,
-      isTombstone: snapshot.isTombstone,
       transactionId: snapshot.transactionId,
       updatedAt: snapshot.updatedAt,
       userId: snapshot.userId,
@@ -81,7 +75,7 @@ export class OperationMapper {
       account: account,
       amount: Amount.create(dto.amount),
       description: dto.description,
-      id: Id.fromPersistence(dto.id),
+      id: Id.restore(dto.id),
       value: Amount.create(dto.value),
     };
   }

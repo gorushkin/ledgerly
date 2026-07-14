@@ -1,10 +1,11 @@
-import { apiErrorCodes, MoneyString } from '@ledgerly/shared/types';
+import { apiErrorCodes, AmountString } from '@ledgerly/shared/types';
 import {
   CreateOperationRequestDTO,
   UpdateOperationRequestDTO,
 } from 'src/application/dto';
 import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils';
+import { User } from 'src/domain';
 import {
   AccountNotFoundInContextError,
   InvalidAmountError,
@@ -14,6 +15,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { OperationMapper } from './operation.mapper';
 
 describe('OperationMapper', () => {
+  let user: User;
   let validCreateDTO: CreateOperationRequestDTO;
   let validUpdateDTO: UpdateOperationRequestDTO;
   let transactionContext: ReturnType<
@@ -21,7 +23,7 @@ describe('OperationMapper', () => {
   >['transactionContext'];
 
   beforeAll(async () => {
-    const user = await createUser();
+    user = await createUser();
 
     const fixture = TransactionBuilder.request({
       accounts: ['USD'],
@@ -46,7 +48,7 @@ describe('OperationMapper', () => {
         OperationMapper.toCreateOperationProps(
           {
             ...validCreateDTO,
-            amount: 'NaN' as MoneyString,
+            amount: 'NaN' as AmountString,
           },
           transactionContext,
         ),
@@ -84,7 +86,7 @@ describe('OperationMapper', () => {
         OperationMapper.toUpdateOperationProps(
           {
             ...validUpdateDTO,
-            value: 'Infinity' as MoneyString,
+            value: 'Infinity' as AmountString,
           },
           transactionContext,
         ),

@@ -9,7 +9,10 @@ export class SoftDelete {
   /**
    * Marks the entity as deleted
    */
-  markAsDeleted(): SoftDelete {
+  markAsDeleted(
+    error: Error = new Error('Cannot delete a deleted entity'),
+  ): SoftDelete {
+    this.validateUpdateIsAllowed(error);
     return new SoftDelete(true);
   }
 
@@ -45,10 +48,7 @@ export class SoftDelete {
     return new SoftDelete(false);
   }
 
-  /**
-   * Restores an instance from the database
-   */
-  static fromPersistence(isTombstone: boolean): SoftDelete {
+  static restore(isTombstone: boolean): SoftDelete {
     return new SoftDelete(isTombstone);
   }
 }

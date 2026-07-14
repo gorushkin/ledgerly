@@ -6,7 +6,6 @@ export const apiErrorCodes = {
   badRequest: "BAD_REQUEST",
   conflict: "CONFLICT",
   conflictingOperationIds: "CONFLICTING_OPERATION_IDS",
-  currencyMismatch: "CURRENCY_MISMATCH",
   deletedEntityOperation: "DELETED_ENTITY_OPERATION",
   emptyOperations: "EMPTY_OPERATIONS",
   entityNotFound: "ENTITY_NOT_FOUND",
@@ -18,7 +17,6 @@ export const apiErrorCodes = {
   invalidDate: "INVALID_DATE",
   invalidEmail: "INVALID_EMAIL",
   invalidIdentifier: "INVALID_IDENTIFIER",
-  invalidMoneyAmount: "INVALID_MONEY_AMOUNT",
   invalidName: "INVALID_NAME",
   invalidPassword: "INVALID_PASSWORD",
   invalidTimestamp: "INVALID_TIMESTAMP",
@@ -67,13 +65,9 @@ export type ErrorContextByCode = {
       | "UPDATE_AND_DELETE";
     operationIds: UUID[];
   };
-  CURRENCY_MISMATCH: {
-    expectedCurrency: string;
-    receivedCurrency: string;
-  };
   DELETED_ENTITY_OPERATION: {
     entityType: string;
-    operation: "update";
+    operation: "delete" | "update";
   };
   EMPTY_OPERATIONS: Record<string, never>;
   ENTITY_NOT_FOUND: {
@@ -105,9 +99,6 @@ export type ErrorContextByCode = {
   };
   INVALID_IDENTIFIER: {
     reason: "INVALID_FORMAT";
-  };
-  INVALID_MONEY_AMOUNT: {
-    reason: "INVALID_INTEGER_MINOR_UNITS";
   };
   INVALID_NAME: {
     reason: "EMPTY";

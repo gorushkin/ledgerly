@@ -18,7 +18,7 @@ export class Email {
     return new Email(trimmed);
   }
 
-  static fromPersistence(value: string): Email {
+  static restore(value: string): Email {
     return new Email(value);
   }
 
@@ -74,7 +74,7 @@ export class Email {
     return emailRegex.test(email);
   }
 
-  isEqualTo(other: Email): boolean {
+  equals(other: Email): boolean {
     return this.value === other.value;
   }
 

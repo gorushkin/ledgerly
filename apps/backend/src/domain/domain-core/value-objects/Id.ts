@@ -20,9 +20,9 @@ export class Id {
     return new Id(id);
   }
 
-  static fromPersistence = (value: string): Id => {
+  static restore(value: string): Id {
     return new Id(value);
-  };
+  }
 
   toString(): string {
     return this.value;

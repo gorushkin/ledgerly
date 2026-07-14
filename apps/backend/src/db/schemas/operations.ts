@@ -9,7 +9,7 @@ import {
   updatedAt,
   isTombstone,
   id,
-  getMoneyColumn,
+  getAmountColumn,
   isSystem,
 } from './common';
 import { transactionsTable } from './transactions';
@@ -22,7 +22,7 @@ export const operationsTable = sqliteTable(
       .notNull()
       .references(() => accountsTable.id, { onDelete: 'restrict' })
       .$type<UUID>(),
-    amount: getMoneyColumn('amount'),
+    amount: getAmountColumn('amount'),
     createdAt,
     description,
     id,
@@ -37,7 +37,7 @@ export const operationsTable = sqliteTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: 'cascade' })
       .$type<UUID>(),
-    value: getMoneyColumn('value'),
+    value: getAmountColumn('value'),
   },
   (t) => [
     index('idx_operations_transaction').on(t.transactionId),

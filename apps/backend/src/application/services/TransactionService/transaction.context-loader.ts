@@ -30,9 +30,9 @@ export class TransactionContextLoader {
 
     const accountsMap = new Map<UUID, Account>();
 
-    for (const row of accountRows) {
-      currenciesSet.add(row.currency);
-      accountsMap.set(row.id, Account.restore(row));
+    for (const snapshot of accountRows) {
+      currenciesSet.add(snapshot.currency);
+      accountsMap.set(snapshot.id, Account.restore(snapshot));
     }
 
     return { accountsMap, currenciesSet };

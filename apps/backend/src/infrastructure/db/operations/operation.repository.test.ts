@@ -1,20 +1,22 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationMapper } from 'src/application';
-import { OperationDbRow, UserDbRow } from 'src/db/schema';
+import { OperationDbRow, operationsTable, UserDbRow } from 'src/db/schema';
 import {
   compareEntities,
   TransactionBuilder,
   TransactionBuilderResult,
 } from 'src/db/test-utils';
-import { Transaction, User } from 'src/domain';
-import { Amount } from 'src/domain/domain-core';
+import { Transaction } from 'src/domain';
+import { Amount, Timestamp } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { RepositoryInvariantError } from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
+import { AccountPersistenceMapper } from '../accounts';
 import { TransactionManager } from '../TransactionManager';
+import { UserPersistenceMapper } from '../user';
 
+import { OperationPersistenceMapper } from './operation-persistence.mapper';
 import { OperationRepository } from './operation.repository';
 
 describe('OperationRepository', () => {
@@ -53,14 +55,16 @@ describe('OperationRepository', () => {
     data = TransactionBuilder.transaction({
       accounts: ['USD', 'EUR'],
       operations: operationsData,
-      user: User.fromPersistence(user),
+      user: UserPersistenceMapper.toDomain(user),
     });
 
     transaction = data.transaction;
 
     await Promise.all(
       data.accounts.map((account) =>
-        testDB.insertAccount(account.toPersistence()),
+        testDB.insertAccount(
+          AccountPersistenceMapper.toDBRowFromSnapshot(account.toSnapshot()),
+        ),
       ),
     );
 
@@ -81,7 +85,7 @@ describe('OperationRepository', () => {
       expect(operationsCountBeforeSaving).toBe(0);
 
       const operations = data.operations.map((operation) =>
-        OperationMapper.toDBRow(operation),
+        OperationPersistenceMapper.toDBRow(operation),
       );
 
       await operationRepository.save(user.id, operations, new Map());
@@ -104,7 +108,7 @@ describe('OperationRepository', () => {
 
     it('should update and delete operations successfully based on the snapshot', async () => {
       const operations = data.operations.map((operation) =>
-        OperationMapper.toDBRow(operation),
+        OperationPersistenceMapper.toDBRow(operation),
       );
 
       await Promise.all(
@@ -140,11 +144,13 @@ describe('OperationRepository', () => {
           ...operationsToUpdate[0],
           amount: Amount.create('5000').valueOf(),
           description: 'Updated Operation One',
+          updatedAt: Timestamp.restore('2026-01-01T00:00:00.000Z').valueOf(),
         },
         {
           ...operationsToUpdate[1],
           amount: Amount.create('-5000').valueOf(),
           description: 'Updated Operation Two',
+          updatedAt: Timestamp.restore('2026-01-01T00:00:01.000Z').valueOf(),
         },
       ];
 
@@ -152,10 +158,12 @@ describe('OperationRepository', () => {
         {
           ...operationsToDelete[0],
           isTombstone: true,
+          updatedAt: Timestamp.restore('2026-01-01T00:00:02.000Z').valueOf(),
         },
         {
           ...operationsToDelete[1],
           isTombstone: true,
+          updatedAt: Timestamp.restore('2026-01-01T00:00:03.000Z').valueOf(),
         },
       ];
 
@@ -227,17 +235,21 @@ describe('OperationRepository', () => {
         }
 
         if (mappedOp?.result === 'updated') {
-          compareEntities<OperationDbRow>(op, mappedOp.operation, [
-            'updatedAt',
-          ]);
+          compareEntities<OperationDbRow>(op, mappedOp.operation);
+          expect(op.updatedAt).toBe(mappedOp.operation.updatedAt);
+          expect(op.updatedAt).not.toBe(
+            operationsSnapshot.get(op.id)?.updatedAt,
+          );
           updateOps.push(op);
           return;
         }
 
         if (mappedOp?.result === 'deleted') {
-          compareEntities<OperationDbRow>(op, mappedOp.operation, [
-            'updatedAt',
-          ]);
+          expect(op.isTombstone).toBe(true);
+          expect(op.updatedAt).toBe(mappedOp.operation.updatedAt);
+          expect(op.updatedAt).not.toBe(
+            operationsSnapshot.get(op.id)?.updatedAt,
+          );
           deleteOps.push(op);
         }
       });
@@ -251,6 +263,69 @@ describe('OperationRepository', () => {
       );
     });
 
+    it('should batch soft-delete updates while preserving per-operation updatedAt values', async () => {
+      const operations = data.operations.map((operation) =>
+        OperationPersistenceMapper.toDBRow(operation),
+      );
+
+      await Promise.all(
+        operations.map((operation) => testDB.insertOperation(operation)),
+      );
+
+      const transactionWithRelations = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
+
+      const operationsSnapshot = new Map<UUID, OperationSnapshot>();
+
+      transactionWithRelations?.operations.forEach((op) => {
+        operationsSnapshot.set(op.id, op);
+      });
+
+      const operationsToDeleteData = operations.slice(0, 3).map(
+        (operation, index): OperationDbRow => ({
+          ...operation,
+          isTombstone: true,
+          updatedAt: Timestamp.restore(
+            `2026-01-01T00:00:0${index}.000Z`,
+          ).valueOf(),
+        }),
+      );
+
+      const updateSpy = vi.spyOn(testDB.db, 'update');
+
+      try {
+        await operationRepository.save(
+          user.id,
+          operationsToDeleteData,
+          operationsSnapshot,
+        );
+
+        const operationUpdateCalls = updateSpy.mock.calls.filter(
+          ([table]) => table === operationsTable,
+        );
+
+        expect(operationUpdateCalls).toHaveLength(1);
+      } finally {
+        updateSpy.mockRestore();
+      }
+
+      const operationsAfterSaving = (
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf())
+      )?.operations;
+
+      operationsToDeleteData.forEach((deletedOperation) => {
+        const operationAfterSaving = operationsAfterSaving?.find(
+          (operation) => operation.id === deletedOperation.id,
+        );
+
+        expect(operationAfterSaving?.isTombstone).toBe(true);
+        expect(operationAfterSaving?.updatedAt).toBe(
+          deletedOperation.updatedAt,
+        );
+      });
+    });
+
     it.todo(
       'should insert, update and delete operations in a single save call',
     );
@@ -261,7 +336,7 @@ describe('OperationRepository', () => {
 
     it('should reject saving an operation that is already tombstone in the snapshot', async () => {
       const operations = data.operations.map((operation) =>
-        OperationMapper.toDBRow(operation),
+        OperationPersistenceMapper.toDBRow(operation),
       );
 
       await Promise.all(

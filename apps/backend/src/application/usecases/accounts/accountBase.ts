@@ -3,8 +3,7 @@ import {
   EntityNotFoundError,
   UnauthorizedAccessError,
 } from 'src/application/application.errors';
-import { AccountDbRow } from 'src/db/schema';
-import { Account } from 'src/domain/accounts/account.entity';
+import { Account, AccountSnapshot } from 'src/domain/accounts';
 import { User } from 'src/domain/users/user.entity';
 
 import { AccountRepositoryInterface } from '../../interfaces';
@@ -17,8 +16,11 @@ export class AccountUseCaseBase {
   protected async ensureAccountExistsAndOwned(
     user: User,
     accountId: UUID,
-  ): Promise<AccountDbRow> {
-    const account = await this.accountRepository.getById(user.id, accountId);
+  ): Promise<AccountSnapshot> {
+    const account = await this.accountRepository.getById(
+      user.getId().valueOf(),
+      accountId,
+    );
 
     if (!account) {
       throw new EntityNotFoundError({

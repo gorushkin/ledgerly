@@ -3,7 +3,7 @@ import {
   TransactionListResponseDTO,
   TransactionReadModelResponseMapper,
 } from 'src/application';
-import {
+import type {
   AccountRepositoryInterface,
   TransactionQueryRepositoryInterface,
 } from 'src/application/interfaces';

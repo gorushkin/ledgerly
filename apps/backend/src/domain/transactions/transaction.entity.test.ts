@@ -1,13 +1,15 @@
 import { apiErrorCodes } from '@ledgerly/shared/types';
-import { TransactionMapper } from 'src/application';
-import { UpdateOperationRequestDTO } from 'src/application/dto';
 import { createUser } from 'src/db/createTestUser';
 import {
   compareEntities,
   TransactionBuilder,
   TransactionBuilderResult,
+  TransactionRequestBuilderResult,
 } from 'src/db/test-utils';
-import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
+import {
+  OperationDataForTransaction,
+  TransactionProps,
+} from 'src/db/test-utils/testEntityBuilder';
 import {
   ConflictingOperationIdsError,
   DeletedEntityOperationError,
@@ -28,7 +30,8 @@ import {
   vi,
 } from 'vitest';
 
-import { Amount, DateValue, Id, Version } from '../domain-core';
+import { Account } from '../accounts';
+import { Amount, Currency, DateValue, Id, Version } from '../domain-core';
 import {
   CreateOperationProps,
   OperationSnapshot,
@@ -38,7 +41,7 @@ import { User } from '../users/user.entity';
 
 import { MAX_TRANSACTION_OPERATIONS } from './constants';
 import { Transaction } from './transaction.entity';
-import { CreateTransactionProps } from './types';
+import { CreateTransactionProps, TransactionUpdateData } from './types';
 
 const areOperationsEqual = (
   ops1: OperationSnapshot[],
@@ -65,6 +68,49 @@ const captureThrownError = (action: () => void): Error => {
   }
 
   throw new Error('Expected an error to be thrown');
+};
+
+const toCreateOperationProps = (
+  operationsData: OperationDataForTransaction[],
+  getAccountByKey: (key: string) => Account,
+): CreateOperationProps[] =>
+  operationsData.map((operation) => {
+    const amount = Amount.create(operation.amount);
+
+    return {
+      account: getAccountByKey(operation.accountKey),
+      amount,
+      description: operation.description ?? 'Test Operation',
+      value: Amount.create(operation.value ?? operation.amount),
+    };
+  });
+
+const toCreateTransactionProps = (
+  fixture: Pick<
+    TransactionRequestBuilderResult,
+    'getAccountByKey' | 'operationsData' | 'transactionDTO' | 'transactionData'
+  >,
+): CreateTransactionProps => ({
+  currency: Currency.create(fixture.transactionDTO.currencyCode),
+  description: fixture.transactionData.description,
+  operations: toCreateOperationProps(
+    fixture.operationsData,
+    fixture.getAccountByKey,
+  ),
+  postingDate: DateValue.restore(fixture.transactionData.postingDate),
+  transactionDate: DateValue.restore(fixture.transactionData.transactionDate),
+});
+
+const toMetadataUpdateData = (
+  transaction: Transaction,
+): TransactionUpdateData => {
+  const snapshot = transaction.toSnapshot();
+
+  return {
+    description: snapshot.description,
+    postingDate: snapshot.postingDate,
+    transactionDate: snapshot.transactionDate,
+  };
 };
 
 describe('Transaction Domain Entity', () => {
@@ -152,10 +198,7 @@ describe('Transaction Domain Entity', () => {
       user,
     });
 
-    transactionData = TransactionMapper.toCreateTransactionProps(
-      data.transactionDTO,
-      data.transactionContext,
-    );
+    transactionData = toCreateTransactionProps(data);
   });
 
   beforeEach(() => {
@@ -168,10 +211,7 @@ describe('Transaction Domain Entity', () => {
 
   describe('Creation and Restoration', () => {
     it('should create a valid transaction with operation', () => {
-      const transactionData = TransactionMapper.toCreateTransactionProps(
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transactionData = toCreateTransactionProps(data);
 
       const transaction = Transaction.create(user.getId(), transactionData);
 
@@ -277,7 +317,7 @@ describe('Transaction Domain Entity', () => {
                 account: operationAccount,
                 amount: Amount.create('15000'),
                 description: 'Updated tombstone operation',
-                id: Id.fromPersistence(operationToDelete1.id),
+                id: Id.restore(operationToDelete1.id),
                 value: Amount.create('15000'),
               },
             ],
@@ -294,6 +334,61 @@ describe('Transaction Domain Entity', () => {
         },
       });
     });
+
+    it('should expose full and active snapshots explicitly', () => {
+      const transaction = Transaction.create(user.getId(), transactionData);
+      const transactionSnapshot = transaction.toSnapshot();
+
+      const operationToDelete = transactionSnapshot.operations.find(
+        (operation) => operation.description === operationsData1.description,
+      );
+
+      expect(transactionSnapshot.operations).toHaveLength(
+        operationsData.length,
+      );
+      expect(operationToDelete).toBeDefined();
+
+      if (!operationToDelete) {
+        throw new Error('Test setup failed: operation to tombstone not found');
+      }
+
+      const activeOperations = transactionSnapshot.operations.filter(
+        (operation) => operation.id !== operationToDelete.id,
+      );
+
+      const restoredTransaction = Transaction.restore({
+        ...transactionSnapshot,
+        operations: [
+          {
+            ...operationToDelete,
+            isTombstone: true,
+          },
+          ...activeOperations,
+        ],
+      });
+
+      const fullSnapshot = restoredTransaction.toSnapshot();
+      const activeSnapshot = restoredTransaction.toActiveSnapshot();
+
+      expect(fullSnapshot.operations).toHaveLength(
+        transactionSnapshot.operations.length,
+      );
+
+      expect(fullSnapshot.operations).toContainEqual(
+        expect.objectContaining({
+          id: operationToDelete.id,
+          isTombstone: true,
+        }),
+      );
+
+      expect(activeSnapshot.operations).toHaveLength(activeOperations.length);
+
+      expect(activeSnapshot.operations).not.toContainEqual(
+        expect.objectContaining({
+          id: operationToDelete.id,
+        }),
+      );
+    });
   });
 
   describe('Updating Transaction data', () => {
@@ -306,7 +401,7 @@ describe('Transaction Domain Entity', () => {
 
       vi.advanceTimersByTime(5000);
 
-      const metadata = TransactionMapper.toMetadataUpdateData(transaction);
+      const metadata = toMetadataUpdateData(transaction);
 
       transaction.applyUpdate({ metadata: { ...metadata, description } });
 
@@ -339,7 +434,7 @@ describe('Transaction Domain Entity', () => {
 
       const originalSnapshot = transaction.toSnapshot();
 
-      const metadata = TransactionMapper.toMetadataUpdateData(transaction);
+      const metadata = toMetadataUpdateData(transaction);
 
       vi.advanceTimersByTime(5000);
 
@@ -372,7 +467,7 @@ describe('Transaction Domain Entity', () => {
 
       vi.advanceTimersByTime(5000);
 
-      const metadata = TransactionMapper.toMetadataUpdateData(transaction);
+      const metadata = toMetadataUpdateData(transaction);
 
       transaction.applyUpdate({ metadata: { ...metadata, transactionDate } });
       const updatedSnapshot = transaction.toSnapshot();
@@ -508,10 +603,8 @@ describe('Transaction Domain Entity', () => {
         transaction.applyUpdate({
           operations: {
             create: [],
-            delete: [Id.fromPersistence(operationId)],
-            update: [
-              toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
-            ],
+            delete: [Id.restore(operationId)],
+            update: [toUpdateProps(transaction, 0, Id.restore(operationId))],
           },
         }),
       );
@@ -536,8 +629,8 @@ describe('Transaction Domain Entity', () => {
             create: [],
             delete: [],
             update: [
-              toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
-              toUpdateProps(transaction, 0, Id.fromPersistence(operationId)),
+              toUpdateProps(transaction, 0, Id.restore(operationId)),
+              toUpdateProps(transaction, 0, Id.restore(operationId)),
             ],
           },
         }),
@@ -560,10 +653,7 @@ describe('Transaction Domain Entity', () => {
         transaction.applyUpdate({
           operations: {
             create: [],
-            delete: [
-              Id.fromPersistence(operationId),
-              Id.fromPersistence(operationId),
-            ],
+            delete: [Id.restore(operationId), Id.restore(operationId)],
             update: [],
           },
         }),
@@ -637,15 +727,13 @@ describe('Transaction Domain Entity', () => {
 
       const originalSnapshot = transaction.toSnapshot();
 
-      const prevOperations: UpdateOperationRequestDTO[] = transaction
-        .getOperations()
-        .map((op) => ({
-          accountId: op.getAccountId().valueOf(),
-          amount: op.amount.valueOf(),
-          description: op.description,
-          id: op.getId().valueOf(),
-          value: op.value.valueOf(),
-        }));
+      const prevOperations = transaction.getOperations().map((op) => ({
+        accountId: op.getAccountId().valueOf(),
+        amount: op.amount.valueOf(),
+        description: op.description,
+        id: op.getId().valueOf(),
+        value: op.value.valueOf(),
+      }));
 
       const usdAccount = data.getAccountByKey('USD');
       const eurAccount = data.getAccountByKey('EUR');
@@ -746,14 +834,14 @@ describe('Transaction Domain Entity', () => {
           account: account1,
           amount: Amount.create('20000'),
           description: 'Updated Operation',
-          id: operationToUpdate1.id,
+          id: operationToUpdate1.getId(),
           value: Amount.create('20000'),
         },
         {
           account: account2,
           amount: Amount.create('-20000'),
           description: 'Updated Operation',
-          id: operationToUpdate2.id,
+          id: operationToUpdate2.getId(),
           value: Amount.create('-20000'),
         },
       ];
@@ -903,7 +991,7 @@ describe('Transaction Domain Entity', () => {
       transaction.markAsDeleted();
 
       const deletedSnapshot = transaction.toSnapshot();
-      const metadata = TransactionMapper.toMetadataUpdateData(transaction);
+      const metadata = toMetadataUpdateData(transaction);
 
       const error = captureThrownError(() =>
         transaction.applyUpdate({
@@ -926,19 +1014,22 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.toSnapshot()).toEqual(deletedSnapshot);
     });
 
-    it('Should not increase version if transaction is already deleted', () => {
+    it('should not allow deleting an already deleted transaction', () => {
       const transaction = Transaction.create(user.getId(), transactionData);
       transaction.markAsDeleted();
 
       const originalSnapshot = transaction.toSnapshot();
 
-      transaction.markAsDeleted();
+      const error = captureThrownError(() => transaction.markAsDeleted());
 
-      const updatedSnapshot = transaction.toSnapshot();
-
-      expect(transaction.isDeleted()).toBe(true);
-      expect(updatedSnapshot.version).toBe(originalSnapshot.version);
-      expect(updatedSnapshot.updatedAt).toBe(originalSnapshot.updatedAt);
+      expect(error).toMatchObject({
+        code: apiErrorCodes.deletedEntityOperation,
+        context: {
+          entityType: Transaction.entityType,
+          operation: 'delete',
+        },
+      });
+      expect(transaction.toSnapshot()).toEqual(originalSnapshot);
     });
   });
 
@@ -962,10 +1053,7 @@ describe('Transaction Domain Entity', () => {
         user,
       });
 
-      const transactionData = TransactionMapper.toCreateTransactionProps(
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transactionData = toCreateTransactionProps(data);
 
       expect(() =>
         Transaction.create(user.getId(), transactionData),
@@ -991,10 +1079,7 @@ describe('Transaction Domain Entity', () => {
         user,
       });
 
-      const transactionData = TransactionMapper.toCreateTransactionProps(
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transactionData = toCreateTransactionProps(data);
 
       expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
         UnbalancedTransactionError,
@@ -1020,10 +1105,7 @@ describe('Transaction Domain Entity', () => {
         user,
       });
 
-      const transactionData = TransactionMapper.toCreateTransactionProps(
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transactionData = toCreateTransactionProps(data);
       const transaction = Transaction.create(user.getId(), transactionData);
       const operationToUpdate = transaction.getOperations()[1];
 
@@ -1069,10 +1151,7 @@ describe('Transaction Domain Entity', () => {
         user,
       });
 
-      const transactionData = TransactionMapper.toCreateTransactionProps(
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transactionData = toCreateTransactionProps(data);
 
       expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
         UnbalancedTransactionError,
@@ -1112,10 +1191,7 @@ describe('Transaction Domain Entity', () => {
 
       const usdAccount = data.getAccountByKey('USD');
 
-      const transactionData = TransactionMapper.toCreateTransactionProps(
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transactionData = toCreateTransactionProps(data);
 
       const transaction = Transaction.create(user.getId(), transactionData);
 
@@ -1154,10 +1230,7 @@ describe('Transaction Domain Entity', () => {
         user,
       });
 
-      const transactionData = TransactionMapper.toCreateTransactionProps(
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transactionData = toCreateTransactionProps(data);
 
       const error = captureThrownError(() =>
         Transaction.create(user.getId(), transactionData),
@@ -1189,10 +1262,7 @@ describe('Transaction Domain Entity', () => {
         user,
       });
 
-      const transactionData = TransactionMapper.toCreateTransactionProps(
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transactionData = toCreateTransactionProps(data);
 
       expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
         InsufficientOperationsError,
@@ -1249,10 +1319,7 @@ describe('Transaction Domain Entity', () => {
         user,
       });
 
-      const transactionData = TransactionMapper.toCreateTransactionProps(
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transactionData = toCreateTransactionProps(data);
 
       const transaction = Transaction.create(user.getId(), transactionData);
 
@@ -1342,10 +1409,7 @@ describe('Transaction Domain Entity', () => {
         user,
       });
 
-      const transactionData = TransactionMapper.toCreateTransactionProps(
-        data.transactionDTO,
-        data.transactionContext,
-      );
+      const transactionData = toCreateTransactionProps(data);
 
       const transaction = Transaction.create(user.getId(), transactionData);
 
@@ -1390,7 +1454,9 @@ describe('Transaction Domain Entity', () => {
       expect(
         transaction
           .getAllOperations()
-          .find((operation) => operation.getId().equals(operationToDelete.id))
+          .find((operation) =>
+            operation.getId().equals(operationToDelete.getId()),
+          )
           ?.isDeleted(),
       ).toBe(true);
 

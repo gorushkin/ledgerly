@@ -1,7 +1,3 @@
-import { AccountResponseDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
-import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
-import { AccountType, User } from 'src/domain';
-
 import {
   Amount,
   Currency,
@@ -13,6 +9,11 @@ import {
   EntityTimestamps,
   SoftDelete,
 } from '../domain-core';
+import { DeletedEntityOperationError } from '../domain.errors';
+import { User } from '../users/user.entity';
+
+import { AccountType } from './account-type.enum';
+import { AccountSnapshot, AccountUpdateProps } from './types';
 
 export class Account {
   static readonly entityType = 'account';
@@ -76,7 +77,7 @@ export class Account {
     );
   }
 
-  static restore(data: AccountDbRow): Account {
+  static restore(data: AccountSnapshot): Account {
     const {
       createdAt,
       currency,
@@ -92,14 +93,17 @@ export class Account {
       userId,
     } = data;
 
-    const identity = new EntityIdentity(Id.fromPersistence(id));
-    const timestamps = EntityTimestamps.fromPersistence(
+    const identity = EntityIdentity.restore(Id.restore(id));
+
+    const timestamps = EntityTimestamps.restore(
       Timestamp.restore(updatedAt),
       Timestamp.restore(createdAt),
     );
-    const softDelete = SoftDelete.fromPersistence(isTombstone);
+
+    const softDelete = SoftDelete.restore(isTombstone);
+
     const ownership = ParentChildRelation.create(
-      Id.fromPersistence(userId),
+      Id.restore(userId),
       identity.getId(),
     );
 
@@ -108,12 +112,12 @@ export class Account {
       timestamps,
       softDelete,
       ownership,
-      Name.fromPersistence(name),
+      Name.restore(name),
       description,
-      Amount.create(initialBalance),
-      Amount.create(currentClearedBalanceLocal),
-      Currency.create(currency),
-      AccountType.create(type),
+      Amount.restore(initialBalance),
+      Amount.restore(currentClearedBalanceLocal),
+      Currency.restore(currency),
+      AccountType.restore(type),
       isSystem,
     );
   }
@@ -121,10 +125,6 @@ export class Account {
   // Delegation methods for identity
   // TODO: remove
   getId(): Id {
-    return this.identity.getId();
-  }
-
-  get id(): Id {
     return this.identity.getId();
   }
 
@@ -143,7 +143,10 @@ export class Account {
 
   // Delegation methods for soft delete
   markAsDeleted(): void {
-    this.softDelete = this.softDelete.markAsDeleted();
+    this.softDelete = this.softDelete.markAsDeleted(
+      DeletedEntityOperationError.forDelete(Account.entityType),
+    );
+    this.touch();
   }
 
   isDeleted(): boolean {
@@ -163,7 +166,7 @@ export class Account {
     return this.ownership.getParentId();
   }
 
-  toPersistence(): AccountRepoInsert {
+  toSnapshot(): AccountSnapshot {
     return {
       createdAt: this.getCreatedAt().valueOf(),
       currency: this.currency.valueOf(),
@@ -184,7 +187,7 @@ export class Account {
     return this.type;
   }
 
-  updateAccount(data: AccountUpdateDTO): void {
+  update(data: AccountUpdateProps): void {
     this.validateUpdateIsAllowed();
 
     const currency = data.currency
@@ -198,28 +201,11 @@ export class Account {
     this.currency = currency;
     this.name = name;
 
-    this.touch(Timestamp.create());
+    this.touch();
   }
 
   isCurrencySame(currency: Currency): boolean {
     return this.currency.valueOf() === currency.valueOf();
-  }
-
-  toResponseDTO(): AccountResponseDTO {
-    return {
-      createdAt: this.getCreatedAt().valueOf(),
-      currency: this.currency.valueOf(),
-      currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
-      description: this.description,
-      id: this.getId().valueOf(),
-      initialBalance: this.initialBalance.valueOf(),
-      isSystem: this.isSystem,
-      isTombstone: this.softDelete.getIsTombstone(),
-      name: this.name.valueOf(),
-      type: this.type.valueOf(),
-      updatedAt: this.getUpdatedAt().valueOf(),
-      userId: this.ownership.getParentId().valueOf(),
-    };
   }
 
   getCurrency(): Currency {

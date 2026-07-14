@@ -1,6 +1,6 @@
 import { AccountResponseDTO, UUID } from '@ledgerly/shared/types';
-import { AccountRepositoryInterface } from 'src/application/interfaces';
-import { DataBase } from 'src/db';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
+import { AccountMapper } from 'src/application/mappers';
 import { User } from 'src/domain/users/user.entity';
 
 import { AccountUseCaseBase } from './accountBase';
@@ -10,11 +10,9 @@ export class GetAccountByIdUseCase extends AccountUseCaseBase {
     super(accountRepository);
   }
 
-  async execute(
-    user: User,
-    id: UUID,
-    _tx?: DataBase,
-  ): Promise<AccountResponseDTO> {
-    return this.ensureAccountExistsAndOwned(user, id);
+  async execute(user: User, id: UUID): Promise<AccountResponseDTO> {
+    const account = await this.ensureAccountExistsAndOwned(user, id);
+
+    return AccountMapper.toResponseDTOFromSnapshot(account);
   }
 }

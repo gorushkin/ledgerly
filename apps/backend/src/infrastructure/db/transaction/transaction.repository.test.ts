@@ -1,5 +1,4 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationMapper } from 'src/application/mappers/operation.mapper';
 import { OperationDbRow, UserDbRow } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import {
@@ -7,20 +6,23 @@ import {
   TransactionBuilder,
   TransactionPersistenceBuilderResult,
 } from 'src/db/test-utils';
-import { Account, User } from 'src/domain';
+import { Account } from 'src/domain';
 import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import {
   ForeignKeyConstraintError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   OperationRepository,
   TransactionManager,
   TransactionRepository,
 } from '../';
+import { AccountPersistenceMapper } from '../accounts';
+import { OperationPersistenceMapper } from '../operations';
+import { UserPersistenceMapper } from '../user';
 
 describe('TransactionRepository', () => {
   let testDB: TestDB;
@@ -34,6 +36,10 @@ describe('TransactionRepository', () => {
   const mockOperationsRepository = {
     save: vi.fn(),
   };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   const transactionManager = {
     getCurrentTransaction: () => testDB.db,
@@ -76,7 +82,7 @@ describe('TransactionRepository', () => {
         },
       ],
       settings: { description },
-      user: User.fromPersistence(user),
+      user: UserPersistenceMapper.toDomain(user),
     });
 
     usdAccount = data.getAccountByKey('USD');
@@ -85,10 +91,22 @@ describe('TransactionRepository', () => {
     const usdSystemAccount = data.getSystemAccountByCurrency('USD');
     const eurSystemAccount = data.getSystemAccountByCurrency('EUR');
 
-    await testDB.insertAccount(usdAccount.toPersistence());
-    await testDB.insertAccount(eurAccount.toPersistence());
-    await testDB.insertAccount(usdSystemAccount.toPersistence());
-    await testDB.insertAccount(eurSystemAccount.toPersistence());
+    await testDB.insertAccount(
+      AccountPersistenceMapper.toDBRowFromSnapshot(usdAccount.toSnapshot()),
+    );
+    await testDB.insertAccount(
+      AccountPersistenceMapper.toDBRowFromSnapshot(eurAccount.toSnapshot()),
+    );
+    await testDB.insertAccount(
+      AccountPersistenceMapper.toDBRowFromSnapshot(
+        usdSystemAccount.toSnapshot(),
+      ),
+    );
+    await testDB.insertAccount(
+      AccountPersistenceMapper.toDBRowFromSnapshot(
+        eurSystemAccount.toSnapshot(),
+      ),
+    );
 
     transactionRepository = new TransactionRepository(
       mockOperationsRepository as unknown as OperationRepository,
@@ -277,7 +295,7 @@ describe('TransactionRepository', () => {
 
       const expectedOperations = transaction
         .getAllOperations()
-        .map((op) => OperationMapper.toDBRow(op));
+        .map((op) => OperationPersistenceMapper.toDBRow(op));
 
       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
         user.id,
@@ -385,7 +403,7 @@ describe('TransactionRepository', () => {
       const expectedOperations: OperationDbRow[] = [];
 
       transaction.getAllOperations().forEach((operation) => {
-        expectedOperations.push(OperationMapper.toDBRow(operation));
+        expectedOperations.push(OperationPersistenceMapper.toDBRow(operation));
       });
 
       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
@@ -566,7 +584,7 @@ describe('TransactionRepository', () => {
       const expectedOperations = restoredTransaction
         .getAllOperations()
         .filter((operation) => !operation.isDeleted())
-        .map((operation) => OperationMapper.toDBRow(operation));
+        .map((operation) => OperationPersistenceMapper.toDBRow(operation));
 
       expect(mockOperationsRepository.save).toHaveBeenCalledWith(
         user.id,
@@ -624,12 +642,22 @@ describe('TransactionRepository', () => {
       );
     });
 
-    it('should soft delete the transaction and its operations', async () => {
+    it('should soft delete the transaction and its operations and update timestamps', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
       const transaction = data.transaction;
 
       await testDB.insertTransaction(transaction.toSnapshot());
 
+      const transactionBeforeDelete = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
+
+      vi.setSystemTime(new Date('2026-01-01T00:00:01.000Z'));
+
       transaction.markAsDeleted();
+      const deletedSnapshot = transaction.toSnapshot();
 
       await transactionRepository.softDelete(user.id, transaction);
 
@@ -638,7 +666,13 @@ describe('TransactionRepository', () => {
       );
 
       expect(deletedTransaction).not.toBeNull();
+
       expect(deletedTransaction?.isTombstone).toBe(true);
+
+      expect(deletedTransaction?.updatedAt).toBe(deletedSnapshot.updatedAt);
+      expect(deletedTransaction?.updatedAt).not.toBe(
+        transactionBeforeDelete?.updatedAt,
+      );
 
       expect(transaction.description).toBe(deletedTransaction?.description);
 
@@ -655,7 +689,7 @@ describe('TransactionRepository', () => {
       const expectedOperations: OperationDbRow[] = [];
 
       transaction.getAllOperations().forEach((operation) => {
-        expectedOperations.push(OperationMapper.toDBRow(operation));
+        expectedOperations.push(OperationPersistenceMapper.toDBRow(operation));
       });
 
       const expectedOperationsSnapshots = new Map<UUID, OperationSnapshot>();

@@ -3,14 +3,15 @@ import {
   AccountUpdateDTO,
   UUID,
 } from '@ledgerly/shared/types';
-import { Account } from 'src/domain/accounts/account.entity';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
+import { AccountMapper } from 'src/application/mappers';
+import { Account } from 'src/domain/accounts';
 import { User } from 'src/domain/users/user.entity';
-import { AccountRepository } from 'src/infrastructure/db/';
 
 import { AccountUseCaseBase } from './accountBase';
 
 export class UpdateAccountUseCase extends AccountUseCaseBase {
-  constructor(accountRepository: AccountRepository) {
+  constructor(accountRepository: AccountRepositoryInterface) {
     super(accountRepository);
   }
 
@@ -23,12 +24,14 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
 
     const account = Account.restore(accountData);
 
-    account.updateAccount(data);
+    account.update(AccountMapper.toUpdateProps(data));
 
-    return this.accountRepository.update(
-      user.id,
+    const updatedAccount = await this.accountRepository.update(
+      user.getId().valueOf(),
       accountId,
-      account.toPersistence(),
+      account.toSnapshot(),
     );
+
+    return AccountMapper.toResponseDTOFromSnapshot(updatedAccount);
   }
 }

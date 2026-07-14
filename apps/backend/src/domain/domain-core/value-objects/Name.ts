@@ -18,11 +18,11 @@ export class Name {
     return new Name(trimmed);
   }
 
-  static fromPersistence(value: string): Name {
+  static restore(value: string): Name {
     return new Name(value);
   }
 
-  isEqualTo(other: Name): boolean {
+  equals(other: Name): boolean {
     return this.value === other.value;
   }
 

@@ -1,4 +1,5 @@
 import { AccountResponseDTO, UUID } from '@ledgerly/shared/types';
+import { AccountMapper } from 'src/application/mappers';
 import { Account } from 'src/domain/accounts/account.entity';
 import { User } from 'src/domain/users/user.entity';
 
@@ -13,11 +14,16 @@ export class DeleteAccountUseCase extends AccountUseCaseBase {
 
   async execute(user: User, accountId: UUID): Promise<AccountResponseDTO> {
     const accountData = await this.ensureAccountExistsAndOwned(user, accountId);
-
     const account = Account.restore(accountData);
 
     account.markAsDeleted();
 
-    return this.accountRepository.delete(user.id, accountId);
+    const deletedAccount = await this.accountRepository.delete(
+      user.getId().valueOf(),
+      accountId,
+      account.toSnapshot(),
+    );
+
+    return AccountMapper.toResponseDTOFromSnapshot(deletedAccount);
   }
 }

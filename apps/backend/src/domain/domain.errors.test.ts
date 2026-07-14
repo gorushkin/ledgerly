@@ -29,6 +29,16 @@ describe('coded domain errors', () => {
     });
   });
 
+  it('exposes DELETED_ENTITY_OPERATION context for delete operations', () => {
+    expect(DeletedEntityOperationError.forDelete('account')).toMatchObject({
+      code: apiErrorCodes.deletedEntityOperation,
+      context: {
+        entityType: 'account',
+        operation: 'delete',
+      },
+    });
+  });
+
   it('exposes INVALID_VERSION context', () => {
     expect(new InvalidVersionError(-1)).toMatchObject({
       code: apiErrorCodes.invalidVersion,

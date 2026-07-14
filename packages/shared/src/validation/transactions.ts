@@ -10,7 +10,7 @@ import {
   requiredText,
   isoDate,
   isoDatetime,
-  moneyAmountString,
+  amountString,
   currencyCode,
 } from "./baseValidations";
 
@@ -20,18 +20,18 @@ import {
 // Transaction balance is validated by summing value across all operations (must equal 0).
 export const operationCreateSchema = z.object({
   accountId: uuid,
-  amount: moneyAmountString,
+  amount: amountString,
   description: requiredText,
-  value: moneyAmountString,
+  value: amountString,
 });
 
 // See operationCreateSchema for amount/value distinction.
 export const operationUpdateSchema = z.object({
   accountId: uuid,
-  amount: moneyAmountString,
+  amount: amountString,
   description: requiredText,
   id: uuid,
-  value: moneyAmountString,
+  value: amountString,
 });
 
 export const transactionCreateSchema = z.object({

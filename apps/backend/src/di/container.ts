@@ -2,7 +2,6 @@ import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
 import { AccountFactory } from 'src/application/services';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
-import { saveWithIdRetry } from 'src/application/shared/saveWithIdRetry';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
 import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
 import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
@@ -25,11 +24,11 @@ import {
   UserRepository,
 } from 'src/infrastructure/db';
 import {
-  AuthController,
   AccountController,
+  AuthController,
   TransactionController,
-} from 'src/interfaces/';
-import { UserController } from 'src/presentation/controllers/user.controller';
+  UserController,
+} from 'src/presentation/http';
 
 import { AppContainer } from './types';
 
@@ -61,7 +60,7 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   // Services and Factories
 
-  const accountFactory = new AccountFactory(accountRepository, saveWithIdRetry);
+  const accountFactory = new AccountFactory(accountRepository);
 
   const transactionContextLoader = new TransactionContextLoader(
     accountRepository,
@@ -82,10 +81,7 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const loginUserUseCase = new LoginUserUseCase(userRepository);
 
-  const registerUserUseCase = new RegisterUserUseCase(
-    userRepository,
-    saveWithIdRetry,
-  );
+  const registerUserUseCase = new RegisterUserUseCase(userRepository);
 
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager,

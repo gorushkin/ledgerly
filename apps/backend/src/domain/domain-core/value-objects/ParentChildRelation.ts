@@ -7,7 +7,9 @@ export class ParentChildRelation {
   constructor(
     private readonly parentId: Id,
     private readonly childId: Id,
-  ) {}
+  ) {
+    Object.freeze(this);
+  }
 
   /**
    * Checks if the child belongs to the specified parent
@@ -44,10 +46,7 @@ export class ParentChildRelation {
     return new ParentChildRelation(parentId, childId);
   }
 
-  /**
-   * Checks if two relations are equal
-   */
-  isEqualTo(other: ParentChildRelation): boolean {
+  equals(other: ParentChildRelation): boolean {
     return (
       this.parentId.equals(other.parentId) && this.childId.equals(other.childId)
     );

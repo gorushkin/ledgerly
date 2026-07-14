@@ -1,5 +1,4 @@
 import { type ErrorContextByCode, UUID } from '@ledgerly/shared/types';
-import { isoDatetime } from '@ledgerly/shared/validation';
 import {
   DBErrorContext,
   DatabaseOperationError,
@@ -26,8 +25,6 @@ type RetryAwareContext = DBErrorContext & {
   maxPkCollisionRetries?: number;
 };
 
-const DEFAULT_MAX_RETRIES = 3;
-
 export class BaseRepository {
   constructor(protected readonly transactionManager: TransactionManager) {}
 
@@ -37,20 +34,6 @@ export class BaseRepository {
 
   get db() {
     return this.getDbClient();
-  }
-
-  protected get createTimestamps() {
-    const now = isoDatetime.parse(new Date().toISOString());
-    return { createdAt: now, updatedAt: now };
-  }
-
-  protected get updateTimestamp() {
-    const now = isoDatetime.parse(new Date().toISOString());
-    return { updatedAt: now };
-  }
-
-  protected get uuid(): { id: UUID } {
-    return { id: crypto.randomUUID() as UUID };
   }
 
   protected async executeDatabaseOperation<T>(
@@ -184,34 +167,6 @@ export class BaseRepository {
   ): void {
     if (!condition) {
       throw new ForbiddenAccessError(message, context);
-    }
-  }
-
-  async writeNewEntryToDatabase<T, E extends { toPersistence: () => T }, K>(
-    entity: E,
-    promise: (data: T) => Promise<K>,
-    generateEntity: (prevEntity: E) => E,
-    retries: number = DEFAULT_MAX_RETRIES,
-  ): Promise<K> {
-    try {
-      return await promise(entity.toPersistence());
-    } catch (error) {
-      if (error instanceof RecordAlreadyExistsError && retries > 0) {
-        const regeneratedEntity = generateEntity(entity);
-        return await this.writeNewEntryToDatabase(
-          regeneratedEntity,
-          promise,
-          generateEntity,
-          retries - 1,
-        );
-      }
-
-      const databaseError = new DatabaseOperationError({
-        cause: error instanceof Error ? error : new Error(String(error)),
-        message: 'Failed to create entity',
-      });
-      reportDatabaseError(databaseError);
-      throw databaseError;
     }
   }
 }

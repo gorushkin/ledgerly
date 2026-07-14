@@ -1,10 +1,10 @@
-import { MoneyString } from '@ledgerly/shared/types';
+import { AmountString } from '@ledgerly/shared/types';
 
 import { Amount } from '../../domain/domain-core/value-objects/Amount';
 
 // TODO: convert to functions instead of class?
 export class AmountFormatter {
-  private minorToMajor(minorUnits: MoneyString): {
+  private minorToMajor(minorUnits: AmountString): {
     major: string;
     minor: string;
   } {

@@ -16,8 +16,7 @@ Value Objects - immutable objects that are described by their attributes, not by
 
 - **`Id`** - unique identifier
 - **`Timestamp`** - timestamp
-- **`Amount`** - monetary amount
-- **`Money`** - money with currency
+- **`Amount`** - signed integer minor-unit monetary amount without currency
 - **`Currency`** - currency
 - **`DateValue`** - date value
 - **`Name`** - name/title
@@ -49,6 +48,16 @@ class Account {
 }
 ```
 
+This also applies to a potential abstract `DomainEntity` base class. Domain
+entities do not inherit common identity, timestamp, deletion, ownership or
+versioning behavior from a shared superclass. They compose only the behavior
+objects they actually need.
+
+If cross-entity generic code appears later, introduce a narrow interface for
+that concrete consumer instead of adding a broad base class preemptively. For
+example, a future helper that only needs `toSnapshot()` can depend on a
+snapshot-focused interface without forcing all entities into one lifecycle.
+
 ### 🎯 Benefits
 
 1. **Flexibility** - can combine any behaviors
@@ -64,6 +73,25 @@ class Account {
 3. **No identity** - do not have unique ID
 4. **Validation at creation** - invariants are checked at creation time
 5. **Replacement instead of modification** - create new object for "changes"
+6. **Runtime freeze** - immutable value objects call `Object.freeze(this)`
+   after constructor state is initialized. `create(...)`, `restore(...)` and
+   non-mutating operations such as `add(...)`, `subtract(...)` or
+   `increment()` return frozen instances.
+
+Public API convention:
+
+- `create(...)` builds a value object from new user/application input and runs
+  any input normalization.
+- `restore(...)` rebuilds a value object from persisted/plain domain state.
+- `equals(other)` is the single public value equality method. Value objects do
+  not expose alternate equality aliases.
+- `valueOf()` returns the primitive/domain-safe value used by snapshots and
+  mappers.
+- Domain value objects and behaviors do not expose `fromPersistence(...)`.
+  Domain code should use `restore(...)` for persisted/plain state and
+  `valueOf()` for primitive/domain-safe mapper boundaries. Infrastructure
+  mappers may still use `fromPersistence(...)` as a method name when their input
+  is explicitly persistence-specific.
 
 ```typescript
 // ✅ Correct Value Objects usage
@@ -133,7 +161,7 @@ const currency = Currency.create('USD');
 // Value Objects comparison
 const email1 = Email.create('TEST@example.com');
 const email2 = Email.create('test@example.com');
-console.log(email1.isEqualTo(email2)); // true (lowercase normalization)
+console.log(email1.equals(email2)); // true (lowercase normalization)
 ```
 
 #### Usage in User Entity

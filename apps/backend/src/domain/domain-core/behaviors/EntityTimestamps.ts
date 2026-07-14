@@ -41,13 +41,7 @@ export class EntityTimestamps {
     return new EntityTimestamps(now, now);
   }
 
-  /**
-   * Restores an instance from the database
-   */
-  static fromPersistence(
-    updatedAt: Timestamp,
-    createdAt: Timestamp,
-  ): EntityTimestamps {
+  static restore(updatedAt: Timestamp, createdAt: Timestamp): EntityTimestamps {
     return new EntityTimestamps(updatedAt, createdAt);
   }
 }

@@ -1,0 +1,403 @@
+import {
+  DEFAULT_TRANSACTION_QUERY,
+  MAX_TRANSACTION_OPERATIONS,
+} from '@ledgerly/shared/constants';
+import { TransactionCreateInput } from '@ledgerly/shared/validation';
+import {
+  CreateOperationRequestDTO,
+  UpdateTransactionRequestDTO,
+} from 'src/application';
+import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
+import { DeleteTransactionUseCase } from 'src/application/usecases/transaction/DeleteTransaction';
+import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction/GetAllTransactions';
+import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
+import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
+import { User } from 'src/domain';
+import { Amount, Currency, DateValue, Id } from 'src/domain/domain-core';
+import { createUser } from 'src/testing';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ZodError } from 'zod';
+
+import { TransactionController } from './transaction.controller';
+
+describe('TransactionController', () => {
+  let user: User;
+
+  const mockTransaction = { data: 'mockTransaction' };
+  const mockTransactions = [{ data: 'mockTransaction' }];
+  const mockTransactionsOutput = {
+    items: mockTransactions,
+    pagination: {
+      hasNextPage: false,
+      hasPreviousPage: false,
+      page: 1,
+      pageSize: 20,
+      total: 1,
+      totalPages: 1,
+    },
+  };
+
+  const mockCreateTransactionUseCase = {
+    execute: vi.fn().mockResolvedValue(mockTransaction),
+  };
+
+  const mockGetTransactionByIdUseCase = {
+    execute: vi.fn().mockResolvedValue(mockTransaction),
+  };
+
+  const mockGetAllTransactionsUseCase = {
+    execute: vi.fn().mockResolvedValue(mockTransactionsOutput),
+  };
+
+  const mockUpdateTransactionUseCase = {
+    execute: vi.fn().mockResolvedValue(mockTransaction),
+  };
+
+  const mockDeleteTransactionUseCase = {
+    execute: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const operation1: CreateOperationRequestDTO = {
+    accountId: Id.create().valueOf(),
+    amount: Amount.create('-100').valueOf(),
+    description: 'Test Operation From',
+    value: Amount.create('-100').valueOf(),
+  };
+
+  const operation2: CreateOperationRequestDTO = {
+    accountId: Id.create().valueOf(),
+    amount: Amount.create('100').valueOf(),
+    description: 'Test Operation To',
+    value: Amount.create('100').valueOf(),
+  };
+
+  const operations: CreateOperationRequestDTO[] = [operation1, operation2];
+
+  const transactionController = new TransactionController(
+    mockCreateTransactionUseCase as unknown as CreateTransactionUseCase,
+    mockGetTransactionByIdUseCase as unknown as GetTransactionByIdUseCase,
+    mockGetAllTransactionsUseCase as unknown as GetAllTransactionsUseCase,
+    mockUpdateTransactionUseCase as unknown as UpdateTransactionUseCase,
+    mockDeleteTransactionUseCase as unknown as DeleteTransactionUseCase,
+  );
+
+  beforeAll(async () => {
+    user = await createUser();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('create', () => {
+    it('should call CreateTransactionUseCase with correct parameters', async () => {
+      const requestBody: TransactionCreateInput = {
+        currencyCode: Currency.create('USD').valueOf(),
+        description: 'Test Transaction',
+        operations,
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      const result = await transactionController.create(user, requestBody);
+
+      expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledWith(
+        user,
+        expect.objectContaining({
+          currencyCode: requestBody.currencyCode,
+          description: requestBody.description,
+          operations: requestBody.operations,
+          postingDate: requestBody.postingDate,
+          transactionDate: requestBody.transactionDate,
+        }),
+      );
+
+      expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+
+      expect(result).toEqual(mockTransaction);
+    });
+
+    it('should throw ZodError for invalid request body', async () => {
+      const invalidRequestBody = {
+        currencyCode: 123,
+        description: 'Test Transaction',
+        operations: [],
+        postingDate: 'invalid-date',
+        transactionDate: '2024-01-02',
+      };
+
+      await expect(
+        transactionController.create(
+          user,
+          invalidRequestBody as unknown as TransactionCreateInput,
+        ),
+      ).rejects.toThrow(ZodError);
+    });
+
+    it.each(['postingDate', 'transactionDate'] as const)(
+      'should reject a create request without %s',
+      async (missingDateField) => {
+        const requestBody = {
+          currencyCode: Currency.create('USD').valueOf(),
+          description: 'Test Transaction',
+          operations,
+          postingDate: DateValue.restore('2024-01-01').valueOf(),
+          transactionDate: DateValue.restore('2024-01-02').valueOf(),
+        };
+
+        delete requestBody[missingDateField];
+
+        await expect(
+          transactionController.create(
+            user,
+            requestBody as unknown as TransactionCreateInput,
+          ),
+        ).rejects.toThrow(ZodError);
+
+        expect(mockCreateTransactionUseCase.execute).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe('getById', () => {
+    it('should call GetTransactionByIdUseCase with correct parameters', async () => {
+      const transactionId = Id.create().valueOf();
+      const result = await transactionController.getById(user, {
+        id: transactionId,
+      });
+      expect(mockGetTransactionByIdUseCase.execute).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        transactionId,
+      );
+      expect(mockGetTransactionByIdUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockTransaction);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      await expect(
+        transactionController.getById(user, { id: 'not-a-uuid' }),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockGetTransactionByIdUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getAll', () => {
+    it('should call GetAllTransactionsUseCase with correct parameters', async () => {
+      const accountId = Id.create().valueOf();
+      mockGetAllTransactionsUseCase.execute.mockResolvedValue(
+        mockTransactionsOutput,
+      );
+
+      const result = await transactionController.getAll(user, {
+        ...DEFAULT_TRANSACTION_QUERY,
+        accountId,
+      });
+
+      expect(mockGetAllTransactionsUseCase.execute).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        {
+          ...DEFAULT_TRANSACTION_QUERY,
+          accountId,
+        },
+      );
+
+      expect(mockGetAllTransactionsUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockTransactionsOutput);
+    });
+
+    it('should throw ZodError for invalid request query', async () => {
+      await expect(
+        transactionController.getAll(user, {
+          page: 'not-a-number',
+        }),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockGetAllTransactionsUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('update', () => {
+    it('should call UpdateTransactionUseCase with correct parameters', async () => {
+      const transactionId = Id.create().valueOf();
+      const requestBody: UpdateTransactionRequestDTO = {
+        description: 'Updated Transaction',
+        operations: {
+          create: [
+            {
+              accountId: operation1.accountId,
+              amount: operation1.amount,
+              description: operation1.description,
+              value: operation1.value,
+            },
+            {
+              accountId: operation2.accountId,
+              amount: operation2.amount,
+              description: operation2.description,
+              value: operation2.value,
+            },
+          ],
+          delete: [],
+          update: [],
+        },
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+        version: 0,
+      };
+
+      const result = await transactionController.update(
+        user,
+        { id: transactionId },
+        requestBody as unknown as UpdateTransactionRequestDTO,
+      );
+
+      expect(mockUpdateTransactionUseCase.execute).toHaveBeenCalledWith(
+        user,
+        transactionId,
+        expect.objectContaining({
+          description: requestBody.description,
+          postingDate: requestBody.postingDate,
+          transactionDate: requestBody.transactionDate,
+          version: requestBody.version,
+        }),
+      );
+      expect(mockUpdateTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockTransaction);
+    });
+
+    it('should throw validation error for invalid data', async () => {
+      const transactionId = Id.create().valueOf();
+
+      const invalidRequestBody = {
+        description: 'Updated Transaction',
+        entries: [],
+        postingDate: 'invalid-date',
+        transactionDate: '2024-01-02',
+      };
+
+      await expect(
+        transactionController.update(
+          user,
+          { id: transactionId },
+          invalidRequestBody as unknown as UpdateTransactionRequestDTO,
+        ),
+      ).rejects.toThrow(ZodError);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      const requestBody: UpdateTransactionRequestDTO = {
+        description: 'Updated Transaction',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+        version: 0,
+      };
+
+      await expect(
+        transactionController.update(
+          user,
+          { id: 'not-a-uuid' },
+          requestBody as unknown as UpdateTransactionRequestDTO,
+        ),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockUpdateTransactionUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        'create',
+        Array.from({ length: MAX_TRANSACTION_OPERATIONS + 1 }, () => ({
+          ...operation1,
+        })),
+      ],
+      [
+        'delete',
+        Array.from(
+          { length: MAX_TRANSACTION_OPERATIONS + 1 },
+          () => operation1.accountId,
+        ),
+      ],
+      [
+        'update',
+        Array.from({ length: MAX_TRANSACTION_OPERATIONS + 1 }, () => ({
+          ...operation1,
+          id: operation1.accountId,
+        })),
+      ],
+    ] as const)(
+      'should reject an update with more than the maximum %s operations',
+      async (operationType, items) => {
+        const transactionId = Id.create().valueOf();
+        const requestBody = {
+          description: 'Updated Transaction',
+          operations: Object.assign(
+            { create: [], delete: [], update: [] },
+            { [operationType]: items },
+          ),
+          postingDate: DateValue.restore('2024-01-01').valueOf(),
+          transactionDate: DateValue.restore('2024-01-02').valueOf(),
+          version: 0,
+        };
+
+        await expect(
+          transactionController.update(
+            user,
+            { id: transactionId },
+            requestBody as unknown as UpdateTransactionRequestDTO,
+          ),
+        ).rejects.toThrow(ZodError);
+
+        expect(mockUpdateTransactionUseCase.execute).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should reject an update without version', async () => {
+      const transactionId = Id.create().valueOf();
+      const requestBody = {
+        description: 'Updated Transaction',
+        operations: {
+          create: [],
+          delete: [],
+          update: [],
+        },
+        postingDate: DateValue.restore('2024-01-01').valueOf(),
+        transactionDate: DateValue.restore('2024-01-02').valueOf(),
+      };
+
+      await expect(
+        transactionController.update(
+          user,
+          { id: transactionId },
+          requestBody as unknown as UpdateTransactionRequestDTO,
+        ),
+      ).rejects.toThrow(ZodError);
+    });
+  });
+
+  describe('delete', () => {
+    it('should call DeleteTransactionUseCase with correct parameters', async () => {
+      const transactionId = Id.create().valueOf();
+      await transactionController.delete(user, { id: transactionId });
+
+      expect(mockDeleteTransactionUseCase.execute).toHaveBeenCalledWith(
+        user,
+        transactionId,
+      );
+
+      expect(mockDeleteTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      await expect(
+        transactionController.delete(user, { id: 'not-a-uuid' }),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockDeleteTransactionUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+});

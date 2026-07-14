@@ -67,8 +67,8 @@ describe('Version Value Object', () => {
 
   describe('comparison', () => {
     it('should compare versions by value', () => {
-      expect(Version.create(2).isEqualTo(Version.create(2))).toBe(true);
-      expect(Version.create(2).isEqualTo(Version.create(3))).toBe(false);
+      expect(Version.create(2).equals(Version.create(2))).toBe(true);
+      expect(Version.create(2).equals(Version.create(3))).toBe(false);
     });
   });
 

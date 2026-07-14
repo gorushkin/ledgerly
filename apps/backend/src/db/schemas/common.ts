@@ -1,7 +1,7 @@
 import {
   IsoDateString,
   IsoDatetimeString,
-  MoneyString,
+  AmountString,
   UUID,
 } from '@ledgerly/shared/types';
 import { integer, text } from 'drizzle-orm/sqlite-core';
@@ -30,7 +30,7 @@ export const getNumericColumn = <T>(fieldName: string) => {
   return text(fieldName).notNull().$type<T>();
 };
 
-export const getMoneyColumn = getNumericColumn<MoneyString>;
+export const getAmountColumn = getNumericColumn<AmountString>;
 
 export const getIsoDateString = (column: string) =>
   text(column).notNull().$type<IsoDateString>();

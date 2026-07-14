@@ -1,8 +1,10 @@
 import { CurrencyCode } from '@ledgerly/shared/types';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
+import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
-import { Amount } from 'src/domain/domain-core';
+import { AccountSnapshot } from 'src/domain/accounts';
+import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
-import { AccountRepository } from 'src/infrastructure/db/';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DeleteAccountUseCase } from '../deleteAccount';
@@ -19,7 +21,7 @@ describe('DeleteAccountUseCase', async () => {
 
   let mockUserRepository: { getById: ReturnType<typeof vi.fn> };
 
-  const accountId = Id.fromPersistence(
+  const accountId = Id.restore(
     '550e8400-e29b-41d4-a716-446655440001',
   ).valueOf();
 
@@ -32,27 +34,28 @@ describe('DeleteAccountUseCase', async () => {
   const mockUser = {
     createdAt: new Date().toISOString(),
     email: 'test@example.com',
-    id: user.id,
+    id: user.getId().valueOf(),
     name: 'Test User',
   };
 
-  const mockAccountData = {
-    createdAt: new Date().toISOString(),
+  const mockAccountData: AccountSnapshot = {
+    createdAt: Timestamp.create().valueOf(),
     currency: currencyCode,
     currentClearedBalanceLocal: initialBalance,
     description,
-    id: '550e8400-e29b-41d4-a716-446655440001',
+    id: Id.create().valueOf(),
     initialBalance,
+    isSystem: false,
     isTombstone: false,
     name: accountName,
     type: accountType,
-    updatedAt: new Date().toISOString(),
-    userId: user.id,
+    updatedAt: Timestamp.create().valueOf(),
+    userId: user.getId().valueOf(),
   };
 
   const mockSavedAccountData = {
     ...mockAccountData,
-    isTombstone: false,
+    isTombstone: true,
   };
 
   beforeEach(() => {
@@ -66,7 +69,7 @@ describe('DeleteAccountUseCase', async () => {
     };
 
     deleteAccountUseCase = new DeleteAccountUseCase(
-      mockAccountRepository as unknown as AccountRepository,
+      mockAccountRepository as unknown as AccountRepositoryInterface,
     );
   });
 
@@ -77,13 +80,20 @@ describe('DeleteAccountUseCase', async () => {
       mockAccountRepository.delete.mockResolvedValue(mockSavedAccountData);
 
       const result = await deleteAccountUseCase.execute(user, accountId);
+      const { updatedAt: _updatedAt, ...expectedAccountData } = mockAccountData;
 
       expect(mockAccountRepository.delete).toHaveBeenCalledWith(
-        user.id,
+        user.getId().valueOf(),
         accountId,
+        expect.objectContaining({
+          ...expectedAccountData,
+          isTombstone: true,
+        }),
       );
 
-      expect(result).toEqual(mockSavedAccountData);
+      expect(result).toEqual(
+        AccountMapper.toResponseDTOFromSnapshot(mockSavedAccountData),
+      );
     });
 
     // TODO: Add missing tests based on account.service.test.ts:
