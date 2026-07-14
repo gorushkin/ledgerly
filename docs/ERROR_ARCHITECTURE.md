@@ -2,8 +2,12 @@
 
 ## Hierarchy
 
-All backend errors inherit from `BaseError`, but only expected public failures
-carry API response codes and allowlisted context.
+Internal custom errors thrown by domain, application, infrastructure and HTTP
+presentation code inherit from `BaseError`. External errors such as `ZodError`
+and unexpected thrown values do not have to follow this hierarchy, but the HTTP
+boundary still handles them safely.
+
+Only expected public failures carry API response codes and allowlisted context.
 
 ```text
 BaseError (shared/errors)

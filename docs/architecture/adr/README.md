@@ -7,7 +7,7 @@
 - Один файл = одно решение.
 - Именование: `NNNN-short-kebab-case-title.md`.
 - Статусы: `Proposed`, `Accepted`, `Superseded`, `Deprecated`.
-- ADR должен ссылаться на Jira и PR, если они есть.
+- ADR должен ссылаться на Jira. PR указываем только если ссылка уже есть.
 
 ## Рекомендуемый шаблон
 
@@ -17,7 +17,6 @@
 - Status: Proposed|Accepted|Superseded|Deprecated
 - Date: YYYY-MM-DD
 - Jira: <link-or-N/A>
-- PR: <link-or-TBD>
 
 ## Context
 
