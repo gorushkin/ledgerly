@@ -13,6 +13,8 @@ import { BaseRepository } from '../BaseRepository';
 
 import { OperationPersistenceMapper } from './operation-persistence.mapper';
 
+const SOFT_DELETE_BATCH_SIZE = 200;
+
 export class OperationRepository
   extends BaseRepository
   implements OperationRepositoryInterface
@@ -86,30 +88,38 @@ export class OperationRepository
           return;
         }
 
-        const updatedAtCase = sql.join(
-          [
-            sql`case ${operationsTable.id}`,
-            ...operations.map(
-              (operation) =>
-                sql`when ${operation.id} then ${operation.updatedAt}`,
-            ),
-            sql`else ${operationsTable.updatedAt} end`,
-          ],
-          sql.raw(' '),
-        );
-
-        await this.db
-          .update(operationsTable)
-          .set({ isTombstone: true, updatedAt: updatedAtCase })
-          .where(
-            and(
-              eq(operationsTable.userId, userId),
-              inArray(
-                operationsTable.id,
-                operations.map((operation) => operation.id),
-              ),
-            ),
+        for (
+          let offset = 0;
+          offset < operations.length;
+          offset += SOFT_DELETE_BATCH_SIZE
+        ) {
+          const batch = operations.slice(
+            offset,
+            offset + SOFT_DELETE_BATCH_SIZE,
           );
+          const operationIds = batch.map((operation) => operation.id);
+          const updatedAtCase = sql.join(
+            [
+              sql`case ${operationsTable.id}`,
+              ...batch.map(
+                (operation) =>
+                  sql`when ${operation.id} then ${operation.updatedAt}`,
+              ),
+              sql`else ${operationsTable.updatedAt} end`,
+            ],
+            sql.raw(' '),
+          );
+
+          await this.db
+            .update(operationsTable)
+            .set({ isTombstone: true, updatedAt: updatedAtCase })
+            .where(
+              and(
+                eq(operationsTable.userId, userId),
+                inArray(operationsTable.id, operationIds),
+              ),
+            );
+        }
       },
       'OperationRepository.softDelete',
       {

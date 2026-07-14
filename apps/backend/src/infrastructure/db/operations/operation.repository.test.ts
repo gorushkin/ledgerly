@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationDbRow, UserDbRow } from 'src/db/schema';
+import { OperationDbRow, operationsTable, UserDbRow } from 'src/db/schema';
 import {
   compareEntities,
   TransactionBuilder,
@@ -167,18 +167,11 @@ describe('OperationRepository', () => {
         },
       ];
 
-      const updateSpy = vi.spyOn(testDB.db, 'update');
-
       await operationRepository.save(
         user.id,
         [...operationsToUpdateData, ...operationsToDeleteData],
         operationsSnapshot,
       );
-
-      expect(updateSpy).toHaveBeenCalledTimes(
-        operationsToUpdateData.length + 1,
-      );
-      updateSpy.mockRestore();
 
       const operationsAfterSaving = (
         await testDB.getTransactionWithRelations(transaction.getId().valueOf())
@@ -268,6 +261,69 @@ describe('OperationRepository', () => {
           operationsToUpdateData.length -
           operationsToDeleteData.length,
       );
+    });
+
+    it('should batch soft-delete updates while preserving per-operation updatedAt values', async () => {
+      const operations = data.operations.map((operation) =>
+        OperationPersistenceMapper.toDBRow(operation),
+      );
+
+      await Promise.all(
+        operations.map((operation) => testDB.insertOperation(operation)),
+      );
+
+      const transactionWithRelations = await testDB.getTransactionWithRelations(
+        transaction.getId().valueOf(),
+      );
+
+      const operationsSnapshot = new Map<UUID, OperationSnapshot>();
+
+      transactionWithRelations?.operations.forEach((op) => {
+        operationsSnapshot.set(op.id, op);
+      });
+
+      const operationsToDeleteData = operations.slice(0, 3).map(
+        (operation, index): OperationDbRow => ({
+          ...operation,
+          isTombstone: true,
+          updatedAt: Timestamp.restore(
+            `2026-01-01T00:00:0${index}.000Z`,
+          ).valueOf(),
+        }),
+      );
+
+      const updateSpy = vi.spyOn(testDB.db, 'update');
+
+      try {
+        await operationRepository.save(
+          user.id,
+          operationsToDeleteData,
+          operationsSnapshot,
+        );
+
+        const operationUpdateCalls = updateSpy.mock.calls.filter(
+          ([table]) => table === operationsTable,
+        );
+
+        expect(operationUpdateCalls).toHaveLength(1);
+      } finally {
+        updateSpy.mockRestore();
+      }
+
+      const operationsAfterSaving = (
+        await testDB.getTransactionWithRelations(transaction.getId().valueOf())
+      )?.operations;
+
+      operationsToDeleteData.forEach((deletedOperation) => {
+        const operationAfterSaving = operationsAfterSaving?.find(
+          (operation) => operation.id === deletedOperation.id,
+        );
+
+        expect(operationAfterSaving?.isTombstone).toBe(true);
+        expect(operationAfterSaving?.updatedAt).toBe(
+          deletedOperation.updatedAt,
+        );
+      });
     });
 
     it.todo(
