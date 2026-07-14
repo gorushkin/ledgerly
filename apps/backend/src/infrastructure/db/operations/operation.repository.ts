@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { OperationRepositoryInterface } from 'src/application';
 import {
   OperationDbInsert,
@@ -82,19 +82,34 @@ export class OperationRepository
   ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        // LED-107: optimize this into a batched update while preserving
-        // per-operation updatedAt values from domain snapshots.
-        for (const operation of operations) {
-          await this.db
-            .update(operationsTable)
-            .set({ isTombstone: true, updatedAt: operation.updatedAt })
-            .where(
-              and(
-                eq(operationsTable.id, operation.id),
-                eq(operationsTable.userId, userId),
-              ),
-            );
+        if (operations.length === 0) {
+          return;
         }
+
+        const updatedAtCase = sql.join(
+          [
+            sql`case ${operationsTable.id}`,
+            ...operations.map(
+              (operation) =>
+                sql`when ${operation.id} then ${operation.updatedAt}`,
+            ),
+            sql`else ${operationsTable.updatedAt} end`,
+          ],
+          sql.raw(' '),
+        );
+
+        await this.db
+          .update(operationsTable)
+          .set({ isTombstone: true, updatedAt: updatedAtCase })
+          .where(
+            and(
+              eq(operationsTable.userId, userId),
+              inArray(
+                operationsTable.id,
+                operations.map((operation) => operation.id),
+              ),
+            ),
+          );
       },
       'OperationRepository.softDelete',
       {

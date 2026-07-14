@@ -167,11 +167,18 @@ describe('OperationRepository', () => {
         },
       ];
 
+      const updateSpy = vi.spyOn(testDB.db, 'update');
+
       await operationRepository.save(
         user.id,
         [...operationsToUpdateData, ...operationsToDeleteData],
         operationsSnapshot,
       );
+
+      expect(updateSpy).toHaveBeenCalledTimes(
+        operationsToUpdateData.length + 1,
+      );
+      updateSpy.mockRestore();
 
       const operationsAfterSaving = (
         await testDB.getTransactionWithRelations(transaction.getId().valueOf())
