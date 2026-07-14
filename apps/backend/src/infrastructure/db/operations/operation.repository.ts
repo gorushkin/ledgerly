@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { OperationRepositoryInterface } from 'src/application';
 import {
   OperationDbInsert,
@@ -12,6 +12,8 @@ import { RepositoryInvariantError } from 'src/infrastructure/errors';
 import { BaseRepository } from '../BaseRepository';
 
 import { OperationPersistenceMapper } from './operation-persistence.mapper';
+
+const SOFT_DELETE_BATCH_SIZE = 200;
 
 export class OperationRepository
   extends BaseRepository
@@ -82,16 +84,39 @@ export class OperationRepository
   ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        // LED-107: optimize this into a batched update while preserving
-        // per-operation updatedAt values from domain snapshots.
-        for (const operation of operations) {
+        if (operations.length === 0) {
+          return;
+        }
+
+        for (
+          let offset = 0;
+          offset < operations.length;
+          offset += SOFT_DELETE_BATCH_SIZE
+        ) {
+          const batch = operations.slice(
+            offset,
+            offset + SOFT_DELETE_BATCH_SIZE,
+          );
+          const operationIds = batch.map((operation) => operation.id);
+          const updatedAtCase = sql.join(
+            [
+              sql`case ${operationsTable.id}`,
+              ...batch.map(
+                (operation) =>
+                  sql`when ${operation.id} then ${operation.updatedAt}`,
+              ),
+              sql`else ${operationsTable.updatedAt} end`,
+            ],
+            sql.raw(' '),
+          );
+
           await this.db
             .update(operationsTable)
-            .set({ isTombstone: true, updatedAt: operation.updatedAt })
+            .set({ isTombstone: true, updatedAt: updatedAtCase })
             .where(
               and(
-                eq(operationsTable.id, operation.id),
                 eq(operationsTable.userId, userId),
+                inArray(operationsTable.id, operationIds),
               ),
             );
         }
