@@ -2,13 +2,13 @@ import {
   CurrencyCode,
   IsoDateString,
   IsoDatetimeString,
-  MoneyString,
+  AmountString,
   UUID,
 } from '@ledgerly/shared/types';
 
 export type OperationReadModel = {
   accountId: UUID;
-  amount: MoneyString;
+  amount: AmountString;
   createdAt: IsoDatetimeString;
   description: string;
   id: UUID;
@@ -16,7 +16,7 @@ export type OperationReadModel = {
   transactionId: UUID;
   updatedAt: IsoDatetimeString;
   userId: UUID;
-  value: MoneyString;
+  value: AmountString;
 };
 
 export type TransactionReadModel = {

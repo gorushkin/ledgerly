@@ -7,7 +7,7 @@ import type {
   CurrencyCode,
   IsoDateString,
   IsoDatetimeString,
-  MoneyString,
+  AmountString,
   UUID,
 } from "./types";
 
@@ -18,9 +18,9 @@ export type TransactionQueryParams = z.output<
 
 export type OperationRequestDTO = {
   accountId: UUID;
-  amount: MoneyString;
+  amount: AmountString;
   description: string;
-  value: MoneyString;
+  value: AmountString;
 };
 
 export type CreateOperationRequestDTO = OperationRequestDTO;
@@ -31,7 +31,7 @@ export type UpdateOperationRequestDTO = OperationRequestDTO & {
 
 export type OperationResponseDTO = {
   accountId: UUID;
-  amount: MoneyString;
+  amount: AmountString;
   createdAt: IsoDatetimeString;
   description?: string;
   id: UUID;
@@ -39,7 +39,7 @@ export type OperationResponseDTO = {
   transactionId: UUID;
   updatedAt: IsoDatetimeString;
   userId: UUID;
-  value: MoneyString;
+  value: AmountString;
 };
 
 export type CreateTransactionRequestDTO = {

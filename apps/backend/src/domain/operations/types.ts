@@ -1,4 +1,4 @@
-import { IsoDatetimeString, MoneyString, UUID } from '@ledgerly/shared/types';
+import { IsoDatetimeString, AmountString, UUID } from '@ledgerly/shared/types';
 
 import { Account } from '../accounts';
 import { Amount, Id } from '../domain-core';
@@ -12,8 +12,8 @@ export type OperationSnapshot = {
   userId: UUID;
   isSystem: boolean;
   accountId: UUID;
-  amount: MoneyString;
-  value: MoneyString;
+  amount: AmountString;
+  value: AmountString;
   transactionId: UUID;
 };
 

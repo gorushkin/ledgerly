@@ -2,17 +2,17 @@ import {
   AccountTypeValue,
   CurrencyCode,
   IsoDatetimeString,
-  MoneyString,
+  AmountString,
   UUID,
 } from '@ledgerly/shared/types';
 
 export type AccountSnapshot = {
   createdAt: IsoDatetimeString;
   currency: CurrencyCode;
-  currentClearedBalanceLocal: MoneyString;
+  currentClearedBalanceLocal: AmountString;
   description: string;
   id: UUID;
-  initialBalance: MoneyString;
+  initialBalance: AmountString;
   isSystem: boolean;
   isTombstone: boolean;
   name: string;
