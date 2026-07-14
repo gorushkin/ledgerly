@@ -1,4 +1,4 @@
-import { apiErrorCodes, MoneyString } from '@ledgerly/shared/types';
+import { apiErrorCodes, AmountString } from '@ledgerly/shared/types';
 import {
   CreateOperationRequestDTO,
   UpdateOperationRequestDTO,
@@ -48,7 +48,7 @@ describe('OperationMapper', () => {
         OperationMapper.toCreateOperationProps(
           {
             ...validCreateDTO,
-            amount: 'NaN' as MoneyString,
+            amount: 'NaN' as AmountString,
           },
           transactionContext,
         ),
@@ -86,7 +86,7 @@ describe('OperationMapper', () => {
         OperationMapper.toUpdateOperationProps(
           {
             ...validUpdateDTO,
-            value: 'Infinity' as MoneyString,
+            value: 'Infinity' as AmountString,
           },
           transactionContext,
         ),

@@ -2,7 +2,7 @@ import { ROUTES } from '@ledgerly/shared/routes';
 import {
   apiErrorCodes,
   ApiErrorResponse,
-  MoneyString,
+  AmountString,
   UUID,
 } from '@ledgerly/shared/types';
 import {
@@ -232,9 +232,9 @@ describe('Transactions Integration Tests', () => {
           operation1,
           {
             accountId: account2.id,
-            amount: 'invalid' as unknown as MoneyString,
+            amount: 'invalid' as unknown as AmountString,
             description: 'Transfer to savings',
-            value: 'invalid' as unknown as MoneyString,
+            value: 'invalid' as unknown as AmountString,
           },
         ],
         postingDate: DateValue.restore('2025-11-07').valueOf(),
@@ -254,18 +254,18 @@ describe('Transactions Integration Tests', () => {
     });
 
     it.each([
-      ['NaN amount', { amount: 'NaN' as unknown as MoneyString }],
-      ['Infinity amount', { amount: 'Infinity' as unknown as MoneyString }],
-      ['decimal amount', { amount: '12.3' as unknown as MoneyString }],
-      ['empty amount', { amount: '' as unknown as MoneyString }],
-      ['null amount', { amount: null as unknown as MoneyString }],
-      ['missing amount', { amount: undefined as unknown as MoneyString }],
-      ['NaN value', { value: 'NaN' as unknown as MoneyString }],
-      ['Infinity value', { value: 'Infinity' as unknown as MoneyString }],
-      ['decimal value', { value: '12.3' as unknown as MoneyString }],
-      ['empty value', { value: '' as unknown as MoneyString }],
-      ['null value', { value: null as unknown as MoneyString }],
-      ['missing value', { value: undefined as unknown as MoneyString }],
+      ['NaN amount', { amount: 'NaN' as unknown as AmountString }],
+      ['Infinity amount', { amount: 'Infinity' as unknown as AmountString }],
+      ['decimal amount', { amount: '12.3' as unknown as AmountString }],
+      ['empty amount', { amount: '' as unknown as AmountString }],
+      ['null amount', { amount: null as unknown as AmountString }],
+      ['missing amount', { amount: undefined as unknown as AmountString }],
+      ['NaN value', { value: 'NaN' as unknown as AmountString }],
+      ['Infinity value', { value: 'Infinity' as unknown as AmountString }],
+      ['decimal value', { value: '12.3' as unknown as AmountString }],
+      ['empty value', { value: '' as unknown as AmountString }],
+      ['null value', { value: null as unknown as AmountString }],
+      ['missing value', { value: undefined as unknown as AmountString }],
     ])('should fail with %s', async (_, invalidOperationPatch) => {
       const payload: TransactionCreateInput = {
         currencyCode: Currency.create('USD').valueOf(),

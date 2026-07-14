@@ -7,7 +7,7 @@ import {
   AccountTypeValue,
   CurrencyCode,
   IsoDateString,
-  MoneyString,
+  AmountString,
   UUID,
 } from '@ledgerly/shared/types';
 import { isoDate, isoDatetime } from '@ledgerly/shared/validation';
@@ -246,8 +246,8 @@ export class TestDB {
         accountId: UUID;
         description: string;
         transactionId?: UUID;
-        amount: MoneyString;
-        value: MoneyString;
+        amount: AmountString;
+        value: AmountString;
         isSystem?: boolean;
         isTombstone?: boolean;
         id: UUID;
@@ -306,8 +306,8 @@ export class TestDB {
       description?: string;
       transactionId: UUID;
       id?: UUID;
-      amount?: MoneyString;
-      value?: MoneyString;
+      amount?: AmountString;
+      value?: AmountString;
       isSystem?: boolean;
       isTombstone?: boolean;
     },
@@ -414,7 +414,7 @@ export class TestDB {
       name?: string;
       currency?: CurrencyCode;
       type?: AccountTypeValue;
-      initialBalance?: MoneyString;
+      initialBalance?: AmountString;
       description?: string;
       isSystem?: boolean;
     },

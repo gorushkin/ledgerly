@@ -8,7 +8,7 @@ import {
   currencyCode,
   isoDatetime,
   uuid,
-  moneyAmountString,
+  amountString,
 } from "./baseValidations";
 
 const accountType = z.enum(ACCOUNT_TYPE_VALUES);
@@ -16,7 +16,7 @@ const accountType = z.enum(ACCOUNT_TYPE_VALUES);
 export const accountCreateSchema = z.object({
   currency: currencyCode,
   description: requiredText,
-  initialBalance: moneyAmountString,
+  initialBalance: amountString,
   name: notNullText,
   type: accountType,
 });
