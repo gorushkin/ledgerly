@@ -1,4 +1,4 @@
-import { InvalidCommodityCodeError } from 'src/domain';
+import { InvalidCommodityCodeError } from 'src/domain/domain.errors';
 import { describe, expect, it } from 'vitest';
 
 import { CommodityCode } from './CommodityCode';

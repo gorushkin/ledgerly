@@ -169,7 +169,7 @@ describe('Commodity Domain Entity', () => {
 
       expect(() => {
         Commodity.restore(snapshot);
-      }).toThrowError();
+      }).toThrowError(InvalidCommoditySymbolError);
     });
   });
 
@@ -313,7 +313,7 @@ describe('Commodity Domain Entity', () => {
         expect(updatedSnapshot.name).toBe(newName.valueOf());
         expect(updatedSnapshot.symbol).toBe(newSymbol);
         expect(updatedSnapshot.code).toBe(newCode.valueOf());
-        expect(updatedSnapshot.updatedAt).not.toBe(before.createdAt);
+        expect(updatedSnapshot.updatedAt).not.toBe(before.updatedAt);
       });
     });
 

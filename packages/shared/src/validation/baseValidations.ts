@@ -90,7 +90,7 @@ export const commodityCode = z
   .toUpperCase()
   .min(
     COMMODITY_CODE_MIN_LENGTH,
-    `Commodity code must be at least ${COMMODITY_CODE_MIN_LENGTH} character long`,
+    `Commodity code must be at least ${COMMODITY_CODE_MIN_LENGTH} characters long`,
   )
   .max(
     COMMODITY_CODE_MAX_LENGTH,
@@ -102,11 +102,6 @@ export const commodityCode = z
   )
   .brand<"CommodityCode">();
 
-export const commoditySymbol = z
-  .string()
-  .trim()
-  .max(12)
-  .transform((value) => value || null)
-  .nullable();
+export const commoditySymbol = z.string().trim().max(12).nullable();
 
 export const commodityPrecision = z.number().int().min(0).max(18);

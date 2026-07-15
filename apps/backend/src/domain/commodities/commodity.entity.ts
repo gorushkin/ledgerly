@@ -1,4 +1,7 @@
-import { CommodityPrecisionNumber } from '@ledgerly/shared/types';
+import {
+  CommodityPrecisionNumber,
+  CommoditySymbolString,
+} from '@ledgerly/shared/types';
 
 import {
   CommodityCode,
@@ -24,7 +27,7 @@ export class Commodity {
     private softDelete: SoftDelete,
     private readonly ownership: ParentChildRelation,
     private code: CommodityCode,
-    public symbol: string | null,
+    public symbol: CommoditySymbolString | null,
     public name: Name,
     private precision: CommodityPrecisionNumber,
   ) {}

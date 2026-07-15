@@ -1,7 +1,9 @@
 import {
   CommodityCodeString,
+  CommoditySymbolString,
   IsoDatetimeString,
   UUID,
+  CommodityPrecisionNumber,
 } from '@ledgerly/shared/types';
 
 export type CommoditySnapshot = {
@@ -9,15 +11,15 @@ export type CommoditySnapshot = {
   id: UUID;
   isTombstone: boolean;
   code: CommodityCodeString;
-  symbol: string | null;
+  symbol: CommoditySymbolString | null;
   updatedAt: IsoDatetimeString;
   userId: UUID;
   name: string;
-  precision: number;
+  precision: CommodityPrecisionNumber;
 };
 
 export type CommodityUpdateProps = Partial<{
-  code: CommodityCodeString;
+  code: string;
   symbol: string | null;
   name: string;
 }>;

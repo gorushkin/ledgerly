@@ -1,6 +1,6 @@
 import { CommodityCodeString } from '@ledgerly/shared/types';
 import { commodityCode } from '@ledgerly/shared/validation';
-import { InvalidCommodityCodeError } from 'src/domain';
+import { InvalidCommodityCodeError } from 'src/domain/domain.errors';
 
 import { parseValueObject } from './parseValueObject';
 
