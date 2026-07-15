@@ -64,24 +64,24 @@ Represents different financial accounts with unified structure for all account t
 - `isSystem = true` is reserved for future system trading accounts (currently unused)
 - Has soft delete support (`isTombstone`)
 
-### Currency
+### Commodity
 
-Represents different monetary units used in the system.
+Represents a user-owned monetary unit used in the system.
 
-> Design note: this concept is expected to evolve into an asset/commodity
-> registry before transaction currency existence validation is finalized. Fiat
-> currencies, crypto assets, tokenized assets on different networks, and custom
-> user-defined assets should not all rely on a currency code as primary
-> identity. See
-> [ADR 0006](./architecture/adr/0006-asset-registry-before-currency-validation.md).
+> Design note: the current implementation still uses currency strings in some
+> places, but the target domain model is a user-owned Commodity Registry.
+> Commodity identity is a stable id, not `code`. See
+> [ADR 0006](./architecture/adr/0006-commodity-registry-before-currency-validation.md).
 
 #### Key Properties
 
-- Each account has a designated currency
-- System has a base currency for reporting
-- Operations always store amounts in the account's currency
-- Currency conversion is handled through trading operations
-- Historical rates can be stored for accurate reporting
+- Each account has a designated Commodity
+- Account Commodity is immutable after account creation
+- Transactions have a valuation Commodity that determines `value` denomination
+- Operations always store `amount` in the account's Commodity
+- Commodity `code`, `name`, and `symbol` are display metadata, not identity
+- Commodity `precision` defines integer minor-unit interpretation
+- Archived Commodities remain readable but cannot be used for new assignments
 
 ## Entity API Conventions
 
@@ -379,22 +379,20 @@ Account
 - createdAt: timestamp
 - updatedAt: timestamp
 
-Currency
-- code: string (PK)
+Commodity (target model, see ADR 0006)
+- id: UUID
+- userId: UUID (FK)
+- code: string                 -- display/search value, unique per user
 - name: string
 - symbol: string
-
-Future asset registry direction:
-- id: UUID or stable asset identifier
-- type: fiat | crypto | commodity | custom
-- code/symbol: display and search values, not necessarily globally unique
-- precision: minor-unit scale for integer amount storage
-- network and contract address: optional metadata for tokenized assets
-- createdByUserId: nullable owner for user-defined assets
+- precision: integer           -- immutable after creation in the MVP
+- isArchived: boolean
+- createdAt: timestamp
+- updatedAt: timestamp
 
 Settings
 - userId: UUID (PK, FK)
-- baseCurrency: string (FK)
+- baseCurrency: string (FK, legacy; target model should use Commodity id)
 - createdAt: timestamp
 - updatedAt: timestamp
 ```

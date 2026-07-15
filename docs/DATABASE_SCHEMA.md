@@ -151,14 +151,12 @@ User's financial accounts for tracking funds.
 ---
 
 ### 💱 **Currencies**
-Dictionary of supported currencies.
+Legacy dictionary of supported currencies.
 
-> Design note: this table is an MVP currency dictionary, not the final identity
-> model for all monetary units. Ledgerly is expected to need an asset/commodity
-> registry for fiat currencies, crypto assets, network-specific tokens, and
-> custom user assets before final transaction currency existence validation is
-> implemented. See
-> [ADR 0006](./architecture/adr/0006-asset-registry-before-currency-validation.md).
+> Design note: this table is not the final identity model for monetary units.
+> The target model is a user-owned `commodities` table. Commodity identity is a
+> stable id, not `code`. See
+> [ADR 0006](./architecture/adr/0006-commodity-registry-before-currency-validation.md).
 
 | Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
@@ -174,6 +172,20 @@ Dictionary of supported currencies.
 **Relations:**
 - `1:N` with `accounts`
 - `1:N` with `settings`
+
+**Target Commodity model:**
+
+| Field | Type | Description | Constraints |
+|------|-----|----------|-------------|
+| `id` | UUID | Stable Commodity identity | PK |
+| `userId` | UUID | Commodity owner | FK -> `users.id`, NOT NULL |
+| `code` | String | Display/search code | NOT NULL, unique per user |
+| `name` | String | Display name | NOT NULL |
+| `symbol` | String | Display symbol | NOT NULL |
+| `precision` | Integer | Minor-unit scale for integer amounts | NOT NULL, immutable after creation |
+| `isArchived` | Boolean | Hidden from new assignments | NOT NULL, default: false |
+| `createdAt` | Timestamp | Creation time | NOT NULL |
+| `updatedAt` | Timestamp | Last update time | NOT NULL |
 
 ---
 
