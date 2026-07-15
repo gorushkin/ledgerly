@@ -14,6 +14,9 @@ export const apiErrorCodes = {
   internalServerError: "INTERNAL_SERVER_ERROR",
   invalidAccountType: "INVALID_ACCOUNT_TYPE",
   invalidAmount: "INVALID_AMOUNT",
+  invalidCommodityCode: "INVALID_COMMODITY_CODE",
+  invalidCommodityPrecision: "INVALID_COMMODITY_PRECISION",
+  invalidCommoditySymbol: "INVALID_COMMODITY_SYMBOL",
   invalidDate: "INVALID_DATE",
   invalidEmail: "INVALID_EMAIL",
   invalidIdentifier: "INVALID_IDENTIFIER",
@@ -89,6 +92,21 @@ export type ErrorContextByCode = {
   INVALID_AMOUNT: {
     field?: string;
     reason: "NOT_INTEGER_MINOR_UNITS";
+    received: string;
+  };
+  INVALID_COMMODITY_CODE: {
+    field?: string;
+    reason: "INVALID_FORMAT";
+    received: string;
+  };
+  INVALID_COMMODITY_PRECISION: {
+    field?: string;
+    reason: "INVALID_FORMAT";
+    received: string;
+  };
+  INVALID_COMMODITY_SYMBOL: {
+    field?: string;
+    reason: "INVALID_FORMAT";
     received: string;
   };
   INVALID_DATE: {

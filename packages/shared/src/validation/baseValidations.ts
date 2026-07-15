@@ -80,3 +80,28 @@ export const getTransactionsQuerySchema = z
       });
     }
   });
+
+const COMMODITY_CODE_MIN_LENGTH = 3;
+const COMMODITY_CODE_MAX_LENGTH = 16;
+
+export const commodityCode = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .min(
+    COMMODITY_CODE_MIN_LENGTH,
+    `Commodity code must be at least ${COMMODITY_CODE_MIN_LENGTH} characters long`,
+  )
+  .max(
+    COMMODITY_CODE_MAX_LENGTH,
+    `Commodity code must be at most ${COMMODITY_CODE_MAX_LENGTH} characters long`,
+  )
+  .regex(
+    /^[A-Z][A-Z0-9]*$/,
+    "Commodity code must start with a letter and contain only letters and digits",
+  )
+  .brand<"CommodityCode">();
+
+export const commoditySymbol = z.string().trim().max(12).nullable();
+
+export const commodityPrecision = z.number().int().min(0).max(18);
