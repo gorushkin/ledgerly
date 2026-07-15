@@ -128,17 +128,16 @@ Trading accounts will never be displayed to the user.
 
 ## 5. Data Structure
 
-> Design note: the current schema uses `currency` strings, but this should not
-> be treated as the final persistence model for monetary units. Before adding
-> existence validation for transaction currency, define an asset/commodity
-> registry that can represent fiat currencies, crypto assets, tokens on specific
-> networks, and custom user assets. See
-> [ADR 0006](./architecture/adr/0006-asset-registry-before-currency-validation.md).
+> Design note: the current schema uses `currency` strings, but the target model
+> is a user-owned Commodity Registry. Commodity identity is a stable id, not a
+> display code. See
+> [ADR 0006](./architecture/adr/0006-commodity-registry-before-currency-validation.md).
 
 ### Transaction
 Top-level entity representing a financial event:
 - `id`, `userId`, `description`
-- `currency` (base currency for the transaction — determines `value` denomination)
+- `currency` today; target model: `valuationCommodityId`, which determines
+  `value` denomination
 - `transactionDate`, `postingDate`
 - `version` (optimistic concurrency)
 - `createdAt`, `updatedAt`, `isTombstone`
