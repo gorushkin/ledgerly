@@ -9,3 +9,4 @@ export { Password } from './Password';
 export { DateValue } from './DateValue';
 export { Version } from './Version';
 export { parseValueObject } from './parseValueObject';
+export { CommodityCode } from './CommodityCode';
