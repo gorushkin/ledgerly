@@ -1,11 +1,29 @@
-import { UUID, CurrencyCode, IsoDateString } from '@ledgerly/shared/types';
+import {
+  UUID,
+  CurrencyCode,
+  IsoDateString,
+  CommodityCodeString,
+} from '@ledgerly/shared/types';
 import {
   CreateOperationRequestDTO,
   CreateTransactionRequestDTO,
   EntityNotFoundError,
 } from 'src/application';
-import { Account, AccountType, Operation, Transaction, User } from 'src/domain';
-import { Amount, Currency, DateValue, Name } from 'src/domain/domain-core';
+import {
+  Account,
+  AccountType,
+  Commodity,
+  Operation,
+  Transaction,
+  User,
+} from 'src/domain';
+import {
+  Amount,
+  CommodityCode,
+  Currency,
+  DateValue,
+  Name,
+} from 'src/domain/domain-core';
 import {
   CreateTransactionProps,
   TransactionBuildContext,
@@ -37,8 +55,10 @@ export type TransactionBuilderOptions = {
 export type TransactionRequestBuilderResult = {
   accountsMap: Map<UUID, Account>;
   accounts: Account[];
+  commodities: Commodity[];
   transactionContext: TransactionBuildContext;
   getAccountByKey: (key: string) => Account;
+  getCommodityByKey: (code: string) => Commodity;
   getSystemAccountByCurrency: (currency: string) => Account;
   systemAccounts: Map<CurrencyCode, Account>;
   user: User;
@@ -65,6 +85,7 @@ export class TransactionBuilder {
   private readonly user: User;
   private readonly accounts = new Map<string, Account>();
   private readonly accountsMap = new Map<UUID, Account>();
+  private readonly commoditiesMap = new Map<CommodityCodeString, Commodity>();
   private readonly systemAccounts = new Map<CurrencyCode, Account>();
   private readonly operationsData: OperationDataForTransaction[];
   private readonly postingDate: IsoDateString;
@@ -109,8 +130,16 @@ export class TransactionBuilder {
 
   private createAccounts(currencyCodes: string[]): void {
     currencyCodes.forEach((currencyCode) => {
+      const code = CommodityCode.create(currencyCode);
+      const commodity = Commodity.create(
+        this.user,
+        Name.create(`Commodity ${currencyCode}`),
+        code,
+      );
+
       const account = Account.create(
         this.user,
+        commodity,
         Name.create(`Account ${currencyCode}`),
         `Account ${currencyCode}`,
         Amount.create('0'),
@@ -120,16 +149,30 @@ export class TransactionBuilder {
 
       this.accounts.set(currencyCode, account);
       this.accountsMap.set(account.getId().valueOf(), account);
+      this.commoditiesMap.set(code.valueOf(), commodity);
     });
 
     this.createSystemAccounts();
   }
 
+  private getCommodityByCurrency(currency: string): Commodity {
+    const code = CommodityCode.create(currency);
+    const commodity = this.commoditiesMap.get(code.valueOf());
+
+    if (!commodity) {
+      throw new EntityNotFoundError({ entityType: Commodity.entityType });
+    }
+
+    return commodity;
+  }
+
   private createSystemAccounts(): void {
     this.accounts.forEach((account) => {
       const currencyCode = account.currency.valueOf();
+      const commodity = this.getCommodityByCurrency(currencyCode);
       const systemAccount = Account.create(
         this.user,
+        commodity,
         Name.create(`System Account ${currencyCode}`),
         `System Account for ${currencyCode}`,
         Amount.create('0'),
@@ -160,6 +203,16 @@ export class TransactionBuilder {
     }
 
     return account;
+  }
+
+  getCommodityByKey(code: string): Commodity {
+    const commodity = this.commoditiesMap.get(code as CommodityCodeString);
+
+    if (!commodity) {
+      throw new EntityNotFoundError({ entityType: Commodity.entityType });
+    }
+
+    return commodity;
   }
 
   private buildOperationsDTO(): CreateOperationRequestDTO[] {
@@ -201,7 +254,9 @@ export class TransactionBuilder {
     return {
       accounts: Array.from(this.accountsMap.values()),
       accountsMap: this.accountsMap,
+      commodities: Array.from(this.commoditiesMap.values()),
       getAccountByKey: this.getAccountByKey.bind(this),
+      getCommodityByKey: this.getCommodityByKey.bind(this),
       getSystemAccountByCurrency: this.getSystemAccountByCurrency.bind(this),
       operationsData: this.operationsData,
       systemAccounts: this.systemAccounts,

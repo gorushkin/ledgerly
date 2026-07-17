@@ -6,6 +6,7 @@ import {
   type AccountRepositoryUpdateInput,
 } from 'src/application';
 import { accountsTable } from 'src/db/schemas/accounts';
+import { commoditiesTable } from 'src/db/schemas/commodities';
 import { AccountSnapshot } from 'src/domain/accounts';
 
 import { BaseRepository } from '../BaseRepository';
@@ -38,6 +39,24 @@ export class AccountRepository
   create(data: AccountSnapshot): Promise<AccountSnapshot> {
     return this.executeDatabaseOperation(
       async () => {
+        const existingCommodity = await this.db
+          .select()
+          .from(commoditiesTable)
+          .where(
+            and(
+              eq(commoditiesTable.id, data.commodityId),
+              eq(commoditiesTable.userId, data.userId),
+              eq(commoditiesTable.isTombstone, false),
+            ),
+          )
+          .get();
+
+        this.ensureEntityExists(
+          existingCommodity,
+          `Commodity with ID ${data.commodityId} not found`,
+          this.entityNotFoundContext('commodity', data.commodityId),
+        );
+
         const account = await this.db
           .insert(accountsTable)
           .values({

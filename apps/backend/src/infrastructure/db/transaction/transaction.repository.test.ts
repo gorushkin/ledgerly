@@ -21,6 +21,7 @@ import {
   TransactionRepository,
 } from '../';
 import { AccountPersistenceMapper } from '../accounts';
+import { CommodityPersistenceMapper } from '../commodities';
 import { OperationPersistenceMapper } from '../operations';
 import { UserPersistenceMapper } from '../user';
 
@@ -84,6 +85,16 @@ describe('TransactionRepository', () => {
       settings: { description },
       user: UserPersistenceMapper.toDomain(user),
     });
+
+    const usdCommodity = data.getCommodityByKey('USD');
+    const eurCommodity = data.getCommodityByKey('EUR');
+
+    await testDB.insertCommodity(
+      CommodityPersistenceMapper.toDBRowFromSnapshot(usdCommodity.toSnapshot()),
+    );
+    await testDB.insertCommodity(
+      CommodityPersistenceMapper.toDBRowFromSnapshot(eurCommodity.toSnapshot()),
+    );
 
     usdAccount = data.getAccountByKey('USD');
     eurAccount = data.getAccountByKey('EUR');

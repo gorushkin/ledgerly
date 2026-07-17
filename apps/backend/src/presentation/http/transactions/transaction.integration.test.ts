@@ -16,6 +16,7 @@ import {
 } from 'src/application';
 import {
   AccountDbRow,
+  CommodityDbRow,
   OperationDbRow,
   TransactionDbRow,
   UserDbRow,
@@ -45,6 +46,8 @@ describe('Transactions Integration Tests', () => {
   let authToken: string;
   let userId: UUID;
   let user: UserDbRow;
+  let commodity: CommodityDbRow;
+  let commodityId: UUID;
 
   beforeEach(async () => {
     testDB = new TestDB();
@@ -54,6 +57,9 @@ describe('Transactions Integration Tests', () => {
     await server.ready();
 
     user = await testDB.createUser(testUser);
+
+    commodity = await testDB.createCommodity(user.id);
+    commodityId = commodity.id;
 
     const token = server.jwt.sign({
       email: user.email,
@@ -72,11 +78,11 @@ describe('Transactions Integration Tests', () => {
 
   const createAccounts = async () => {
     return Promise.all([
-      testDB.createAccount(userId, {
+      testDB.createAccount(userId, commodityId, {
         currency: Currency.create('USD').valueOf(),
         name: 'Checking USD',
       }),
-      testDB.createAccount(userId, {
+      testDB.createAccount(userId, commodityId, {
         currency: Currency.create('USD').valueOf(),
         name: 'Savings USD',
       }),
@@ -146,7 +152,7 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should create a multi-currency transaction balanced by value when amounts do not sum to zero', async () => {
-      const rubAccount = await testDB.createAccount(userId, {
+      const rubAccount = await testDB.createAccount(userId, commodityId, {
         currency: Currency.create('RUB').valueOf(),
         name: 'Cash RUB',
       });
@@ -372,10 +378,14 @@ describe('Transactions Integration Tests', () => {
         password: 'password123',
       });
 
-      const otherUserAccount = await testDB.createAccount(otherUser.id, {
-        currency: Currency.create('USD').valueOf(),
-        name: 'Other User Account',
-      });
+      const otherUserAccount = await testDB.createAccount(
+        otherUser.id,
+        commodityId,
+        {
+          currency: Currency.create('USD').valueOf(),
+          name: 'Other User Account',
+        },
+      );
 
       const payload: TransactionCreateInput = {
         currencyCode: Currency.create('USD').valueOf(),
@@ -1746,10 +1756,14 @@ describe('Transactions Integration Tests', () => {
 
       const otherUser = await testDB.createUser();
 
-      const otherUserAccount = await testDB.createAccount(otherUser.id, {
-        currency: Currency.create('USD').valueOf(),
-        name: 'Other User Account',
-      });
+      const otherUserAccount = await testDB.createAccount(
+        otherUser.id,
+        commodityId,
+        {
+          currency: Currency.create('USD').valueOf(),
+          name: 'Other User Account',
+        },
+      );
 
       const updatedData = createUpdateRequest({
         description: 'Should not be persisted',
@@ -1825,10 +1839,14 @@ describe('Transactions Integration Tests', () => {
 
       const otherUser = await testDB.createUser();
 
-      const otherUserAccount = await testDB.createAccount(otherUser.id, {
-        currency: Currency.create('USD').valueOf(),
-        name: 'Other User Account',
-      });
+      const otherUserAccount = await testDB.createAccount(
+        otherUser.id,
+        commodityId,
+        {
+          currency: Currency.create('USD').valueOf(),
+          name: 'Other User Account',
+        },
+      );
 
       const updatedData = createUpdateRequest({
         description: 'Should not be persisted',

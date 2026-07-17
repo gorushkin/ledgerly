@@ -6,6 +6,7 @@ import { AccountPersistenceMapper } from './account-persistence.mapper';
 
 describe('AccountPersistenceMapper', () => {
   const row: AccountDbRow = {
+    commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
     currency: Currency.create('USD').valueOf(),
     currentClearedBalanceLocal: Amount.create('2500').valueOf(),
@@ -22,6 +23,7 @@ describe('AccountPersistenceMapper', () => {
 
   it('maps a persistence row to an account snapshot explicitly', () => {
     expect(AccountPersistenceMapper.toSnapshot(row)).toEqual({
+      commodityId: row.commodityId,
       createdAt: row.createdAt,
       currency: row.currency,
       currentClearedBalanceLocal: row.currentClearedBalanceLocal,
@@ -51,6 +53,7 @@ describe('AccountPersistenceMapper', () => {
     expect(
       AccountPersistenceMapper.toDBRowFromSnapshot(account.toSnapshot()),
     ).toEqual({
+      commodityId: row.commodityId,
       createdAt: row.createdAt,
       currency: row.currency,
       currentClearedBalanceLocal: row.currentClearedBalanceLocal,

@@ -1,4 +1,9 @@
-import { UUID } from '@ledgerly/shared/types';
+import {
+  CommodityCodeString,
+  CommodityPrecisionNumber,
+  UUID,
+  CommoditySymbolString,
+} from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import {
   integer,
@@ -7,20 +12,19 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
-import { createdAt, description, updatedAt, id, isTombstone } from './common';
+import { createdAt, updatedAt, id, isTombstone } from './common';
 import { usersTable } from './users';
 
 export const commoditiesTable = sqliteTable(
   'commodities',
   {
-    code: text('code').notNull(),
+    code: text('code').notNull().$type<CommodityCodeString>(),
     createdAt,
-    description,
     id,
     isTombstone,
     name: text('name').notNull(),
-    precision: integer('precision').notNull(),
-    symbol: text('symbol'),
+    precision: integer('precision').notNull().$type<CommodityPrecisionNumber>(),
+    symbol: text('symbol').$type<CommoditySymbolString>(),
     updatedAt,
     userId: text('user_id')
       .notNull()

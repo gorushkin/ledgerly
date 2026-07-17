@@ -10,6 +10,7 @@ export type AccountSnapshot = {
   createdAt: IsoDatetimeString;
   currency: CurrencyCode;
   currentClearedBalanceLocal: AmountString;
+  commodityId: UUID;
   description: string;
   id: UUID;
   initialBalance: AmountString;

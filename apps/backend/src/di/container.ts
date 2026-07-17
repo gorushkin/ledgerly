@@ -1,5 +1,4 @@
 import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
-import { AccountFactory } from 'src/application/services';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
@@ -23,6 +22,7 @@ import {
   AccountRepository,
   UserRepository,
 } from 'src/infrastructure/db';
+import { CommodityRepository } from 'src/infrastructure/db/commodities/commodity.repository';
 import {
   AccountController,
   AuthController,
@@ -38,6 +38,7 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const accountRepository = new AccountRepository(transactionManager);
   const currencyRepository = new CurrencyRepository(transactionManager);
+  const commodityRepository = new CommodityRepository(transactionManager);
   const operationRepository = new OperationRepository(transactionManager);
   const transactionRepository = new TransactionRepository(
     operationRepository,
@@ -52,6 +53,7 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
+    commodity: commodityRepository,
     currency: currencyRepository,
     transaction: transactionRepository,
     transactionQuery: transactionQueryRepository,
@@ -59,8 +61,6 @@ export const createContainer = (db: DataBase): AppContainer => {
   };
 
   // Services and Factories
-
-  const accountFactory = new AccountFactory(accountRepository);
 
   const transactionContextLoader = new TransactionContextLoader(
     accountRepository,
@@ -73,7 +73,10 @@ export const createContainer = (db: DataBase): AppContainer => {
   };
 
   // Create Account Use Cases
-  const createAccountUseCase = new CreateAccountUseCase(accountFactory);
+  const createAccountUseCase = new CreateAccountUseCase(
+    accountRepository,
+    commodityRepository,
+  );
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
   const updateAccountUseCase = new UpdateAccountUseCase(accountRepository);
@@ -161,14 +164,9 @@ export const createContainer = (db: DataBase): AppContainer => {
     user: userController,
   };
 
-  const factories: AppContainer['factories'] = {
-    account: accountFactory,
-  };
-
   return {
     controllers,
     db,
-    factories,
     repositories,
     services,
     useCases,

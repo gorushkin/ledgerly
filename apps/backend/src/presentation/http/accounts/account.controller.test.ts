@@ -101,6 +101,7 @@ describe('AccountController', () => {
   describe('create', () => {
     it('should call accountService.create with correct data', async () => {
       const requestBody: AccountCreateDTO = {
+        commodityId: Id.create().valueOf(),
         currency: Currency.create('USD').valueOf(),
         description: 'Test Account',
         initialBalance: Amount.create('1000').valueOf(),

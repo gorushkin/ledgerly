@@ -7,6 +7,7 @@ import { AccountMapper } from './account.mapper';
 
 describe('AccountMapper', () => {
   const snapshot: AccountSnapshot = {
+    commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
     currency: Currency.create('USD').valueOf(),
     currentClearedBalanceLocal: Amount.create('2500').valueOf(),
@@ -23,6 +24,7 @@ describe('AccountMapper', () => {
 
   it('maps an account snapshot to a response DTO', () => {
     expect(AccountMapper.toResponseDTOFromSnapshot(snapshot)).toEqual({
+      commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
       currency: snapshot.currency,
       currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,

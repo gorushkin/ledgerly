@@ -39,6 +39,7 @@ describe('DeleteAccountUseCase', async () => {
   };
 
   const mockAccountData: AccountSnapshot = {
+    commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
     currency: currencyCode,
     currentClearedBalanceLocal: initialBalance,

@@ -11,6 +11,7 @@ import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
 import { Account } from 'src/domain/accounts/account.entity';
+import { AccountSnapshot } from 'src/domain/accounts/types';
 import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -44,7 +45,8 @@ describe('GetAccountByIdUseCase', async () => {
     name: 'Test User',
   };
 
-  const mockSavedAccountData = {
+  const mockSavedAccountData: AccountSnapshot = {
+    commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
     currency,
     currentClearedBalanceLocal: initialBalance,

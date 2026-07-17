@@ -9,6 +9,9 @@ import {
   IsoDateString,
   AmountString,
   UUID,
+  CommodityCodeString,
+  CommodityPrecisionNumber,
+  CommoditySymbolString,
 } from '@ledgerly/shared/types';
 import { isoDate, isoDatetime } from '@ledgerly/shared/validation';
 import { createClient } from '@libsql/client';
@@ -16,7 +19,12 @@ import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
-import { Amount, Currency, DateValue } from 'src/domain/domain-core';
+import {
+  Amount,
+  CommodityCode,
+  Currency,
+  DateValue,
+} from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { TransactionSnapshot } from 'src/domain/transactions/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
@@ -33,6 +41,8 @@ import {
   AccountDbInsert,
   OperationDbInsert,
   OperationDbRow,
+  CommodityDbInsert,
+  commoditiesTable,
 } from './schema';
 import * as schema from './schemas';
 
@@ -55,10 +65,13 @@ class Counter {
     return this.count;
   }
 
-  getNextName(suffix = ''): string {
+  getNextName({
+    delimiter = '-',
+    suffix = '',
+  }: { suffix?: string; delimiter?: string } = {}): string {
     this.increment();
     if (this.name) {
-      return `${this.name}-${this.count}${suffix ? `-${suffix}` : ''}`;
+      return `${this.name}${delimiter}${this.count}${suffix ? `${delimiter}${suffix}` : ''}`;
     }
 
     return this.count.toString();
@@ -94,6 +107,7 @@ export type TransactionSeed = {
 export class TestDB {
   db: DataBase;
   transactionCounter = new Counter('transaction');
+  commodityCounter = new Counter('commodity');
   operationCounter = new Counter('operation');
   userCounter = new Counter('user');
   private testDbFile?: string;
@@ -408,8 +422,49 @@ export class TestDB {
       .get();
   };
 
+  createCommodity = async (
+    userId: UUID,
+    params?: {
+      code?: CommodityCodeString;
+      symbol?: CommoditySymbolString;
+      name?: string;
+      precision?: CommodityPrecisionNumber;
+    },
+  ) => {
+    const commodityData = {
+      code:
+        params?.code ??
+        CommodityCode.create(
+          `COM${this.commodityCounter.getNextName({ delimiter: '' })}`,
+        ).valueOf(),
+      name:
+        params?.name ?? `Commodity ${this.transactionCounter.getNextName()}`,
+      precision: params?.precision ?? 2,
+      symbol: params?.symbol ?? `${this.commodityCounter.getNextName()}`,
+      userId,
+    };
+
+    const commodity = await this.db
+      .insert(schema.commoditiesTable)
+      .values({
+        code: commodityData.code,
+        name: commodityData.name,
+        precision: commodityData.precision,
+        symbol: commodityData.symbol,
+        userId: commodityData.userId,
+        ...TestDB.createTimestamps,
+        ...TestDB.uuid,
+        isTombstone: false,
+      })
+      .returning()
+      .get();
+
+    return commodity;
+  };
+
   createAccount = async (
     userId: UUID,
+    commodityId: UUID,
     params?: {
       name?: string;
       currency?: CurrencyCode;
@@ -433,6 +488,7 @@ export class TestDB {
     const account = await this.db
       .insert(accountsTable)
       .values({
+        commodityId,
         currency: accountData.currency,
         currentClearedBalanceLocal: accountData.initialBalance ?? 0,
         description: accountData.description || '',
@@ -449,6 +505,16 @@ export class TestDB {
       .get();
 
     return account;
+  };
+
+  insertCommodity = async (commodityData: CommodityDbInsert) => {
+    const insertedCommodity = await this.db
+      .insert(commoditiesTable)
+      .values(commodityData)
+      .returning()
+      .get();
+
+    return insertedCommodity;
   };
 
   insertAccount = async (accountData: AccountDbInsert) => {
@@ -539,17 +605,31 @@ export class TestDB {
         password: 'hashed_password',
       }));
 
-    const accountUSD1 = await this.createAccount(user.id, {
+    const usdCommodity = await this.createCommodity(user.id, {
+      code: CommodityCode.create('USD').valueOf(),
+      name: 'US Dollar',
+      precision: 2,
+      symbol: '$',
+    });
+
+    const eurCommodity = await this.createCommodity(user.id, {
+      code: CommodityCode.create('EUR').valueOf(),
+      name: 'Euro',
+      precision: 2,
+      symbol: '€',
+    });
+
+    const accountUSD1 = await this.createAccount(user.id, usdCommodity.id, {
       currency: Currency.create('USD').valueOf(),
       name: 'Savings Account USD',
     });
 
-    const accountUSD2 = await this.createAccount(user.id, {
+    const accountUSD2 = await this.createAccount(user.id, usdCommodity.id, {
       currency: Currency.create('USD').valueOf(),
       name: 'Checking Account USD',
     });
 
-    const accountEUR = await this.createAccount(user.id, {
+    const accountEUR = await this.createAccount(user.id, eurCommodity.id, {
       currency: Currency.create('EUR').valueOf(),
       name: 'Credit Card EUR',
     });

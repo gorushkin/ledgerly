@@ -1,3 +1,4 @@
+import { Commodity } from '../commodities';
 import {
   Amount,
   Currency,
@@ -18,33 +19,24 @@ import { AccountSnapshot, AccountUpdateProps } from './types';
 export class Account {
   static readonly entityType = 'account';
 
-  private readonly identity: EntityIdentity;
-  private timestamps: EntityTimestamps;
-  private softDelete: SoftDelete;
-  private readonly ownership: ParentChildRelation;
-
   private constructor(
-    identity: EntityIdentity,
-    timestamps: EntityTimestamps,
-    softDelete: SoftDelete,
-    ownership: ParentChildRelation,
+    private readonly identity: EntityIdentity,
+    private timestamps: EntityTimestamps,
+    private softDelete: SoftDelete,
+    private readonly ownership: ParentChildRelation,
+    private readonly commodityRelation: ParentChildRelation,
     public name: Name,
     public description: string,
     private initialBalance: Amount,
-    // remove currentClearedBalanceLocal from entity and schemas later
     private currentClearedBalanceLocal: Amount,
     public currency: Currency,
     private type: AccountType,
     public isSystem: boolean,
-  ) {
-    this.identity = identity;
-    this.timestamps = timestamps;
-    this.softDelete = softDelete;
-    this.ownership = ownership;
-  }
+  ) {}
 
   static create(
     user: User,
+    commodity: Commodity,
     name: Name,
     description: string,
     initialBalance: Amount,
@@ -60,6 +52,11 @@ export class Account {
       identity.getId(),
     );
 
+    const commodityRelation = ParentChildRelation.create(
+      commodity.getId(),
+      identity.getId(),
+    );
+
     const isSystem = type.isSystemType();
 
     return new Account(
@@ -67,6 +64,7 @@ export class Account {
       timestamps,
       softDelete,
       ownership,
+      commodityRelation,
       name,
       description,
       initialBalance,
@@ -79,6 +77,7 @@ export class Account {
 
   static restore(data: AccountSnapshot): Account {
     const {
+      commodityId,
       createdAt,
       currency,
       currentClearedBalanceLocal,
@@ -107,11 +106,17 @@ export class Account {
       identity.getId(),
     );
 
+    const commodityRelation = ParentChildRelation.create(
+      Id.restore(commodityId),
+      identity.getId(),
+    );
+
     return new Account(
       identity,
       timestamps,
       softDelete,
       ownership,
+      commodityRelation,
       Name.restore(name),
       description,
       Amount.restore(initialBalance),
@@ -162,12 +167,9 @@ export class Account {
     return this.ownership.belongsToParent(userId);
   }
 
-  getUserId(): Id {
-    return this.ownership.getParentId();
-  }
-
   toSnapshot(): AccountSnapshot {
     return {
+      commodityId: this.commodityRelation.getParentId().valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       currency: this.currency.valueOf(),
       currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
@@ -208,7 +210,7 @@ export class Account {
     return this.currency.valueOf() === currency.valueOf();
   }
 
-  getCurrency(): Currency {
-    return this.currency;
+  isCommoditySame(commodity: Commodity): boolean {
+    return this.commodityRelation.getParentId().equals(commodity.getId());
   }
 }

@@ -14,6 +14,7 @@ import {
 const accountType = z.enum(ACCOUNT_TYPE_VALUES);
 
 export const accountCreateSchema = z.object({
+  commodityId: uuid,
   currency: currencyCode,
   description: requiredText,
   initialBalance: amountString,

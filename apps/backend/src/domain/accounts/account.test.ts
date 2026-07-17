@@ -1,15 +1,19 @@
 import { createUser } from 'src/db/createTestUser';
-import { AccountType } from 'src/domain/';
-import { Amount, Name, Currency, Id, Timestamp } from 'src/domain/domain-core/';
+import { AccountType, Commodity } from 'src/domain/';
+import {
+  Amount,
+  Name,
+  Currency,
+  Id,
+  Timestamp,
+  CommodityCode,
+} from 'src/domain/domain-core/';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { User } from '../users/user.entity';
 
 import { Account } from './account.entity';
 
-const userIdValue = Id.restore(
-  '123e4567-e89b-12d3-a456-426614174000',
-).valueOf();
 const userTypeValue = 'asset';
 
 const currencyUSD = Currency.create('USD');
@@ -23,10 +27,18 @@ describe('Account Domain Entity', () => {
   const accountType = AccountType.create(userTypeValue);
 
   let user: User;
+  let commodity: Commodity;
   let userId: ReturnType<typeof Id.restore>;
 
   beforeAll(async () => {
     user = await createUser();
+    commodity = Commodity.create(
+      user,
+      Name.create('commodity-name'),
+      CommodityCode.create('COM'),
+      2,
+      'C',
+    );
     userId = user.getId();
   });
 
@@ -38,6 +50,7 @@ describe('Account Domain Entity', () => {
     it('should create account with valid data', () => {
       const account = Account.create(
         user,
+        commodity,
         name,
         'account-description',
         Amount.create('0'),
@@ -47,15 +60,15 @@ describe('Account Domain Entity', () => {
 
       expect(account).toBeInstanceOf(Account);
       expect(account.getId()).toBeDefined();
-      expect(account.getUserId()).toBe(userId);
+      expect(account.belongsToUser(userId)).toBe(true);
       expect(account).toHaveProperty('name', name);
       expect(account).toHaveProperty('description', 'account-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('0'));
       expect(account).toHaveProperty('currency', currencyUSD);
-      expect(account.getType().valueOf()).toBe(userTypeValue);
-      expect(account.getUserId().equals(userId)).toBe(true);
+      expect(account.getType().valueOf()).toBe(accountType.valueOf());
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account.getType().equals(accountType)).toBe(true);
+      expect(account.isCommoditySame(commodity)).toBe(true);
     });
   });
 
@@ -70,6 +83,7 @@ describe('Account Domain Entity', () => {
       const updatedAt = Timestamp.restore(updatedAtValue);
 
       const account = Account.restore({
+        commodityId: commodity.getId().valueOf(),
         createdAt: createdAt.valueOf(),
         currency: currencyCodeEUR,
         currentClearedBalanceLocal: Amount.create('500').valueOf(),
@@ -81,12 +95,12 @@ describe('Account Domain Entity', () => {
         name: 'restored-account',
         type: userTypeValue,
         updatedAt: updatedAt.valueOf(),
-        userId: userIdValue,
+        userId: userId.valueOf(),
       });
 
       expect(account).toBeInstanceOf(Account);
       expect(account.getId().toString()).toBe(accountIdValue);
-      expect(account.getUserId().toString()).toBe(userIdValue);
+      expect(account.belongsToUser(userId)).toBe(true);
       expect(account).toHaveProperty('name', Name.create('restored-account'));
       expect(account).toHaveProperty('description', 'restored-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('500'));
@@ -98,6 +112,7 @@ describe('Account Domain Entity', () => {
     it('should update account with valid value', () => {
       const account = Account.create(
         user,
+        commodity,
         Name.create('initial-name'),
         'description',
         Amount.create('0'),
@@ -115,6 +130,7 @@ describe('Account Domain Entity', () => {
     it('should mark account as tombstone', () => {
       const account = Account.create(
         user,
+        commodity,
         name,
         'account-description',
         Amount.create('0'),
@@ -132,6 +148,7 @@ describe('Account Domain Entity', () => {
     it('should not allow updates after soft deletion', () => {
       const account = Account.create(
         user,
+        commodity,
         name,
         'account-description',
         Amount.create('0'),
@@ -149,6 +166,7 @@ describe('Account Domain Entity', () => {
     it('should not allow deleting an already deleted account', () => {
       const account = Account.create(
         user,
+        commodity,
         name,
         'account-description',
         Amount.create('0'),
@@ -185,6 +203,7 @@ describe('Account Domain Entity', () => {
 
       const account = Account.create(
         user,
+        commodity,
         name,
         'account-description',
         Amount.create('0'),

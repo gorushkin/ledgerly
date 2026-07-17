@@ -9,6 +9,7 @@ export type AccountTypeValue =
   | "expense";
 
 export type AccountDomain = {
+  commodityId: UUID;
   createdAt: IsoDatetimeString;
   currency: CurrencyCode;
   currentClearedBalanceLocal: AmountString;
@@ -24,6 +25,7 @@ export type AccountDomain = {
 };
 
 export type AccountCreateDTO = {
+  commodityId: UUID;
   currency: CurrencyCode;
   description: string;
   initialBalance: AmountString;

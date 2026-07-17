@@ -3,6 +3,7 @@ import { CurrencyCode, UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+import { commoditiesTable } from './commodities';
 import {
   createdAt,
   description,
@@ -17,11 +18,11 @@ import { usersTable } from './users';
 export const accountsTable = sqliteTable(
   'accounts',
   {
+    commodityId: text('commodity_id')
+      .notNull()
+      .references(() => commoditiesTable.id)
+      .$type<UUID>(),
     createdAt,
-    // Foreign key constraint to the currencies table has been removed.
-    // This allows invalid currency codes to be inserted, which may improve test performance,
-    // but creates a risk of data inconsistency in production.
-    // Consider implementing application-level validation for currency codes.
     currency: text('currency').notNull().$type<CurrencyCode>(),
     currentClearedBalanceLocal: getAmountColumn(
       'current_cleared_balance_local',

@@ -2,6 +2,7 @@ import { DEFAULT_TRANSACTION_QUERY } from '@ledgerly/shared/constants';
 import { CurrencyCode, IsoDateString, UUID } from '@ledgerly/shared/types';
 import { UserDbRow } from 'src/db/schema';
 import { TestDB, TransactionSeed } from 'src/db/test-db';
+import { CommodityCode, Name } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TransactionManager, TransactionQueryRepository } from '../';
@@ -26,11 +27,10 @@ describe('TransactionQueryRepository', () => {
   };
 
   const createAccount = async (
-    currency: CurrencyCode,
     name: string,
+    commodityId: UUID,
   ): Promise<TestAccount> => {
-    const account = await testDB.createAccount(user.id, {
-      currency,
+    const account = await testDB.createAccount(user.id, commodityId, {
       name,
     });
 
@@ -80,8 +80,26 @@ describe('TransactionQueryRepository', () => {
     await testDB.setupTestDb();
 
     user = await testDB.createUser();
-    usdAccount = await createAccount('USD' as CurrencyCode, 'Cash USD');
-    eurAccount = await createAccount('EUR' as CurrencyCode, 'Cash EUR');
+
+    const usdCommodityId = (
+      await testDB.createCommodity(user.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      })
+    ).id;
+    const eurCommodityId = (
+      await testDB.createCommodity(user.id, {
+        code: CommodityCode.create('EUR').valueOf(),
+      })
+    ).id;
+
+    usdAccount = await createAccount(
+      Name.create('USD').valueOf(),
+      usdCommodityId,
+    );
+    eurAccount = await createAccount(
+      Name.create('EUR').valueOf(),
+      eurCommodityId,
+    );
 
     transactionQueryRepo = new TransactionQueryRepository(
       transactionManager as unknown as TransactionManager,

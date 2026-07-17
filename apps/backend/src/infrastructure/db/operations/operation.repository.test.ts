@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
 import { AccountPersistenceMapper } from '../accounts';
+import { CommodityPersistenceMapper } from '../commodities';
 import { TransactionManager } from '../TransactionManager';
 import { UserPersistenceMapper } from '../user';
 
@@ -59,6 +60,16 @@ describe('OperationRepository', () => {
     });
 
     transaction = data.transaction;
+
+    await Promise.all(
+      data.commodities.map((commodity) =>
+        testDB.insertCommodity(
+          CommodityPersistenceMapper.toDBRowFromSnapshot(
+            commodity.toSnapshot(),
+          ),
+        ),
+      ),
+    );
 
     await Promise.all(
       data.accounts.map((account) =>

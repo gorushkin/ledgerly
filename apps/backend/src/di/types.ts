@@ -1,5 +1,4 @@
 import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
-import { AccountFactory } from 'src/application/services';
 import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
 import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
 import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
@@ -19,6 +18,7 @@ import {
   AccountRepository,
   CurrencyRepository,
   TransactionRepository,
+  CommodityRepository,
   UserRepository,
 } from 'src/infrastructure/db';
 import {
@@ -31,6 +31,7 @@ import {
 type Repositories = {
   currency: CurrencyRepository;
   transaction: TransactionRepository;
+  commodity: CommodityRepository;
   transactionQuery: TransactionQueryRepository;
   account: AccountRepository;
   user: UserRepository;
@@ -68,10 +69,6 @@ type Controllers = {
   transaction: TransactionController;
 };
 
-type Factories = {
-  account: AccountFactory;
-};
-
 export type AppContainer = {
   db: DataBase;
   repositories: Repositories;
@@ -82,5 +79,4 @@ export type AppContainer = {
     transaction: TransactionUseCases;
   };
   controllers: Controllers;
-  factories: Factories;
 };

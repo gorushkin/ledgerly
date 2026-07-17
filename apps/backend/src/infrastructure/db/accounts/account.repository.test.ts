@@ -5,13 +5,17 @@ import {
   UUID,
 } from '@ledgerly/shared/types';
 import dayjs from 'dayjs';
-import { AccountDbInsert, AccountDbRow, UserDbRow } from 'src/db/schema';
-import { Amount, Timestamp } from 'src/domain/domain-core';
+import {
+  AccountDbInsert,
+  AccountDbRow,
+  CommodityDbRow,
+  UserDbRow,
+} from 'src/db/schema';
+import { Amount, CommodityCode, Timestamp } from 'src/domain/domain-core';
 import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
 import {
-  ForeignKeyConstraintError,
   RecordAlreadyExistsError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
@@ -27,11 +31,13 @@ const USD: CurrencyCode = 'USD' as CurrencyCode;
 
 const getAccountData = (params: {
   userId: UUID;
+  commodityId: UUID;
   name: string;
   currency: CurrencyCode;
   type: AccountTypeValue;
 }): AccountDbInsert => {
   return {
+    commodityId: params.commodityId,
     currency: params.currency,
     currentClearedBalanceLocal: Amount.create('0').valueOf(),
     description: 'This is a test account',
@@ -47,6 +53,7 @@ const getAccountData = (params: {
 };
 
 const accountDataRaw = {
+  commodityId: 'non-existent-commodity-id' as UUID,
   currency: USD,
   name: 'Test Account',
   type: 'asset' as const,
@@ -70,17 +77,28 @@ describe('AccountRepository', () => {
   );
 
   let user: UserDbRow;
+  let usdCommodity: CommodityDbRow;
+  let eurCommodity: CommodityDbRow;
 
   beforeEach(async () => {
     testDB = new TestDB();
     await testDB.setupTestDb();
 
     user = await testDB.createUser();
+
+    usdCommodity = await testDB.createCommodity(user.id, {
+      code: CommodityCode.create('USD').valueOf(),
+    });
+
+    eurCommodity = await testDB.createCommodity(user.id, {
+      code: CommodityCode.create('EUR').valueOf(),
+    });
   });
 
   describe('create', () => {
     it('should create a new account successfully', async () => {
       const newAccount = getAccountData({
+        commodityId: usdCommodity.id,
         currency: USD,
         name: 'New Account',
         type: 'asset',
@@ -98,15 +116,35 @@ describe('AccountRepository', () => {
       expect(account.userId).toBe(newAccount.userId);
     });
 
+    it("should throw an error if commodity belongs to a different user than the account's user", async () => {
+      const secondUser = await testDB.createUser({
+        email: 'second-user@example.com',
+        name: 'Second User',
+      });
+
+      const newAccount = getAccountData({
+        commodityId: usdCommodity.id,
+        currency: USD,
+        name: 'New Account',
+        type: 'asset',
+        userId: secondUser.id,
+      });
+
+      await expect(accountRepository.create(newAccount)).rejects.toThrowError(
+        RepositoryNotFoundError,
+      );
+    });
+
     it('should not allow duplicate account names for the same user', async () => {
       const newAccount = getAccountData({
+        commodityId: usdCommodity.id,
         currency: USD,
         name: 'New Account',
         type: 'asset',
         userId: user.id,
       });
 
-      await testDB.createAccount(user.id, newAccount);
+      await testDB.createAccount(user.id, usdCommodity.id, newAccount);
 
       await expect(accountRepository.create(newAccount)).rejects.toThrowError(
         new RecordAlreadyExistsError({
@@ -128,6 +166,7 @@ describe('AccountRepository', () => {
       });
 
       const firstUserAccount = getAccountData({
+        commodityId: usdCommodity.id,
         currency: USD,
         name: accountName,
         type: 'asset',
@@ -135,18 +174,23 @@ describe('AccountRepository', () => {
       });
 
       const secondUserAccount = getAccountData({
+        commodityId: usdCommodity.id,
         currency: USD,
         name: accountName,
         type: 'asset',
         userId: secondUser.id,
       });
 
-      const account1 = await testDB.createAccount(user.id, {
+      const account1 = await testDB.createAccount(user.id, usdCommodity.id, {
         ...firstUserAccount,
       });
-      const account2 = await testDB.createAccount(secondUser.id, {
-        ...secondUserAccount,
-      });
+      const account2 = await testDB.createAccount(
+        secondUser.id,
+        usdCommodity.id,
+        {
+          ...secondUserAccount,
+        },
+      );
 
       expect(account1).toHaveProperty('id');
       expect(account1.name).toBe(accountName);
@@ -162,25 +206,6 @@ describe('AccountRepository', () => {
 
     it.todo('should throw an error if the original currency does not exist');
 
-    it('should throw an error if the user does not exist', async () => {
-      const newAccount = getAccountData({
-        currency: USD,
-        name: 'New Account',
-        type: 'asset',
-        userId: Id.create().valueOf(),
-      });
-
-      await expect(accountRepository.create(newAccount)).rejects.toThrowError(
-        new ForeignKeyConstraintError({
-          context: {
-            field: 'userId',
-            tableName: 'accounts',
-            value: newAccount.userId,
-          },
-        }),
-      );
-    });
-
     it.todo('should handle UUID collision gracefully');
   });
 
@@ -192,7 +217,7 @@ describe('AccountRepository', () => {
       });
 
       for (const name of firstUserAccounts) {
-        await testDB.createAccount(user.id, {
+        await testDB.createAccount(user.id, usdCommodity.id, {
           currency: USD,
           name,
           type: 'asset',
@@ -200,7 +225,7 @@ describe('AccountRepository', () => {
       }
 
       for (const name of secondUserAccounts) {
-        await testDB.createAccount(secondUser.id, {
+        await testDB.createAccount(secondUser.id, usdCommodity.id, {
           currency: USD,
           name,
           type: 'asset',
@@ -241,7 +266,7 @@ describe('AccountRepository', () => {
     let account: AccountDbRow;
 
     beforeEach(async () => {
-      account = await testDB.createAccount(user.id);
+      account = await testDB.createAccount(user.id, usdCommodity.id, {});
     });
 
     it('should retrieve an account by ID', async () => {
@@ -297,13 +322,14 @@ describe('AccountRepository', () => {
     let account: AccountDbRow;
 
     beforeEach(async () => {
-      account = await testDB.createAccount(user.id);
+      account = await testDB.createAccount(user.id, usdCommodity.id, {});
     });
 
     it('should update account when it belongs to user', async () => {
       const user2 = await testDB.createUser();
 
       const updatedAccountData = getAccountData({
+        commodityId: eurCommodity.id,
         currency: 'EUR' as CurrencyCode,
         name: 'Updated Account',
         type: 'expense',
@@ -326,6 +352,7 @@ describe('AccountRepository', () => {
 
     it('should return undefined when account belongs to different user', async () => {
       const updatedAccountData = getAccountData({
+        commodityId: eurCommodity.id,
         currency: 'EUR' as CurrencyCode,
         name: 'Updated Account',
         type: 'expense',
@@ -345,13 +372,14 @@ describe('AccountRepository', () => {
 
     it('should not allow updating to duplicate name within same user', async () => {
       const updatedAccountData = getAccountData({
+        commodityId: usdCommodity.id,
         currency: USD,
         name: 'Updated Account',
         type: 'asset',
         userId: user.id,
       });
 
-      await testDB.createAccount(user.id, {
+      await testDB.createAccount(user.id, usdCommodity.id, {
         currency: USD,
         initialBalance: Amount.create('200').valueOf(),
         name: updatedAccountData.name,
@@ -377,12 +405,16 @@ describe('AccountRepository', () => {
         name: 'Second User',
       });
 
-      const secondUserAccount = await testDB.createAccount(secondUser.id, {
-        currency: USD,
-        initialBalance: Amount.create('200').valueOf(),
-        name: 'Shared Account Name',
-        type: 'asset',
-      });
+      const secondUserAccount = await testDB.createAccount(
+        secondUser.id,
+        usdCommodity.id,
+        {
+          currency: USD,
+          initialBalance: Amount.create('200').valueOf(),
+          name: 'Shared Account Name',
+          type: 'asset',
+        },
+      );
 
       const updatedSecondUserAccount = await accountRepository.update(
         secondUser.id,
@@ -430,7 +462,7 @@ describe('AccountRepository', () => {
     let account: AccountDbRow;
 
     beforeEach(async () => {
-      account = await testDB.createAccount(user.id);
+      account = await testDB.createAccount(user.id, usdCommodity.id);
     });
 
     it('should delete account when it exists and belongs to user', async () => {
@@ -467,7 +499,7 @@ describe('AccountRepository', () => {
         name: 'Second User',
       });
 
-      await testDB.createAccount(secondUser.id, {
+      await testDB.createAccount(secondUser.id, usdCommodity.id, {
         currency: USD,
         initialBalance: Amount.create('2000').valueOf(),
         name: 'Shared Account Name',
@@ -499,6 +531,7 @@ describe('AccountRepository', () => {
       const beforeCreate = dayjs();
 
       const newAccount = getAccountData({
+        commodityId: usdCommodity.id,
         currency: 'USD' as CurrencyCode,
         name: 'This is a test account',
         type: 'asset',
@@ -519,12 +552,13 @@ describe('AccountRepository', () => {
     });
 
     it('should update updatedAt on account update', async () => {
-      const account = await testDB.createAccount(user.id);
+      const account = await testDB.createAccount(user.id, usdCommodity.id);
       const originalUpdatedAt = dayjs(account?.updatedAt);
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const updatedData = getAccountData({
+        commodityId: eurCommodity.id,
         currency: 'EUR' as CurrencyCode,
         name: 'Updated Account',
         type: 'expense',
@@ -548,16 +582,21 @@ describe('AccountRepository', () => {
   describe('findSystemAccount', () => {
     it('should retrieve system account by currency for a user', async () => {
       const systemAccountData = getAccountData({
+        commodityId: usdCommodity.id,
         currency: USD,
         name: 'System Account for USD',
         type: 'asset',
         userId: user.id,
       });
 
-      const systemAccount = await testDB.createAccount(user.id, {
-        ...systemAccountData,
-        isSystem: true,
-      });
+      const systemAccount = await testDB.createAccount(
+        user.id,
+        usdCommodity.id,
+        {
+          ...systemAccountData,
+          isSystem: true,
+        },
+      );
 
       const retrievedAccount = await accountRepository.findSystemAccount(
         user.id,

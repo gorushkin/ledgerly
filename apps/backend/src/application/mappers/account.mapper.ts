@@ -6,6 +6,7 @@ export class AccountMapper {
     snapshot: AccountSnapshot,
   ): AccountResponseDTO {
     return {
+      commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
       currency: snapshot.currency,
       currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
