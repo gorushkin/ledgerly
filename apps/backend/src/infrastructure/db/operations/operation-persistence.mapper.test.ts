@@ -1,4 +1,4 @@
-import { createUser } from 'src/db/createTestUser';
+import { createCommodity, createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils';
 import { User } from 'src/domain';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -13,8 +13,11 @@ describe('OperationPersistenceMapper', () => {
   });
 
   it('maps an operation snapshot to a persistence row', () => {
+    const commodity = createCommodity(user, { code: 'USD' });
+
     const { operations } = TransactionBuilder.transaction({
       accounts: ['USD'],
+      commodity,
       operations: [
         { accountKey: 'USD', amount: '100', description: 'Debit' },
         { accountKey: 'USD', amount: '-100', description: 'Credit' },

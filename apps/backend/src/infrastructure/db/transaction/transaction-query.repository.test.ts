@@ -16,6 +16,8 @@ describe('TransactionQueryRepository', () => {
   let testDB: TestDB;
   let transactionQueryRepo: TransactionQueryRepository;
   let user: UserDbRow;
+  let valuationCommodityId: UUID;
+
   let usdAccount: TestAccount;
   let eurAccount: TestAccount;
 
@@ -41,7 +43,7 @@ describe('TransactionQueryRepository', () => {
   };
 
   const createTransaction = (seed: TransactionSeed) =>
-    testDB.createTransactionFromSeed(user.id, seed);
+    testDB.createTransactionFromSeed(user.id, valuationCommodityId, seed);
 
   const expectTransactionToMatchSeed = (
     transaction: Awaited<ReturnType<TransactionQueryRepository['findById']>>,
@@ -81,11 +83,18 @@ describe('TransactionQueryRepository', () => {
 
     user = await testDB.createUser();
 
+    const commodity = await testDB.createCommodity(user.id, {
+      code: CommodityCode.create('RUB').valueOf(),
+    });
+
+    valuationCommodityId = commodity.id;
+
     const usdCommodityId = (
       await testDB.createCommodity(user.id, {
         code: CommodityCode.create('USD').valueOf(),
       })
     ).id;
+
     const eurCommodityId = (
       await testDB.createCommodity(user.id, {
         code: CommodityCode.create('EUR').valueOf(),

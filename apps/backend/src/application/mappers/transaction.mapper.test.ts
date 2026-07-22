@@ -1,4 +1,4 @@
-import { createUser } from 'src/db/createTestUser';
+import { createCommodity, createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils';
 import { Transaction } from 'src/domain';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -10,9 +10,11 @@ describe('TransactionMapper', () => {
 
   beforeAll(async () => {
     const user = await createUser();
+    const commodity = createCommodity(user, { code: 'USD' });
 
     fixture = TransactionBuilder.transaction({
       accounts: ['USD'],
+      commodity,
       operations: [
         {
           accountKey: 'USD',

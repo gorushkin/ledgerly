@@ -1,5 +1,5 @@
 import { apiErrorCodes } from '@ledgerly/shared/types';
-import { createUser } from 'src/db/createTestUser';
+import { createCommodity, createUser } from 'src/db/createTestUser';
 import {
   compareEntities,
   TransactionBuilder,
@@ -31,6 +31,7 @@ import {
 } from 'vitest';
 
 import { Account } from '../accounts';
+import { Commodity } from '../commodities';
 import { Amount, Currency, DateValue, Id, Version } from '../domain-core';
 import {
   CreateOperationProps,
@@ -91,6 +92,7 @@ const toCreateTransactionProps = (
     'getAccountByKey' | 'operationsData' | 'transactionDTO' | 'transactionData'
   >,
 ): CreateTransactionProps => ({
+  commodityId: fixture.transactionData.commodityId,
   currency: Currency.create(fixture.transactionDTO.currencyCode),
   description: fixture.transactionData.description,
   operations: toCreateOperationProps(
@@ -115,6 +117,7 @@ const toMetadataUpdateData = (
 
 describe('Transaction Domain Entity', () => {
   let user: User;
+  let commodity: Commodity;
 
   let data: TransactionBuilderResult;
 
@@ -191,8 +194,11 @@ describe('Transaction Domain Entity', () => {
   beforeAll(async () => {
     user = await createUser();
 
+    commodity = createCommodity(user, { code: 'USD' });
+
     data = TransactionBuilder.transaction({
       accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+      commodity,
       operations: operationsData,
       settings: transactionRawData,
       user,
@@ -213,7 +219,11 @@ describe('Transaction Domain Entity', () => {
     it('should create a valid transaction with operation', () => {
       const transactionData = toCreateTransactionProps(data);
 
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       expect(transaction).toBeInstanceOf(Transaction);
       expect(transaction.description).toBe(transactionData.description);
@@ -241,7 +251,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should serialize and deserialize correctly', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const transactionSnapshot = transaction.toSnapshot();
 
@@ -257,7 +271,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should restore the persisted version as a value object', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       const transactionSnapshot = transaction.toSnapshot();
 
       const restoredTransaction = Transaction.restore({
@@ -272,7 +290,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should restore tombstone operations without allowing them to be updated', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       const transactionSnapshot = transaction.toSnapshot();
       const [operationToDelete1, operationToDelete2, ...activeOperations] =
         transactionSnapshot.operations;
@@ -336,7 +358,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should expose full and active snapshots explicitly', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       const transactionSnapshot = transaction.toSnapshot();
 
       const operationToDelete = transactionSnapshot.operations.find(
@@ -393,7 +419,11 @@ describe('Transaction Domain Entity', () => {
 
   describe('Updating Transaction data', () => {
     it('Should update only description, increment version and update timestamps', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const description = 'Updated transaction description';
       const originalSnapshot = transaction.toSnapshot();
@@ -428,7 +458,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('Should update only postingDate, increment version and update timestamps', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const postingDate = DateValue.restore('2024-02-15').valueOf();
 
@@ -459,7 +493,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('Should update only transactionDate, increment version and update timestamps', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const transactionDate = DateValue.restore('2024-03-10').valueOf();
 
@@ -487,7 +525,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('Should update all fields at once, increment version and update timestamps', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const originalSnapshot = transaction.toSnapshot();
 
@@ -521,7 +563,11 @@ describe('Transaction Domain Entity', () => {
 
   describe('Manage Operations', () => {
     it('rejects attaching an operation that is already attached', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       const operation = transaction.getOperations()[0];
 
       const error = captureThrownError(() =>
@@ -539,10 +585,15 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('rejects an operation that belongs to another transaction of the same user', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const otherTransaction = Transaction.create(
         user.getId(),
+        commodity,
         transactionData,
       );
       const foreignOperation = otherTransaction.getOperations()[0];
@@ -596,7 +647,11 @@ describe('Transaction Domain Entity', () => {
     };
 
     it('should reject the same operation ID in update and delete when represented by different Id instances', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       const operationId = transaction.getOperations()[0].getId().valueOf();
 
       const error = captureConflictingOperationIdsError(() =>
@@ -620,7 +675,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should reject duplicate update IDs represented by different Id instances', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       const operationId = transaction.getOperations()[0].getId().valueOf();
 
       const error = captureConflictingOperationIdsError(() =>
@@ -646,7 +705,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should reject duplicate delete IDs represented by different Id instances', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       const operationId = transaction.getOperations()[0].getId().valueOf();
 
       const error = captureConflictingOperationIdsError(() =>
@@ -669,7 +732,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should reject updating a non-existent operation without changing the transaction', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       const originalSnapshot = transaction.toSnapshot();
       const unknownOperationId = Id.create();
 
@@ -696,7 +763,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should reject deleting a non-existent operation without changing the transaction', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       const originalSnapshot = transaction.toSnapshot();
       const unknownOperationId = Id.create();
 
@@ -723,7 +794,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('Should add a new operation and increase version', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const originalSnapshot = transaction.toSnapshot();
 
@@ -809,7 +884,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should update existing operations and increase the aggregate version once', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const originalSnapshot = transaction.toSnapshot();
 
@@ -898,7 +977,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('Should delete an existing operation, keep it in snapshot and hide it from active operations', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const originalSnapshot = transaction.toSnapshot();
 
@@ -961,7 +1044,11 @@ describe('Transaction Domain Entity', () => {
 
   describe('Deletion', () => {
     it('should mark transaction as deleted and all related operations, increase version and update timestamps', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const originalSnapshot = transaction.toSnapshot();
 
@@ -987,7 +1074,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should reject updates after transaction is deleted', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       transaction.markAsDeleted();
 
       const deletedSnapshot = transaction.toSnapshot();
@@ -1015,7 +1106,11 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should not allow deleting an already deleted transaction', () => {
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       transaction.markAsDeleted();
 
       const originalSnapshot = transaction.toSnapshot();
@@ -1037,6 +1132,7 @@ describe('Transaction Domain Entity', () => {
     it('should accept a multi-currency transaction balanced by value even when amounts do not sum to zero', () => {
       const data = TransactionBuilder.request({
         accounts: ['USD', 'RUB'],
+        commodity,
         operations: [
           {
             accountKey: 'USD',
@@ -1056,13 +1152,14 @@ describe('Transaction Domain Entity', () => {
       const transactionData = toCreateTransactionProps(data);
 
       expect(() =>
-        Transaction.create(user.getId(), transactionData),
+        Transaction.create(user.getId(), commodity, transactionData),
       ).not.toThrow();
     });
 
     it('should reject a multi-currency transaction with balanced amounts but unbalanced values', () => {
       const data = TransactionBuilder.request({
         accounts: ['USD', 'RUB'],
+        commodity,
         operations: [
           {
             accountKey: 'USD',
@@ -1081,14 +1178,15 @@ describe('Transaction Domain Entity', () => {
 
       const transactionData = toCreateTransactionProps(data);
 
-      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
-        UnbalancedTransactionError,
-      );
+      expect(() =>
+        Transaction.create(user.getId(), commodity, transactionData),
+      ).toThrow(UnbalancedTransactionError);
     });
 
     it('should validate a multi-currency operation patch by value rather than amount', () => {
       const data = TransactionBuilder.request({
         accounts: ['USD', 'RUB'],
+        commodity,
         operations: [
           {
             accountKey: 'USD',
@@ -1106,7 +1204,11 @@ describe('Transaction Domain Entity', () => {
       });
 
       const transactionData = toCreateTransactionProps(data);
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
       const operationToUpdate = transaction.getOperations()[1];
 
       const error = captureThrownError(() =>
@@ -1146,6 +1248,7 @@ describe('Transaction Domain Entity', () => {
 
       const data = TransactionBuilder.request({
         accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        commodity,
         operations: operationsData,
         settings: transactionRawData,
         user,
@@ -1153,9 +1256,9 @@ describe('Transaction Domain Entity', () => {
 
       const transactionData = toCreateTransactionProps(data);
 
-      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
-        UnbalancedTransactionError,
-      );
+      expect(() =>
+        Transaction.create(user.getId(), commodity, transactionData),
+      ).toThrow(UnbalancedTransactionError);
     });
 
     it('should reject update when resulting operations do not sum to zero', () => {
@@ -1184,6 +1287,7 @@ describe('Transaction Domain Entity', () => {
 
       const data = TransactionBuilder.request({
         accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        commodity,
         operations: operationsData,
         settings: transactionRawData,
         user,
@@ -1193,7 +1297,11 @@ describe('Transaction Domain Entity', () => {
 
       const transactionData = toCreateTransactionProps(data);
 
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const originalSnapshot = transaction.toSnapshot();
       const originalVersion = transaction.getVersion();
@@ -1225,6 +1333,7 @@ describe('Transaction Domain Entity', () => {
     it('should reject creation with zero operations', () => {
       const data = TransactionBuilder.request({
         accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        commodity,
         operations: [],
         settings: transactionRawData,
         user,
@@ -1233,7 +1342,7 @@ describe('Transaction Domain Entity', () => {
       const transactionData = toCreateTransactionProps(data);
 
       const error = captureThrownError(() =>
-        Transaction.create(user.getId(), transactionData),
+        Transaction.create(user.getId(), commodity, transactionData),
       );
 
       expect(error).toBeInstanceOf(InsufficientOperationsError);
@@ -1257,6 +1366,7 @@ describe('Transaction Domain Entity', () => {
 
       const data = TransactionBuilder.request({
         accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        commodity,
         operations: operationsData,
         settings: transactionRawData,
         user,
@@ -1264,13 +1374,13 @@ describe('Transaction Domain Entity', () => {
 
       const transactionData = toCreateTransactionProps(data);
 
-      expect(() => Transaction.create(user.getId(), transactionData)).toThrow(
-        InsufficientOperationsError,
-      );
+      expect(() =>
+        Transaction.create(user.getId(), commodity, transactionData),
+      ).toThrow(InsufficientOperationsError);
     });
 
     it('should allow creation with the maximum number of operations', () => {
-      const transaction = Transaction.create(user.getId(), {
+      const transaction = Transaction.create(user.getId(), commodity, {
         ...transactionData,
         operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS),
       });
@@ -1282,7 +1392,7 @@ describe('Transaction Domain Entity', () => {
 
     it('should reject creation with more than the maximum number of operations', () => {
       const error = captureThrownError(() =>
-        Transaction.create(user.getId(), {
+        Transaction.create(user.getId(), commodity, {
           ...transactionData,
           operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS + 1),
         }),
@@ -1314,6 +1424,7 @@ describe('Transaction Domain Entity', () => {
 
       const data = TransactionBuilder.request({
         accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        commodity,
         operations: operationsData,
         settings: transactionRawData,
         user,
@@ -1321,7 +1432,11 @@ describe('Transaction Domain Entity', () => {
 
       const transactionData = toCreateTransactionProps(data);
 
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const originalSnapshot = transaction.toSnapshot();
       const originalVersion = transaction.getVersion();
@@ -1344,7 +1459,7 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should reject an update that exceeds the maximum number of operations', () => {
-      const transaction = Transaction.create(user.getId(), {
+      const transaction = Transaction.create(user.getId(), commodity, {
         ...transactionData,
         operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS),
       });
@@ -1365,7 +1480,7 @@ describe('Transaction Domain Entity', () => {
     });
 
     it('should allow replacing operations without exceeding the maximum', () => {
-      const transaction = Transaction.create(user.getId(), {
+      const transaction = Transaction.create(user.getId(), commodity, {
         ...transactionData,
         operations: createBalancedOperations(MAX_TRANSACTION_OPERATIONS),
       });
@@ -1404,6 +1519,7 @@ describe('Transaction Domain Entity', () => {
 
       const data = TransactionBuilder.request({
         accounts: ['USD', 'EUR', 'RUB', 'TRY'],
+        commodity,
         operations: operationsData,
         settings: transactionRawData,
         user,
@@ -1411,7 +1527,11 @@ describe('Transaction Domain Entity', () => {
 
       const transactionData = toCreateTransactionProps(data);
 
-      const transaction = Transaction.create(user.getId(), transactionData);
+      const transaction = Transaction.create(
+        user.getId(),
+        commodity,
+        transactionData,
+      );
 
       const initialVersion = transaction.getVersion();
 

@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1776091943739,
-      "tag": "0000_keen_gertrude_yorkes",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1784193820034,
-      "tag": "0001_small_mister_fear",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1784281745155,
-      "tag": "0002_flimsy_menace",
+      "when": 1784739467705,
+      "tag": "0000_nosy_professor_monster",
       "breakpoints": true
     }
   ]

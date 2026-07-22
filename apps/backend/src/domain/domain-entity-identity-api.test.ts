@@ -17,6 +17,7 @@ describe('domain entity identity API conventions', () => {
     const user = await createUser();
     const account = createAccount(user);
     const transaction = Transaction.restore({
+      commodityId: Id.create().valueOf(),
       createdAt: Timestamp.create().valueOf(),
       currency: Currency.create('USD').valueOf(),
       description: 'Restored transaction',

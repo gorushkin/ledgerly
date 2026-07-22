@@ -11,6 +11,7 @@ import {
   UnbalancedTransactionError,
 } from 'src/domain/domain.errors';
 
+import { Commodity } from '../commodities';
 import {
   EntityIdentity,
   EntityTimestamps,
@@ -67,15 +68,26 @@ export class Transaction {
     private postingDate: DateValue,
     private transactionDate: DateValue,
     public currency: Currency,
+    private readonly commodityId: ParentChildRelation,
+
     public description: string,
     private version: Version,
   ) {}
 
-  static create(userId: Id, dto: CreateTransactionProps): Transaction {
+  static create(
+    userId: Id,
+    commodity: Commodity,
+    dto: CreateTransactionProps,
+  ): Transaction {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
     const ownership = ParentChildRelation.create(userId, identity.getId());
+
+    const commodityRelation = ParentChildRelation.create(
+      commodity.getId(),
+      identity.getId(),
+    );
 
     const transaction = new Transaction(
       identity,
@@ -85,6 +97,7 @@ export class Transaction {
       dto.postingDate,
       dto.transactionDate,
       dto.currency,
+      commodityRelation,
       dto.description,
       Version.create(0),
     );
@@ -147,6 +160,7 @@ export class Transaction {
 
   static restore(data: TransactionSnapshotWithDetails): Transaction {
     const {
+      commodityId,
       createdAt,
       currency,
       description,
@@ -172,6 +186,11 @@ export class Transaction {
       identity.getId(),
     );
 
+    const commodityRelation = ParentChildRelation.create(
+      Id.restore(commodityId),
+      identity.getId(),
+    );
+
     const transaction = new Transaction(
       identity,
       timestamps,
@@ -180,6 +199,7 @@ export class Transaction {
       DateValue.restore(postingDate),
       DateValue.restore(transactionDate),
       Currency.restore(currency),
+      commodityRelation,
       description,
       Version.restore(version),
     );
@@ -236,6 +256,7 @@ export class Transaction {
 
   private buildSnapshot(operations: Operation[]): TransactionSnapshot {
     return {
+      commodityId: this.commodityId.getParentId().valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       currency: this.currency.valueOf(),
       description: this.description,

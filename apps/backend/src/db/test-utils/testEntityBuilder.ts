@@ -47,6 +47,7 @@ export type TransactionProps = {
 
 export type TransactionBuilderOptions = {
   user: User;
+  commodity: Commodity;
   accounts: string[];
   operations: OperationDataForTransaction[];
   settings?: Partial<TransactionProps>;
@@ -68,6 +69,7 @@ export type TransactionRequestBuilderResult = {
     postingDate: IsoDateString;
     transactionDate: IsoDateString;
     userId: UUID;
+    commodityId: UUID;
   };
   operationsData: OperationDataForTransaction[];
 };
@@ -92,19 +94,31 @@ export class TransactionBuilder {
   private readonly transactionDate: IsoDateString;
   private readonly description: string;
   private readonly transactionCurrency: Currency;
+  private readonly transactionCommodity: Commodity;
 
   private constructor(options: TransactionBuilderOptions) {
     this.user = options.user;
+
     this.operationsData = [...options.operations];
+
     this.postingDate = DateValue.restore(
       options.settings?.postingDate ?? '2023-01-01',
     ).valueOf();
+
     this.transactionDate = DateValue.restore(
       options.settings?.transactionDate ?? '2023-01-01',
     ).valueOf();
+
     this.description = options.settings?.description ?? 'Test Transaction';
+
     this.transactionCurrency = Currency.create(
       options.settings?.currencyCode ?? 'USD',
+    );
+
+    this.transactionCommodity = Commodity.create(
+      this.user,
+      Name.create(`Commodity ${options.settings?.currencyCode ?? 'USD'}`),
+      CommodityCode.create(options.settings?.currencyCode ?? 'USD'),
     );
 
     this.createAccounts(options.accounts);
@@ -131,6 +145,7 @@ export class TransactionBuilder {
   private createAccounts(currencyCodes: string[]): void {
     currencyCodes.forEach((currencyCode) => {
       const code = CommodityCode.create(currencyCode);
+
       const commodity = Commodity.create(
         this.user,
         Name.create(`Commodity ${currencyCode}`),
@@ -233,6 +248,11 @@ export class TransactionBuilder {
 
   private buildTransactionProps(): CreateTransactionProps {
     return {
+      commodityId: this.getCommodityByCurrency(
+        this.transactionCurrency.valueOf(),
+      )
+        .getId()
+        .valueOf(),
       currency: this.transactionCurrency,
       description: this.description,
       operations: this.operationsData.map((operation) => {
@@ -265,12 +285,22 @@ export class TransactionBuilder {
         systemAccountsMap: this.systemAccounts,
       },
       transactionData: {
+        commodityId: this.getCommodityByCurrency(
+          this.transactionCurrency.valueOf(),
+        )
+          .getId()
+          .valueOf(),
         description: this.description,
         postingDate: this.postingDate,
         transactionDate: this.transactionDate,
         userId: this.user.getId().valueOf(),
       },
       transactionDTO: {
+        commodityId: this.getCommodityByCurrency(
+          this.transactionCurrency.valueOf(),
+        )
+          .getId()
+          .valueOf(),
         currencyCode: this.transactionCurrency.valueOf(),
         description: this.description,
         operations: this.buildOperationsDTO(),
@@ -283,8 +313,14 @@ export class TransactionBuilder {
 
   private buildTransaction(): TransactionBuilderResult {
     const requestFixture = this.buildRequest();
+
+    const commodity = this.getCommodityByCurrency(
+      requestFixture.transactionDTO.currencyCode,
+    );
+
     const transaction = Transaction.create(
       this.user.getId(),
+      commodity,
       this.buildTransactionProps(),
     );
 

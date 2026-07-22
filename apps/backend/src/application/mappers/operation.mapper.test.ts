@@ -3,7 +3,7 @@ import {
   CreateOperationRequestDTO,
   UpdateOperationRequestDTO,
 } from 'src/application/dto';
-import { createUser } from 'src/db/createTestUser';
+import { createCommodity, createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils';
 import { User } from 'src/domain';
 import {
@@ -25,8 +25,11 @@ describe('OperationMapper', () => {
   beforeAll(async () => {
     user = await createUser();
 
+    const commodity = createCommodity(user, { code: 'USD' });
+
     const fixture = TransactionBuilder.request({
       accounts: ['USD'],
+      commodity,
       operations: [
         { accountKey: 'USD', amount: '100', description: 'Debit' },
         { accountKey: 'USD', amount: '-100', description: 'Credit' },

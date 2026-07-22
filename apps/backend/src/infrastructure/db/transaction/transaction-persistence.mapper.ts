@@ -6,6 +6,7 @@ export class TransactionPersistenceMapper {
     const snapshot = transaction.toSnapshot();
 
     return {
+      commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
       currency: snapshot.currency,
       description: snapshot.description,

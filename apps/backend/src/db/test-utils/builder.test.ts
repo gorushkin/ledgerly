@@ -1,14 +1,23 @@
-import { createUser } from 'src/db/createTestUser';
+import { createCommodity, createUser } from 'src/db/createTestUser';
+import { Commodity, User } from 'src/domain';
 import { InsufficientOperationsError } from 'src/domain/domain.errors';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { TransactionBuilder } from './testEntityBuilder';
 
 describe('TransactionBuilder', () => {
-  it('should be implemented', async () => {
-    const user = await createUser();
+  let user: User;
+  let commodity: Commodity;
+
+  beforeAll(async () => {
+    user = await createUser();
+    commodity = createCommodity(user);
+  });
+
+  it('should be implemented', () => {
     TransactionBuilder.transaction({
       accounts: ['USD', 'EUR'],
+      commodity: commodity,
       operations: [
         { accountKey: 'USD', amount: '10000', description: '1' },
         {
@@ -21,10 +30,10 @@ describe('TransactionBuilder', () => {
     });
   });
 
-  it('builds an invalid request fixture without creating a domain transaction', async () => {
-    const user = await createUser();
+  it('builds an invalid request fixture without creating a domain transaction', () => {
     const fixture = TransactionBuilder.request({
       accounts: ['USD'],
+      commodity,
       operations: [{ accountKey: 'USD', amount: '0' }],
       user,
     });
@@ -32,12 +41,11 @@ describe('TransactionBuilder', () => {
     expect(fixture.transactionDTO.operations).toHaveLength(1);
   });
 
-  it('applies domain invariants when building a transaction', async () => {
-    const user = await createUser();
-
+  it('applies domain invariants when building a transaction', () => {
     expect(() =>
       TransactionBuilder.transaction({
         accounts: ['USD'],
+        commodity,
         operations: [{ accountKey: 'USD', amount: '0' }],
         user,
       }),

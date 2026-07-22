@@ -6,13 +6,10 @@ import {
   TransactionBuilder,
   TransactionPersistenceBuilderResult,
 } from 'src/db/test-utils';
-import { Account } from 'src/domain';
+import { Account, Commodity } from 'src/domain';
 import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import {
-  ForeignKeyConstraintError,
-  RepositoryNotFoundError,
-} from 'src/infrastructure/errors';
+import { RepositoryNotFoundError } from 'src/infrastructure/errors';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -29,6 +26,7 @@ describe('TransactionRepository', () => {
   let testDB: TestDB;
   let transactionRepository: TransactionRepository;
   let user: UserDbRow;
+  let commodity: Commodity;
   let usdAccount: Account;
   let eurAccount: Account;
   let data: TransactionPersistenceBuilderResult;
@@ -58,8 +56,13 @@ describe('TransactionRepository', () => {
 
     user = await testDB.createUser();
 
+    commodity = CommodityPersistenceMapper.toDomain(
+      await testDB.createCommodity(user.id),
+    );
+
     data = TransactionBuilder.persistence({
       accounts: ['USD', 'EUR'],
+      commodity,
       operations: [
         {
           accountKey: 'USD',
@@ -92,6 +95,7 @@ describe('TransactionRepository', () => {
     await testDB.insertCommodity(
       CommodityPersistenceMapper.toDBRowFromSnapshot(usdCommodity.toSnapshot()),
     );
+
     await testDB.insertCommodity(
       CommodityPersistenceMapper.toDBRowFromSnapshot(eurCommodity.toSnapshot()),
     );
@@ -105,14 +109,17 @@ describe('TransactionRepository', () => {
     await testDB.insertAccount(
       AccountPersistenceMapper.toDBRowFromSnapshot(usdAccount.toSnapshot()),
     );
+
     await testDB.insertAccount(
       AccountPersistenceMapper.toDBRowFromSnapshot(eurAccount.toSnapshot()),
     );
+
     await testDB.insertAccount(
       AccountPersistenceMapper.toDBRowFromSnapshot(
         usdSystemAccount.toSnapshot(),
       ),
     );
+
     await testDB.insertAccount(
       AccountPersistenceMapper.toDBRowFromSnapshot(
         eurSystemAccount.toSnapshot(),
@@ -145,6 +152,7 @@ describe('TransactionRepository', () => {
 
       const insertedTransaction = await testDB.createTransactionWithOperations(
         user.id,
+        commodity.getId().valueOf(),
         {
           currencyCode: transaction.currency.valueOf(),
           description: transaction.description,
@@ -159,8 +167,18 @@ describe('TransactionRepository', () => {
         insertedTransaction.id,
       );
 
+      const retrievedTransactionSnapshot = retrievedTransaction?.toSnapshot();
+
+      expect(retrievedTransactionSnapshot?.commodityId).toEqual(
+        commodity.getId().valueOf(),
+      );
+
       expect(retrievedTransaction).not.toBeNull();
       expect(retrievedTransaction?.description).toBe(transaction.description);
+
+      expect(retrievedTransaction?.getId().valueOf()).toBe(
+        insertedTransaction.id,
+      );
 
       expect(retrievedTransaction?.getPostingDate().valueOf()).toBe(
         transaction.getPostingDate().valueOf(),
@@ -280,7 +298,7 @@ describe('TransactionRepository', () => {
 
       await expect(
         transactionRepository.create(nonExistentUserId, transaction),
-      ).rejects.toThrow(ForeignKeyConstraintError);
+      ).rejects.toThrow(RepositoryNotFoundError);
     });
 
     it('should create a new transaction', async () => {

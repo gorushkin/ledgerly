@@ -31,6 +31,7 @@ export type CreateTransactionProps = {
   transactionDate: DateValue;
   operations: OperationProps[];
   currency: Currency;
+  commodityId: UUID;
 };
 
 export type OperationsPatch = {
@@ -53,6 +54,7 @@ export type TransactionSnapshot = {
   transactionDate: IsoDateString;
   updatedAt: IsoDatetimeString;
   userId: UUID;
+  commodityId: UUID;
   operations: OperationSnapshot[];
   version: number;
   currency: CurrencyCode;

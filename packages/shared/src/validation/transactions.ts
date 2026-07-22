@@ -35,6 +35,7 @@ export const operationUpdateSchema = z.object({
 });
 
 export const transactionCreateSchema = z.object({
+  commodityId: uuid,
   currencyCode: currencyCode,
   description: requiredText,
   operations: z

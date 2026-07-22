@@ -92,6 +92,7 @@ describe('TransactionController', () => {
   describe('create', () => {
     it('should call CreateTransactionUseCase with correct parameters', async () => {
       const requestBody: TransactionCreateInput = {
+        commodityId: Id.create().valueOf(),
         currencyCode: Currency.create('USD').valueOf(),
         description: 'Test Transaction',
         operations,

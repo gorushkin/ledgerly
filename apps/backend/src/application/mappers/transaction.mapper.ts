@@ -40,6 +40,7 @@ export class TransactionMapper {
     );
 
     return {
+      commodityId: dto.commodityId,
       currency: Currency.create(dto.currencyCode),
       description: dto.description,
       operations,

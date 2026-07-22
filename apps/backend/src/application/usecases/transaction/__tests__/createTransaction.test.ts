@@ -1,11 +1,14 @@
 import type {
+  CommodityRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils/testEntityBuilder';
-import { User, Transaction } from 'src/domain';
+import { User, Transaction, Commodity } from 'src/domain';
+import { CommodityCode } from 'src/domain/domain-core/value-objects/CommodityCode';
+import { Name } from 'src/domain/domain-core/value-objects/Name';
 import { UnbalancedTransactionError } from 'src/domain/domain.errors';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,6 +16,7 @@ import { CreateTransactionUseCase } from '../CreateTransaction';
 
 describe('CreateTransactionUseCase', () => {
   let user: User;
+  let commodity: Commodity;
 
   const mockTransactionRepository = {
     create: vi.fn(),
@@ -26,10 +30,15 @@ describe('CreateTransactionUseCase', () => {
     loadContext: vi.fn(),
   };
 
+  const commodityRepository = {
+    getById: vi.fn(),
+  };
+
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
     transactionContextLoader as unknown as TransactionContextLoader,
+    commodityRepository as unknown as CommodityRepositoryInterface,
   );
 
   const transactionData = {
@@ -46,10 +55,21 @@ describe('CreateTransactionUseCase', () => {
 
   beforeAll(async () => {
     user = await createUser();
+
+    commodity = Commodity.create(
+      user,
+      Name.create('Test Commodity'),
+      CommodityCode.create('TEST'),
+      2,
+      null,
+    );
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+
+    transactionManager.run.mockImplementation((cb: () => unknown) => cb());
+    commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
   });
 
   describe('execute', () => {
@@ -57,6 +77,7 @@ describe('CreateTransactionUseCase', () => {
       const { transactionContext, transactionDTO } = TransactionBuilder.request(
         {
           accounts: ['USD'],
+          commodity,
           operations: operationsData,
           settings: transactionData,
           user,
@@ -135,6 +156,7 @@ describe('CreateTransactionUseCase', () => {
 
       const { transactionDTO } = TransactionBuilder.request({
         accounts: ['USD'],
+        commodity,
         operations: [],
         settings: transactionData,
         user,
@@ -152,6 +174,7 @@ describe('CreateTransactionUseCase', () => {
       const { transactionContext, transactionDTO } = TransactionBuilder.request(
         {
           accounts: ['USD'],
+          commodity,
           operations: operationsData,
           settings: transactionData,
           user,
@@ -176,6 +199,7 @@ describe('CreateTransactionUseCase', () => {
       const { transactionContext, transactionDTO } = TransactionBuilder.request(
         {
           accounts: ['USD'],
+          commodity,
           operations: unbalancedOperations,
           settings: transactionData,
           user,

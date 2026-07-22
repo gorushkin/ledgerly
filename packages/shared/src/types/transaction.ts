@@ -43,6 +43,7 @@ export type OperationResponseDTO = {
 };
 
 export type CreateTransactionRequestDTO = {
+  commodityId: UUID;
   currencyCode: CurrencyCode;
   description: string;
   operations: CreateOperationRequestDTO[];

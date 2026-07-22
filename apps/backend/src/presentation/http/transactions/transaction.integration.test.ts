@@ -115,6 +115,7 @@ describe('Transactions Integration Tests', () => {
 
     it('should create a new transaction', async () => {
       const payload: TransactionCreateInput = {
+        commodityId,
         currencyCode: Currency.create('USD').valueOf(),
         description: 'some transaction',
         operations: [operation1, operation2],
@@ -158,6 +159,7 @@ describe('Transactions Integration Tests', () => {
       });
 
       const payload: TransactionCreateInput = {
+        commodityId,
         currencyCode: Currency.create('USD').valueOf(),
         description: 'USD to RUB exchange',
         operations: [
@@ -232,6 +234,7 @@ describe('Transactions Integration Tests', () => {
 
     it('should fail with invalid amounts', async () => {
       const payload: TransactionCreateInput = {
+        commodityId,
         currencyCode: Currency.create('USD').valueOf(),
         description: 'invalid amount',
         operations: [
@@ -274,6 +277,7 @@ describe('Transactions Integration Tests', () => {
       ['missing value', { value: undefined as unknown as AmountString }],
     ])('should fail with %s', async (_, invalidOperationPatch) => {
       const payload: TransactionCreateInput = {
+        commodityId,
         currencyCode: Currency.create('USD').valueOf(),
         description: 'invalid finite amount',
         operations: [
@@ -304,6 +308,7 @@ describe('Transactions Integration Tests', () => {
 
     it('should fail for unauthorized access', async () => {
       const payload: TransactionCreateInput = {
+        commodityId,
         currencyCode: Currency.create('USD').valueOf(),
         description: 'unauthorized access',
         operations: [operation1, operation2],
@@ -322,6 +327,7 @@ describe('Transactions Integration Tests', () => {
 
     it('should fail for non-existent accounts', async () => {
       const payload: TransactionCreateInput = {
+        commodityId,
         currencyCode: Currency.create('USD').valueOf(),
         description: 'non-existent account',
         operations: [
@@ -346,6 +352,7 @@ describe('Transactions Integration Tests', () => {
 
     it('should fail when operations do not sum to zero (unbalanced transaction)', async () => {
       const payload: TransactionCreateInput = {
+        commodityId,
         currencyCode: Currency.create('USD').valueOf(),
         description: 'unbalanced transaction',
         operations: [
@@ -388,6 +395,7 @@ describe('Transactions Integration Tests', () => {
       );
 
       const payload: TransactionCreateInput = {
+        commodityId,
         currencyCode: Currency.create('USD').valueOf(),
         description: 'unauthorized access',
         operations: [
@@ -420,7 +428,7 @@ describe('Transactions Integration Tests', () => {
     beforeEach(async () => {
       const accounts = await createAccounts();
 
-      transaction = await testDB.createTransaction(userId);
+      transaction = await testDB.createTransaction(userId, commodityId);
 
       const transaction1Operations = [
         {
@@ -524,7 +532,10 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should not return soft-deleted (tombstone) operations', async () => {
-      const createdTransaction = await testDB.createTransaction(userId);
+      const createdTransaction = await testDB.createTransaction(
+        userId,
+        commodityId,
+      );
 
       const deletedOperationsData = [
         {
@@ -618,7 +629,10 @@ describe('Transactions Integration Tests', () => {
     it("should return 404 when accessing another user's transaction", async () => {
       const otherUser = await testDB.createUser();
 
-      const otherUserTransaction = await testDB.createTransaction(otherUser.id);
+      const otherUserTransaction = await testDB.createTransaction(
+        otherUser.id,
+        commodityId,
+      );
 
       const response = await server.inject({
         headers: {
@@ -669,7 +683,7 @@ describe('Transactions Integration Tests', () => {
 
       await Promise.all(
         transactionData.map((tr) => {
-          return testDB.createTransaction(userId, tr);
+          return testDB.createTransaction(userId, commodityId, tr);
         }),
       );
 
@@ -728,9 +742,15 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should not return soft-deleted (tombstone) transactions', async () => {
-      const transactionToBeDeleted = await testDB.createTransaction(userId);
+      const transactionToBeDeleted = await testDB.createTransaction(
+        userId,
+        commodityId,
+      );
 
-      const otherTransaction = await testDB.createTransaction(userId);
+      const otherTransaction = await testDB.createTransaction(
+        userId,
+        commodityId,
+      );
 
       await testDB.softDeleteTransaction(transactionToBeDeleted.id);
 
@@ -761,7 +781,10 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should not return soft-deleted (tombstone) operations in transactions', async () => {
-      const createdTransaction = await testDB.createTransaction(userId);
+      const createdTransaction = await testDB.createTransaction(
+        userId,
+        commodityId,
+      );
 
       const deletedOperationsData = [
         {
@@ -860,8 +883,14 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return transactions filtered by accountId with all active operations', async () => {
-      const matchingTransaction = await testDB.createTransaction(userId);
-      const otherTransaction = await testDB.createTransaction(userId);
+      const matchingTransaction = await testDB.createTransaction(
+        userId,
+        commodityId,
+      );
+      const otherTransaction = await testDB.createTransaction(
+        userId,
+        commodityId,
+      );
 
       const matchingOperations = [
         {
@@ -932,7 +961,7 @@ describe('Transactions Integration Tests', () => {
 
       await Promise.all(
         transactionDates.map(([description, transactionDate]) =>
-          testDB.createTransaction(userId, {
+          testDB.createTransaction(userId, commodityId, {
             description,
             transactionDate: DateValue.restore(transactionDate).valueOf(),
           }),
@@ -966,7 +995,7 @@ describe('Transactions Integration Tests', () => {
 
       await Promise.all(
         transactionDates.map(([description, transactionDate]) =>
-          testDB.createTransaction(userId, {
+          testDB.createTransaction(userId, commodityId, {
             description,
             transactionDate: DateValue.restore(transactionDate).valueOf(),
           }),
@@ -1017,7 +1046,7 @@ describe('Transactions Integration Tests', () => {
   describe('DELETE /api/transactions/:id', () => {
     it('should delete an existing transaction and return 204', async () => {
       const [account1, account2] = await createAccounts();
-      const transaction = await testDB.createTransaction(userId);
+      const transaction = await testDB.createTransaction(userId, commodityId);
       const operations = await Promise.all([
         testDB.createOperation(userId, {
           accountId: account1.id,
@@ -1081,7 +1110,7 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 404 when deleting an already deleted transaction', async () => {
-      const transaction = await testDB.createTransaction(userId);
+      const transaction = await testDB.createTransaction(userId, commodityId);
 
       await testDB.softDeleteTransaction(transaction.id);
 
@@ -1097,7 +1126,7 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 401 when deleting without authorization', async () => {
-      const transaction = await testDB.createTransaction(userId);
+      const transaction = await testDB.createTransaction(userId, commodityId);
 
       const response = await server.inject({
         method: 'DELETE',
@@ -1108,7 +1137,7 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should not return deleted transaction in GET /api/transactions', async () => {
-      const transaction = await testDB.createTransaction(userId);
+      const transaction = await testDB.createTransaction(userId, commodityId);
 
       await testDB.softDeleteTransaction(transaction.id);
 
@@ -1138,7 +1167,10 @@ describe('Transactions Integration Tests', () => {
         password: 'password123',
       });
 
-      const otherUserTransaction = await testDB.createTransaction(otherUser.id);
+      const otherUserTransaction = await testDB.createTransaction(
+        otherUser.id,
+        commodityId,
+      );
 
       const response = await server.inject({
         headers: {
@@ -1205,7 +1237,10 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should update metadata without changing operations', async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
+      const transaction = await testDB.createTransactionWithOperations(
+        userId,
+        commodityId,
+      );
 
       await testDB.createOperation(userId, {
         ...operation1Data,
@@ -1258,7 +1293,10 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should create operations without changing existing operations', async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
+      const transaction = await testDB.createTransactionWithOperations(
+        userId,
+        commodityId,
+      );
 
       const createdOperations = await Promise.all([
         testDB.createOperation(userId, {
@@ -1335,7 +1373,10 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should update existing operations and persist their changes', async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
+      const transaction = await testDB.createTransactionWithOperations(
+        userId,
+        commodityId,
+      );
 
       const createdOperations = await Promise.all([
         testDB.createOperation(userId, {
@@ -1409,7 +1450,10 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should apply create, update, and delete operations in one request', async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
+      const transaction = await testDB.createTransactionWithOperations(
+        userId,
+        commodityId,
+      );
 
       const createdOperations = await Promise.all([
         testDB.createOperation(userId, {
@@ -1518,7 +1562,10 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should delete operations from the active response', async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
+      const transaction = await testDB.createTransactionWithOperations(
+        userId,
+        commodityId,
+      );
 
       const createdOperations = await Promise.all([
         testDB.createOperation(userId, {
@@ -1651,8 +1698,11 @@ describe('Transactions Integration Tests', () => {
     ])(
       'should reject $name without persisting partial changes',
       async ({ buildOperations }) => {
-        const transaction =
-          await testDB.createTransactionWithOperations(userId);
+        const transaction = await testDB.createTransactionWithOperations(
+          userId,
+          commodityId,
+        );
+
         const createdOperations = await Promise.all([
           testDB.createOperation(userId, {
             ...operation1Data,
@@ -1717,7 +1767,7 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 404 when updating a soft-deleted transaction', async () => {
-      const transaction = await testDB.createTransaction(userId);
+      const transaction = await testDB.createTransaction(userId, commodityId);
 
       await testDB.softDeleteTransaction(transaction.id);
 
@@ -1730,7 +1780,10 @@ describe('Transactions Integration Tests', () => {
 
     it("should return 404 when updating another user's transaction", async () => {
       const another = await testDB.createUser();
-      const transaction = await testDB.createTransaction(another.id);
+      const transaction = await testDB.createTransaction(
+        another.id,
+        commodityId,
+      );
 
       const updatedData = createUpdateRequest();
 
@@ -1740,18 +1793,22 @@ describe('Transactions Integration Tests', () => {
     });
 
     it("should return 404 when creating operations with another user's account", async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId, {
-        operations: [
-          {
-            ...operation1Data,
-            id: Id.create().valueOf(),
-          },
-          {
-            ...operation2Data,
-            id: Id.create().valueOf(),
-          },
-        ],
-      });
+      const transaction = await testDB.createTransactionWithOperations(
+        userId,
+        commodityId,
+        {
+          operations: [
+            {
+              ...operation1Data,
+              id: Id.create().valueOf(),
+            },
+            {
+              ...operation2Data,
+              id: Id.create().valueOf(),
+            },
+          ],
+        },
+      );
       const createdOperations = transaction.operations;
 
       const otherUser = await testDB.createUser();
@@ -1823,18 +1880,22 @@ describe('Transactions Integration Tests', () => {
     });
 
     it("should return 404 when updating operations to another user's account", async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId, {
-        operations: [
-          {
-            ...operation1Data,
-            id: Id.create().valueOf(),
-          },
-          {
-            ...operation2Data,
-            id: Id.create().valueOf(),
-          },
-        ],
-      });
+      const transaction = await testDB.createTransactionWithOperations(
+        userId,
+        commodityId,
+        {
+          operations: [
+            {
+              ...operation1Data,
+              id: Id.create().valueOf(),
+            },
+            {
+              ...operation2Data,
+              id: Id.create().valueOf(),
+            },
+          ],
+        },
+      );
       const createdOperations = transaction.operations;
 
       const otherUser = await testDB.createUser();
@@ -1901,7 +1962,10 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 400 for invalid payload (missing required fields)', async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
+      const transaction = await testDB.createTransactionWithOperations(
+        userId,
+        commodityId,
+      );
 
       const invalidPayload = {
         description: 'Updated description',
@@ -1926,7 +1990,10 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 401 when not authorized', async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
+      const transaction = await testDB.createTransactionWithOperations(
+        userId,
+        commodityId,
+      );
 
       const updatedData = createUpdateRequest();
 
@@ -1940,23 +2007,27 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 409 on optimistic locking conflict with a stale version', async () => {
-      const transaction = await testDB.createTransactionFromSeed(userId, {
-        description: 'Transaction for optimistic locking',
-        operations: [
-          {
-            account: account1Data,
-            amount: '-100',
-            description: 'Transfer from checking',
-            value: '-100',
-          },
-          {
-            account: account2Data,
-            amount: '100',
-            description: 'Transfer to savings',
-            value: '100',
-          },
-        ],
-      });
+      const transaction = await testDB.createTransactionFromSeed(
+        userId,
+        commodityId,
+        {
+          description: 'Transaction for optimistic locking',
+          operations: [
+            {
+              account: account1Data,
+              amount: '-100',
+              description: 'Transfer from checking',
+              value: '-100',
+            },
+            {
+              account: account2Data,
+              amount: '100',
+              description: 'Transfer to savings',
+              value: '100',
+            },
+          ],
+        },
+      );
 
       const firstUpdate = createUpdateRequest({
         description: 'First successful update',
@@ -2011,7 +2082,10 @@ describe('Transactions Integration Tests', () => {
     });
 
     it('should return 400 when resulting operations are unbalanced (sum != 0)', async () => {
-      const transaction = await testDB.createTransactionWithOperations(userId);
+      const transaction = await testDB.createTransactionWithOperations(
+        userId,
+        commodityId,
+      );
 
       const operationToUpdate = await testDB.createOperation(userId, {
         ...operation1Data,

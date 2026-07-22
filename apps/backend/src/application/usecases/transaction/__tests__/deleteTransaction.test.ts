@@ -7,7 +7,7 @@ import type {
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
-import { createUser } from 'src/db/createTestUser';
+import { createCommodity, createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils/testEntityBuilder';
 import { Transaction, User } from 'src/domain';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -41,9 +41,11 @@ describe('DeleteTransactionUseCase', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    const commodity = createCommodity(user);
 
     const data = TransactionBuilder.transaction({
       accounts: ['USD', 'EUR'],
+      commodity,
       operations: [
         {
           accountKey: 'USD',

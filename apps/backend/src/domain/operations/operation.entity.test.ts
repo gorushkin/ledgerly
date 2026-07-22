@@ -1,5 +1,5 @@
 import { apiErrorCodes } from '@ledgerly/shared/types';
-import { createUser } from 'src/db/createTestUser';
+import { createCommodity, createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { TransactionProps } from 'src/db/test-utils/testEntityBuilder';
 import {
@@ -48,9 +48,11 @@ describe('Operation Domain Entity', () => {
   beforeAll(async () => {
     user = await createUser();
     userId = user.getId();
+    const commodity = createCommodity(user, { code: 'USD' });
 
     const data = TransactionBuilder.transaction({
       accounts: ['USD', 'EUR'],
+      commodity,
       operations: [
         { accountKey: 'USD', amount: '100', description: 'Debit' },
         { accountKey: 'EUR', amount: '-100', description: 'Credit' },

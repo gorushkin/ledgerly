@@ -28,6 +28,7 @@ import {
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { TransactionSnapshot } from 'src/domain/transactions/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
+import { CommodityPersistenceMapper } from 'src/infrastructure/db/commodities/commodity-persistence.mapper';
 import { AmountFormatter } from 'src/presentation/formatters';
 
 import {
@@ -222,6 +223,7 @@ export class TestDB {
 
   createTransaction = async (
     userId: UUID,
+    commodityId: UUID,
     params?: CreateTransactionProps,
   ): Promise<TransactionDbRow> => {
     const transactionData: TransactionDbInsert = {
@@ -235,6 +237,7 @@ export class TestDB {
       postingDate: params?.postingDate ?? DateValue.create().valueOf(),
       transactionDate: params?.transactionDate ?? DateValue.create().valueOf(),
       ...params,
+      commodityId,
       userId,
       version: 0,
     };
@@ -250,6 +253,7 @@ export class TestDB {
 
   createTransactionWithOperations = async (
     userId: UUID,
+    commodityId: UUID,
     params?: {
       description?: string;
       postingDate?: IsoDateString;
@@ -268,7 +272,11 @@ export class TestDB {
       }[];
     },
   ): Promise<TransactionWithRelations> => {
-    const transaction = await this.createTransaction(userId, params);
+    const transaction = await this.createTransaction(
+      userId,
+      commodityId,
+      params,
+    );
 
     const operations: OperationDbRow[] = [];
 
@@ -286,6 +294,7 @@ export class TestDB {
 
   createTransactionFromSeed = async (
     userId: UUID,
+    commodityId: UUID,
     {
       currencyCode = 'USD' as CurrencyCode,
       description,
@@ -295,7 +304,7 @@ export class TestDB {
       transactionDate = '2023-01-01' as IsoDateString,
     }: TransactionSeed,
   ): Promise<TransactionWithRelations> => {
-    return this.createTransactionWithOperations(userId, {
+    return this.createTransactionWithOperations(userId, commodityId, {
       currencyCode,
       description,
       isTombstone,
@@ -605,6 +614,10 @@ export class TestDB {
         password: 'hashed_password',
       }));
 
+    const transactionCommodity = CommodityPersistenceMapper.toDomain(
+      await this.createCommodity(user.id),
+    );
+
     const usdCommodity = await this.createCommodity(user.id, {
       code: CommodityCode.create('USD').valueOf(),
       name: 'US Dollar',
@@ -634,8 +647,14 @@ export class TestDB {
       name: 'Credit Card EUR',
     });
 
-    const transaction1 = await this.createTransaction(user.id);
-    const transaction2 = await this.createTransaction(user.id);
+    const transaction1 = await this.createTransaction(
+      user.id,
+      transactionCommodity.getId().valueOf(),
+    );
+    const transaction2 = await this.createTransaction(
+      user.id,
+      transactionCommodity.getId().valueOf(),
+    );
 
     await this.createOperation(user.id, {
       accountId: accountUSD1.id,
