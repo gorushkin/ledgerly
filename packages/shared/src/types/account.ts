@@ -27,13 +27,12 @@ export type AccountCreateDTO = {
   commodityId: UUID;
   description: string;
   initialBalance: AmountString;
-  isSystem?: boolean;
   name: string;
   type: AccountTypeValue;
 };
 
 export type AccountUpdateDTO = Partial<
-  Pick<AccountCreateDTO, "name" | "description" | "type" | "isSystem">
+  Pick<AccountCreateDTO, "name" | "description" | "type">
 >;
 
 export type AccountResponseDTO = AccountDomain;

@@ -6,6 +6,7 @@ export class TransactionReadModelResponseMapper {
     transaction: TransactionReadModel,
   ): TransactionResponseDTO {
     return {
+      commodityId: transaction.commodityId,
       createdAt: transaction.createdAt,
       description: transaction.description,
       id: transaction.id,

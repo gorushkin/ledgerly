@@ -27,5 +27,6 @@ export type TransactionReadModel = {
   transactionDate: IsoDateString;
   updatedAt: IsoDatetimeString;
   userId: UUID;
+  commodityId: UUID;
   version: number;
 };

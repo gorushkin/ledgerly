@@ -15,6 +15,7 @@ export class TransactionMapper {
     const snapshot = transaction.toActiveSnapshot();
 
     return {
+      commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
       description: snapshot.description,
       id: snapshot.id,

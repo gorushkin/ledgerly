@@ -29,6 +29,7 @@ describe('GetTransactionByIdUseCase', () => {
     const userId = Id.create().valueOf();
     const createdAt = Timestamp.create().valueOf();
     const updatedAt = Timestamp.create().valueOf();
+    const commodityId = Id.create().valueOf();
 
     const mockOperation1: OperationReadModel = {
       accountId: Id.create().valueOf(),
@@ -59,6 +60,7 @@ describe('GetTransactionByIdUseCase', () => {
     const operations = [mockOperation1, mockOperation2];
 
     const mockTransactionData: TransactionReadModel = {
+      commodityId,
       createdAt,
       description: 'Test Transaction',
       id: transactionId,
@@ -85,6 +87,7 @@ describe('GetTransactionByIdUseCase', () => {
     expect(transaction.version).toBe(mockTransactionData.version);
     expect(Object.keys(transaction).sort()).toEqual(
       [
+        'commodityId',
         'createdAt',
         'description',
         'id',

@@ -41,7 +41,6 @@ describe('AccountMapper', () => {
   it('maps a full update DTO to domain update props', () => {
     const dto: AccountUpdateDTO = {
       description: 'Updated description',
-      isSystem: false,
       name: 'Updated Account',
       type: 'liability',
     };
@@ -59,7 +58,6 @@ describe('AccountMapper', () => {
     };
 
     expect(AccountMapper.toUpdateProps(dto)).toEqual({
-      currency: undefined,
       description: undefined,
       name: dto.name,
       type: undefined,

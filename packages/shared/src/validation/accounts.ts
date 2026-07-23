@@ -5,7 +5,6 @@ import { ACCOUNT_TYPE_VALUES } from "../constants";
 import {
   notNullText,
   requiredText,
-  isoDatetime,
   uuid,
   amountString,
 } from "./baseValidations";
@@ -27,15 +26,3 @@ export const accountUpdateSchema = accountCreateSchema
     type: true,
   })
   .partial();
-
-export const accountResponseSchema = z.object({
-  createdAt: isoDatetime,
-  currentClearedBalanceLocal: z.number(),
-  description: requiredText,
-  id: uuid,
-  initialBalance: z.number(),
-  name: requiredText,
-  type: accountType,
-  updatedAt: isoDatetime,
-  userId: uuid,
-});

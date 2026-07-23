@@ -63,6 +63,7 @@ describe('TransactionMapper', () => {
     const response = TransactionMapper.toResponseDTO(transaction);
 
     expect(response).toEqual({
+      commodityId: transactionSnapshot.commodityId,
       createdAt: transactionSnapshot.createdAt,
       description: transactionSnapshot.description,
       id: transactionSnapshot.id,

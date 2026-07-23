@@ -485,6 +485,7 @@ describe('TransactionQueryRepository', () => {
 
       expect(Object.keys(transaction).sort()).toEqual(
         [
+          'commodityId',
           'createdAt',
           'description',
           'id',

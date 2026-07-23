@@ -57,6 +57,7 @@ describe('GetAllTransactionsUseCase', () => {
     const transactionId = Id.create().valueOf();
 
     return {
+      commodityId: Id.create().valueOf(),
       createdAt: Timestamp.create().valueOf(),
       description: 'Test transaction',
       id: transactionId,

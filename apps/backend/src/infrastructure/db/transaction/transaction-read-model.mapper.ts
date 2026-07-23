@@ -9,6 +9,7 @@ export class TransactionReadModelMapper {
     transaction: TransactionWithRelations,
   ): TransactionReadModel {
     return {
+      commodityId: transaction.commodityId,
       createdAt: transaction.createdAt,
       description: transaction.description,
       id: transaction.id,

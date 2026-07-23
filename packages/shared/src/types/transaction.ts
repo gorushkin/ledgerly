@@ -62,6 +62,7 @@ export type UpdateTransactionRequestDTO = {
 };
 
 export type TransactionResponseDTO = {
+  commodityId: UUID;
   createdAt: IsoDatetimeString;
   description: string;
   id: UUID;
