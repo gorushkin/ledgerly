@@ -63,12 +63,11 @@ export const createAccount = (
 ) => {
   const commodity = params.commodity ?? createCommodity(user);
 
-  return Account.create(
-    user,
-    commodity,
-    Name.create(params.name ?? 'Test Account'),
-    params.description ?? 'Account for testing',
-    Amount.create('0'),
-    AccountType.create('asset'),
-  );
+  return Account.create(user, {
+    commodityId: commodity.getId(),
+    description: params.description ?? 'Account for testing',
+    initialBalance: Amount.create('0'),
+    name: Name.create(params.name ?? 'Test Account'),
+    type: AccountType.create('asset'),
+  });
 };

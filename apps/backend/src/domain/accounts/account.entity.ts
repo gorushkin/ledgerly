@@ -13,7 +13,11 @@ import { DeletedEntityOperationError } from '../domain.errors';
 import { User } from '../users/user.entity';
 
 import { AccountType } from './account-type.enum';
-import { AccountSnapshot, AccountUpdateProps } from './types';
+import {
+  AccountSnapshot,
+  AccountUpdateProps,
+  CreateAccountProps,
+} from './types';
 
 export class Account {
   static readonly entityType = 'account';
@@ -32,14 +36,7 @@ export class Account {
     public isSystem: boolean,
   ) {}
 
-  static create(
-    user: User,
-    commodity: Commodity,
-    name: Name,
-    description: string,
-    initialBalance: Amount,
-    type: AccountType,
-  ): Account {
+  static create(user: User, props: CreateAccountProps): Account {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
@@ -50,11 +47,11 @@ export class Account {
     );
 
     const commodityRelation = ParentChildRelation.create(
-      commodity.getId(),
+      props.commodityId,
       identity.getId(),
     );
 
-    const isSystem = type.isSystemType();
+    const isSystem = props.type.isSystemType();
 
     return new Account(
       identity,
@@ -62,11 +59,11 @@ export class Account {
       softDelete,
       ownership,
       commodityRelation,
-      name,
-      description,
-      initialBalance,
+      props.name,
+      props.description,
+      props.initialBalance,
       Amount.create('0'),
-      type,
+      props.type,
       isSystem,
     );
   }

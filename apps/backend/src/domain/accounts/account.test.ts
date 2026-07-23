@@ -42,14 +42,13 @@ describe('Account Domain Entity', () => {
 
   describe('create method', () => {
     it('should create account with valid data', () => {
-      const account = Account.create(
-        user,
-        commodity,
+      const account = Account.create(user, {
+        commodityId: commodity.getId(),
+        description: 'account-description',
+        initialBalance: Amount.create('0'),
         name,
-        'account-description',
-        Amount.create('0'),
-        accountType,
-      );
+        type: accountType,
+      });
 
       expect(account).toBeInstanceOf(Account);
       expect(account.getId()).toBeDefined();
@@ -108,14 +107,13 @@ describe('Account Domain Entity', () => {
 
   describe('account management', () => {
     it('should update account with valid value', () => {
-      const account = Account.create(
-        user,
-        commodity,
-        Name.create('initial-name'),
-        'description',
-        Amount.create('0'),
-        accountType,
-      );
+      const account = Account.create(user, {
+        commodityId: commodity.getId(),
+        description: 'description',
+        initialBalance: Amount.create('0'),
+        name,
+        type: accountType,
+      });
 
       account.update({ name: 'updated-name' });
 
@@ -125,14 +123,13 @@ describe('Account Domain Entity', () => {
 
   describe('softDelete method', () => {
     it('should mark account as tombstone', () => {
-      const account = Account.create(
-        user,
-        commodity,
+      const account = Account.create(user, {
+        commodityId: commodity.getId(),
+        description: 'account-description',
+        initialBalance: Amount.create('0'),
         name,
-        'account-description',
-        Amount.create('0'),
-        accountType,
-      );
+        type: accountType,
+      });
 
       expect(account.isDeleted()).toBe(false);
 
@@ -142,14 +139,13 @@ describe('Account Domain Entity', () => {
     });
 
     it('should not allow updates after soft deletion', () => {
-      const account = Account.create(
-        user,
-        commodity,
+      const account = Account.create(user, {
+        commodityId: commodity.getId(),
+        description: 'account-description',
+        initialBalance: Amount.create('0'),
         name,
-        'account-description',
-        Amount.create('0'),
-        accountType,
-      );
+        type: accountType,
+      });
 
       account.markAsDeleted();
 
@@ -159,14 +155,13 @@ describe('Account Domain Entity', () => {
     });
 
     it('should not allow deleting an already deleted account', () => {
-      const account = Account.create(
-        user,
-        commodity,
+      const account = Account.create(user, {
+        commodityId: commodity.getId(),
+        description: 'account-description',
+        initialBalance: Amount.create('0'),
         name,
-        'account-description',
-        Amount.create('0'),
-        accountType,
-      );
+        type: accountType,
+      });
 
       account.markAsDeleted();
 
@@ -195,14 +190,13 @@ describe('Account Domain Entity', () => {
 
       vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
 
-      const account = Account.create(
-        user,
-        commodity,
+      const account = Account.create(user, {
+        commodityId: commodity.getId(),
+        description: 'account-description',
+        initialBalance: Amount.create('0'),
         name,
-        'account-description',
-        Amount.create('0'),
-        accountType,
-      );
+        type: accountType,
+      });
 
       expect(account.isDeleted()).toBe(false);
 

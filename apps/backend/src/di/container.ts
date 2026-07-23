@@ -75,10 +75,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   };
 
   // Create Account Use Cases
-  const createAccountUseCase = new CreateAccountUseCase(
-    accountRepository,
-    commodityRepository,
-  );
+  const createAccountUseCase = new CreateAccountUseCase(accountRepository);
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
   const updateAccountUseCase = new UpdateAccountUseCase(accountRepository);
