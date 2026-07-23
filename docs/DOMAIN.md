@@ -206,6 +206,11 @@ repository interfaces and transaction boundaries. Mappers own conversion
 between domain snapshots, read models, response DTOs and persistence shapes.
 Repositories own persistence access.
 
+Commodity-backed account and transaction writes are a documented boundary
+exception: repositories enforce Commodity existence, ownership and tombstone
+state immediately before persistence. See
+[ADR 0019](./architecture/adr/0019-repository-enforced-commodity-reference-validation.md).
+
 New endpoint operations should be implemented as application use cases.
 `apps/backend/src/application/services/*` is reserved for helper orchestration
 used by use cases. Root-level `apps/backend/src/services/*` is legacy and must

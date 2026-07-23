@@ -336,8 +336,9 @@ USERS (root entity)
 
 ### Data Integrity
 
-1. **User ownership**: accounts and transactions may reference only Commodities
-   owned by the same user.
+1. **User ownership**: accounts and transactions may reference only active
+   Commodities owned by the same user. Write repositories enforce this check
+   immediately before persisting Commodity-backed references.
 2. **Required relations**: each operation must have a transaction and account.
 3. **Soft deletes**: entities use `isTombstone` where the deletion must be
    retained in storage.

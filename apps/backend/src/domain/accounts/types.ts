@@ -5,6 +5,10 @@ import {
   UUID,
 } from '@ledgerly/shared/types';
 
+import { Amount, Id, Name } from '../domain-core';
+
+import { AccountType } from './account-type.enum';
+
 export type AccountSnapshot = {
   createdAt: IsoDatetimeString;
   currentClearedBalanceLocal: AmountString;
@@ -25,3 +29,11 @@ export type AccountUpdateProps = Partial<{
   name: string;
   type: AccountTypeValue;
 }>;
+
+export type CreateAccountProps = {
+  commodityId: Id;
+  description: string;
+  initialBalance: Amount;
+  name: Name;
+  type: AccountType;
+};

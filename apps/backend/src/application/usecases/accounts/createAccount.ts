@@ -26,14 +26,13 @@ export class CreateAccountUseCase {
 
     const commodity = Commodity.restore(commoditySnapshot);
 
-    const account = Account.create(
-      user,
-      commodity,
-      Name.create(name),
+    const account = Account.create(user, {
+      commodityId: commodity.getId(),
       description,
-      Amount.create(initialBalance),
-      AccountType.create(type),
-    );
+      initialBalance: Amount.create(initialBalance),
+      name: Name.create(name),
+      type: AccountType.create(type),
+    });
 
     const accountSnapshot = account.toSnapshot();
 

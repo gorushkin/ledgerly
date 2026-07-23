@@ -160,14 +160,13 @@ export class TransactionBuilder {
         code,
       );
 
-      const account = Account.create(
-        this.user,
-        commodity,
-        Name.create(`Account ${commodityCode}`),
-        `Account ${commodityCode}`,
-        Amount.create('0'),
-        AccountType.create('asset'),
-      );
+      const account = Account.create(this.user, {
+        commodityId: commodity.getId(),
+        description: `Account ${commodityCode}`,
+        initialBalance: Amount.create('0'),
+        name: Name.create(`Account ${commodityCode}`),
+        type: AccountType.create('asset'),
+      });
 
       this.accounts.set(commodityCode, account);
       this.accountsMap.set(account.getId().valueOf(), account);

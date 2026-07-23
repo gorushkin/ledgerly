@@ -101,6 +101,8 @@ Those can be introduced by later ADRs if needed.
 - Account creation must require a Commodity; account Commodity changes are not
   allowed after creation.
 - Transaction creation must require a valuation Commodity.
+- The validation boundary for Commodity-backed account and transaction writes is
+  defined separately in ADR 0019.
 - Existing API and DTO surfaces may need compatibility fields while data and
   clients migrate from currency strings to Commodity ids.
 - Amount validation should use Commodity precision rather than assuming all
@@ -119,6 +121,7 @@ Those can be introduced by later ADRs if needed.
 - [LED-69: Validate Commodity existence, ownership, and archive state](https://gorushkin.atlassian.net/browse/LED-69)
 - [LED-105: Remove `/currencies` endpoint stub](https://gorushkin.atlassian.net/browse/LED-105)
 - [LED-70: Replace LED-47 validation with Commodity validation](https://gorushkin.atlassian.net/browse/LED-70)
+- [ADR 0019: Repository-Enforced Commodity Reference Validation](./0019-repository-enforced-commodity-reference-validation.md)
 - [Multicurrency Design](../../MULTICURRENCY_DESIGN.md)
 - [Domain Model](../../DOMAIN.md)
 - [Database Schema](../../DATABASE_SCHEMA.md)

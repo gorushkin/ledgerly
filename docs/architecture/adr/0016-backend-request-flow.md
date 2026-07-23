@@ -72,6 +72,9 @@ Responsibilities:
 - Owns persistence access and DB-specific query/update behavior.
 - Implements application repository interfaces where a boundary exists.
 - Does not create public API response contracts directly.
+- May enforce persistence-reference policies that must be checked immediately
+  before writes, such as Commodity existence, ownership and tombstone state for
+  Commodity-backed account and transaction writes. See ADR 0019.
 
 6. Application services
 
