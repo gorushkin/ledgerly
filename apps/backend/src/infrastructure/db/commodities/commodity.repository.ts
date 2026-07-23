@@ -83,7 +83,7 @@ export class CommodityRepository
         unique: {
           field: 'code',
           tableName: 'commodities',
-          value: commodity.code ?? 'No code provided',
+          value: commodity.code,
         },
       },
     );
@@ -129,7 +129,7 @@ export class CommodityRepository
         unique: {
           field: 'code',
           tableName: 'commodities',
-          value: commodity.code ?? 'No code provided',
+          value: commodity.code,
         },
       },
     );

@@ -219,6 +219,40 @@ describe('CommodityRepository', () => {
 
       expect(retrievedCommodity).toEqual(createdCommodityForAnotherUser);
     });
+
+    it('should associate a created commodity with the userId argument', async () => {
+      const anotherUser = await testDB.createUser();
+
+      const newCommodityData: CommoditySnapshot = {
+        code: CommodityCode.create('OWN').valueOf(),
+        createdAt: Timestamp.create().valueOf(),
+        id: Id.create().valueOf(),
+        isTombstone: false,
+        name: Name.create('Owned Commodity').valueOf(),
+        precision: 2,
+        symbol: 'O',
+        updatedAt: Timestamp.create().valueOf(),
+        userId: anotherUser.id,
+      };
+
+      const createdCommodity = await commodityRepository.create(
+        user.id,
+        newCommodityData,
+      );
+
+      expect(createdCommodity.userId).toBe(user.id);
+
+      await expect(
+        commodityRepository.getById(anotherUser.id, createdCommodity.id),
+      ).rejects.toThrowError(RepositoryNotFoundError);
+
+      await expect(
+        commodityRepository.getById(user.id, createdCommodity.id),
+      ).resolves.toMatchObject({
+        id: newCommodityData.id,
+        userId: user.id,
+      });
+    });
   });
 
   describe('update', () => {
@@ -265,6 +299,29 @@ describe('CommodityRepository', () => {
       await expect(
         commodityRepository.update(user.id, nonExistentId, updatedData),
       ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('should partially update only the provided fields', async () => {
+      const updatedData: CommodityRepositoryUpdateInput = {
+        name: Name.create('Renamed Commodity').valueOf(),
+        updatedAt: Timestamp.create().valueOf(),
+      };
+
+      const updatedCommodity = await commodityRepository.update(
+        user.id,
+        commodityDbRow.id,
+        updatedData,
+      );
+
+      expect(updatedCommodity).toMatchObject({
+        code: commodityDbRow.code,
+        id: commodityDbRow.id,
+        name: updatedData.name,
+        precision: commodityDbRow.precision,
+        symbol: commodityDbRow.symbol,
+        updatedAt: updatedData.updatedAt,
+        userId: commodityDbRow.userId,
+      });
     });
 
     it('should throw an error when trying to update a commodity with an existing CommodityCode', async () => {
