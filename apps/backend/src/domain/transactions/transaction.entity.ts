@@ -20,7 +20,6 @@ import {
   ParentChildRelation,
   DateValue,
   Amount,
-  Currency,
   Version,
 } from '../domain-core';
 import { Operation } from '../operations';
@@ -66,7 +65,8 @@ export class Transaction {
     private readonly ownership: ParentChildRelation,
     private postingDate: DateValue,
     private transactionDate: DateValue,
-    public currency: Currency,
+    private readonly commodityRelation: ParentChildRelation,
+
     public description: string,
     private version: Version,
   ) {}
@@ -77,6 +77,11 @@ export class Transaction {
     const softDelete = SoftDelete.create();
     const ownership = ParentChildRelation.create(userId, identity.getId());
 
+    const commodityRelation = ParentChildRelation.create(
+      dto.commodityId,
+      identity.getId(),
+    );
+
     const transaction = new Transaction(
       identity,
       timestamps,
@@ -84,7 +89,7 @@ export class Transaction {
       ownership,
       dto.postingDate,
       dto.transactionDate,
-      dto.currency,
+      commodityRelation,
       dto.description,
       Version.create(0),
     );
@@ -147,8 +152,8 @@ export class Transaction {
 
   static restore(data: TransactionSnapshotWithDetails): Transaction {
     const {
+      commodityId,
       createdAt,
-      currency,
       description,
       id,
       isTombstone,
@@ -172,6 +177,11 @@ export class Transaction {
       identity.getId(),
     );
 
+    const commodityRelation = ParentChildRelation.create(
+      Id.restore(commodityId),
+      identity.getId(),
+    );
+
     const transaction = new Transaction(
       identity,
       timestamps,
@@ -179,7 +189,7 @@ export class Transaction {
       ownership,
       DateValue.restore(postingDate),
       DateValue.restore(transactionDate),
-      Currency.restore(currency),
+      commodityRelation,
       description,
       Version.restore(version),
     );
@@ -230,14 +240,18 @@ export class Transaction {
     return this.ownership.getParentId();
   }
 
+  getCommodityId(): Id {
+    return this.commodityRelation.getParentId();
+  }
+
   canBeUpdated(): boolean {
     return !this.isDeleted();
   }
 
   private buildSnapshot(operations: Operation[]): TransactionSnapshot {
     return {
+      commodityId: this.commodityRelation.getParentId().valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
-      currency: this.currency.valueOf(),
       description: this.description,
       id: this.getId().valueOf(),
       isTombstone: this.isDeleted(),

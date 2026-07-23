@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
 import { AccountPersistenceMapper } from '../accounts';
+import { CommodityPersistenceMapper } from '../commodities';
 import { TransactionManager } from '../TransactionManager';
 import { UserPersistenceMapper } from '../user';
 
@@ -21,7 +22,7 @@ import { OperationRepository } from './operation.repository';
 
 describe('OperationRepository', () => {
   let testDB: TestDB;
-  let user: UserDbRow;
+  let userSnapshot: UserDbRow;
 
   let transaction: Transaction;
 
@@ -41,7 +42,7 @@ describe('OperationRepository', () => {
   beforeEach(async () => {
     testDB = new TestDB();
     await testDB.setupTestDb();
-    user = await testDB.createUser();
+    userSnapshot = await testDB.createUser();
 
     const operationsData = [
       { accountKey: 'USD', amount: '10000', description: '1' },
@@ -53,12 +54,22 @@ describe('OperationRepository', () => {
     ];
 
     data = TransactionBuilder.transaction({
-      accounts: ['USD', 'EUR'],
+      currencies: ['USD', 'EUR'],
       operations: operationsData,
-      user: UserPersistenceMapper.toDomain(user),
+      user: UserPersistenceMapper.toDomain(userSnapshot),
     });
 
     transaction = data.transaction;
+
+    await Promise.all(
+      data.commodities.map((commodity) =>
+        testDB.insertCommodity(
+          CommodityPersistenceMapper.toDBRowFromSnapshot(
+            commodity.toSnapshot(),
+          ),
+        ),
+      ),
+    );
 
     await Promise.all(
       data.accounts.map((account) =>
@@ -88,7 +99,7 @@ describe('OperationRepository', () => {
         OperationPersistenceMapper.toDBRow(operation),
       );
 
-      await operationRepository.save(user.id, operations, new Map());
+      await operationRepository.save(userSnapshot.id, operations, new Map());
 
       const fetchedTransactionRelationsAfterSaving =
         await testDB.getTransactionWithRelations(transaction.getId().valueOf());
@@ -168,7 +179,7 @@ describe('OperationRepository', () => {
       ];
 
       await operationRepository.save(
-        user.id,
+        userSnapshot.id,
         [...operationsToUpdateData, ...operationsToDeleteData],
         operationsSnapshot,
       );
@@ -296,7 +307,7 @@ describe('OperationRepository', () => {
 
       try {
         await operationRepository.save(
-          user.id,
+          userSnapshot.id,
           operationsToDeleteData,
           operationsSnapshot,
         );
@@ -355,7 +366,7 @@ describe('OperationRepository', () => {
       const operationToDelete = operations[0];
 
       await operationRepository.save(
-        user.id,
+        userSnapshot.id,
         [
           {
             ...operationToDelete,
@@ -380,7 +391,7 @@ describe('OperationRepository', () => {
 
       await expect(
         operationRepository.save(
-          user.id,
+          userSnapshot.id,
           [
             {
               ...operationToDelete,

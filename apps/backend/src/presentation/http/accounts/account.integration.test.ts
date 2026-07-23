@@ -6,8 +6,7 @@ import {
   UUID,
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
-import { Amount } from 'src/domain/domain-core';
-import { Currency } from 'src/domain/domain-core/value-objects/Currency';
+import { Amount, CommodityCode } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { createServer } from 'src/presentation/http';
 import { describe, beforeEach, it, expect } from 'vitest';
@@ -16,14 +15,14 @@ const url = `/api${ROUTES.accounts}`;
 
 const firstUserAccounts = [
   {
-    currency: Currency.create('USD').valueOf(),
+    commodityId: Id.create().valueOf(),
     description: 'This is a test account',
     initialBalance: Amount.create('1000').valueOf(),
     name: 'Test Account',
     type: 'asset' as AccountTypeValue,
   },
   {
-    currency: Currency.create('USD').valueOf(),
+    commodityId: Id.create().valueOf(),
     description: 'Savings account for future expenses',
     initialBalance: Amount.create('1000').valueOf(),
     name: 'Savings Account',
@@ -71,13 +70,14 @@ describe('Accounts Integration Tests', () => {
     const decoded = server.jwt.decode(token) as unknown as { userId: UUID };
     userId = Id.restore(decoded.userId).valueOf();
 
-    const testAccounts = getUserTestAccounts(
+    const testAccountsDTO = getUserTestAccounts(
       Id.restore(decoded.userId).valueOf(),
     );
 
-    const promises = testAccounts.map((account) =>
-      testDB.createAccount(userId, account),
-    );
+    const promises = testAccountsDTO.map(async (account) => {
+      const commodity = await testDB.createCommodity(userId);
+      return testDB.createAccount(userId, commodity.id, account);
+    });
 
     accounts = await Promise.all(promises);
   });
@@ -119,9 +119,13 @@ describe('Accounts Integration Tests', () => {
 
   describe('POST /api/accounts', () => {
     it('should create a new account', async () => {
-      //TODO: create entity with Account.create
-      const newAccount = {
-        currency: 'USD',
+      const commodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('USD').valueOf(),
+        name: 'US Dollar',
+      });
+
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
         description: 'This is a new account',
         initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
@@ -133,17 +137,16 @@ describe('Accounts Integration Tests', () => {
           Authorization: `Bearer ${authToken}`,
         },
         method: 'POST',
-        payload: newAccount,
+        payload,
         url,
       });
 
       const createdAccount = JSON.parse(response.body) as AccountResponseDTO;
 
       expect(response.statusCode).toBe(201);
-      expect(createdAccount.name).toBe(newAccount.name);
-      expect(createdAccount.currency).toBe(newAccount.currency);
-      expect(createdAccount.type).toBe(newAccount.type);
-      expect(createdAccount.description).toBe(newAccount.description);
+      expect(createdAccount.name).toBe(payload.name);
+      expect(createdAccount.type).toBe(payload.type);
+      expect(createdAccount.description).toBe(payload.description);
 
       const finalResponse = await server.inject({
         headers: {
@@ -215,7 +218,6 @@ describe('Accounts Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
       expect(updatedAccount.name).toBe(updatedData.name);
-      expect(updatedAccount.currency).toBe(updatedData.currency);
 
       const finalResponse = await server.inject({
         headers: {

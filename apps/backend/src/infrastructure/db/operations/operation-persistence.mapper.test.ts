@@ -14,7 +14,7 @@ describe('OperationPersistenceMapper', () => {
 
   it('maps an operation snapshot to a persistence row', () => {
     const { operations } = TransactionBuilder.transaction({
-      accounts: ['USD'],
+      currencies: ['USD'],
       operations: [
         { accountKey: 'USD', amount: '100', description: 'Debit' },
         { accountKey: 'USD', amount: '-100', description: 'Credit' },

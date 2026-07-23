@@ -1,9 +1,11 @@
-import { CurrencyCode } from '@ledgerly/shared/types';
-import { AccountFactory } from 'src/application/services/account.factory';
+import {
+  AccountRepositoryInterface,
+  CommodityRepositoryInterface,
+  EntityNotFoundError,
+} from 'src/application';
 import { createUser } from 'src/db/createTestUser';
-import { AccountType } from 'src/domain';
-import { Account } from 'src/domain/accounts/account.entity';
-import { Amount, Currency, Name } from 'src/domain/domain-core';
+import { Commodity } from 'src/domain';
+import { Amount, CommodityCode, Name } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateAccountUseCase } from '../createAccount';
@@ -13,21 +15,31 @@ describe('CreateAccountUseCase', async () => {
 
   let createAccountUseCase: CreateAccountUseCase;
 
-  let accountFactory: { createAccount: ReturnType<typeof vi.fn> };
+  const commodityRepository = {
+    getById: vi.fn(),
+  };
+  const accountRepository = {
+    create: vi.fn(),
+  };
 
   const name = 'Test Account';
   const description = 'Test account description';
   const initialBalance = Amount.create('1000').valueOf();
-  const currency = 'USD' as CurrencyCode;
+  const currentClearedBalanceLocal = Amount.create('0').valueOf();
+
+  const commodity = Commodity.create(
+    user,
+    Name.create('Test Commodity'),
+    CommodityCode.create('TEST'),
+    2,
+    null,
+  );
   const type = 'asset';
 
   beforeEach(() => {
-    accountFactory = {
-      createAccount: vi.fn(),
-    };
-
     createAccountUseCase = new CreateAccountUseCase(
-      accountFactory as unknown as AccountFactory,
+      accountRepository as unknown as AccountRepositoryInterface,
+      commodityRepository as unknown as CommodityRepositoryInterface,
     );
   });
 
@@ -35,36 +47,39 @@ describe('CreateAccountUseCase', async () => {
     it('should create a new account successfully', async () => {
       // Arrange
 
-      const mockedAccount = Account.create(
-        user,
-        Name.create(name),
-        description,
-        Amount.create(initialBalance),
-        Currency.create(currency),
-        AccountType.create(type),
-      );
-
-      accountFactory.createAccount.mockResolvedValue(mockedAccount);
+      const mockedCommoditySnapshot = commodity.toSnapshot();
+      commodityRepository.getById.mockResolvedValue(mockedCommoditySnapshot);
 
       // Act
       const result = await createAccountUseCase.execute(user, {
-        currency: currency,
+        commodityId: mockedCommoditySnapshot.id,
         description,
         initialBalance,
         name,
         type,
       });
 
-      expect(accountFactory.createAccount).toHaveBeenCalledWith(user, {
-        currency: currency,
+      expect(commodityRepository.getById).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        mockedCommoditySnapshot.id,
+      );
+
+      expect(accountRepository.create).toHaveBeenCalledWith({
+        commodityId: result.commodityId,
+        createdAt: result.createdAt,
+        currentClearedBalanceLocal,
         description,
+        id: result.id,
         initialBalance,
+        isSystem: false,
+        isTombstone: false,
         name,
         type,
+        updatedAt: result.updatedAt,
+        userId: result.userId,
       });
 
       expect(result).toMatchObject({
-        currency,
         description,
         initialBalance,
         isSystem: false,
@@ -72,6 +87,37 @@ describe('CreateAccountUseCase', async () => {
         type,
         userId: user.getId().valueOf(),
       });
+    });
+
+    it('should throw an error if the commodity does not belong to the user', async () => {
+      // Arrange
+      const anotherUser = await createUser();
+      const anotherCommodity = Commodity.create(
+        anotherUser,
+        Name.create('Another Commodity'),
+        CommodityCode.create('ANOTHER'),
+        2,
+        null,
+      );
+      const mockedAnotherCommoditySnapshot = anotherCommodity.toSnapshot();
+
+      commodityRepository.getById.mockRejectedValue(
+        new EntityNotFoundError({
+          entityId: mockedAnotherCommoditySnapshot.id,
+          entityType: 'commodity',
+        }),
+      );
+
+      // Act & Assert
+      await expect(
+        createAccountUseCase.execute(user, {
+          commodityId: mockedAnotherCommoditySnapshot.id,
+          description,
+          initialBalance,
+          name,
+          type,
+        }),
+      ).rejects.toThrowError(EntityNotFoundError);
     });
   });
 });

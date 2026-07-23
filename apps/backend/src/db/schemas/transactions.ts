@@ -1,8 +1,8 @@
-import { CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
 import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-import { OperationDbRow, operationsTable } from '../schema';
+import { commoditiesTable, OperationDbRow, operationsTable } from '../schema';
 
 import {
   createdAt,
@@ -18,8 +18,11 @@ import { usersTable } from './users';
 export const transactionsTable = sqliteTable(
   'transactions',
   {
+    commodityId: text('commodity_id')
+      .notNull()
+      .references(() => commoditiesTable.id)
+      .$type<UUID>(),
     createdAt,
-    currency: text('currency').notNull().$type<CurrencyCode>(),
     description,
     id,
     isTombstone,

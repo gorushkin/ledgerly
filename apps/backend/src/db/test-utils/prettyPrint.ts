@@ -1,6 +1,6 @@
 // Format and print transactions in PTA format
 import { UUID } from '@ledgerly/shared/types';
-import { Account, Operation, Transaction } from 'src/domain';
+import { Account, Commodity, Operation, Transaction } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
 import { AmountFormatter } from 'src/presentation/formatters';
 const formatter = new AmountFormatter();
@@ -21,28 +21,37 @@ const formatDebitCredit = (
 const getAccountInfo = (
   accountId: UUID,
   accountMap?: Map<UUID, Account>,
-): { currency: string; name: string } => {
+  commoditiesMapById?: Map<UUID, Commodity>,
+): { commodity: string; name: string } => {
   if (!accountMap) {
-    return { currency: 'N/A', name: 'Unknown Account' };
+    return { commodity: 'N/A', name: 'Unknown Account' };
   }
   const account = accountMap.get(accountId);
 
   if (!account) {
-    return { currency: 'N/A', name: 'Unknown Account' };
+    return { commodity: 'N/A', name: 'Unknown Account' };
   }
-  return { currency: account.currency.valueOf(), name: account.name.valueOf() };
+
+  const commodity = commoditiesMapById?.get(account.toSnapshot().commodityId);
+
+  return {
+    commodity: commodity?.toSnapshot().code ?? 'N/A',
+    name: account.name.valueOf(),
+  };
 };
 
 function formatOperationPTA(
   operation: Operation,
   accountMap?: Map<UUID, Account>,
+  commoditiesMapById?: Map<UUID, Commodity>,
 ): string {
-  const { currency, name } = getAccountInfo(
+  const { commodity, name } = getAccountInfo(
     operation.getAccountId().valueOf(),
     accountMap,
+    commoditiesMapById,
   );
   const { credit, debit } = formatDebitCredit(operation.amount);
-  return `  ${name.padEnd(20)} ${operation.description.padEnd(50)} ${currency.padEnd(8)} ${debit} ${credit}`;
+  return `  ${name.padEnd(20)} ${operation.description.padEnd(50)} ${commodity.padEnd(8)} ${debit} ${credit}`;
 }
 
 /**
@@ -57,6 +66,7 @@ function formatOperationPTA(
 function formatTransactionPTA(
   transaction: Transaction,
   accountMap?: Map<UUID, Account>,
+  commoditiesMapById?: Map<UUID, Commodity>,
 ): string {
   const { credit, debit } = transaction.getOperations().reduce(
     (totals, operation) => {
@@ -73,18 +83,23 @@ function formatTransactionPTA(
       debit: Amount.create('0'),
     },
   );
+
+  const commodity =
+    commoditiesMapById?.get(transaction.toSnapshot().commodityId)?.toSnapshot()
+      .code ?? 'N/A';
+
   const lines: string[] = [];
   lines.push(
     `${transaction.getTransactionDate().valueOf()} ${transaction.description}`,
   );
   lines.push(
-    `  ${'Account'.padEnd(20)} ${'Description'.padEnd(50)} ${'Currency'.padEnd(8)} ${'Debit'.padStart(amountColumnWidth)} ${'Credit'.padStart(amountColumnWidth)}`,
+    `  ${'Account'.padEnd(20)} ${'Description'.padEnd(50)} ${'Commodity'.padEnd(8)} ${'Debit'.padStart(amountColumnWidth)} ${'Credit'.padStart(amountColumnWidth)}`,
   );
   transaction.getOperations().forEach((operation) => {
-    lines.push(formatOperationPTA(operation, accountMap));
+    lines.push(formatOperationPTA(operation, accountMap, commoditiesMapById));
   });
   lines.push(
-    `  ${'Total'.padEnd(20)} ${''.padEnd(50)} ${transaction.currency.valueOf().padEnd(8)} ${formatAmountColumn(debit)} ${formatAmountColumn(credit)}`,
+    `  ${'Total'.padEnd(20)} ${''.padEnd(50)} ${commodity.padEnd(8)} ${formatAmountColumn(debit)} ${formatAmountColumn(credit)}`,
   );
   return lines.join('\n');
 }
@@ -92,15 +107,19 @@ function formatTransactionPTA(
 function printOperationPTA(
   operation: Operation,
   accountMap?: Map<UUID, Account>,
+  commoditiesMapById?: Map<UUID, Commodity>,
 ): void {
-  console.info(formatOperationPTA(operation, accountMap));
+  console.info(formatOperationPTA(operation, accountMap, commoditiesMapById));
 }
 
 function printTransactionPTA(
   transaction: Transaction,
   accountMap?: Map<UUID, Account>,
+  commoditiesMapById?: Map<UUID, Commodity>,
 ): void {
-  console.info(formatTransactionPTA(transaction, accountMap));
+  console.info(
+    formatTransactionPTA(transaction, accountMap, commoditiesMapById),
+  );
 }
 
 export const prettyPrint = {

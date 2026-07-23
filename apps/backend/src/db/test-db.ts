@@ -5,10 +5,12 @@ import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import { dateInIsoFormat } from '@ledgerly/shared/libs';
 import {
   AccountTypeValue,
-  CurrencyCode,
   IsoDateString,
   AmountString,
   UUID,
+  CommodityCodeString,
+  CommodityPrecisionNumber,
+  CommoditySymbolString,
 } from '@ledgerly/shared/types';
 import { isoDate, isoDatetime } from '@ledgerly/shared/validation';
 import { createClient } from '@libsql/client';
@@ -16,11 +18,11 @@ import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
-import { Amount, Currency, DateValue } from 'src/domain/domain-core';
+import { Amount, CommodityCode, DateValue } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { TransactionSnapshot } from 'src/domain/transactions/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import { AmountFormatter } from 'src/presentation/formatters';
+import { CommodityPersistenceMapper } from 'src/infrastructure/db/commodities/commodity-persistence.mapper';
 
 import {
   TransactionDbInsert,
@@ -33,6 +35,8 @@ import {
   AccountDbInsert,
   OperationDbInsert,
   OperationDbRow,
+  CommodityDbInsert,
+  commoditiesTable,
 } from './schema';
 import * as schema from './schemas';
 
@@ -55,10 +59,13 @@ class Counter {
     return this.count;
   }
 
-  getNextName(suffix = ''): string {
+  getNextName({
+    delimiter = '-',
+    suffix = '',
+  }: { suffix?: string; delimiter?: string } = {}): string {
     this.increment();
     if (this.name) {
-      return `${this.name}-${this.count}${suffix ? `-${suffix}` : ''}`;
+      return `${this.name}${delimiter}${this.count}${suffix ? `${delimiter}${suffix}` : ''}`;
     }
 
     return this.count.toString();
@@ -68,7 +75,6 @@ export type CreateTransactionProps = {
   description?: string;
   postingDate?: IsoDateString;
   transactionDate?: IsoDateString;
-  currencyCode?: CurrencyCode;
   isTombstone?: boolean;
 };
 
@@ -83,7 +89,6 @@ export type TransactionOperationSeed = {
 };
 
 export type TransactionSeed = {
-  currencyCode?: CurrencyCode;
   description: string;
   operations: TransactionOperationSeed[];
   postingDate?: IsoDateString;
@@ -94,6 +99,7 @@ export type TransactionSeed = {
 export class TestDB {
   db: DataBase;
   transactionCounter = new Counter('transaction');
+  commodityCounter = new Counter('commodity');
   operationCounter = new Counter('operation');
   userCounter = new Counter('user');
   private testDbFile?: string;
@@ -208,12 +214,12 @@ export class TestDB {
 
   createTransaction = async (
     userId: UUID,
+    commodityId: UUID,
     params?: CreateTransactionProps,
   ): Promise<TransactionDbRow> => {
     const transactionData: TransactionDbInsert = {
       ...TestDB.uuid,
       ...TestDB.createTimestamps,
-      currency: params?.currencyCode ?? Currency.create('USD').valueOf(),
       description:
         params?.description ??
         `Test Transaction ${this.transactionCounter.getNextName()}`,
@@ -221,6 +227,7 @@ export class TestDB {
       postingDate: params?.postingDate ?? DateValue.create().valueOf(),
       transactionDate: params?.transactionDate ?? DateValue.create().valueOf(),
       ...params,
+      commodityId,
       userId,
       version: 0,
     };
@@ -236,11 +243,11 @@ export class TestDB {
 
   createTransactionWithOperations = async (
     userId: UUID,
+    commodityId: UUID,
     params?: {
       description?: string;
       postingDate?: IsoDateString;
       transactionDate?: IsoDateString;
-      currencyCode?: CurrencyCode;
       isTombstone?: boolean;
       operations: {
         accountId: UUID;
@@ -254,7 +261,11 @@ export class TestDB {
       }[];
     },
   ): Promise<TransactionWithRelations> => {
-    const transaction = await this.createTransaction(userId, params);
+    const transaction = await this.createTransaction(
+      userId,
+      commodityId,
+      params,
+    );
 
     const operations: OperationDbRow[] = [];
 
@@ -272,8 +283,8 @@ export class TestDB {
 
   createTransactionFromSeed = async (
     userId: UUID,
+    commodityId: UUID,
     {
-      currencyCode = 'USD' as CurrencyCode,
       description,
       isTombstone = false,
       operations,
@@ -281,8 +292,7 @@ export class TestDB {
       transactionDate = '2023-01-01' as IsoDateString,
     }: TransactionSeed,
   ): Promise<TransactionWithRelations> => {
-    return this.createTransactionWithOperations(userId, {
-      currencyCode,
+    return this.createTransactionWithOperations(userId, commodityId, {
       description,
       isTombstone,
       operations: operations.map((operation) => ({
@@ -365,40 +375,6 @@ export class TestDB {
     return { operations, ...transaction };
   };
 
-  getTransactionInPTAFormat = async (
-    transactionId: UUID,
-  ): Promise<string | null> => {
-    const transaction = await this.getTransactionById(transactionId);
-    if (!transaction) return null;
-
-    const operations = await this.db.select().from(schema.operationsTable);
-
-    // Format in PTA (Plain Text Accounting) style
-    let output = `${transaction.transactionDate} ${transaction.description}\n`;
-
-    for (const operation of operations) {
-      const account = await this.db
-        .select()
-        .from(schema.accountsTable)
-        .where(sql`${schema.accountsTable.id} = ${operation.accountId}`)
-        .get();
-
-      if (!account) continue;
-
-      const formatter = new AmountFormatter();
-
-      const amount = Amount.restore(operation.amount);
-      const userFriendlyAmount = formatter.formatForTable(amount, 'en-US');
-      const accountName = account.name;
-      const currency = account.currency;
-      const systemMarker = operation.isSystem ? ' [system]' : '';
-
-      output += `    ${accountName.padEnd(40)} ${operation.description} ${userFriendlyAmount} ${currency}${systemMarker}\n`;
-    }
-
-    return output;
-  };
-
   softDeleteTransaction = async (transactionId: UUID) => {
     return await this.db
       .update(schema.transactionsTable)
@@ -408,11 +384,48 @@ export class TestDB {
       .get();
   };
 
-  createAccount = async (
+  createCommodity = async (
     userId: UUID,
     params?: {
+      code?: CommodityCodeString;
+      symbol?: CommoditySymbolString;
       name?: string;
-      currency?: CurrencyCode;
+      precision?: CommodityPrecisionNumber;
+    },
+  ) => {
+    const nextName = this.commodityCounter.getNextName({ delimiter: '' });
+
+    const commodityData = {
+      code: params?.code ?? CommodityCode.create(`COM${nextName}`).valueOf(),
+      name: params?.name ?? `Commodity ${nextName}`,
+      precision: params?.precision ?? 2,
+      symbol: params?.symbol ?? `${nextName}`,
+      userId,
+    };
+
+    const commodity = await this.db
+      .insert(schema.commoditiesTable)
+      .values({
+        code: commodityData.code,
+        name: commodityData.name,
+        precision: commodityData.precision,
+        symbol: commodityData.symbol,
+        userId: commodityData.userId,
+        ...TestDB.createTimestamps,
+        ...TestDB.uuid,
+        isTombstone: false,
+      })
+      .returning()
+      .get();
+
+    return commodity;
+  };
+
+  createAccount = async (
+    userId: UUID,
+    commodityId: UUID,
+    params?: {
+      name?: string;
       type?: AccountTypeValue;
       initialBalance?: AmountString;
       description?: string;
@@ -420,7 +433,6 @@ export class TestDB {
     },
   ) => {
     const accountData = {
-      currency: 'USD' as unknown as CurrencyCode,
       description: '',
       initialBalance: Amount.create('0').valueOf(),
       isSystem: false,
@@ -433,7 +445,7 @@ export class TestDB {
     const account = await this.db
       .insert(accountsTable)
       .values({
-        currency: accountData.currency,
+        commodityId,
         currentClearedBalanceLocal: accountData.initialBalance ?? 0,
         description: accountData.description || '',
         initialBalance: accountData.initialBalance ?? 0,
@@ -449,6 +461,16 @@ export class TestDB {
       .get();
 
     return account;
+  };
+
+  insertCommodity = async (commodityData: CommodityDbInsert) => {
+    const insertedCommodity = await this.db
+      .insert(commoditiesTable)
+      .values(commodityData)
+      .returning()
+      .get();
+
+    return insertedCommodity;
   };
 
   insertAccount = async (accountData: AccountDbInsert) => {
@@ -539,23 +561,44 @@ export class TestDB {
         password: 'hashed_password',
       }));
 
-    const accountUSD1 = await this.createAccount(user.id, {
-      currency: Currency.create('USD').valueOf(),
+    const transactionCommodity = CommodityPersistenceMapper.toDomain(
+      await this.createCommodity(user.id),
+    );
+
+    const usdCommodity = await this.createCommodity(user.id, {
+      code: CommodityCode.create('USD').valueOf(),
+      name: 'US Dollar',
+      precision: 2,
+      symbol: '$',
+    });
+
+    const eurCommodity = await this.createCommodity(user.id, {
+      code: CommodityCode.create('EUR').valueOf(),
+      name: 'Euro',
+      precision: 2,
+      symbol: '€',
+    });
+
+    const accountUSD1 = await this.createAccount(user.id, usdCommodity.id, {
       name: 'Savings Account USD',
     });
 
-    const accountUSD2 = await this.createAccount(user.id, {
-      currency: Currency.create('USD').valueOf(),
+    const accountUSD2 = await this.createAccount(user.id, usdCommodity.id, {
       name: 'Checking Account USD',
     });
 
-    const accountEUR = await this.createAccount(user.id, {
-      currency: Currency.create('EUR').valueOf(),
+    const accountEUR = await this.createAccount(user.id, eurCommodity.id, {
       name: 'Credit Card EUR',
     });
 
-    const transaction1 = await this.createTransaction(user.id);
-    const transaction2 = await this.createTransaction(user.id);
+    const transaction1 = await this.createTransaction(
+      user.id,
+      transactionCommodity.getId().valueOf(),
+    );
+    const transaction2 = await this.createTransaction(
+      user.id,
+      transactionCommodity.getId().valueOf(),
+    );
 
     await this.createOperation(user.id, {
       accountId: accountUSD1.id,

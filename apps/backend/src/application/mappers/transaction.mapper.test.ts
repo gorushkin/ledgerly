@@ -12,7 +12,7 @@ describe('TransactionMapper', () => {
     const user = await createUser();
 
     fixture = TransactionBuilder.transaction({
-      accounts: ['USD'],
+      currencies: ['USD'],
       operations: [
         {
           accountKey: 'USD',
@@ -26,7 +26,6 @@ describe('TransactionMapper', () => {
         },
       ],
       settings: {
-        currencyCode: 'USD',
         description: 'Transaction with tombstone operation',
         postingDate: '2026-07-10',
         transactionDate: '2026-07-09',
@@ -64,8 +63,8 @@ describe('TransactionMapper', () => {
     const response = TransactionMapper.toResponseDTO(transaction);
 
     expect(response).toEqual({
+      commodityId: transactionSnapshot.commodityId,
       createdAt: transactionSnapshot.createdAt,
-      currency: transactionSnapshot.currency,
       description: transactionSnapshot.description,
       id: transactionSnapshot.id,
       operations: [

@@ -8,8 +8,8 @@ export class AccountPersistenceMapper {
 
   static toSnapshot(row: AccountDbRow): AccountSnapshot {
     return {
+      commodityId: row.commodityId,
       createdAt: row.createdAt,
-      currency: row.currency,
       currentClearedBalanceLocal: row.currentClearedBalanceLocal,
       description: row.description,
       id: row.id,
@@ -25,8 +25,8 @@ export class AccountPersistenceMapper {
 
   static toDBRowFromSnapshot(snapshot: AccountSnapshot): AccountRepoInsert {
     return {
+      commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
-      currency: snapshot.currency,
       currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
       description: snapshot.description,
       id: snapshot.id,

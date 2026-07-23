@@ -27,11 +27,6 @@ export const uniqueIdSchema = z.object({
   id: uuid,
 });
 
-export const currencyCode = z
-  .string()
-  .length(3, "Currency code must be exactly 3 characters")
-  .brand<"CurrencyCode">();
-
 export const isoDatetime = z.string().datetime().brand<"IsoDatetimeString">();
 
 export const sha256String = z.string().regex(/^[a-f0-9]{64}$/, {

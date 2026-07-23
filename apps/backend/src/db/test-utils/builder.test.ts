@@ -1,14 +1,22 @@
 import { createUser } from 'src/db/createTestUser';
+import { User } from 'src/domain';
 import { InsufficientOperationsError } from 'src/domain/domain.errors';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+
+import { EntityNotFoundError } from '../../application/application.errors';
 
 import { TransactionBuilder } from './testEntityBuilder';
 
 describe('TransactionBuilder', () => {
-  it('should be implemented', async () => {
-    const user = await createUser();
+  let user: User;
+
+  beforeAll(async () => {
+    user = await createUser();
+  });
+
+  it('should be implemented', () => {
     TransactionBuilder.transaction({
-      accounts: ['USD', 'EUR'],
+      currencies: ['USD', 'EUR'],
       operations: [
         { accountKey: 'USD', amount: '10000', description: '1' },
         {
@@ -21,10 +29,9 @@ describe('TransactionBuilder', () => {
     });
   });
 
-  it('builds an invalid request fixture without creating a domain transaction', async () => {
-    const user = await createUser();
+  it('builds an invalid request fixture without creating a domain transaction', () => {
     const fixture = TransactionBuilder.request({
-      accounts: ['USD'],
+      currencies: ['USD'],
       operations: [{ accountKey: 'USD', amount: '0' }],
       user,
     });
@@ -32,15 +39,26 @@ describe('TransactionBuilder', () => {
     expect(fixture.transactionDTO.operations).toHaveLength(1);
   });
 
-  it('applies domain invariants when building a transaction', async () => {
-    const user = await createUser();
-
+  it('applies domain invariants when building a transaction', () => {
     expect(() =>
       TransactionBuilder.transaction({
-        accounts: ['USD'],
+        currencies: ['USD'],
         operations: [{ accountKey: 'USD', amount: '0' }],
         user,
       }),
     ).toThrow(InsufficientOperationsError);
+  });
+
+  it('throws an error if an operation references a non-existent account', () => {
+    expect(() =>
+      TransactionBuilder.transaction({
+        currencies: ['USD'],
+        operations: [
+          { accountKey: 'USD', amount: '100', description: 'Debit' },
+          { accountKey: 'EUR', amount: '-100', description: 'Credit' },
+        ],
+        user,
+      }),
+    ).toThrow(EntityNotFoundError);
   });
 });

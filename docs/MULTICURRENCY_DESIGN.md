@@ -128,16 +128,14 @@ Trading accounts will never be displayed to the user.
 
 ## 5. Data Structure
 
-> Design note: the current schema uses `currency` strings, but the target model
-> is a user-owned Commodity Registry. Commodity identity is a stable id, not a
-> display code. See
-> [ADR 0006](./architecture/adr/0006-commodity-registry-before-currency-validation.md).
+Ledgerly stores monetary-unit identity through user-owned Commodities.
+Commodity identity is a stable id, not a display code. See
+[ADR 0006](./architecture/adr/0006-commodity-registry-before-currency-validation.md).
 
 ### Transaction
 Top-level entity representing a financial event:
 - `id`, `userId`, `description`
-- `currency` today; target model: `valuationCommodityId`, which determines
-  `value` denomination
+- `valuationCommodityId`, which determines `value` denomination
 - `transactionDate`, `postingDate`
 - `version` (optimistic concurrency)
 - `createdAt`, `updatedAt`, `isTombstone`
@@ -145,8 +143,8 @@ Top-level entity representing a financial event:
 ### Operation
 Individual account posting:
 - `id`, `transactionId`, `accountId`, `userId`
-- `amount` (signed integer, in **account's currency**)
-- `value` (signed integer, in **transaction's currency**)
+- `amount` (signed integer, in the **account's Commodity**)
+- `value` (signed integer, in the **transaction valuation Commodity**)
 - `description` (optional)
 - `isSystem` (true for trading postings)
 - `createdAt`, `updatedAt`, `isTombstone`
@@ -155,10 +153,10 @@ Individual account posting:
 
 This follows the standard GnuCash split model:
 
-| Field | Currency | Purpose |
-|-------|----------|---------|
-| `amount` | Account's native currency | How much was posted to this account |
-| `value` | Transaction's currency | The equivalent amount in the transaction's denomination |
+| Field | Denomination | Purpose |
+|-------|--------------|---------|
+| `amount` | Account's Commodity | How much was posted to this account |
+| `value` | Transaction valuation Commodity | The equivalent amount in the transaction's denomination |
 
 For **same-currency** transactions both fields are equal.
 
@@ -174,7 +172,7 @@ Transaction currency: USD
 **Balance validation** is performed on `value`: the sum of `value` across all operations of a transaction must equal zero, regardless of how many currencies are involved.
 
 Notes:
-- Currency is determined by the account.
+- Account denomination is determined by the account's Commodity.
 - Operations are immutable.
 - Normal operations have `isSystem = false`.
 - Trading operations have `isSystem = true`.

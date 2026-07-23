@@ -1,6 +1,6 @@
 CREATE TABLE `accounts` (
+	`commodity_id` text NOT NULL,
 	`created_at` text NOT NULL,
-	`currency` text NOT NULL,
 	`current_cleared_balance_local` text NOT NULL,
 	`description` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
@@ -11,13 +11,14 @@ CREATE TABLE `accounts` (
 	`type` text NOT NULL,
 	`updated_at` text NOT NULL,
 	`user_id` text NOT NULL,
+	FOREIGN KEY (`commodity_id`) REFERENCES `commodities`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `user_id_name_unique_idx` ON `accounts` (`user_id`,`name`);--> statement-breakpoint
 CREATE TABLE `transactions` (
+	`commodity_id` text NOT NULL,
 	`created_at` text NOT NULL,
-	`currency` text NOT NULL,
 	`description` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
 	`is_tombstone` integer NOT NULL,
@@ -26,16 +27,11 @@ CREATE TABLE `transactions` (
 	`updated_at` text NOT NULL,
 	`user_id` text NOT NULL,
 	`version` integer NOT NULL,
+	FOREIGN KEY (`commodity_id`) REFERENCES `commodities`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE INDEX `idx_transactions_user_date` ON `transactions` (`user_id`,`transaction_date`);--> statement-breakpoint
-CREATE TABLE `currencies` (
-	`code` text PRIMARY KEY NOT NULL,
-	`name` text NOT NULL,
-	`symbol` text NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE `operations` (
 	`account_id` text NOT NULL,
 	`amount` text NOT NULL,
@@ -67,10 +63,23 @@ CREATE TABLE `users` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
 CREATE TABLE `settings` (
-	`base_currency` text DEFAULT 'RUB' NOT NULL,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
 	`user_id` text NOT NULL,
-	FOREIGN KEY (`base_currency`) REFERENCES `currencies`(`code`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
+--> statement-breakpoint
+CREATE TABLE `commodities` (
+	`code` text NOT NULL,
+	`created_at` text NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
+	`is_tombstone` integer NOT NULL,
+	`name` text NOT NULL,
+	`precision` integer NOT NULL,
+	`symbol` text,
+	`updated_at` text NOT NULL,
+	`user_id` text NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `commodities_user_id_code_unique_idx` ON `commodities` (`user_id`,`code`);

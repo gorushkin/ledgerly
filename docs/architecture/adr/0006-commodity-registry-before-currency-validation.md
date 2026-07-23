@@ -8,9 +8,9 @@
 ## Context
 
 LED-47 asks for transaction currency consistency: a transaction currency must be
-present and must exist in the system. The current database has a `currencies`
-table keyed by currency code, while `accounts.currency` and
-`transactions.currency` are plain text fields without foreign keys.
+present and must exist in the system. At the time of this decision, the database
+had a `currencies` table keyed by currency code, while `accounts.currency` and
+`transactions.currency` were plain text fields without foreign keys.
 
 That model is too narrow for the planned Ledgerly domain. Ledgerly is inspired
 by GnuCash, where monetary units are modeled as commodities. Fiat currencies are
@@ -42,9 +42,8 @@ The Commodity model is:
 - `code` is unique only within one user's Commodity registry;
 - `precision` defines integer minor-unit interpretation and is immutable after
   Commodity creation in the MVP;
-- Commodity can be archived; archived Commodities cannot be assigned to new
-  accounts or new transaction valuation units, but existing references remain
-  readable.
+- Commodity supports technical soft deletion through `isTombstone` in the MVP;
+  user-facing archiving is out of scope for the initial Commodity registry.
 
 Domain references should move from currency strings to Commodity ids:
 
@@ -94,7 +93,7 @@ Those can be introduced by later ADRs if needed.
 ## Consequences
 
 - LED-47 is re-scoped: final consistency validation must use Commodity
-  existence, ownership, and archive state instead of `currencies.code`.
+  existence, ownership, and tombstone state instead of `currencies.code`.
 - The current `Currency` value object should stop being domain identity. During
   migration it may survive only as a primitive code/format helper if useful.
 - Persistence needs a `commodities` model and a migration path from existing

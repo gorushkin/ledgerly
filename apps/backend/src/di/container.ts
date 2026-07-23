@@ -1,28 +1,32 @@
 import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
-import { AccountFactory } from 'src/application/services';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
-import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
-import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
-import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
-import { GetAllAccountsUseCase } from 'src/application/usecases/accounts/getAllAccounts';
-import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAccount';
-import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
-import { DeleteTransactionUseCase } from 'src/application/usecases/transaction/DeleteTransaction';
-import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction/GetAllTransactions';
-import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
-import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
+import {
+  CreateAccountUseCase,
+  DeleteAccountUseCase,
+  GetAccountByIdUseCase,
+  GetAllAccountsUseCase,
+  UpdateAccountUseCase,
+} from 'src/application/usecases/accounts/';
+import {} from 'src/application/usecases/accounts/deleteAccount';
+import {
+  CreateTransactionUseCase,
+  DeleteTransactionUseCase,
+  GetAllTransactionsUseCase,
+  GetTransactionByIdUseCase,
+  UpdateTransactionUseCase,
+} from 'src/application/usecases/transaction/';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import {
   TransactionRepository,
   TransactionQueryRepository,
   OperationRepository,
-  CurrencyRepository,
   TransactionManager,
   AccountRepository,
   UserRepository,
 } from 'src/infrastructure/db';
+import { CommodityRepository } from 'src/infrastructure/db';
 import {
   AccountController,
   AuthController,
@@ -37,7 +41,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const transactionManager = new TransactionManager(db);
 
   const accountRepository = new AccountRepository(transactionManager);
-  const currencyRepository = new CurrencyRepository(transactionManager);
+  const commodityRepository = new CommodityRepository(transactionManager);
   const operationRepository = new OperationRepository(transactionManager);
   const transactionRepository = new TransactionRepository(
     operationRepository,
@@ -52,15 +56,13 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
-    currency: currencyRepository,
+    commodity: commodityRepository,
     transaction: transactionRepository,
     transactionQuery: transactionQueryRepository,
     user: userRepository,
   };
 
   // Services and Factories
-
-  const accountFactory = new AccountFactory(accountRepository);
 
   const transactionContextLoader = new TransactionContextLoader(
     accountRepository,
@@ -73,7 +75,10 @@ export const createContainer = (db: DataBase): AppContainer => {
   };
 
   // Create Account Use Cases
-  const createAccountUseCase = new CreateAccountUseCase(accountFactory);
+  const createAccountUseCase = new CreateAccountUseCase(
+    accountRepository,
+    commodityRepository,
+  );
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
   const updateAccountUseCase = new UpdateAccountUseCase(accountRepository);
@@ -161,14 +166,9 @@ export const createContainer = (db: DataBase): AppContainer => {
     user: userController,
   };
 
-  const factories: AppContainer['factories'] = {
-    account: accountFactory,
-  };
-
   return {
     controllers,
     db,
-    factories,
     repositories,
     services,
     useCases,

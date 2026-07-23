@@ -7,7 +7,6 @@ import {
   UpdateAccountUseCase,
 } from 'src/application/usecases/accounts';
 import { Amount } from 'src/domain/domain-core';
-import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { User } from 'src/domain/users/user.entity';
 import { createUser } from 'src/testing';
@@ -101,7 +100,7 @@ describe('AccountController', () => {
   describe('create', () => {
     it('should call accountService.create with correct data', async () => {
       const requestBody: AccountCreateDTO = {
-        currency: Currency.create('USD').valueOf(),
+        commodityId: Id.create().valueOf(),
         description: 'Test Account',
         initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
@@ -138,7 +137,6 @@ describe('AccountController', () => {
 
   describe('update', () => {
     const requestBody: AccountUpdateDTO = {
-      currency: Currency.create('USD').valueOf(),
       description: 'Test Account',
       name: 'New Account',
       type: 'liability',

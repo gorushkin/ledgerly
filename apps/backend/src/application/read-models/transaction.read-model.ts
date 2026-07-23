@@ -1,5 +1,4 @@
 import {
-  CurrencyCode,
   IsoDateString,
   IsoDatetimeString,
   AmountString,
@@ -21,7 +20,6 @@ export type OperationReadModel = {
 
 export type TransactionReadModel = {
   createdAt: IsoDatetimeString;
-  currency: CurrencyCode;
   description: string;
   id: UUID;
   operations: OperationReadModel[];
@@ -29,5 +27,6 @@ export type TransactionReadModel = {
   transactionDate: IsoDateString;
   updatedAt: IsoDatetimeString;
   userId: UUID;
+  commodityId: UUID;
   version: number;
 };

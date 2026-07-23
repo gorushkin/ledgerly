@@ -26,7 +26,7 @@ describe('OperationMapper', () => {
     user = await createUser();
 
     const fixture = TransactionBuilder.request({
-      accounts: ['USD'],
+      currencies: ['USD'],
       operations: [
         { accountKey: 'USD', amount: '100', description: 'Debit' },
         { accountKey: 'USD', amount: '-100', description: 'Credit' },

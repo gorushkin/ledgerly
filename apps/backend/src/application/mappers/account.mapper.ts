@@ -6,8 +6,8 @@ export class AccountMapper {
     snapshot: AccountSnapshot,
   ): AccountResponseDTO {
     return {
+      commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
-      currency: snapshot.currency,
       currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
       description: snapshot.description,
       id: snapshot.id,
@@ -23,7 +23,6 @@ export class AccountMapper {
 
   static toUpdateProps(dto: AccountUpdateDTO): AccountUpdateProps {
     return {
-      currency: dto.currency,
       description: dto.description,
       name: dto.name,
       type: dto.type,

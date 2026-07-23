@@ -5,17 +5,10 @@ import {
   MIN_TRANSACTION_OPERATIONS,
 } from "../constants/transactions";
 
-import {
-  uuid,
-  requiredText,
-  isoDate,
-  isoDatetime,
-  amountString,
-  currencyCode,
-} from "./baseValidations";
+import { uuid, requiredText, isoDate, amountString } from "./baseValidations";
 
-// amount — posting in the account's native currency
-// value  — posting in the transaction's currency (GnuCash convention)
+// amount — posting in the account Commodity
+// value  — posting in the transaction valuation Commodity (GnuCash convention)
 // For same-currency transactions amount === value.
 // Transaction balance is validated by summing value across all operations (must equal 0).
 export const operationCreateSchema = z.object({
@@ -35,7 +28,7 @@ export const operationUpdateSchema = z.object({
 });
 
 export const transactionCreateSchema = z.object({
-  currencyCode: currencyCode,
+  commodityId: uuid,
   description: requiredText,
   operations: z
     .array(operationCreateSchema)
@@ -57,21 +50,7 @@ export const transactionUpdateSchema = z.object({
   version: z.number().int().nonnegative(),
 });
 
-export const transactionResponseSchema = z.object({
-  createdAt: isoDatetime,
-  description: requiredText,
-  id: uuid,
-  isTombstone: z.boolean(),
-  postingDate: isoDate,
-  transactionDate: isoDate,
-  updatedAt: isoDatetime,
-  userId: uuid,
-  version: z.number().int().nonnegative(),
-});
-
 export type OperationCreateInput = z.infer<typeof operationCreateSchema>;
 export type OperationUpdateInput = z.infer<typeof operationUpdateSchema>;
-
 export type TransactionCreateInput = z.infer<typeof transactionCreateSchema>;
 export type TransactionUpdateInput = z.infer<typeof transactionUpdateSchema>;
-export type TransactionResponse = z.infer<typeof transactionResponseSchema>;

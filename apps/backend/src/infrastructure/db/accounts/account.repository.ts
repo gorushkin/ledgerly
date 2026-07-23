@@ -1,4 +1,4 @@
-import { CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
   type AccountRepositoryInterface,
@@ -6,6 +6,7 @@ import {
   type AccountRepositoryUpdateInput,
 } from 'src/application';
 import { accountsTable } from 'src/db/schemas/accounts';
+import { commoditiesTable } from 'src/db/schemas/commodities';
 import { AccountSnapshot } from 'src/domain/accounts';
 
 import { BaseRepository } from '../BaseRepository';
@@ -38,6 +39,24 @@ export class AccountRepository
   create(data: AccountSnapshot): Promise<AccountSnapshot> {
     return this.executeDatabaseOperation(
       async () => {
+        const existingCommodity = await this.db
+          .select()
+          .from(commoditiesTable)
+          .where(
+            and(
+              eq(commoditiesTable.id, data.commodityId),
+              eq(commoditiesTable.userId, data.userId),
+              eq(commoditiesTable.isTombstone, false),
+            ),
+          )
+          .get();
+
+        this.ensureEntityExists(
+          existingCommodity,
+          `Commodity with ID ${data.commodityId} not found`,
+          this.entityNotFoundContext('commodity', data.commodityId),
+        );
+
         const account = await this.db
           .insert(accountsTable)
           .values({
@@ -100,7 +119,6 @@ export class AccountRepository
           'description',
           'initialBalance',
           'name',
-          'currency',
           'type',
           'updatedAt',
         ]);
@@ -152,34 +170,6 @@ export class AccountRepository
 
       return AccountPersistenceMapper.toSnapshot(existingAccount);
     }, `Failed to delete account with ID ${id}`);
-  }
-
-  async findSystemAccount(
-    userId: UUID,
-    currency: CurrencyCode,
-  ): Promise<AccountSnapshot> {
-    return this.executeDatabaseOperation<AccountSnapshot>(async () => {
-      const account = await this.db
-        .select()
-        .from(accountsTable)
-        .where(
-          and(
-            eq(accountsTable.userId, userId),
-            eq(accountsTable.currency, currency),
-            eq(accountsTable.isSystem, true),
-            eq(accountsTable.isTombstone, false),
-          ),
-        )
-        .get();
-
-      const existingAccount = this.ensureEntityExists(
-        account,
-        `System account not found for currency: ${currency}`,
-        this.entityNotFoundContext('account'),
-      );
-
-      return AccountPersistenceMapper.toSnapshot(existingAccount);
-    }, 'Failed to fetch system account');
   }
 
   async ensureUserOwnsAccount(userId: UUID, accountId: UUID) {
