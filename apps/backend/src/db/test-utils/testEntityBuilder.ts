@@ -226,7 +226,7 @@ export class TransactionBuilder {
 
   private buildTransactionProps(): CreateTransactionProps {
     return {
-      commodityId: this.transactionCommodity.getId().valueOf(),
+      commodityId: this.transactionCommodity.getId(),
       description: this.description,
       operations: this.operationsData.map((operation) => {
         const amount = Amount.create(operation.amount);
@@ -283,13 +283,8 @@ export class TransactionBuilder {
   private buildTransaction(): TransactionBuilderResult {
     const requestFixture = this.buildRequest();
 
-    const commodity = this.getCommodityById(
-      requestFixture.transactionDTO.commodityId,
-    );
-
     const transaction = Transaction.create(
       this.user.getId(),
-      commodity,
       this.buildTransactionProps(),
     );
 

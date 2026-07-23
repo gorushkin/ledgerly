@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e16bd8ef-8add-4e77-bb28-3325a74ab237",
+  "id": "59edadf8-a69b-4dbb-a24a-828a220d6559",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -137,8 +137,8 @@
     "transactions": {
       "name": "transactions",
       "columns": {
-        "valuation_commodity_id": {
-          "name": "valuation_commodity_id",
+        "commodity_id": {
+          "name": "commodity_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -219,12 +219,12 @@
         }
       },
       "foreignKeys": {
-        "transactions_valuation_commodity_id_commodities_id_fk": {
-          "name": "transactions_valuation_commodity_id_commodities_id_fk",
+        "transactions_commodity_id_commodities_id_fk": {
+          "name": "transactions_commodity_id_commodities_id_fk",
           "tableFrom": "transactions",
           "tableTo": "commodities",
           "columnsFrom": [
-            "valuation_commodity_id"
+            "commodity_id"
           ],
           "columnsTo": [
             "id"

@@ -18,7 +18,7 @@ import { usersTable } from './users';
 export const transactionsTable = sqliteTable(
   'transactions',
   {
-    commodityId: text('valuation_commodity_id')
+    commodityId: text('commodity_id')
       .notNull()
       .references(() => commoditiesTable.id)
       .$type<UUID>(),

@@ -17,7 +17,7 @@ CREATE TABLE `accounts` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `user_id_name_unique_idx` ON `accounts` (`user_id`,`name`);--> statement-breakpoint
 CREATE TABLE `transactions` (
-	`valuation_commodity_id` text NOT NULL,
+	`commodity_id` text NOT NULL,
 	`created_at` text NOT NULL,
 	`description` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE `transactions` (
 	`updated_at` text NOT NULL,
 	`user_id` text NOT NULL,
 	`version` integer NOT NULL,
-	FOREIGN KEY (`valuation_commodity_id`) REFERENCES `commodities`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`commodity_id`) REFERENCES `commodities`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint

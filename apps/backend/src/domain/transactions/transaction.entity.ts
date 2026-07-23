@@ -11,7 +11,6 @@ import {
   UnbalancedTransactionError,
 } from 'src/domain/domain.errors';
 
-import { Commodity } from '../commodities';
 import {
   EntityIdentity,
   EntityTimestamps,
@@ -66,24 +65,20 @@ export class Transaction {
     private readonly ownership: ParentChildRelation,
     private postingDate: DateValue,
     private transactionDate: DateValue,
-    private readonly commodityId: ParentChildRelation,
+    private readonly commodityRelation: ParentChildRelation,
 
     public description: string,
     private version: Version,
   ) {}
 
-  static create(
-    userId: Id,
-    commodity: Commodity,
-    dto: CreateTransactionProps,
-  ): Transaction {
+  static create(userId: Id, dto: CreateTransactionProps): Transaction {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
     const ownership = ParentChildRelation.create(userId, identity.getId());
 
     const commodityRelation = ParentChildRelation.create(
-      commodity.getId(),
+      dto.commodityId,
       identity.getId(),
     );
 
@@ -245,13 +240,17 @@ export class Transaction {
     return this.ownership.getParentId();
   }
 
+  getCommodityId(): Id {
+    return this.commodityRelation.getParentId();
+  }
+
   canBeUpdated(): boolean {
     return !this.isDeleted();
   }
 
   private buildSnapshot(operations: Operation[]): TransactionSnapshot {
     return {
-      commodityId: this.commodityId.getParentId().valueOf(),
+      commodityId: this.commodityRelation.getParentId().valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
       id: this.getId().valueOf(),

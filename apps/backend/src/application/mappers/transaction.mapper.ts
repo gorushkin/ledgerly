@@ -1,5 +1,6 @@
 import { Transaction } from 'src/domain';
 import { DateValue } from 'src/domain/domain-core/value-objects/DateValue';
+import { Id } from 'src/domain/domain-core/value-objects/Id';
 import {
   CreateTransactionProps,
   TransactionBuildContext,
@@ -39,7 +40,7 @@ export class TransactionMapper {
     );
 
     return {
-      commodityId: dto.commodityId,
+      commodityId: Id.restore(dto.commodityId),
       description: dto.description,
       operations,
       postingDate: DateValue.restore(dto.postingDate),

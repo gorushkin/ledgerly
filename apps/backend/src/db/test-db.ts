@@ -393,16 +393,13 @@ export class TestDB {
       precision?: CommodityPrecisionNumber;
     },
   ) => {
+    const nextName = this.commodityCounter.getNextName({ delimiter: '' });
+
     const commodityData = {
-      code:
-        params?.code ??
-        CommodityCode.create(
-          `COM${this.commodityCounter.getNextName({ delimiter: '' })}`,
-        ).valueOf(),
-      name:
-        params?.name ?? `Commodity ${this.transactionCounter.getNextName()}`,
+      code: params?.code ?? CommodityCode.create(`COM${nextName}`).valueOf(),
+      name: params?.name ?? `Commodity ${nextName}`,
       precision: params?.precision ?? 2,
-      symbol: params?.symbol ?? `${this.commodityCounter.getNextName()}`,
+      symbol: params?.symbol ?? `${nextName}`,
       userId,
     };
 

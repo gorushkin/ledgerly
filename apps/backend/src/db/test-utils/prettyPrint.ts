@@ -20,8 +20,8 @@ const formatDebitCredit = (
 
 const getAccountInfo = (
   accountId: UUID,
-  accountMap: Map<UUID, Account> = new Map(),
-  commoditiesMapById: Map<UUID, Commodity> = new Map(),
+  accountMap?: Map<UUID, Account>,
+  commoditiesMapById?: Map<UUID, Commodity>,
 ): { commodity: string; name: string } => {
   if (!accountMap) {
     return { commodity: 'N/A', name: 'Unknown Account' };
@@ -32,7 +32,7 @@ const getAccountInfo = (
     return { commodity: 'N/A', name: 'Unknown Account' };
   }
 
-  const commodity = commoditiesMapById.get(account.toSnapshot().commodityId);
+  const commodity = commoditiesMapById?.get(account.toSnapshot().commodityId);
 
   return {
     commodity: commodity?.toSnapshot().code ?? 'N/A',

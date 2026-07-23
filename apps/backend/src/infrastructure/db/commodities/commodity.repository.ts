@@ -18,7 +18,11 @@ export class CommodityRepository
         .select()
         .from(commoditiesTable)
         .where(
-          and(eq(commoditiesTable.userId, userId), eq(commoditiesTable.id, id)),
+          and(
+            eq(commoditiesTable.userId, userId),
+            eq(commoditiesTable.id, id),
+            eq(commoditiesTable.isTombstone, false),
+          ),
         )
         .get();
 

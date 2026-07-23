@@ -24,7 +24,7 @@ export type CreateTransactionProps = {
   postingDate: DateValue;
   transactionDate: DateValue;
   operations: OperationProps[];
-  commodityId: UUID;
+  commodityId: Id;
 };
 
 export type OperationsPatch = {

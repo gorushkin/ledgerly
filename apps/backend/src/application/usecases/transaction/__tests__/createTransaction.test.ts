@@ -1,5 +1,4 @@
 import type {
-  CommodityRepositoryInterface,
   TransactionManagerInterface,
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
@@ -27,15 +26,10 @@ describe('CreateTransactionUseCase', () => {
     loadContext: vi.fn(),
   };
 
-  const commodityRepository = {
-    getById: vi.fn(),
-  };
-
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager as unknown as TransactionManagerInterface,
     mockTransactionRepository as unknown as TransactionRepositoryInterface,
     transactionContextLoader as unknown as TransactionContextLoader,
-    commodityRepository as unknown as CommodityRepositoryInterface,
   );
 
   const transactionRawData = {
@@ -61,19 +55,13 @@ describe('CreateTransactionUseCase', () => {
 
   describe('execute', () => {
     it('should create a new transaction with entries successfully', async () => {
-      const {
-        transactionContext,
-        transactionData: { transactionCommodity },
-        transactionDTO,
-      } = TransactionBuilder.request({
-        currencies: ['USD'],
-        operations: operationsData,
-        settings: transactionRawData,
-        user,
-      });
-
-      commodityRepository.getById.mockResolvedValue(
-        transactionCommodity.toSnapshot(),
+      const { transactionContext, transactionDTO } = TransactionBuilder.request(
+        {
+          currencies: ['USD'],
+          operations: operationsData,
+          settings: transactionRawData,
+          user,
+        },
       );
 
       transactionContextLoader.loadContext.mockResolvedValue(
@@ -161,19 +149,13 @@ describe('CreateTransactionUseCase', () => {
       const dbError = new Error('Database error');
       mockTransactionRepository.create.mockRejectedValue(dbError);
 
-      const {
-        transactionContext,
-        transactionData: { transactionCommodity },
-        transactionDTO,
-      } = TransactionBuilder.request({
-        currencies: ['USD'],
-        operations: operationsData,
-        settings: transactionRawData,
-        user,
-      });
-
-      commodityRepository.getById.mockResolvedValue(
-        transactionCommodity.toSnapshot(),
+      const { transactionContext, transactionDTO } = TransactionBuilder.request(
+        {
+          currencies: ['USD'],
+          operations: operationsData,
+          settings: transactionRawData,
+          user,
+        },
       );
 
       transactionContextLoader.loadContext.mockResolvedValue(
@@ -191,23 +173,17 @@ describe('CreateTransactionUseCase', () => {
         { accountKey: 'USD', amount: '5000', description: '2' },
       ];
 
-      const {
-        transactionContext,
-        transactionData: { transactionCommodity },
-        transactionDTO,
-      } = TransactionBuilder.request({
-        currencies: ['USD'],
-        operations: unbalancedOperations,
-        settings: transactionRawData,
-        user,
-      });
+      const { transactionContext, transactionDTO } = TransactionBuilder.request(
+        {
+          currencies: ['USD'],
+          operations: unbalancedOperations,
+          settings: transactionRawData,
+          user,
+        },
+      );
 
       transactionContextLoader.loadContext.mockResolvedValue(
         transactionContext,
-      );
-
-      commodityRepository.getById.mockResolvedValue(
-        transactionCommodity.toSnapshot(),
       );
 
       await expect(
