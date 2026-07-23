@@ -391,12 +391,14 @@ export class TestDB {
       symbol?: CommoditySymbolString;
       name?: string;
       precision?: CommodityPrecisionNumber;
+      isTombstone?: boolean;
     },
   ) => {
     const nextName = this.commodityCounter.getNextName({ delimiter: '' });
 
     const commodityData = {
       code: params?.code ?? CommodityCode.create(`COM${nextName}`).valueOf(),
+      isTombstone: params?.isTombstone ?? false,
       name: params?.name ?? `Commodity ${nextName}`,
       precision: params?.precision ?? 2,
       symbol: params?.symbol ?? `${nextName}`,
@@ -413,7 +415,7 @@ export class TestDB {
         userId: commodityData.userId,
         ...TestDB.createTimestamps,
         ...TestDB.uuid,
-        isTombstone: false,
+        isTombstone: commodityData.isTombstone,
       })
       .returning()
       .get();

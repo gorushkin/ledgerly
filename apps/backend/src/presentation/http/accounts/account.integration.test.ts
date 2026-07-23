@@ -201,7 +201,6 @@ describe('Accounts Integration Tests', () => {
       const accountToUpdate = accounts[0];
 
       const updatedData = {
-        currency: 'EUR',
         name: 'Updated Account Name',
       };
 
@@ -250,10 +249,12 @@ describe('Accounts Integration Tests', () => {
     // - should return 400 when name is empty
     // - should return 400 when name is missing
     // - should return 400 when name is not a string
-    // - should return 400 when currency is empty
-    // - should return 400 when currency is missing
-    // - should return 400 when currency is invalid format
-    // - should return 400 when currency doesn't exist in database
+    // - should return 400 when commodityId is empty
+    // - should return 400 when commodityId is missing
+    // - should return 400 when commodityId is invalid UUID format
+    // - should return 404 when commodityId doesn't exist in database
+    // - should return 404 when commodityId belongs to another user
+    // - should return 404 when commodityId points to an archived Commodity
     // - should return 400 when type is empty
     // - should return 400 when type is invalid enum value
     // - should return 400 when type is missing
@@ -269,8 +270,6 @@ describe('Accounts Integration Tests', () => {
   describe.todo('PUT /api/accounts/:id - Validation', () => {
     // - should return 400 when name is empty string
     // - should return 400 when name is not a string
-    // - should return 400 when currency is empty
-    // - should return 400 when currency doesn't exist in database
     // - should return 400 when type is invalid enum value
     // - should return 400 when description is not a string
     // - should return 404 when account ID doesn't exist
@@ -299,8 +298,9 @@ describe('Accounts Integration Tests', () => {
   // Foreign Key Constraint Tests
   describe.todo('Foreign Key Constraints', () => {
     // - should handle user deletion cascading to accounts
-    // - should prevent creation with non-existent currency
-    // - should prevent update with non-existent currency
+    // - should prevent creation with non-existent commodityId
+    // - should prevent creation with another user's commodityId
+    // - should prevent creation with archived commodityId
   });
 
   // Business Logic Tests
