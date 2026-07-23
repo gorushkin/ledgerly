@@ -59,16 +59,11 @@ export class CommodityRepository
     }, 'Failed to fetch commodities');
   }
 
-  create(
-    userId: UUID,
-    commodity: CommoditySnapshot,
-  ): Promise<CommoditySnapshot> {
+  create(commodity: CommoditySnapshot): Promise<CommoditySnapshot> {
     return this.executeDatabaseOperation(
       async () => {
-        const commodityRow = CommodityPersistenceMapper.toDBRowFromSnapshot({
-          ...commodity,
-          userId,
-        });
+        const commodityRow =
+          CommodityPersistenceMapper.toDBRowFromSnapshot(commodity);
 
         const createdCommodity = await this.db
           .insert(commoditiesTable)

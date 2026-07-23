@@ -4,6 +4,7 @@ import {
   IsoDatetimeString,
   UUID,
   CommodityPrecisionNumber,
+  NameString,
 } from '@ledgerly/shared/types';
 
 export type CommoditySnapshot = {
@@ -14,12 +15,19 @@ export type CommoditySnapshot = {
   symbol: CommoditySymbolString | null;
   updatedAt: IsoDatetimeString;
   userId: UUID;
-  name: string;
+  name: NameString;
   precision: CommodityPrecisionNumber;
 };
 
 export type CommodityUpdateProps = Partial<{
-  code: string;
-  symbol: string | null;
-  name: string;
+  code: CommodityCodeString;
+  symbol: CommoditySymbolString | null;
+  name: NameString;
 }>;
+
+export type CreateCommodityProps = {
+  code: CommodityCodeString;
+  name: NameString;
+  precision?: CommodityPrecisionNumber;
+  symbol?: CommoditySymbolString | null;
+};

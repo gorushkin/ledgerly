@@ -10,7 +10,7 @@ import {
 import { User } from '../users/user.entity';
 
 import { Commodity } from './commodity.entity';
-import { CommoditySnapshot } from './types';
+import { CommoditySnapshot, CreateCommodityProps } from './types';
 
 describe('Commodity Domain Entity', () => {
   let user: User;
@@ -20,6 +20,13 @@ describe('Commodity Domain Entity', () => {
   const commoditySymbol = 'CMD';
   const commodityName = Name.create('Commodity Name');
   const commodityPrecision = 2;
+
+  const commodityCreateProps: CreateCommodityProps = {
+    code: commodityCode.valueOf(),
+    name: commodityName.valueOf(),
+    precision: commodityPrecision,
+    symbol: commoditySymbol,
+  };
 
   beforeAll(async () => {
     user = await createUser();
@@ -32,13 +39,7 @@ describe('Commodity Domain Entity', () => {
 
   describe('create method', () => {
     it('should create commodity with valid data', () => {
-      const commodity = Commodity.create(
-        user,
-        commodityName,
-        commodityCode,
-        commodityPrecision,
-        commoditySymbol,
-      );
+      const commodity = Commodity.create(user, commodityCreateProps);
 
       expect(commodity).toBeInstanceOf(Commodity);
       expect(commodity.getId()).toBeDefined();
@@ -49,7 +50,10 @@ describe('Commodity Domain Entity', () => {
     });
 
     it('should create commodity with default precision and null symbol', () => {
-      const commodity = Commodity.create(user, commodityName, commodityCode);
+      const commodity = Commodity.create(user, {
+        code: commodityCode.valueOf(),
+        name: commodityName.valueOf(),
+      });
 
       expect(commodity).toBeInstanceOf(Commodity);
       expect(commodity.getId()).toBeDefined();
@@ -61,12 +65,11 @@ describe('Commodity Domain Entity', () => {
 
     it('should create commodity with specified precision and null symbol', () => {
       const specifiedPrecision = 4;
-      const commodity = Commodity.create(
-        user,
-        commodityName,
-        commodityCode,
-        specifiedPrecision,
-      );
+      const commodity = Commodity.create(user, {
+        code: commodityCode.valueOf(),
+        name: commodityName.valueOf(),
+        precision: specifiedPrecision,
+      });
 
       expect(commodity).toBeInstanceOf(Commodity);
       expect(commodity.getId()).toBeDefined();
@@ -80,7 +83,10 @@ describe('Commodity Domain Entity', () => {
       const invalidPrecision = -1;
 
       expect(() => {
-        Commodity.create(user, commodityName, commodityCode, invalidPrecision);
+        Commodity.create(user, {
+          ...commodityCreateProps,
+          precision: invalidPrecision,
+        });
       }).toThrowError(InvalidCommodityPrecisionError);
     });
 
@@ -88,13 +94,10 @@ describe('Commodity Domain Entity', () => {
       const invalidSymbol = 'INVALID_SYMBOL';
 
       expect(() => {
-        Commodity.create(
-          user,
-          commodityName,
-          commodityCode,
-          commodityPrecision,
-          invalidSymbol,
-        );
+        Commodity.create(user, {
+          ...commodityCreateProps,
+          symbol: invalidSymbol,
+        });
       }).toThrowError(InvalidCommoditySymbolError);
     });
   });
@@ -176,13 +179,7 @@ describe('Commodity Domain Entity', () => {
   describe('commodity management', () => {
     describe('markAsDeleted and isDeleted methods', () => {
       it('should mark commodity as deleted and check deletion status', () => {
-        const commodity = Commodity.create(
-          user,
-          commodityName,
-          commodityCode,
-          commodityPrecision,
-          commoditySymbol,
-        );
+        const commodity = Commodity.create(user, commodityCreateProps);
 
         expect(commodity.isDeleted()).toBe(false);
 
@@ -192,13 +189,7 @@ describe('Commodity Domain Entity', () => {
       });
 
       it('should not allow updates on a deleted commodity', () => {
-        const commodity = Commodity.create(
-          user,
-          commodityName,
-          commodityCode,
-          commodityPrecision,
-          commoditySymbol,
-        );
+        const commodity = Commodity.create(user, commodityCreateProps);
 
         commodity.markAsDeleted();
 
@@ -210,13 +201,7 @@ describe('Commodity Domain Entity', () => {
       });
 
       it('should not allow deleting an already deleted commodity', () => {
-        const commodity = Commodity.create(
-          user,
-          commodityName,
-          commodityCode,
-          commodityPrecision,
-          commoditySymbol,
-        );
+        const commodity = Commodity.create(user, commodityCreateProps);
 
         commodity.markAsDeleted();
 
@@ -249,13 +234,7 @@ describe('Commodity Domain Entity', () => {
 
         vi.setSystemTime(new Date(timestampBeforeDeletionValue));
 
-        const commodity = Commodity.create(
-          user,
-          commodityName,
-          commodityCode,
-          commodityPrecision,
-          commoditySymbol,
-        );
+        const commodity = Commodity.create(user, commodityCreateProps);
 
         const commoditySnapshotBeforeDeletion = commodity.toSnapshot();
 
@@ -286,13 +265,7 @@ describe('Commodity Domain Entity', () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'));
 
-        const commodity = Commodity.create(
-          user,
-          commodityName,
-          commodityCode,
-          commodityPrecision,
-          commoditySymbol,
-        );
+        const commodity = Commodity.create(user, commodityCreateProps);
 
         const before = commodity.toSnapshot();
 
@@ -318,13 +291,7 @@ describe('Commodity Domain Entity', () => {
     });
 
     it('should throw error when updating commodity with invalid symbol', () => {
-      const commodity = Commodity.create(
-        user,
-        commodityName,
-        commodityCode,
-        commodityPrecision,
-        commoditySymbol,
-      );
+      const commodity = Commodity.create(user, commodityCreateProps);
 
       expect(() => {
         commodity.update({
@@ -334,7 +301,7 @@ describe('Commodity Domain Entity', () => {
     });
 
     it('should not update timestamp for empty update', () => {
-      const commodity = Commodity.create(user, commodityName, commodityCode);
+      const commodity = Commodity.create(user, commodityCreateProps);
       const snapshot = commodity.toSnapshot();
 
       commodity.update({});

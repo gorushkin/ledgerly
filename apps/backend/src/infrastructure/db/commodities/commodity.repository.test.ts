@@ -145,10 +145,8 @@ describe('CommodityRepository', () => {
         userId: user.id,
       };
 
-      const createdCommodity = await commodityRepository.create(
-        user.id,
-        newCommodityData,
-      );
+      const createdCommodity =
+        await commodityRepository.create(newCommodityData);
 
       expect(createdCommodity).toMatchObject(newCommodityData);
 
@@ -176,7 +174,7 @@ describe('CommodityRepository', () => {
       };
 
       await expect(
-        commodityRepository.create(user.id, newCommodityData),
+        commodityRepository.create(newCommodityData),
       ).rejects.toThrowError(
         new RecordAlreadyExistsError({
           context: {
@@ -205,10 +203,8 @@ describe('CommodityRepository', () => {
         userId: anotherUser.id,
       };
 
-      const createdCommodityForAnotherUser = await commodityRepository.create(
-        anotherUser.id,
-        newCommodityData,
-      );
+      const createdCommodityForAnotherUser =
+        await commodityRepository.create(newCommodityData);
 
       expect(createdCommodityForAnotherUser).toMatchObject(newCommodityData);
 
@@ -218,40 +214,6 @@ describe('CommodityRepository', () => {
       );
 
       expect(retrievedCommodity).toEqual(createdCommodityForAnotherUser);
-    });
-
-    it('should associate a created commodity with the userId argument', async () => {
-      const anotherUser = await testDB.createUser();
-
-      const newCommodityData: CommoditySnapshot = {
-        code: CommodityCode.create('OWN').valueOf(),
-        createdAt: Timestamp.create().valueOf(),
-        id: Id.create().valueOf(),
-        isTombstone: false,
-        name: Name.create('Owned Commodity').valueOf(),
-        precision: 2,
-        symbol: 'O',
-        updatedAt: Timestamp.create().valueOf(),
-        userId: anotherUser.id,
-      };
-
-      const createdCommodity = await commodityRepository.create(
-        user.id,
-        newCommodityData,
-      );
-
-      expect(createdCommodity.userId).toBe(user.id);
-
-      await expect(
-        commodityRepository.getById(anotherUser.id, createdCommodity.id),
-      ).rejects.toThrowError(RepositoryNotFoundError);
-
-      await expect(
-        commodityRepository.getById(user.id, createdCommodity.id),
-      ).resolves.toMatchObject({
-        id: newCommodityData.id,
-        userId: user.id,
-      });
     });
   });
 

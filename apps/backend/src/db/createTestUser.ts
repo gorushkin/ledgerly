@@ -43,13 +43,12 @@ export const createCommodity = (
     symbol = null,
   } = params;
 
-  return Commodity.create(
-    user,
-    Name.create(name),
-    CommodityCode.create(code),
+  return Commodity.create(user, {
+    code: CommodityCode.create(code).valueOf(),
+    name: Name.create(name).valueOf(),
     precision,
     symbol,
-  );
+  });
 };
 
 export const createAccount = (

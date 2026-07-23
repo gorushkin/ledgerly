@@ -1,2 +1,6 @@
 export { Commodity } from './commodity.entity';
-export { CommoditySnapshot } from './types';
+export {
+  CommoditySnapshot,
+  CommodityUpdateProps,
+  CreateCommodityProps,
+} from './types';
