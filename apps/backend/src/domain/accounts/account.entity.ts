@@ -36,7 +36,7 @@ export class Account {
     public isSystem: boolean,
   ) {}
 
-  static create(user: User, dto: CreateAccountProps): Account {
+  static create(user: User, props: CreateAccountProps): Account {
     const identity = EntityIdentity.create();
     const timestamps = EntityTimestamps.create();
     const softDelete = SoftDelete.create();
@@ -47,11 +47,11 @@ export class Account {
     );
 
     const commodityRelation = ParentChildRelation.create(
-      dto.commodityId,
+      props.commodityId,
       identity.getId(),
     );
 
-    const isSystem = dto.type.isSystemType();
+    const isSystem = props.type.isSystemType();
 
     return new Account(
       identity,
@@ -59,11 +59,11 @@ export class Account {
       softDelete,
       ownership,
       commodityRelation,
-      dto.name,
-      dto.description,
-      dto.initialBalance,
+      props.name,
+      props.description,
+      props.initialBalance,
       Amount.create('0'),
-      dto.type,
+      props.type,
       isSystem,
     );
   }
