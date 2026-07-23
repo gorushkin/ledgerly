@@ -30,8 +30,8 @@ Represents a single financial posting affecting an account.
 
 - Links to a transaction (`transactionId`) and an account (`accountId`)
 - Belongs to a user (`userId`)
-- `amount` — signed integer in the **account's native currency** (cents)
-- `value` — signed integer in the **transaction's currency** (cents); used for balance validation
+- `amount` — signed integer in the **account's Commodity** minor units
+- `value` — signed integer in the **transaction valuation Commodity** minor units; used for balance validation
 - `amount` and `value` must be valid integer minor-unit values. `NaN`,
   `Infinity`, missing values, and decimal/floating-point values are invalid.
   Zero is allowed and is not rejected by the domain model.
@@ -55,7 +55,7 @@ Represents different financial accounts with unified structure for all account t
   - **Liability**: Debts, loans, credit
   - **Income**: Revenue sources (salary, interest)
   - **Expense**: Spending categories
-- Has a designated currency
+- Has a designated Commodity
 - **Balance tracking**:
   - For Asset/Liability: real balance stored in `currentClearedBalanceLocal`, must match reality
   - For Income/Expense: reporting metric (sum over period), calculated from operations
@@ -66,12 +66,10 @@ Represents different financial accounts with unified structure for all account t
 
 ### Commodity
 
-Represents a user-owned monetary unit used in the system.
-
-> Design note: the current implementation still uses currency strings in some
-> places, but the target domain model is a user-owned Commodity Registry.
-> Commodity identity is a stable id, not `code`. See
-> [ADR 0006](./architecture/adr/0006-commodity-registry-before-currency-validation.md).
+Represents a user-owned monetary unit used in the system. Commodity identity is
+a stable id, not `code`; display codes such as `USD`, `EUR`, or `RUB` are
+metadata owned by each user. See
+[ADR 0006](./architecture/adr/0006-commodity-registry-before-currency-validation.md).
 
 #### Key Properties
 
@@ -81,7 +79,7 @@ Represents a user-owned monetary unit used in the system.
 - Operations always store `amount` in the account's Commodity
 - Commodity `code`, `name`, and `symbol` are display metadata, not identity
 - Commodity `precision` defines integer minor-unit interpretation
-- Archived Commodities remain readable but cannot be used for new assignments
+- Commodity soft deletion is represented by technical `isTombstone` state
 
 ## Entity API Conventions
 
@@ -236,9 +234,9 @@ tasks.
    can be a valid transaction when the transaction-level balance rule is
    satisfied; there is no separate "non-zero net effect per account" invariant.
 
-### Currency Handling
+### Commodity Handling
 
-1. Each operation carries both `amount` (account currency) and `value` (transaction currency)
+1. Each operation carries both `amount` (account Commodity) and `value` (transaction valuation Commodity)
 2. For same-currency operations `amount === value`
 3. **Trading operations** (`isSystem = true`) and system trading accounts are **not currently implemented**; they are reserved for a future multi-currency reconciliation phase
 
@@ -343,6 +341,7 @@ Balance: `sum(value) = 0` ✓ — currently this phase is not implemented.
 ```
 Transaction
 - id: UUID
+- valuationCommodityId: UUID (FK) -- denominates operation value fields
 - description: string
 - transactionDate: date (ISO string)
 - postingDate: date (ISO string)
@@ -356,8 +355,8 @@ Operation
 - id: UUID
 - transactionId: UUID (FK)   -- directly linked to Transaction (Entry removed)
 - accountId: UUID (FK)
-- amount: integer             -- in account's native currency (cents)
-- value: integer              -- in transaction's currency (cents); used for balance validation
+- amount: integer             -- in account Commodity minor units
+- value: integer              -- in transaction valuation Commodity minor units; used for balance validation
 - description: string (optional)
 - isSystem: boolean           -- reserved for future trading operations (currently always false)
 - isTombstone: boolean
@@ -369,7 +368,7 @@ Account
 - id: UUID
 - name: string
 - type: enum (Asset, Liability, Income, Expense)
-- currency: string (FK)
+- commodityId: UUID (FK)
 - description: string
 - initialBalance: integer (cents)
 - currentClearedBalanceLocal: integer (cents)
@@ -379,20 +378,19 @@ Account
 - createdAt: timestamp
 - updatedAt: timestamp
 
-Commodity (target model, see ADR 0006)
+Commodity
 - id: UUID
 - userId: UUID (FK)
 - code: string                 -- display/search value, unique per user
 - name: string
-- symbol: string
+- symbol: string (optional)
 - precision: integer           -- immutable after creation in the MVP
-- isArchived: boolean
+- isTombstone: boolean
 - createdAt: timestamp
 - updatedAt: timestamp
 
 Settings
-- userId: UUID (PK, FK)
-- baseCurrency: string (FK, legacy; target model should use Commodity id)
+- userId: UUID (FK)
 - createdAt: timestamp
 - updatedAt: timestamp
 ```
@@ -425,7 +423,7 @@ Settings
    - Schema validation (Zod)
    - Domain validation (business rules)
    - Database constraints (Drizzle)
-2. Branded types for CurrencyCode and other primitive domain values where useful
+2. Branded types for Commodity codes, Commodity precision, and other primitive domain values where useful
 3. Operation hash-based idempotent updates
 4. Enhanced error handling with domain-specific errors
 
@@ -457,7 +455,7 @@ Settings
    - Domain business accessors expose active operations by default
 6. **Type safety**:
    - Branded types for dates (`IsoDatetimeString`)
-   - Planned branded types for `CurrencyCode` and other primitive domain values where useful
+   - Branded types for Commodity codes, Commodity precision, dates, and other primitive domain values where useful
    - Strict TypeScript configuration
    - Error handling
    - Response serialization
