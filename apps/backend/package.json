@@ -28,7 +28,6 @@
     "db:delete:all": "pnpm db:delete && pnpm db:migrations:delete",
     "db:full-reset": "pnpm db:delete:all && pnpm db:generate && pnpm db:migrate",
     "testDB": "tsx src/db/test-db.ts",
-    "seed:currencies": "tsx src/db/scripts/currenciesSeed.ts",
     "db:reset": "pnpm db:delete && pnpm db:migrate",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "67f3394c-dc2e-4f8d-95c2-f74c1aef120c",
+  "id": "e16bd8ef-8add-4e77-bb28-3325a74ab237",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -16,13 +16,6 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "currency": {
-          "name": "currency",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -158,13 +151,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "currency": {
-          "name": "currency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "description": {
           "name": "description",
           "type": "text",
@@ -260,37 +246,6 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "currencies": {
-      "name": "currencies",
-      "columns": {
-        "code": {
-          "name": "code",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "symbol": {
-          "name": "symbol",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -507,14 +462,6 @@
     "settings": {
       "name": "settings",
       "columns": {
-        "base_currency": {
-          "name": "base_currency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'RUB'"
-        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -539,19 +486,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "settings_base_currency_currencies_code_fk": {
-          "name": "settings_base_currency_currencies_code_fk",
-          "tableFrom": "settings",
-          "tableTo": "currencies",
-          "columnsFrom": [
-            "base_currency"
-          ],
-          "columnsTo": [
-            "code"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
         "settings_user_id_users_id_fk": {
           "name": "settings_user_id_users_id_fk",
           "tableFrom": "settings",
