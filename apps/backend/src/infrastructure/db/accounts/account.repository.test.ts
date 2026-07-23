@@ -187,9 +187,26 @@ describe('AccountRepository', () => {
       expect(account1.userId).not.toBe(account2.userId);
     });
 
-    it.todo('should throw an error if the original currency does not exist');
+    it('should throw an error if commodity is tombstoned', async () => {
+      const tombstonedCommodity = await testDB.createCommodity(user.id, {
+        code: CommodityCode.create('TOMBSTONED').valueOf(),
+        isTombstone: true,
+        name: 'Tombstoned Commodity',
+        precision: 2,
+        symbol: 'T',
+      });
 
-    it.todo('should handle UUID collision gracefully');
+      const newAccount = getAccountData({
+        commodityId: tombstonedCommodity.id,
+        name: 'New Account with Tombstoned Commodity',
+        type: 'asset',
+        userId: user.id,
+      });
+
+      await expect(accountRepository.create(newAccount)).rejects.toThrowError(
+        RepositoryNotFoundError,
+      );
+    });
   });
 
   describe('getAll', () => {
@@ -406,7 +423,7 @@ describe('AccountRepository', () => {
       expect(updatedSecondUserAccount?.name).toBe(accountData.name);
     });
 
-    it.todo('should validate currency when updating');
+    it.todo('should preserve commodityId when updating account fields');
 
     it('should only update allowed fields', async () => {
       const maliciousData = {
