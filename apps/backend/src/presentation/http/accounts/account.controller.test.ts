@@ -160,8 +160,8 @@ describe('AccountController', () => {
 
     it('should handle invalid requestBody gracefully', async () => {
       const invalidRequestBody = {
+        commodityId: null,
         name: 123,
-        originalCurrency: null,
         type: 'invalid-type',
       };
 

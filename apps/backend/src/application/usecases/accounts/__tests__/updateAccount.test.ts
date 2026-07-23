@@ -116,7 +116,7 @@ describe('UpdateAccount', async () => {
     // - should throw error when user does not exist
     // - should throw error when account does not exist
     // - should throw error when account does not belong to user
-    // - should validate and update different fields (name, description, type, originalCurrency)
+    // - should validate and update different fields (name, description, type, commodityId)
     // - should handle Account domain validation errors
     // - should handle repository errors properly
   });
