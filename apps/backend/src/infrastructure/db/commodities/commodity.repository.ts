@@ -1,6 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
-import { type CommodityRepositoryInterface } from 'src/application';
+import {
+  type CommodityRepositoryInterface,
+  type CommodityRepositoryUpdateInput,
+  type CommodityRepositorySoftDeleteInput,
+} from 'src/application';
 import { commoditiesTable } from 'src/db/schemas/commodities';
 import { CommoditySnapshot } from 'src/domain/commodities/types';
 
@@ -34,5 +38,129 @@ export class CommodityRepository
 
       return CommodityPersistenceMapper.toSnapshot(existingCommodity);
     }, 'Failed to fetch commodity');
+  }
+
+  getAll(userId: UUID): Promise<CommoditySnapshot[]> {
+    return this.executeDatabaseOperation(async () => {
+      const commodities = await this.db
+        .select()
+        .from(commoditiesTable)
+        .where(
+          and(
+            eq(commoditiesTable.userId, userId),
+            eq(commoditiesTable.isTombstone, false),
+          ),
+        )
+        .all();
+
+      return commodities.map((commodity) =>
+        CommodityPersistenceMapper.toSnapshot(commodity),
+      );
+    }, 'Failed to fetch commodities');
+  }
+
+  create(
+    userId: UUID,
+    commodity: CommoditySnapshot,
+  ): Promise<CommoditySnapshot> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const commodityRow = CommodityPersistenceMapper.toDBRowFromSnapshot({
+          ...commodity,
+          userId,
+        });
+
+        const createdCommodity = await this.db
+          .insert(commoditiesTable)
+          .values(commodityRow)
+          .returning()
+          .get();
+
+        return CommodityPersistenceMapper.toSnapshot(createdCommodity);
+      },
+      'Failed to create commodity',
+      {
+        unique: {
+          field: 'code',
+          tableName: 'commodities',
+          value: commodity.code,
+        },
+      },
+    );
+  }
+
+  update(
+    userId: UUID,
+    commodityId: UUID,
+    commodity: CommodityRepositoryUpdateInput,
+  ): Promise<CommoditySnapshot> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const safeData = this.getSafeUpdate(commodity, [
+          'code',
+          'symbol',
+          'name',
+          'updatedAt',
+        ]);
+
+        const updatedCommodity = await this.db
+          .update(commoditiesTable)
+          .set(safeData)
+          .where(
+            and(
+              eq(commoditiesTable.userId, userId),
+              eq(commoditiesTable.id, commodityId),
+              eq(commoditiesTable.isTombstone, false),
+            ),
+          )
+          .returning()
+          .get();
+
+        const existingCommodity = this.ensureEntityExists(
+          updatedCommodity,
+          `Commodity with ID ${commodityId} not found`,
+          this.entityNotFoundContext('commodity', commodityId),
+        );
+
+        return CommodityPersistenceMapper.toSnapshot(existingCommodity);
+      },
+      'Failed to update commodity',
+      {
+        unique: {
+          field: 'code',
+          tableName: 'commodities',
+          value: commodity.code,
+        },
+      },
+    );
+  }
+
+  delete(
+    userId: UUID,
+    commodityId: UUID,
+    data: CommodityRepositorySoftDeleteInput,
+  ): Promise<CommoditySnapshot> {
+    return this.executeDatabaseOperation(async () => {
+      const deletedCommodity = await this.db
+        .update(commoditiesTable)
+        .set({ isTombstone: true, updatedAt: data.updatedAt })
+        .where(
+          and(
+            eq(commoditiesTable.userId, userId),
+            eq(commoditiesTable.id, commodityId),
+            eq(commoditiesTable.isTombstone, false),
+          ),
+        )
+        .returning()
+        .get();
+
+      const existingCommodity = this.ensureEntityExists(
+        deletedCommodity,
+        `Commodity with ID ${commodityId} not found after deletion`,
+        this.entityNotFoundContext('commodity', commodityId),
+      );
+
+      return CommodityPersistenceMapper.toSnapshot(existingCommodity);
+    }, 'Failed to delete commodity');
   }
 }
