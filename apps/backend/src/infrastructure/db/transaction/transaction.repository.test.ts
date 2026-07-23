@@ -1,5 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationDbRow, UserDbRow } from 'src/db/schema';
+import { eq } from 'drizzle-orm';
+import { commoditiesTable, OperationDbRow, UserDbRow } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import {
   compareEntities,
@@ -276,6 +277,53 @@ describe('TransactionRepository', () => {
 
       await expect(
         transactionRepository.create(nonExistentUserId, transaction),
+      ).rejects.toThrow(RepositoryNotFoundError);
+    });
+
+    it('should not create a transaction when commodity does not exist', async () => {
+      const transaction = TransactionBuilder.persistence({
+        currencies: ['USD'],
+        operations: [
+          {
+            accountKey: 'USD',
+            amount: '-200',
+            description: 'Credit operation',
+          },
+          {
+            accountKey: 'USD',
+            amount: '200',
+            description: 'Debit operation',
+          },
+        ],
+        settings: { description },
+        user: UserPersistenceMapper.toDomain(user),
+      }).transaction;
+
+      await expect(
+        transactionRepository.create(user.id, transaction),
+      ).rejects.toThrow(RepositoryNotFoundError);
+    });
+
+    it('should not create a transaction when commodity belongs to another user', async () => {
+      const otherUser = await testDB.createUser();
+      const transaction = data.transaction;
+
+      await expect(
+        transactionRepository.create(otherUser.id, transaction),
+      ).rejects.toThrow(RepositoryNotFoundError);
+    });
+
+    it('should not create a transaction when commodity is tombstoned', async () => {
+      const transaction = data.transaction;
+      const commodityId = transaction.toSnapshot().commodityId;
+
+      await testDB.db
+        .update(commoditiesTable)
+        .set({ isTombstone: true })
+        .where(eq(commoditiesTable.id, commodityId));
+
+      await expect(
+        transactionRepository.create(user.id, transaction),
       ).rejects.toThrow(RepositoryNotFoundError);
     });
 

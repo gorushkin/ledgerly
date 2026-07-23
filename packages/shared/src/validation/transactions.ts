@@ -7,8 +7,8 @@ import {
 
 import { uuid, requiredText, isoDate, amountString } from "./baseValidations";
 
-// amount — posting in the account's native currency
-// value  — posting in the transaction's currency (GnuCash convention)
+// amount — posting in the account Commodity
+// value  — posting in the transaction valuation Commodity (GnuCash convention)
 // For same-currency transactions amount === value.
 // Transaction balance is validated by summing value across all operations (must equal 0).
 export const operationCreateSchema = z.object({

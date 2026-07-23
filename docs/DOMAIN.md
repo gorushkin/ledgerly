@@ -341,7 +341,7 @@ Balance: `sum(value) = 0` ✓ — currently this phase is not implemented.
 ```
 Transaction
 - id: UUID
-- valuationCommodityId: UUID (FK) -- denominates operation value fields
+- сommodityId: UUID (FK) -- denominates operation value fields
 - description: string
 - transactionDate: date (ISO string)
 - postingDate: date (ISO string)

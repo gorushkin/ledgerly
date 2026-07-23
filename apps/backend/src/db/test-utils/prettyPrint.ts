@@ -93,7 +93,7 @@ function formatTransactionPTA(
     `${transaction.getTransactionDate().valueOf()} ${transaction.description}`,
   );
   lines.push(
-    `  ${'Account'.padEnd(20)} ${'Description'.padEnd(50)} ${'Currency'.padEnd(8)} ${'Debit'.padStart(amountColumnWidth)} ${'Credit'.padStart(amountColumnWidth)}`,
+    `  ${'Account'.padEnd(20)} ${'Description'.padEnd(50)} ${'Commodity'.padEnd(8)} ${'Debit'.padStart(amountColumnWidth)} ${'Credit'.padStart(amountColumnWidth)}`,
   );
   transaction.getOperations().forEach((operation) => {
     lines.push(formatOperationPTA(operation, accountMap, commoditiesMapById));

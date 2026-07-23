@@ -374,10 +374,11 @@ describe('Transactions Integration Tests', () => {
         email: 'otheruser@example.com',
         password: 'password123',
       });
+      const otherUserCommodity = await testDB.createCommodity(otherUser.id);
 
       const otherUserAccount = await testDB.createAccount(
         otherUser.id,
-        commodityId,
+        otherUserCommodity.id,
         {
           name: 'Other User Account',
         },
@@ -1798,10 +1799,11 @@ describe('Transactions Integration Tests', () => {
       const createdOperations = transaction.operations;
 
       const otherUser = await testDB.createUser();
+      const otherUserCommodity = await testDB.createCommodity(otherUser.id);
 
       const otherUserAccount = await testDB.createAccount(
         otherUser.id,
-        commodityId,
+        otherUserCommodity.id,
         {
           name: 'Other User Account',
         },
@@ -1884,10 +1886,11 @@ describe('Transactions Integration Tests', () => {
       const createdOperations = transaction.operations;
 
       const otherUser = await testDB.createUser();
+      const otherUserCommodity = await testDB.createCommodity(otherUser.id);
 
       const otherUserAccount = await testDB.createAccount(
         otherUser.id,
-        commodityId,
+        otherUserCommodity.id,
         {
           name: 'Other User Account',
         },

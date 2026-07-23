@@ -80,7 +80,7 @@ describe('prettyPrint', () => {
     expect(result).toBeUndefined();
     expect(consoleInfo).toHaveBeenCalledOnce();
     expect(consoleInfo).toHaveBeenCalledWith(
-      expect.stringContaining('Currency'),
+      expect.stringContaining('Commodity'),
     );
     expect(consoleInfo).toHaveBeenCalledWith(expect.stringContaining('Debit'));
     expect(consoleInfo).toHaveBeenCalledWith(expect.stringContaining('Credit'));
