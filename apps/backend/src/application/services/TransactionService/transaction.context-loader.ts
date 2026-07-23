@@ -1,4 +1,4 @@
-import { CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import { Account, User } from 'src/domain';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
 
@@ -14,10 +14,8 @@ export class TransactionContextLoader {
     operations: OperationRequestDTO[],
   ): Promise<{
     accountsMap: Map<UUID, Account>;
-    currenciesSet: Set<CurrencyCode>;
   }> {
     const accountIds = new Set<UUID>();
-    const currenciesSet = new Set<CurrencyCode>();
 
     for (const operation of operations) {
       accountIds.add(operation.accountId);
@@ -31,41 +29,16 @@ export class TransactionContextLoader {
     const accountsMap = new Map<UUID, Account>();
 
     for (const snapshot of accountRows) {
-      currenciesSet.add(snapshot.currency);
       accountsMap.set(snapshot.id, Account.restore(snapshot));
     }
 
-    return { accountsMap, currenciesSet };
+    return { accountsMap };
   }
 
-  // TODO: return this method when system accounts are needed for some operation type (e.g. currency trading) and implement findOrCreateSystemAccount in AccountFactory
-  // private async preloadSystemAccounts(
-  //   user: User,
-  //   currenciesSet: Set<CurrencyCode>,
-  // ): Promise<Map<CurrencyCode, Account>> {
-  //   const systemAccountsMap = new Map<CurrencyCode, Account>();
-
-  //   for (const currency of currenciesSet) {
-  //     const systemAccount = await this.accountFactory.findOrCreateSystemAccount(
-  //       user,
-  //       currency,
-  //     );
-
-  //     systemAccountsMap.set(currency, systemAccount);
-  //   }
-
-  //   return systemAccountsMap;
-  // }
-
-  async loadContext(
+  loadContext(
     user: User,
     operations: OperationRequestDTO[],
   ): Promise<TransactionBuildContext> {
-    const { accountsMap } = await this.preloadAccounts(user, operations);
-
-    // TODO: Return system account when it is needed for some operation type (e.g. currency trading) and implement findOrCreateSystemAccount in AccountFactory
-    const systemAccountsMap = new Map<CurrencyCode, Account>();
-
-    return { accountsMap, systemAccountsMap };
+    return this.preloadAccounts(user, operations);
   }
 }

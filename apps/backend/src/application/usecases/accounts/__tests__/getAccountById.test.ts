@@ -1,8 +1,4 @@
-import {
-  AccountTypeValue,
-  apiErrorCodes,
-  CurrencyCode,
-} from '@ledgerly/shared/types';
+import { AccountTypeValue, apiErrorCodes } from '@ledgerly/shared/types';
 import {
   EntityNotFoundError,
   UnauthorizedAccessError,
@@ -35,7 +31,6 @@ describe('GetAccountByIdUseCase', async () => {
   const accountName = 'Test Account';
   const description = 'Test account description';
   const initialBalance = Amount.create('1000').valueOf();
-  const currency = 'USD' as CurrencyCode;
   const accountType = 'asset' as AccountTypeValue;
 
   const mockUser = {
@@ -48,7 +43,6 @@ describe('GetAccountByIdUseCase', async () => {
   const mockSavedAccountData: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currency,
     currentClearedBalanceLocal: initialBalance,
     description,
     id: accountId,

@@ -1,4 +1,4 @@
-import { CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
   type AccountRepositoryInterface,
@@ -119,7 +119,6 @@ export class AccountRepository
           'description',
           'initialBalance',
           'name',
-          'currency',
           'type',
           'updatedAt',
         ]);
@@ -171,34 +170,6 @@ export class AccountRepository
 
       return AccountPersistenceMapper.toSnapshot(existingAccount);
     }, `Failed to delete account with ID ${id}`);
-  }
-
-  async findSystemAccount(
-    userId: UUID,
-    currency: CurrencyCode,
-  ): Promise<AccountSnapshot> {
-    return this.executeDatabaseOperation<AccountSnapshot>(async () => {
-      const account = await this.db
-        .select()
-        .from(accountsTable)
-        .where(
-          and(
-            eq(accountsTable.userId, userId),
-            eq(accountsTable.currency, currency),
-            eq(accountsTable.isSystem, true),
-            eq(accountsTable.isTombstone, false),
-          ),
-        )
-        .get();
-
-      const existingAccount = this.ensureEntityExists(
-        account,
-        `System account not found for currency: ${currency}`,
-        this.entityNotFoundContext('account'),
-      );
-
-      return AccountPersistenceMapper.toSnapshot(existingAccount);
-    }, 'Failed to fetch system account');
   }
 
   async ensureUserOwnsAccount(userId: UUID, accountId: UUID) {

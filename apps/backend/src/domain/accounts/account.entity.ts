@@ -1,7 +1,6 @@
 import { Commodity } from '../commodities';
 import {
   Amount,
-  Currency,
   Id,
   Timestamp,
   Name,
@@ -29,7 +28,6 @@ export class Account {
     public description: string,
     private initialBalance: Amount,
     private currentClearedBalanceLocal: Amount,
-    public currency: Currency,
     private type: AccountType,
     public isSystem: boolean,
   ) {}
@@ -40,7 +38,6 @@ export class Account {
     name: Name,
     description: string,
     initialBalance: Amount,
-    currency: Currency,
     type: AccountType,
   ): Account {
     const identity = EntityIdentity.create();
@@ -69,7 +66,6 @@ export class Account {
       description,
       initialBalance,
       Amount.create('0'),
-      currency,
       type,
       isSystem,
     );
@@ -79,7 +75,6 @@ export class Account {
     const {
       commodityId,
       createdAt,
-      currency,
       currentClearedBalanceLocal,
       description,
       id,
@@ -121,7 +116,6 @@ export class Account {
       description,
       Amount.restore(initialBalance),
       Amount.restore(currentClearedBalanceLocal),
-      Currency.restore(currency),
       AccountType.restore(type),
       isSystem,
     );
@@ -171,7 +165,6 @@ export class Account {
     return {
       commodityId: this.commodityRelation.getParentId().valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
-      currency: this.currency.valueOf(),
       currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
       description: this.description,
       id: this.getId().valueOf(),
@@ -192,22 +185,13 @@ export class Account {
   update(data: AccountUpdateProps): void {
     this.validateUpdateIsAllowed();
 
-    const currency = data.currency
-      ? Currency.create(data.currency)
-      : this.currency;
-
     const name = data.name ? Name.create(data.name) : this.name;
 
     this.description = data.description ?? this.description;
     this.type = data.type ? AccountType.create(data.type) : this.type;
-    this.currency = currency;
     this.name = name;
 
     this.touch();
-  }
-
-  isCurrencySame(currency: Currency): boolean {
-    return this.currency.valueOf() === currency.valueOf();
   }
 
   isCommoditySame(commodity: Commodity): boolean {

@@ -3,7 +3,6 @@ import { AccountType, Commodity } from 'src/domain/';
 import {
   Amount,
   Name,
-  Currency,
   Id,
   Timestamp,
   CommodityCode,
@@ -15,11 +14,6 @@ import { User } from '../users/user.entity';
 import { Account } from './account.entity';
 
 const userTypeValue = 'asset';
-
-const currencyUSD = Currency.create('USD');
-const currencyEUR = Currency.create('EUR');
-
-const currencyCodeEUR = currencyEUR.valueOf();
 
 const name = Name.create('account-name');
 
@@ -54,7 +48,6 @@ describe('Account Domain Entity', () => {
         name,
         'account-description',
         Amount.create('0'),
-        currencyUSD,
         accountType,
       );
 
@@ -64,11 +57,14 @@ describe('Account Domain Entity', () => {
       expect(account).toHaveProperty('name', name);
       expect(account).toHaveProperty('description', 'account-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('0'));
-      expect(account).toHaveProperty('currency', currencyUSD);
       expect(account.getType().valueOf()).toBe(accountType.valueOf());
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account.getType().equals(accountType)).toBe(true);
       expect(account.isCommoditySame(commodity)).toBe(true);
+      expect(account).toHaveProperty(
+        'commodityRelation',
+        expect.objectContaining({ parentId: commodity.getId() }),
+      );
     });
   });
 
@@ -85,7 +81,6 @@ describe('Account Domain Entity', () => {
       const account = Account.restore({
         commodityId: commodity.getId().valueOf(),
         createdAt: createdAt.valueOf(),
-        currency: currencyCodeEUR,
         currentClearedBalanceLocal: Amount.create('500').valueOf(),
         description: 'restored-description',
         id: accountId.valueOf(),
@@ -104,7 +99,10 @@ describe('Account Domain Entity', () => {
       expect(account).toHaveProperty('name', Name.create('restored-account'));
       expect(account).toHaveProperty('description', 'restored-description');
       expect(account).toHaveProperty('initialBalance', Amount.create('500'));
-      expect(account).toHaveProperty('currency', currencyEUR);
+      expect(account).toHaveProperty(
+        'commodityRelation',
+        expect.objectContaining({ parentId: commodity.getId() }),
+      );
     });
   });
 
@@ -116,7 +114,6 @@ describe('Account Domain Entity', () => {
         Name.create('initial-name'),
         'description',
         Amount.create('0'),
-        currencyUSD,
         accountType,
       );
 
@@ -134,7 +131,6 @@ describe('Account Domain Entity', () => {
         name,
         'account-description',
         Amount.create('0'),
-        currencyUSD,
         accountType,
       );
 
@@ -152,7 +148,6 @@ describe('Account Domain Entity', () => {
         name,
         'account-description',
         Amount.create('0'),
-        currencyUSD,
         accountType,
       );
 
@@ -170,7 +165,6 @@ describe('Account Domain Entity', () => {
         name,
         'account-description',
         Amount.create('0'),
-        currencyUSD,
         accountType,
       );
 
@@ -207,7 +201,6 @@ describe('Account Domain Entity', () => {
         name,
         'account-description',
         Amount.create('0'),
-        currencyUSD,
         accountType,
       );
 

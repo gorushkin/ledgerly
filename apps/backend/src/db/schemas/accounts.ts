@@ -1,5 +1,5 @@
 import { ACCOUNT_TYPE_VALUES } from '@ledgerly/shared/constants';
-import { CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
@@ -23,7 +23,6 @@ export const accountsTable = sqliteTable(
       .references(() => commoditiesTable.id)
       .$type<UUID>(),
     createdAt,
-    currency: text('currency').notNull().$type<CurrencyCode>(),
     currentClearedBalanceLocal: getAmountColumn(
       'current_cleared_balance_local',
     ),
@@ -51,10 +50,3 @@ export type AccountDbRow = InferSelectModel<typeof accountsTable>;
 export type AccountDbInsert = InferInsertModel<typeof accountsTable>;
 
 export type AccountRepoInsert = AccountDbInsert;
-
-export type AccountDbUpdate = Partial<
-  Omit<
-    AccountDbRow,
-    'id' | 'userId' | 'createdAt' | 'updatedAt' | 'isTombstone'
-  >
->;

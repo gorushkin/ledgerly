@@ -1,4 +1,4 @@
-import { createCommodity, createUser } from 'src/db/createTestUser';
+import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils';
 import { Transaction } from 'src/domain';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -10,11 +10,9 @@ describe('TransactionMapper', () => {
 
   beforeAll(async () => {
     const user = await createUser();
-    const commodity = createCommodity(user, { code: 'USD' });
 
     fixture = TransactionBuilder.transaction({
-      accounts: ['USD'],
-      commodity,
+      currencies: ['USD'],
       operations: [
         {
           accountKey: 'USD',
@@ -28,7 +26,6 @@ describe('TransactionMapper', () => {
         },
       ],
       settings: {
-        currencyCode: 'USD',
         description: 'Transaction with tombstone operation',
         postingDate: '2026-07-10',
         transactionDate: '2026-07-09',
@@ -67,7 +64,6 @@ describe('TransactionMapper', () => {
 
     expect(response).toEqual({
       createdAt: transactionSnapshot.createdAt,
-      currency: transactionSnapshot.currency,
       description: transactionSnapshot.description,
       id: transactionSnapshot.id,
       operations: [

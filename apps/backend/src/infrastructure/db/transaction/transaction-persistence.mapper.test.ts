@@ -1,4 +1,4 @@
-import { createCommodity, createUser } from 'src/db/createTestUser';
+import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils';
 import { describe, expect, it } from 'vitest';
 
@@ -8,11 +8,8 @@ describe('TransactionPersistenceMapper', () => {
   it('maps a transaction aggregate to a persistence row', async () => {
     const user = await createUser();
 
-    const commodity = createCommodity(user, { code: 'USD' });
-
     const { transaction } = TransactionBuilder.transaction({
-      accounts: ['USD'],
-      commodity,
+      currencies: ['USD'],
       operations: [
         { accountKey: 'USD', amount: '100', description: 'Debit' },
         { accountKey: 'USD', amount: '-100', description: 'Credit' },
@@ -24,7 +21,6 @@ describe('TransactionPersistenceMapper', () => {
     expect(TransactionPersistenceMapper.toDBRow(transaction)).toEqual({
       commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
-      currency: snapshot.currency,
       description: snapshot.description,
       id: snapshot.id,
       isTombstone: snapshot.isTombstone,

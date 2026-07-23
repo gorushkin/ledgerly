@@ -16,7 +16,6 @@ import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import {
   TransactionQueryRepository,
   AccountRepository,
-  CurrencyRepository,
   TransactionRepository,
   CommodityRepository,
   UserRepository,
@@ -29,7 +28,6 @@ import {
 } from 'src/presentation/http';
 
 type Repositories = {
-  currency: CurrencyRepository;
   transaction: TransactionRepository;
   commodity: CommodityRepository;
   transactionQuery: TransactionQueryRepository;

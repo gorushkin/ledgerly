@@ -1,5 +1,4 @@
 import { Transaction } from 'src/domain';
-import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { DateValue } from 'src/domain/domain-core/value-objects/DateValue';
 import {
   CreateTransactionProps,
@@ -17,7 +16,6 @@ export class TransactionMapper {
 
     return {
       createdAt: snapshot.createdAt,
-      currency: snapshot.currency,
       description: snapshot.description,
       id: snapshot.id,
       operations: snapshot.operations.map((operation) =>
@@ -41,7 +39,6 @@ export class TransactionMapper {
 
     return {
       commodityId: dto.commodityId,
-      currency: Currency.create(dto.currencyCode),
       description: dto.description,
       operations,
       postingDate: DateValue.restore(dto.postingDate),

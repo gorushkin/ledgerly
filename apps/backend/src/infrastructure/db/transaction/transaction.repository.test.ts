@@ -6,7 +6,7 @@ import {
   TransactionBuilder,
   TransactionPersistenceBuilderResult,
 } from 'src/db/test-utils';
-import { Account, Commodity } from 'src/domain';
+import { Account } from 'src/domain';
 import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { RepositoryNotFoundError } from 'src/infrastructure/errors';
@@ -26,7 +26,6 @@ describe('TransactionRepository', () => {
   let testDB: TestDB;
   let transactionRepository: TransactionRepository;
   let user: UserDbRow;
-  let commodity: Commodity;
   let usdAccount: Account;
   let eurAccount: Account;
   let data: TransactionPersistenceBuilderResult;
@@ -56,13 +55,8 @@ describe('TransactionRepository', () => {
 
     user = await testDB.createUser();
 
-    commodity = CommodityPersistenceMapper.toDomain(
-      await testDB.createCommodity(user.id),
-    );
-
     data = TransactionBuilder.persistence({
-      accounts: ['USD', 'EUR'],
-      commodity,
+      currencies: ['USD', 'EUR'],
       operations: [
         {
           accountKey: 'USD',
@@ -103,27 +97,12 @@ describe('TransactionRepository', () => {
     usdAccount = data.getAccountByKey('USD');
     eurAccount = data.getAccountByKey('EUR');
 
-    const usdSystemAccount = data.getSystemAccountByCurrency('USD');
-    const eurSystemAccount = data.getSystemAccountByCurrency('EUR');
-
     await testDB.insertAccount(
       AccountPersistenceMapper.toDBRowFromSnapshot(usdAccount.toSnapshot()),
     );
 
     await testDB.insertAccount(
       AccountPersistenceMapper.toDBRowFromSnapshot(eurAccount.toSnapshot()),
-    );
-
-    await testDB.insertAccount(
-      AccountPersistenceMapper.toDBRowFromSnapshot(
-        usdSystemAccount.toSnapshot(),
-      ),
-    );
-
-    await testDB.insertAccount(
-      AccountPersistenceMapper.toDBRowFromSnapshot(
-        eurSystemAccount.toSnapshot(),
-      ),
     );
 
     transactionRepository = new TransactionRepository(
@@ -152,9 +131,8 @@ describe('TransactionRepository', () => {
 
       const insertedTransaction = await testDB.createTransactionWithOperations(
         user.id,
-        commodity.getId().valueOf(),
+        transaction.toSnapshot().commodityId,
         {
-          currencyCode: transaction.currency.valueOf(),
           description: transaction.description,
           operations: operationsDataToInsert,
           postingDate: transaction.getPostingDate().valueOf(),
@@ -170,7 +148,7 @@ describe('TransactionRepository', () => {
       const retrievedTransactionSnapshot = retrievedTransaction?.toSnapshot();
 
       expect(retrievedTransactionSnapshot?.commodityId).toEqual(
-        commodity.getId().valueOf(),
+        transaction.toSnapshot().commodityId,
       );
 
       expect(retrievedTransaction).not.toBeNull();
@@ -712,8 +690,6 @@ describe('TransactionRepository', () => {
       expect(transaction.getTransactionDate().valueOf()).toBe(
         deletedTransaction?.transactionDate,
       );
-
-      expect(deletedTransaction?.currency).toBe(transaction.currency.valueOf());
 
       const expectedOperations: OperationDbRow[] = [];
 

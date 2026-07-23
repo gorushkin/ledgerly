@@ -6,13 +6,7 @@ import {
   TransactionResponseDTO,
 } from 'src/application';
 import { EntityNotFoundError } from 'src/application/application.errors';
-import {
-  Amount,
-  Currency,
-  DateValue,
-  Id,
-  Timestamp,
-} from 'src/domain/domain-core';
+import { Amount, DateValue, Id, Timestamp } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetTransactionByIdUseCase } from '../GetTransactionById';
@@ -66,7 +60,6 @@ describe('GetTransactionByIdUseCase', () => {
 
     const mockTransactionData: TransactionReadModel = {
       createdAt,
-      currency: Currency.create('USD').valueOf(),
       description: 'Test Transaction',
       id: transactionId,
       operations,
@@ -93,7 +86,6 @@ describe('GetTransactionByIdUseCase', () => {
     expect(Object.keys(transaction).sort()).toEqual(
       [
         'createdAt',
-        'currency',
         'description',
         'id',
         'operations',

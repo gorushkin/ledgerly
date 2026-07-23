@@ -1,5 +1,5 @@
 import { apiErrorCodes } from '@ledgerly/shared/types';
-import { createCommodity, createUser } from 'src/db/createTestUser';
+import { createUser } from 'src/db/createTestUser';
 import {
   compareEntities,
   TransactionBuilder,
@@ -32,7 +32,7 @@ import {
 
 import { Account } from '../accounts';
 import { Commodity } from '../commodities';
-import { Amount, Currency, DateValue, Id, Version } from '../domain-core';
+import { Amount, DateValue, Id, Version } from '../domain-core';
 import {
   CreateOperationProps,
   OperationSnapshot,
@@ -93,7 +93,6 @@ const toCreateTransactionProps = (
   >,
 ): CreateTransactionProps => ({
   commodityId: fixture.transactionData.commodityId,
-  currency: Currency.create(fixture.transactionDTO.currencyCode),
   description: fixture.transactionData.description,
   operations: toCreateOperationProps(
     fixture.operationsData,
@@ -124,7 +123,7 @@ describe('Transaction Domain Entity', () => {
   let transactionData: CreateTransactionProps;
 
   const transactionRawData: TransactionProps = {
-    currencyCode: 'USD',
+    currency: 'USD',
     description: 'Buy groceries',
     postingDate: '2024-01-01',
     transactionDate: '2024-01-01',
@@ -194,16 +193,14 @@ describe('Transaction Domain Entity', () => {
   beforeAll(async () => {
     user = await createUser();
 
-    commodity = createCommodity(user, { code: 'USD' });
-
     data = TransactionBuilder.transaction({
-      accounts: ['USD', 'EUR', 'RUB', 'TRY'],
-      commodity,
+      currencies: ['USD', 'EUR', 'RUB', 'TRY'],
       operations: operationsData,
       settings: transactionRawData,
       user,
     });
 
+    commodity = data.transactionData.transactionCommodity;
     transactionData = toCreateTransactionProps(data);
   });
 
@@ -236,8 +233,6 @@ describe('Transaction Domain Entity', () => {
       expect(transaction.getUpdatedAt()).toBeDefined();
       expect(transaction.getVersion().valueOf()).toBe(0);
       expect(transaction.isDeleted()).toBe(false);
-
-      expect(transaction.currency).toBe(transactionData.currency);
 
       const transactionOperations = transaction.getOperations();
 
@@ -1131,8 +1126,7 @@ describe('Transaction Domain Entity', () => {
   describe('Transaction Domain Invariants coverage', () => {
     it('should accept a multi-currency transaction balanced by value even when amounts do not sum to zero', () => {
       const data = TransactionBuilder.request({
-        accounts: ['USD', 'RUB'],
-        commodity,
+        currencies: ['USD', 'RUB'],
         operations: [
           {
             accountKey: 'USD',
@@ -1158,8 +1152,7 @@ describe('Transaction Domain Entity', () => {
 
     it('should reject a multi-currency transaction with balanced amounts but unbalanced values', () => {
       const data = TransactionBuilder.request({
-        accounts: ['USD', 'RUB'],
-        commodity,
+        currencies: ['USD', 'RUB'],
         operations: [
           {
             accountKey: 'USD',
@@ -1185,8 +1178,7 @@ describe('Transaction Domain Entity', () => {
 
     it('should validate a multi-currency operation patch by value rather than amount', () => {
       const data = TransactionBuilder.request({
-        accounts: ['USD', 'RUB'],
-        commodity,
+        currencies: ['USD', 'RUB'],
         operations: [
           {
             accountKey: 'USD',
@@ -1247,8 +1239,7 @@ describe('Transaction Domain Entity', () => {
       ];
 
       const data = TransactionBuilder.request({
-        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
-        commodity,
+        currencies: ['USD', 'EUR', 'RUB', 'TRY'],
         operations: operationsData,
         settings: transactionRawData,
         user,
@@ -1286,8 +1277,7 @@ describe('Transaction Domain Entity', () => {
       ];
 
       const data = TransactionBuilder.request({
-        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
-        commodity,
+        currencies: ['USD', 'EUR', 'RUB', 'TRY'],
         operations: operationsData,
         settings: transactionRawData,
         user,
@@ -1332,8 +1322,7 @@ describe('Transaction Domain Entity', () => {
 
     it('should reject creation with zero operations', () => {
       const data = TransactionBuilder.request({
-        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
-        commodity,
+        currencies: ['USD', 'EUR', 'RUB', 'TRY'],
         operations: [],
         settings: transactionRawData,
         user,
@@ -1365,8 +1354,7 @@ describe('Transaction Domain Entity', () => {
       ];
 
       const data = TransactionBuilder.request({
-        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
-        commodity,
+        currencies: ['USD', 'EUR', 'RUB', 'TRY'],
         operations: operationsData,
         settings: transactionRawData,
         user,
@@ -1423,8 +1411,7 @@ describe('Transaction Domain Entity', () => {
       ];
 
       const data = TransactionBuilder.request({
-        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
-        commodity,
+        currencies: ['USD', 'EUR', 'RUB', 'TRY'],
         operations: operationsData,
         settings: transactionRawData,
         user,
@@ -1518,8 +1505,7 @@ describe('Transaction Domain Entity', () => {
       ];
 
       const data = TransactionBuilder.request({
-        accounts: ['USD', 'EUR', 'RUB', 'TRY'],
-        commodity,
+        currencies: ['USD', 'EUR', 'RUB', 'TRY'],
         operations: operationsData,
         settings: transactionRawData,
         user,

@@ -1,9 +1,8 @@
-import { CurrencyCode } from '@ledgerly/shared/types';
 import { OperationRequestDTO } from 'src/application/dto';
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { createAccount } from 'src/db/createTestUser';
 import { User } from 'src/domain';
-import { Amount, Currency } from 'src/domain/domain-core';
+import { Amount } from 'src/domain/domain-core';
 import { createUser } from 'src/testing';
 import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 
@@ -32,15 +31,9 @@ describe('TransactionContextLoader', () => {
     const account1 = createAccount(user);
     const account2 = createAccount(user);
     const account3 = createAccount(user);
-    const account4 = createAccount(user, { currency: Currency.create('EUR') });
+    const account4 = createAccount(user);
 
     const accounts = [account1, account2, account3, account4];
-
-    const currenciesSet = new Set<CurrencyCode>();
-
-    for (const acc of accounts) {
-      currenciesSet.add(acc.currency.valueOf());
-    }
 
     const rawOperations: OperationRequestDTO[] = [
       {

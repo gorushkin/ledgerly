@@ -1,4 +1,4 @@
-import { CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
 import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
@@ -23,7 +23,6 @@ export const transactionsTable = sqliteTable(
       .references(() => commoditiesTable.id)
       .$type<UUID>(),
     createdAt,
-    currency: text('currency').notNull().$type<CurrencyCode>(),
     description,
     id,
     isTombstone,

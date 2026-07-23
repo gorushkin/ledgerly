@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import {
-  currencyCode,
   isoDate,
   isoDatetime,
   sha256String,
@@ -11,8 +10,6 @@ import {
   commodityPrecision,
   commoditySymbol,
 } from "../validation/baseValidations";
-
-export type CurrencyCode = z.infer<typeof currencyCode>;
 
 export type IsoDatetimeString = z.infer<typeof isoDatetime>;
 export type IsoDateString = z.infer<typeof isoDate>;

@@ -1,7 +1,6 @@
 export { Id } from './Id';
 export { Timestamp } from './Timestamp';
 export { Amount } from './Amount';
-export { Currency } from './Currency';
 export { Name } from './Name';
 export { Email } from './Email';
 export { ParentChildRelation } from './ParentChildRelation';

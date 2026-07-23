@@ -1,4 +1,3 @@
-import { CurrencyCode } from '@ledgerly/shared/types';
 import {
   AccountRepositoryInterface,
   CommodityRepositoryInterface,
@@ -27,7 +26,6 @@ describe('CreateAccountUseCase', async () => {
   const description = 'Test account description';
   const initialBalance = Amount.create('1000').valueOf();
   const currentClearedBalanceLocal = Amount.create('0').valueOf();
-  const currency = 'USD' as CurrencyCode;
 
   const commodity = Commodity.create(
     user,
@@ -55,7 +53,6 @@ describe('CreateAccountUseCase', async () => {
       // Act
       const result = await createAccountUseCase.execute(user, {
         commodityId: mockedCommoditySnapshot.id,
-        currency: currency,
         description,
         initialBalance,
         name,
@@ -70,7 +67,6 @@ describe('CreateAccountUseCase', async () => {
       expect(accountRepository.create).toHaveBeenCalledWith({
         commodityId: result.commodityId,
         createdAt: result.createdAt,
-        currency,
         currentClearedBalanceLocal,
         description,
         id: result.id,
@@ -84,7 +80,6 @@ describe('CreateAccountUseCase', async () => {
       });
 
       expect(result).toMatchObject({
-        currency,
         description,
         initialBalance,
         isSystem: false,
@@ -117,7 +112,6 @@ describe('CreateAccountUseCase', async () => {
       await expect(
         createAccountUseCase.execute(user, {
           commodityId: mockedAnotherCommoditySnapshot.id,
-          currency: currency,
           description,
           initialBalance,
           name,

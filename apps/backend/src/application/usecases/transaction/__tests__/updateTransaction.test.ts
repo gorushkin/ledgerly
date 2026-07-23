@@ -15,7 +15,7 @@ import type {
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import { TransactionContextLoader } from 'src/application/services/TransactionService/transaction.context-loader';
-import { createCommodity, createUser } from 'src/db/createTestUser';
+import { createUser } from 'src/db/createTestUser';
 import { compareEntities, TransactionBuilder } from 'src/db/test-utils';
 import { Transaction, User } from 'src/domain';
 import { Amount, Id, Version } from 'src/domain/domain-core';
@@ -145,11 +145,9 @@ describe('UpdateTransactionUseCase', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const commodity = createCommodity(user);
 
     const data = TransactionBuilder.transaction({
-      accounts: ['USD', 'EUR'],
-      commodity,
+      currencies: ['USD', 'EUR'],
       operations: [
         {
           accountKey: 'USD',

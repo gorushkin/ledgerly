@@ -5,7 +5,7 @@ import type {
 } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { AccountType, Account, Commodity } from 'src/domain/';
-import { Amount, Currency, Name } from 'src/domain/domain-core';
+import { Amount, Name } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 
 export class CreateAccountUseCase {
@@ -17,8 +17,7 @@ export class CreateAccountUseCase {
     user: User,
     data: AccountCreateDTO,
   ): Promise<AccountResponseDTO> {
-    const { commodityId, currency, description, initialBalance, name, type } =
-      data;
+    const { commodityId, description, initialBalance, name, type } = data;
 
     const commoditySnapshot = await this.commodityRepository.getById(
       user.getId().valueOf(),
@@ -33,7 +32,6 @@ export class CreateAccountUseCase {
       Name.create(name),
       description,
       Amount.create(initialBalance),
-      Currency.create(currency),
       AccountType.create(type),
     );
 

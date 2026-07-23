@@ -7,7 +7,6 @@ export class TransactionReadModelResponseMapper {
   ): TransactionResponseDTO {
     return {
       createdAt: transaction.createdAt,
-      currency: transaction.currency,
       description: transaction.description,
       id: transaction.id,
       // mapOperation does not access this, so passing it unbound is safe.

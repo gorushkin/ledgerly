@@ -5,7 +5,6 @@ import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import { dateInIsoFormat } from '@ledgerly/shared/libs';
 import {
   AccountTypeValue,
-  CurrencyCode,
   IsoDateString,
   AmountString,
   UUID,
@@ -19,17 +18,11 @@ import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
-import {
-  Amount,
-  CommodityCode,
-  Currency,
-  DateValue,
-} from 'src/domain/domain-core';
+import { Amount, CommodityCode, DateValue } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { TransactionSnapshot } from 'src/domain/transactions/types';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { CommodityPersistenceMapper } from 'src/infrastructure/db/commodities/commodity-persistence.mapper';
-import { AmountFormatter } from 'src/presentation/formatters';
 
 import {
   TransactionDbInsert,
@@ -82,7 +75,6 @@ export type CreateTransactionProps = {
   description?: string;
   postingDate?: IsoDateString;
   transactionDate?: IsoDateString;
-  currencyCode?: CurrencyCode;
   isTombstone?: boolean;
 };
 
@@ -97,7 +89,6 @@ export type TransactionOperationSeed = {
 };
 
 export type TransactionSeed = {
-  currencyCode?: CurrencyCode;
   description: string;
   operations: TransactionOperationSeed[];
   postingDate?: IsoDateString;
@@ -229,7 +220,6 @@ export class TestDB {
     const transactionData: TransactionDbInsert = {
       ...TestDB.uuid,
       ...TestDB.createTimestamps,
-      currency: params?.currencyCode ?? Currency.create('USD').valueOf(),
       description:
         params?.description ??
         `Test Transaction ${this.transactionCounter.getNextName()}`,
@@ -258,7 +248,6 @@ export class TestDB {
       description?: string;
       postingDate?: IsoDateString;
       transactionDate?: IsoDateString;
-      currencyCode?: CurrencyCode;
       isTombstone?: boolean;
       operations: {
         accountId: UUID;
@@ -296,7 +285,6 @@ export class TestDB {
     userId: UUID,
     commodityId: UUID,
     {
-      currencyCode = 'USD' as CurrencyCode,
       description,
       isTombstone = false,
       operations,
@@ -305,7 +293,6 @@ export class TestDB {
     }: TransactionSeed,
   ): Promise<TransactionWithRelations> => {
     return this.createTransactionWithOperations(userId, commodityId, {
-      currencyCode,
       description,
       isTombstone,
       operations: operations.map((operation) => ({
@@ -388,40 +375,6 @@ export class TestDB {
     return { operations, ...transaction };
   };
 
-  getTransactionInPTAFormat = async (
-    transactionId: UUID,
-  ): Promise<string | null> => {
-    const transaction = await this.getTransactionById(transactionId);
-    if (!transaction) return null;
-
-    const operations = await this.db.select().from(schema.operationsTable);
-
-    // Format in PTA (Plain Text Accounting) style
-    let output = `${transaction.transactionDate} ${transaction.description}\n`;
-
-    for (const operation of operations) {
-      const account = await this.db
-        .select()
-        .from(schema.accountsTable)
-        .where(sql`${schema.accountsTable.id} = ${operation.accountId}`)
-        .get();
-
-      if (!account) continue;
-
-      const formatter = new AmountFormatter();
-
-      const amount = Amount.restore(operation.amount);
-      const userFriendlyAmount = formatter.formatForTable(amount, 'en-US');
-      const accountName = account.name;
-      const currency = account.currency;
-      const systemMarker = operation.isSystem ? ' [system]' : '';
-
-      output += `    ${accountName.padEnd(40)} ${operation.description} ${userFriendlyAmount} ${currency}${systemMarker}\n`;
-    }
-
-    return output;
-  };
-
   softDeleteTransaction = async (transactionId: UUID) => {
     return await this.db
       .update(schema.transactionsTable)
@@ -476,7 +429,6 @@ export class TestDB {
     commodityId: UUID,
     params?: {
       name?: string;
-      currency?: CurrencyCode;
       type?: AccountTypeValue;
       initialBalance?: AmountString;
       description?: string;
@@ -484,7 +436,6 @@ export class TestDB {
     },
   ) => {
     const accountData = {
-      currency: 'USD' as unknown as CurrencyCode,
       description: '',
       initialBalance: Amount.create('0').valueOf(),
       isSystem: false,
@@ -498,7 +449,6 @@ export class TestDB {
       .insert(accountsTable)
       .values({
         commodityId,
-        currency: accountData.currency,
         currentClearedBalanceLocal: accountData.initialBalance ?? 0,
         description: accountData.description || '',
         initialBalance: accountData.initialBalance ?? 0,
@@ -633,17 +583,14 @@ export class TestDB {
     });
 
     const accountUSD1 = await this.createAccount(user.id, usdCommodity.id, {
-      currency: Currency.create('USD').valueOf(),
       name: 'Savings Account USD',
     });
 
     const accountUSD2 = await this.createAccount(user.id, usdCommodity.id, {
-      currency: Currency.create('USD').valueOf(),
       name: 'Checking Account USD',
     });
 
     const accountEUR = await this.createAccount(user.id, eurCommodity.id, {
-      currency: Currency.create('EUR').valueOf(),
       name: 'Credit Card EUR',
     });
 

@@ -3,12 +3,10 @@ import {
   AccountCreateDTO,
   AccountResponseDTO,
   AccountTypeValue,
-  CurrencyCode,
   UUID,
 } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { Amount, CommodityCode } from 'src/domain/domain-core';
-import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { createServer } from 'src/presentation/http';
 import { describe, beforeEach, it, expect } from 'vitest';
@@ -18,7 +16,6 @@ const url = `/api${ROUTES.accounts}`;
 const firstUserAccounts = [
   {
     commodityId: Id.create().valueOf(),
-    currency: Currency.create('USD').valueOf(),
     description: 'This is a test account',
     initialBalance: Amount.create('1000').valueOf(),
     name: 'Test Account',
@@ -26,7 +23,6 @@ const firstUserAccounts = [
   },
   {
     commodityId: Id.create().valueOf(),
-    currency: Currency.create('USD').valueOf(),
     description: 'Savings account for future expenses',
     initialBalance: Amount.create('1000').valueOf(),
     name: 'Savings Account',
@@ -130,7 +126,6 @@ describe('Accounts Integration Tests', () => {
 
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
-        currency: 'USD' as unknown as CurrencyCode,
         description: 'This is a new account',
         initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
@@ -150,7 +145,6 @@ describe('Accounts Integration Tests', () => {
 
       expect(response.statusCode).toBe(201);
       expect(createdAccount.name).toBe(payload.name);
-      expect(createdAccount.currency).toBe(payload.currency);
       expect(createdAccount.type).toBe(payload.type);
       expect(createdAccount.description).toBe(payload.description);
 
@@ -224,7 +218,6 @@ describe('Accounts Integration Tests', () => {
 
       expect(response.statusCode).toBe(200);
       expect(updatedAccount.name).toBe(updatedData.name);
-      expect(updatedAccount.currency).toBe(updatedData.currency);
 
       const finalResponse = await server.inject({
         headers: {

@@ -1,6 +1,5 @@
 import {
   UUID,
-  CurrencyCode,
   IsoDateString,
   CommodityCodeString,
 } from '@ledgerly/shared/types';
@@ -17,13 +16,7 @@ import {
   Transaction,
   User,
 } from 'src/domain';
-import {
-  Amount,
-  CommodityCode,
-  Currency,
-  DateValue,
-  Name,
-} from 'src/domain/domain-core';
+import { Amount, CommodityCode, DateValue, Name } from 'src/domain/domain-core';
 import {
   CreateTransactionProps,
   TransactionBuildContext,
@@ -42,26 +35,25 @@ export type TransactionProps = {
   postingDate?: string;
   transactionDate?: string;
   description?: string;
-  currencyCode: string;
+  currency: string;
 };
 
 export type TransactionBuilderOptions = {
   user: User;
-  commodity: Commodity;
-  accounts: string[];
   operations: OperationDataForTransaction[];
   settings?: Partial<TransactionProps>;
+  currencies: string[];
 };
 
 export type TransactionRequestBuilderResult = {
   accountsMap: Map<UUID, Account>;
+  commoditiesMap: Map<CommodityCodeString, Commodity>;
+  commoditiesMapById: Map<UUID, Commodity>;
   accounts: Account[];
   commodities: Commodity[];
   transactionContext: TransactionBuildContext;
   getAccountByKey: (key: string) => Account;
   getCommodityByKey: (code: string) => Commodity;
-  getSystemAccountByCurrency: (currency: string) => Account;
-  systemAccounts: Map<CurrencyCode, Account>;
   user: User;
   transactionDTO: CreateTransactionRequestDTO;
   transactionData: {
@@ -70,6 +62,7 @@ export type TransactionRequestBuilderResult = {
     transactionDate: IsoDateString;
     userId: UUID;
     commodityId: UUID;
+    transactionCommodity: Commodity;
   };
   operationsData: OperationDataForTransaction[];
 };
@@ -87,13 +80,15 @@ export class TransactionBuilder {
   private readonly user: User;
   private readonly accounts = new Map<string, Account>();
   private readonly accountsMap = new Map<UUID, Account>();
-  private readonly commoditiesMap = new Map<CommodityCodeString, Commodity>();
-  private readonly systemAccounts = new Map<CurrencyCode, Account>();
+  private readonly commoditiesMapByCommodityCode = new Map<
+    CommodityCodeString,
+    Commodity
+  >();
+  private readonly commoditiesMapById = new Map<UUID, Commodity>();
   private readonly operationsData: OperationDataForTransaction[];
   private readonly postingDate: IsoDateString;
   private readonly transactionDate: IsoDateString;
   private readonly description: string;
-  private readonly transactionCurrency: Currency;
   private readonly transactionCommodity: Commodity;
 
   private constructor(options: TransactionBuilderOptions) {
@@ -111,17 +106,20 @@ export class TransactionBuilder {
 
     this.description = options.settings?.description ?? 'Test Transaction';
 
-    this.transactionCurrency = Currency.create(
-      options.settings?.currencyCode ?? 'USD',
+    this.createAccounts(options.currencies);
+    this.validateAccountKeys();
+
+    const transactionCommodityCode = options.settings?.currency ?? 'USD';
+
+    const transactionCommodity = this.commoditiesMapByCommodityCode.get(
+      transactionCommodityCode as CommodityCodeString,
     );
 
-    this.transactionCommodity = Commodity.create(
-      this.user,
-      Name.create(`Commodity ${options.settings?.currencyCode ?? 'USD'}`),
-      CommodityCode.create(options.settings?.currencyCode ?? 'USD'),
-    );
+    if (!transactionCommodity) {
+      throw new EntityNotFoundError({ entityType: Commodity.entityType });
+    }
 
-    this.createAccounts(options.accounts);
+    this.transactionCommodity = transactionCommodity;
   }
 
   static request(
@@ -142,62 +140,50 @@ export class TransactionBuilder {
     return new TransactionBuilder(options).buildPersistence();
   }
 
+  private validateAccountKeys(): void {
+    const invalidKeys = this.operationsData.filter(
+      (operation) => !this.accounts.has(operation.accountKey),
+    );
+
+    if (invalidKeys.length > 0) {
+      throw new EntityNotFoundError({ entityType: Account.entityType });
+    }
+  }
+
   private createAccounts(currencyCodes: string[]): void {
-    currencyCodes.forEach((currencyCode) => {
-      const code = CommodityCode.create(currencyCode);
+    currencyCodes.forEach((commodityCode) => {
+      const code = CommodityCode.create(commodityCode);
 
       const commodity = Commodity.create(
         this.user,
-        Name.create(`Commodity ${currencyCode}`),
+        Name.create(`Commodity ${commodityCode}`),
         code,
       );
 
       const account = Account.create(
         this.user,
         commodity,
-        Name.create(`Account ${currencyCode}`),
-        `Account ${currencyCode}`,
+        Name.create(`Account ${commodityCode}`),
+        `Account ${commodityCode}`,
         Amount.create('0'),
-        Currency.create(currencyCode),
         AccountType.create('asset'),
       );
 
-      this.accounts.set(currencyCode, account);
+      this.accounts.set(commodityCode, account);
       this.accountsMap.set(account.getId().valueOf(), account);
-      this.commoditiesMap.set(code.valueOf(), commodity);
+      this.commoditiesMapByCommodityCode.set(code.valueOf(), commodity);
+      this.commoditiesMapById.set(commodity.getId().valueOf(), commodity);
     });
-
-    this.createSystemAccounts();
   }
 
-  private getCommodityByCurrency(currency: string): Commodity {
-    const code = CommodityCode.create(currency);
-    const commodity = this.commoditiesMap.get(code.valueOf());
+  private getCommodityById(commodityId: UUID): Commodity {
+    const commodity = this.commoditiesMapById.get(commodityId);
 
     if (!commodity) {
       throw new EntityNotFoundError({ entityType: Commodity.entityType });
     }
 
     return commodity;
-  }
-
-  private createSystemAccounts(): void {
-    this.accounts.forEach((account) => {
-      const currencyCode = account.currency.valueOf();
-      const commodity = this.getCommodityByCurrency(currencyCode);
-      const systemAccount = Account.create(
-        this.user,
-        commodity,
-        Name.create(`System Account ${currencyCode}`),
-        `System Account for ${currencyCode}`,
-        Amount.create('0'),
-        Currency.create(currencyCode),
-        AccountType.create('currencyTrading'),
-      );
-
-      this.systemAccounts.set(currencyCode, systemAccount);
-      this.accountsMap.set(systemAccount.getId().valueOf(), systemAccount);
-    });
   }
 
   getAccountByKey(key: string): Account {
@@ -210,18 +196,10 @@ export class TransactionBuilder {
     return account;
   }
 
-  getSystemAccountByCurrency(currency: string): Account {
-    const account = this.systemAccounts.get(currency as CurrencyCode);
-
-    if (!account) {
-      throw new EntityNotFoundError({ entityType: Account.entityType });
-    }
-
-    return account;
-  }
-
   getCommodityByKey(code: string): Commodity {
-    const commodity = this.commoditiesMap.get(code as CommodityCodeString);
+    const commodity = this.commoditiesMapByCommodityCode.get(
+      code as CommodityCodeString,
+    );
 
     if (!commodity) {
       throw new EntityNotFoundError({ entityType: Commodity.entityType });
@@ -248,12 +226,7 @@ export class TransactionBuilder {
 
   private buildTransactionProps(): CreateTransactionProps {
     return {
-      commodityId: this.getCommodityByCurrency(
-        this.transactionCurrency.valueOf(),
-      )
-        .getId()
-        .valueOf(),
-      currency: this.transactionCurrency,
+      commodityId: this.transactionCommodity.getId().valueOf(),
       description: this.description,
       operations: this.operationsData.map((operation) => {
         const amount = Amount.create(operation.amount);
@@ -274,34 +247,30 @@ export class TransactionBuilder {
     return {
       accounts: Array.from(this.accountsMap.values()),
       accountsMap: this.accountsMap,
-      commodities: Array.from(this.commoditiesMap.values()),
+      commodities: Array.from(this.commoditiesMapByCommodityCode.values()),
+      commoditiesMap: this.commoditiesMapByCommodityCode,
+      commoditiesMapById: this.commoditiesMapById,
       getAccountByKey: this.getAccountByKey.bind(this),
       getCommodityByKey: this.getCommodityByKey.bind(this),
-      getSystemAccountByCurrency: this.getSystemAccountByCurrency.bind(this),
       operationsData: this.operationsData,
-      systemAccounts: this.systemAccounts,
       transactionContext: {
         accountsMap: this.accountsMap,
-        systemAccountsMap: this.systemAccounts,
       },
+
       transactionData: {
-        commodityId: this.getCommodityByCurrency(
-          this.transactionCurrency.valueOf(),
-        )
-          .getId()
-          .valueOf(),
+        commodityId: this.transactionCommodity.getId().valueOf(),
         description: this.description,
         postingDate: this.postingDate,
+        transactionCommodity: this.transactionCommodity,
         transactionDate: this.transactionDate,
         userId: this.user.getId().valueOf(),
       },
       transactionDTO: {
-        commodityId: this.getCommodityByCurrency(
-          this.transactionCurrency.valueOf(),
+        commodityId: this.getCommodityById(
+          this.transactionCommodity.getId().valueOf(),
         )
           .getId()
           .valueOf(),
-        currencyCode: this.transactionCurrency.valueOf(),
         description: this.description,
         operations: this.buildOperationsDTO(),
         postingDate: this.postingDate,
@@ -314,8 +283,8 @@ export class TransactionBuilder {
   private buildTransaction(): TransactionBuilderResult {
     const requestFixture = this.buildRequest();
 
-    const commodity = this.getCommodityByCurrency(
-      requestFixture.transactionDTO.currencyCode,
+    const commodity = this.getCommodityById(
+      requestFixture.transactionDTO.commodityId,
     );
 
     const transaction = Transaction.create(

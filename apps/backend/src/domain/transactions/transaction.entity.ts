@@ -21,7 +21,6 @@ import {
   ParentChildRelation,
   DateValue,
   Amount,
-  Currency,
   Version,
 } from '../domain-core';
 import { Operation } from '../operations';
@@ -67,7 +66,6 @@ export class Transaction {
     private readonly ownership: ParentChildRelation,
     private postingDate: DateValue,
     private transactionDate: DateValue,
-    public currency: Currency,
     private readonly commodityId: ParentChildRelation,
 
     public description: string,
@@ -96,7 +94,6 @@ export class Transaction {
       ownership,
       dto.postingDate,
       dto.transactionDate,
-      dto.currency,
       commodityRelation,
       dto.description,
       Version.create(0),
@@ -162,7 +159,6 @@ export class Transaction {
     const {
       commodityId,
       createdAt,
-      currency,
       description,
       id,
       isTombstone,
@@ -198,7 +194,6 @@ export class Transaction {
       ownership,
       DateValue.restore(postingDate),
       DateValue.restore(transactionDate),
-      Currency.restore(currency),
       commodityRelation,
       description,
       Version.restore(version),
@@ -258,7 +253,6 @@ export class Transaction {
     return {
       commodityId: this.commodityId.getParentId().valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
-      currency: this.currency.valueOf(),
       description: this.description,
       id: this.getId().valueOf(),
       isTombstone: this.isDeleted(),

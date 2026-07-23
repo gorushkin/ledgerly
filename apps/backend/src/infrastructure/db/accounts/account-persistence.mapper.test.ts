@@ -1,5 +1,5 @@
 import { AccountDbRow } from 'src/db/schema';
-import { Amount, Currency, Id, Timestamp } from 'src/domain/domain-core';
+import { Amount, Id, Timestamp } from 'src/domain/domain-core';
 import { describe, expect, it } from 'vitest';
 
 import { AccountPersistenceMapper } from './account-persistence.mapper';
@@ -8,7 +8,6 @@ describe('AccountPersistenceMapper', () => {
   const row: AccountDbRow = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currency: Currency.create('USD').valueOf(),
     currentClearedBalanceLocal: Amount.create('2500').valueOf(),
     description: 'Operating account',
     id: Id.create().valueOf(),
@@ -25,7 +24,6 @@ describe('AccountPersistenceMapper', () => {
     expect(AccountPersistenceMapper.toSnapshot(row)).toEqual({
       commodityId: row.commodityId,
       createdAt: row.createdAt,
-      currency: row.currency,
       currentClearedBalanceLocal: row.currentClearedBalanceLocal,
       description: row.description,
       id: row.id,
@@ -55,7 +53,6 @@ describe('AccountPersistenceMapper', () => {
     ).toEqual({
       commodityId: row.commodityId,
       createdAt: row.createdAt,
-      currency: row.currency,
       currentClearedBalanceLocal: row.currentClearedBalanceLocal,
       description: row.description,
       id: row.id,

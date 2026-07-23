@@ -9,13 +9,7 @@ import {
   OperationReadModel,
   TransactionReadModel,
 } from 'src/application/read-models';
-import {
-  Amount,
-  Currency,
-  DateValue,
-  Id,
-  Timestamp,
-} from 'src/domain/domain-core';
+import { Amount, DateValue, Id, Timestamp } from 'src/domain/domain-core';
 import { ForbiddenAccessError } from 'src/infrastructure/errors';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -64,7 +58,6 @@ describe('GetAllTransactionsUseCase', () => {
 
     return {
       createdAt: Timestamp.create().valueOf(),
-      currency: Currency.create('USD').valueOf(),
       description: 'Test transaction',
       id: transactionId,
       operations: [buildOperation(transactionId, userId)],

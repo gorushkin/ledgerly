@@ -13,7 +13,7 @@ import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction/
 import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
 import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
 import { User } from 'src/domain';
-import { Amount, Currency, DateValue, Id } from 'src/domain/domain-core';
+import { Amount, DateValue, Id } from 'src/domain/domain-core';
 import { createUser } from 'src/testing';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ZodError } from 'zod';
@@ -93,7 +93,6 @@ describe('TransactionController', () => {
     it('should call CreateTransactionUseCase with correct parameters', async () => {
       const requestBody: TransactionCreateInput = {
         commodityId: Id.create().valueOf(),
-        currencyCode: Currency.create('USD').valueOf(),
         description: 'Test Transaction',
         operations,
         postingDate: DateValue.restore('2024-01-01').valueOf(),
@@ -105,7 +104,6 @@ describe('TransactionController', () => {
       expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledWith(
         user,
         expect.objectContaining({
-          currencyCode: requestBody.currencyCode,
           description: requestBody.description,
           operations: requestBody.operations,
           postingDate: requestBody.postingDate,
@@ -120,7 +118,6 @@ describe('TransactionController', () => {
 
     it('should throw ZodError for invalid request body', async () => {
       const invalidRequestBody = {
-        currencyCode: 123,
         description: 'Test Transaction',
         operations: [],
         postingDate: 'invalid-date',
@@ -139,7 +136,6 @@ describe('TransactionController', () => {
       'should reject a create request without %s',
       async (missingDateField) => {
         const requestBody = {
-          currencyCode: Currency.create('USD').valueOf(),
           description: 'Test Transaction',
           operations,
           postingDate: DateValue.restore('2024-01-01').valueOf(),

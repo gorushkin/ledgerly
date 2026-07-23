@@ -2,7 +2,6 @@ import { createAccount, createUser } from 'src/db/createTestUser';
 import { Account, Operation, Transaction, User } from 'src/domain';
 import {
   Amount,
-  Currency,
   DateValue,
   Id,
   Timestamp,
@@ -19,7 +18,6 @@ describe('domain entity identity API conventions', () => {
     const transaction = Transaction.restore({
       commodityId: Id.create().valueOf(),
       createdAt: Timestamp.create().valueOf(),
-      currency: Currency.create('USD').valueOf(),
       description: 'Restored transaction',
       id: Id.create().valueOf(),
       isTombstone: false,

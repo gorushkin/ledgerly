@@ -1,4 +1,3 @@
-import { CurrencyCode } from '@ledgerly/shared/types';
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
@@ -28,7 +27,6 @@ describe('DeleteAccountUseCase', async () => {
   const accountName = 'Test Account';
   const description = 'Test account description';
   const initialBalance = Amount.create('1000').valueOf();
-  const currencyCode = 'USD' as CurrencyCode;
   const accountType = 'asset';
 
   const mockUser = {
@@ -41,7 +39,6 @@ describe('DeleteAccountUseCase', async () => {
   const mockAccountData: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currency: currencyCode,
     currentClearedBalanceLocal: initialBalance,
     description,
     id: Id.create().valueOf(),

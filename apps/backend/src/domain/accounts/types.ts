@@ -1,6 +1,5 @@
 import {
   AccountTypeValue,
-  CurrencyCode,
   IsoDatetimeString,
   AmountString,
   UUID,
@@ -8,7 +7,6 @@ import {
 
 export type AccountSnapshot = {
   createdAt: IsoDatetimeString;
-  currency: CurrencyCode;
   currentClearedBalanceLocal: AmountString;
   commodityId: UUID;
   description: string;
@@ -23,7 +21,6 @@ export type AccountSnapshot = {
 };
 
 export type AccountUpdateProps = Partial<{
-  currency: CurrencyCode;
   description: string;
   name: string;
   type: AccountTypeValue;

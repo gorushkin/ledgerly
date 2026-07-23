@@ -4,12 +4,10 @@ import {
   Email,
   Password,
   Amount,
-  Currency,
   CommodityCode,
 } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 
-// TODO: move to the test builder
 export const createUser = async (
   params: {
     name?: string;
@@ -58,7 +56,6 @@ export const createAccount = (
   user: User,
 
   params: {
-    currency?: Currency;
     description?: string;
     name?: string;
     commodity?: Commodity;
@@ -72,7 +69,6 @@ export const createAccount = (
     Name.create(params.name ?? 'Test Account'),
     params.description ?? 'Account for testing',
     Amount.create('0'),
-    params.currency ?? Currency.create('USD'),
     AccountType.create('asset'),
   );
 };

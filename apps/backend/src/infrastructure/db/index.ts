@@ -6,6 +6,5 @@ export {
 } from './transaction/';
 export { OperationRepository } from './operations';
 export { AccountRepository } from './accounts';
-export { CurrencyRepository } from './currency';
 export { UserRepository } from './user';
 export { CommodityRepository } from './commodities';

@@ -1,4 +1,4 @@
-import { AccountTypeValue, CurrencyCode } from '@ledgerly/shared/types';
+import { AccountTypeValue } from '@ledgerly/shared/types';
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
@@ -24,13 +24,11 @@ describe('GetAllAccounts', async () => {
     '550e8400-e29b-41d4-a716-446655440001',
   ).valueOf();
   const initialBalance = Amount.create('1000').valueOf();
-  const currency = 'USD' as CurrencyCode;
   const accountType = 'asset' as AccountTypeValue;
 
   const mockSavedAccountData: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currency,
     currentClearedBalanceLocal: initialBalance,
     description,
     id: accountId,

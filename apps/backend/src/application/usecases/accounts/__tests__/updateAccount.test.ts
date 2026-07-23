@@ -1,8 +1,4 @@
-import {
-  AccountTypeValue,
-  apiErrorCodes,
-  CurrencyCode,
-} from '@ledgerly/shared/types';
+import { AccountTypeValue, apiErrorCodes } from '@ledgerly/shared/types';
 import { EntityNotFoundError } from 'src/application/application.errors';
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
@@ -33,13 +29,11 @@ describe('UpdateAccount', async () => {
   const accountName = 'Test Account';
   const description = 'Test account description';
   const initialBalance = Amount.create('1000').valueOf();
-  const currency = 'USD' as CurrencyCode;
   const accountType = 'asset' as AccountTypeValue;
 
   const mockAccountData: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currency,
     currentClearedBalanceLocal: initialBalance,
     description,
     id: accountId,

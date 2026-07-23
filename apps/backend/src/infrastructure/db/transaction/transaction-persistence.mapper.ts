@@ -8,7 +8,6 @@ export class TransactionPersistenceMapper {
     return {
       commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
-      currency: snapshot.currency,
       description: snapshot.description,
       id: snapshot.id,
       isTombstone: snapshot.isTombstone,

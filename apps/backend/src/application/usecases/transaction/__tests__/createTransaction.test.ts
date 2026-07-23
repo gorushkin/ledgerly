@@ -6,9 +6,7 @@ import type {
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { createUser } from 'src/db/createTestUser';
 import { TransactionBuilder } from 'src/db/test-utils/testEntityBuilder';
-import { User, Transaction, Commodity } from 'src/domain';
-import { CommodityCode } from 'src/domain/domain-core/value-objects/CommodityCode';
-import { Name } from 'src/domain/domain-core/value-objects/Name';
+import { User, Transaction } from 'src/domain';
 import { UnbalancedTransactionError } from 'src/domain/domain.errors';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,7 +14,6 @@ import { CreateTransactionUseCase } from '../CreateTransaction';
 
 describe('CreateTransactionUseCase', () => {
   let user: User;
-  let commodity: Commodity;
 
   const mockTransactionRepository = {
     create: vi.fn(),
@@ -41,8 +38,7 @@ describe('CreateTransactionUseCase', () => {
     commodityRepository as unknown as CommodityRepositoryInterface,
   );
 
-  const transactionData = {
-    currencyCode: 'USD',
+  const transactionRawData = {
     description: 'Test transaction',
     postingDate: '2024-01-01',
     transactionDate: '2024-01-01',
@@ -55,33 +51,29 @@ describe('CreateTransactionUseCase', () => {
 
   beforeAll(async () => {
     user = await createUser();
-
-    commodity = Commodity.create(
-      user,
-      Name.create('Test Commodity'),
-      CommodityCode.create('TEST'),
-      2,
-      null,
-    );
   });
 
   beforeEach(() => {
     vi.resetAllMocks();
 
     transactionManager.run.mockImplementation((cb: () => unknown) => cb());
-    commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
   });
 
   describe('execute', () => {
     it('should create a new transaction with entries successfully', async () => {
-      const { transactionContext, transactionDTO } = TransactionBuilder.request(
-        {
-          accounts: ['USD'],
-          commodity,
-          operations: operationsData,
-          settings: transactionData,
-          user,
-        },
+      const {
+        transactionContext,
+        transactionData: { transactionCommodity },
+        transactionDTO,
+      } = TransactionBuilder.request({
+        currencies: ['USD'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
+
+      commodityRepository.getById.mockResolvedValue(
+        transactionCommodity.toSnapshot(),
       );
 
       transactionContextLoader.loadContext.mockResolvedValue(
@@ -93,8 +85,8 @@ describe('CreateTransactionUseCase', () => {
         transactionDTO,
       );
 
-      expect(result.postingDate).toBe(transactionData.postingDate);
-      expect(result.transactionDate).toBe(transactionData.transactionDate);
+      expect(result.postingDate).toBe(transactionRawData.postingDate);
+      expect(result.transactionDate).toBe(transactionRawData.transactionDate);
 
       transactionDTO.operations.forEach((operation, index) => {
         const matchedOperation = result.operations[index];
@@ -117,18 +109,18 @@ describe('CreateTransactionUseCase', () => {
       expect(savedUserId).toBe(user.getId().valueOf());
 
       expect(savedTransaction.getPostingDate().valueOf()).toBe(
-        transactionData.postingDate,
+        transactionRawData.postingDate,
       );
 
       expect(savedTransaction.getTransactionDate().valueOf()).toBe(
-        transactionData.transactionDate,
+        transactionRawData.transactionDate,
       );
 
       expect(savedTransaction.getOperations().length).toBe(
         transactionDTO.operations.length,
       );
 
-      expect(savedTransaction.description).toBe(transactionData.description);
+      expect(savedTransaction.description).toBe(transactionRawData.description);
 
       savedTransaction.getOperations().forEach((operation, index) => {
         const dtoOperation = transactionDTO.operations[index];
@@ -147,7 +139,6 @@ describe('CreateTransactionUseCase', () => {
 
       expect(result.id).toBe(savedTransaction.getId().valueOf());
       expect(result.userId).toBe(user.getId().valueOf());
-      expect(result.currency).toBe(transactionData.currencyCode);
     });
 
     it('should propagate error when loadContext fails', async () => {
@@ -155,10 +146,9 @@ describe('CreateTransactionUseCase', () => {
       transactionContextLoader.loadContext.mockRejectedValue(error);
 
       const { transactionDTO } = TransactionBuilder.request({
-        accounts: ['USD'],
-        commodity,
+        currencies: ['USD'],
         operations: [],
-        settings: transactionData,
+        settings: transactionRawData,
         user,
       });
 
@@ -171,14 +161,19 @@ describe('CreateTransactionUseCase', () => {
       const dbError = new Error('Database error');
       mockTransactionRepository.create.mockRejectedValue(dbError);
 
-      const { transactionContext, transactionDTO } = TransactionBuilder.request(
-        {
-          accounts: ['USD'],
-          commodity,
-          operations: operationsData,
-          settings: transactionData,
-          user,
-        },
+      const {
+        transactionContext,
+        transactionData: { transactionCommodity },
+        transactionDTO,
+      } = TransactionBuilder.request({
+        currencies: ['USD'],
+        operations: operationsData,
+        settings: transactionRawData,
+        user,
+      });
+
+      commodityRepository.getById.mockResolvedValue(
+        transactionCommodity.toSnapshot(),
       );
 
       transactionContextLoader.loadContext.mockResolvedValue(
@@ -196,18 +191,23 @@ describe('CreateTransactionUseCase', () => {
         { accountKey: 'USD', amount: '5000', description: '2' },
       ];
 
-      const { transactionContext, transactionDTO } = TransactionBuilder.request(
-        {
-          accounts: ['USD'],
-          commodity,
-          operations: unbalancedOperations,
-          settings: transactionData,
-          user,
-        },
-      );
+      const {
+        transactionContext,
+        transactionData: { transactionCommodity },
+        transactionDTO,
+      } = TransactionBuilder.request({
+        currencies: ['USD'],
+        operations: unbalancedOperations,
+        settings: transactionRawData,
+        user,
+      });
 
       transactionContextLoader.loadContext.mockResolvedValue(
         transactionContext,
+      );
+
+      commodityRepository.getById.mockResolvedValue(
+        transactionCommodity.toSnapshot(),
       );
 
       await expect(

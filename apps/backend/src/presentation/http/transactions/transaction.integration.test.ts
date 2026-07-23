@@ -24,7 +24,7 @@ import {
 import { CreateTransactionProps, TestDB } from 'src/db/test-db';
 import { compareEntities } from 'src/db/test-utils';
 import { compareCommonEntities } from 'src/db/test-utils/entityComparer';
-import { Amount, Currency, DateValue, Id } from 'src/domain/domain-core';
+import { Amount, DateValue, Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/http';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -79,11 +79,9 @@ describe('Transactions Integration Tests', () => {
   const createAccounts = async () => {
     return Promise.all([
       testDB.createAccount(userId, commodityId, {
-        currency: Currency.create('USD').valueOf(),
         name: 'Checking USD',
       }),
       testDB.createAccount(userId, commodityId, {
-        currency: Currency.create('USD').valueOf(),
         name: 'Savings USD',
       }),
     ]);
@@ -116,7 +114,6 @@ describe('Transactions Integration Tests', () => {
     it('should create a new transaction', async () => {
       const payload: TransactionCreateInput = {
         commodityId,
-        currencyCode: Currency.create('USD').valueOf(),
         description: 'some transaction',
         operations: [operation1, operation2],
         postingDate: DateValue.restore('2025-11-07').valueOf(),
@@ -154,13 +151,11 @@ describe('Transactions Integration Tests', () => {
 
     it('should create a multi-currency transaction balanced by value when amounts do not sum to zero', async () => {
       const rubAccount = await testDB.createAccount(userId, commodityId, {
-        currency: Currency.create('RUB').valueOf(),
         name: 'Cash RUB',
       });
 
       const payload: TransactionCreateInput = {
         commodityId,
-        currencyCode: Currency.create('USD').valueOf(),
         description: 'USD to RUB exchange',
         operations: [
           {
@@ -222,7 +217,7 @@ describe('Transactions Integration Tests', () => {
         expect.arrayContaining([
           {
             code: 'REQUIRED',
-            path: 'currencyCode',
+            path: 'commodityId',
           },
           {
             code: 'REQUIRED',
@@ -235,7 +230,6 @@ describe('Transactions Integration Tests', () => {
     it('should fail with invalid amounts', async () => {
       const payload: TransactionCreateInput = {
         commodityId,
-        currencyCode: Currency.create('USD').valueOf(),
         description: 'invalid amount',
         operations: [
           operation1,
@@ -278,7 +272,6 @@ describe('Transactions Integration Tests', () => {
     ])('should fail with %s', async (_, invalidOperationPatch) => {
       const payload: TransactionCreateInput = {
         commodityId,
-        currencyCode: Currency.create('USD').valueOf(),
         description: 'invalid finite amount',
         operations: [
           operation1,
@@ -309,7 +302,6 @@ describe('Transactions Integration Tests', () => {
     it('should fail for unauthorized access', async () => {
       const payload: TransactionCreateInput = {
         commodityId,
-        currencyCode: Currency.create('USD').valueOf(),
         description: 'unauthorized access',
         operations: [operation1, operation2],
         postingDate: DateValue.restore('2025-11-07').valueOf(),
@@ -328,7 +320,6 @@ describe('Transactions Integration Tests', () => {
     it('should fail for non-existent accounts', async () => {
       const payload: TransactionCreateInput = {
         commodityId,
-        currencyCode: Currency.create('USD').valueOf(),
         description: 'non-existent account',
         operations: [
           { ...operation1, accountId: Id.create().valueOf() },
@@ -353,7 +344,6 @@ describe('Transactions Integration Tests', () => {
     it('should fail when operations do not sum to zero (unbalanced transaction)', async () => {
       const payload: TransactionCreateInput = {
         commodityId,
-        currencyCode: Currency.create('USD').valueOf(),
         description: 'unbalanced transaction',
         operations: [
           operation1,
@@ -389,14 +379,12 @@ describe('Transactions Integration Tests', () => {
         otherUser.id,
         commodityId,
         {
-          currency: Currency.create('USD').valueOf(),
           name: 'Other User Account',
         },
       );
 
       const payload: TransactionCreateInput = {
         commodityId,
-        currencyCode: Currency.create('USD').valueOf(),
         description: 'unauthorized access',
         operations: [
           { ...operation1, accountId: otherUserAccount.id },
@@ -664,7 +652,6 @@ describe('Transactions Integration Tests', () => {
 
     it('should retrieve all transactions for the user', async () => {
       const transaction1Params: CreateTransactionProps = {
-        currencyCode: accounts[0].currency,
         description: 'transaction one',
         isTombstone: false,
         postingDate: DateValue.create().valueOf(),
@@ -672,7 +659,6 @@ describe('Transactions Integration Tests', () => {
       };
 
       const transaction2Params: CreateTransactionProps = {
-        currencyCode: accounts[1].currency,
         description: 'transaction two',
         isTombstone: false,
         postingDate: DateValue.create().valueOf(),
@@ -1817,7 +1803,6 @@ describe('Transactions Integration Tests', () => {
         otherUser.id,
         commodityId,
         {
-          currency: Currency.create('USD').valueOf(),
           name: 'Other User Account',
         },
       );
@@ -1904,7 +1889,6 @@ describe('Transactions Integration Tests', () => {
         otherUser.id,
         commodityId,
         {
-          currency: Currency.create('USD').valueOf(),
           name: 'Other User Account',
         },
       );

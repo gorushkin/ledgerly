@@ -101,7 +101,6 @@ export class TransactionRepository
       'postingDate',
       'transactionDate',
       'updatedAt',
-      'currency',
       'version',
     ]);
 

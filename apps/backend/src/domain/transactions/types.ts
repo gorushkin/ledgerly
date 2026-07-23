@@ -1,12 +1,7 @@
-import {
-  IsoDateString,
-  UUID,
-  CurrencyCode,
-  IsoDatetimeString,
-} from '@ledgerly/shared/types';
+import { IsoDateString, UUID, IsoDatetimeString } from '@ledgerly/shared/types';
 
 import { Account } from '../accounts';
-import { Currency, DateValue, Id } from '../domain-core';
+import { DateValue, Id } from '../domain-core';
 import {
   CreateOperationProps,
   OperationProps,
@@ -22,7 +17,6 @@ export type TransactionUpdateData = {
 
 export type TransactionBuildContext = {
   accountsMap: Map<UUID, Account>;
-  systemAccountsMap: Map<CurrencyCode, Account>;
 };
 
 export type CreateTransactionProps = {
@@ -30,7 +24,6 @@ export type CreateTransactionProps = {
   postingDate: DateValue;
   transactionDate: DateValue;
   operations: OperationProps[];
-  currency: Currency;
   commodityId: UUID;
 };
 
@@ -57,7 +50,6 @@ export type TransactionSnapshot = {
   commodityId: UUID;
   operations: OperationSnapshot[];
   version: number;
-  currency: CurrencyCode;
 };
 
 export type TransactionSnapshotWithDetails = TransactionSnapshot & {

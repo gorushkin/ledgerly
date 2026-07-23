@@ -5,7 +5,6 @@ import { ACCOUNT_TYPE_VALUES } from "../constants";
 import {
   notNullText,
   requiredText,
-  currencyCode,
   isoDatetime,
   uuid,
   amountString,
@@ -15,7 +14,6 @@ const accountType = z.enum(ACCOUNT_TYPE_VALUES);
 
 export const accountCreateSchema = z.object({
   commodityId: uuid,
-  currency: currencyCode,
   description: requiredText,
   initialBalance: amountString,
   name: notNullText,
@@ -24,7 +22,6 @@ export const accountCreateSchema = z.object({
 
 export const accountUpdateSchema = accountCreateSchema
   .pick({
-    currency: true,
     description: true,
     name: true,
     type: true,
@@ -33,7 +30,6 @@ export const accountUpdateSchema = accountCreateSchema
 
 export const accountResponseSchema = z.object({
   createdAt: isoDatetime,
-  currency: currencyCode,
   currentClearedBalanceLocal: z.number(),
   description: requiredText,
   id: uuid,

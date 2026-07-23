@@ -44,10 +44,6 @@ describe('OperationRepository', () => {
     await testDB.setupTestDb();
     userSnapshot = await testDB.createUser();
 
-    const commodity = CommodityPersistenceMapper.toDomain(
-      await testDB.createCommodity(userSnapshot.id),
-    );
-
     const operationsData = [
       { accountKey: 'USD', amount: '10000', description: '1' },
       { accountKey: 'EUR', amount: '-10000', description: '2' },
@@ -58,8 +54,7 @@ describe('OperationRepository', () => {
     ];
 
     data = TransactionBuilder.transaction({
-      accounts: ['USD', 'EUR'],
-      commodity,
+      currencies: ['USD', 'EUR'],
       operations: operationsData,
       user: UserPersistenceMapper.toDomain(userSnapshot),
     });

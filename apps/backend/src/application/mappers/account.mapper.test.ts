@@ -1,6 +1,6 @@
 import { AccountUpdateDTO } from '@ledgerly/shared/types';
 import { AccountSnapshot } from 'src/domain/accounts';
-import { Amount, Currency, Id, Timestamp } from 'src/domain/domain-core';
+import { Amount, Id, Timestamp } from 'src/domain/domain-core';
 import { describe, expect, it } from 'vitest';
 
 import { AccountMapper } from './account.mapper';
@@ -9,7 +9,6 @@ describe('AccountMapper', () => {
   const snapshot: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currency: Currency.create('USD').valueOf(),
     currentClearedBalanceLocal: Amount.create('2500').valueOf(),
     description: 'Operating account',
     id: Id.create().valueOf(),
@@ -26,7 +25,6 @@ describe('AccountMapper', () => {
     expect(AccountMapper.toResponseDTOFromSnapshot(snapshot)).toEqual({
       commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
-      currency: snapshot.currency,
       currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
       description: snapshot.description,
       id: snapshot.id,
@@ -42,7 +40,6 @@ describe('AccountMapper', () => {
 
   it('maps a full update DTO to domain update props', () => {
     const dto: AccountUpdateDTO = {
-      currency: Currency.create('EUR').valueOf(),
       description: 'Updated description',
       isSystem: false,
       name: 'Updated Account',
@@ -50,7 +47,6 @@ describe('AccountMapper', () => {
     };
 
     expect(AccountMapper.toUpdateProps(dto)).toEqual({
-      currency: dto.currency,
       description: dto.description,
       name: dto.name,
       type: dto.type,

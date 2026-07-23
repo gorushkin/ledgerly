@@ -17,7 +17,6 @@ import {
   TransactionRepository,
   TransactionQueryRepository,
   OperationRepository,
-  CurrencyRepository,
   TransactionManager,
   AccountRepository,
   UserRepository,
@@ -37,7 +36,6 @@ export const createContainer = (db: DataBase): AppContainer => {
   const transactionManager = new TransactionManager(db);
 
   const accountRepository = new AccountRepository(transactionManager);
-  const currencyRepository = new CurrencyRepository(transactionManager);
   const commodityRepository = new CommodityRepository(transactionManager);
   const operationRepository = new OperationRepository(transactionManager);
   const transactionRepository = new TransactionRepository(
@@ -54,7 +52,6 @@ export const createContainer = (db: DataBase): AppContainer => {
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
     commodity: commodityRepository,
-    currency: currencyRepository,
     transaction: transactionRepository,
     transactionQuery: transactionQueryRepository,
     user: userRepository,

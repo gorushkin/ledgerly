@@ -11,7 +11,6 @@ import {
   isoDate,
   isoDatetime,
   amountString,
-  currencyCode,
 } from "./baseValidations";
 
 // amount — posting in the account's native currency
@@ -36,7 +35,6 @@ export const operationUpdateSchema = z.object({
 
 export const transactionCreateSchema = z.object({
   commodityId: uuid,
-  currencyCode: currencyCode,
   description: requiredText,
   operations: z
     .array(operationCreateSchema)

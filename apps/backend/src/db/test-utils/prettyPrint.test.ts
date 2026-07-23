@@ -1,5 +1,5 @@
-import { createCommodity, createUser } from 'src/db/createTestUser';
-import { Commodity, User } from 'src/domain';
+import { createUser } from 'src/db/createTestUser';
+import { User } from 'src/domain';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { prettyPrint } from './prettyPrint';
@@ -7,7 +7,6 @@ import { TransactionBuilder } from './testEntityBuilder';
 
 describe('prettyPrint', () => {
   let user: User;
-  let commodity: Commodity;
 
   afterEach(() => {
     vi.restoreAllMocks();
@@ -15,13 +14,11 @@ describe('prettyPrint', () => {
 
   beforeAll(async () => {
     user = await createUser();
-    commodity = createCommodity(user);
   });
 
   it('prints an operation in PTA format', () => {
     const data = TransactionBuilder.transaction({
-      accounts: ['USD'],
-      commodity,
+      currencies: ['USD'],
       operations: [
         {
           accountKey: 'USD',
@@ -43,6 +40,7 @@ describe('prettyPrint', () => {
     const result = prettyPrint.operationPTA(
       data.operations[0],
       data.accountsMap,
+      data.commoditiesMapById,
     );
 
     expect(result).toBeUndefined();
@@ -54,8 +52,7 @@ describe('prettyPrint', () => {
 
   it('prints a transaction in PTA format', () => {
     const data = TransactionBuilder.transaction({
-      accounts: ['USD', 'EUR'],
-      commodity: commodity,
+      currencies: ['USD', 'EUR'],
       operations: [
         {
           accountKey: 'USD',
@@ -77,6 +74,7 @@ describe('prettyPrint', () => {
     const result = prettyPrint.transactionPTA(
       data.transaction,
       data.accountsMap,
+      data.commoditiesMapById,
     );
 
     expect(result).toBeUndefined();
