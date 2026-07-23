@@ -17,7 +17,7 @@ Value Objects - immutable objects that are described by their attributes, not by
 - **`Id`** - unique identifier
 - **`Timestamp`** - timestamp
 - **`Amount`** - signed integer minor-unit monetary amount without currency
-- **`Currency`** - currency
+- **`CommodityCode`** - display/search code for a user-owned Commodity
 - **`DateValue`** - date value
 - **`Name`** - name/title
 - **`Email`** - email address with validation
@@ -156,7 +156,7 @@ console.log(name.valueOf()); // 'John Doe'
 
 // Amount for monetary operations
 const amount = Amount.create('100.50');
-const currency = Currency.create('USD');
+const commodityCode = CommodityCode.create('USD');
 
 // Value Objects comparison
 const email1 = Email.create('TEST@example.com');
