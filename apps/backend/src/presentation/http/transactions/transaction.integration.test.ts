@@ -22,15 +22,11 @@ import {
   UserDbRow,
 } from 'src/db/schema';
 import { CreateTransactionProps, TestDB } from 'src/db/test-db';
-import { compareEntities } from 'src/db/test-utils';
+import { compareEntities, parseResponse } from 'src/db/test-utils';
 import { compareCommonEntities } from 'src/db/test-utils/entityComparer';
 import { Amount, DateValue, Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/http';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
-const parseResponse = <T>(response: { body: string }): T => {
-  return JSON.parse(response.body) as T;
-};
 
 const testUser = {
   email: 'test@example.com',

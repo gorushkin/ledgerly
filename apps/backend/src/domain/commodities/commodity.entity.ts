@@ -23,8 +23,8 @@ import type {
   CreateCommodityProps,
 } from './types';
 
-const DEFAULT_PRECISION = 2;
-const DEFAULT_SYMBOL = null;
+// const DEFAULT_PRECISION = 2;
+// const DEFAULT_SYMBOL = null;
 
 export class Commodity {
   static readonly entityType = 'commodity';
@@ -39,6 +39,9 @@ export class Commodity {
     private precision: CommodityPrecisionNumber,
   ) {}
 
+  static readonly DEFAULT_PRECISION = 2;
+  static readonly DEFAULT_SYMBOL = null;
+
   static create(user: User, props: CreateCommodityProps): Commodity {
     const identity = EntityIdentity.create();
     const softDelete = SoftDelete.create();
@@ -50,10 +53,10 @@ export class Commodity {
     );
 
     const parsedCommoditySymbol = parseCommoditySymbol(
-      props.symbol ?? DEFAULT_SYMBOL,
+      props.symbol ?? Commodity.DEFAULT_SYMBOL,
     );
     const parsedCommodityPrecision = parseCommodityPrecision(
-      props.precision ?? DEFAULT_PRECISION,
+      props.precision ?? Commodity.DEFAULT_PRECISION,
     );
 
     return new Commodity(

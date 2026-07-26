@@ -4,6 +4,7 @@ import {
   CommodityUpdateDTO,
 } from '@ledgerly/shared/types';
 import { CommodityMapper } from 'src/application';
+import { EntityNotFoundError } from 'src/application/application.errors';
 import { CommodityRepositoryInterface } from 'src/application/interfaces';
 import { EnsureOwnedSnapshotFn } from 'src/application/shared/ensureOwnedSnapshot';
 import { Commodity, CommoditySnapshot } from 'src/domain/commodities';
@@ -27,6 +28,13 @@ export class UpdateCommodityUseCase {
       load: this.commodityRepository.getById.bind(this.commodityRepository),
       user,
     });
+
+    if (commodityData.isTombstone) {
+      throw new EntityNotFoundError({
+        entityId: commodityId,
+        entityType: Commodity.entityType,
+      });
+    }
 
     const commodity = Commodity.restore(commodityData);
 
