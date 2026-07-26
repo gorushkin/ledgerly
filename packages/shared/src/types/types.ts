@@ -9,6 +9,8 @@ import {
   commodityCode,
   commodityPrecision,
   commoditySymbol,
+  queryStatus,
+  queryStatusSchema,
   requiredText,
 } from "../validation/baseValidations";
 
@@ -21,3 +23,5 @@ export type CommodityCodeString = z.infer<typeof commodityCode>;
 export type CommodityPrecisionNumber = z.infer<typeof commodityPrecision>;
 export type CommoditySymbolString = z.infer<typeof commoditySymbol>;
 export type RequiredText = z.infer<typeof requiredText>;
+export type QueryStatus = z.infer<typeof queryStatus>;
+export type QueryStatusQuery = z.infer<typeof queryStatusSchema>;

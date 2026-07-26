@@ -6,4 +6,4 @@ export { registerRoutes } from './register-routes';
 export { createServer } from './server';
 export { TransactionController, transactionsRoutes } from './transactions';
 export { registerUserRoutes, UserController } from './users';
-export { CommodityController } from './commodities';
+export { CommodityController, commodityRoutes } from './commodities';

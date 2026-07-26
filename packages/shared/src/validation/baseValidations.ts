@@ -91,3 +91,13 @@ export const commodityCode = z
   .brand<"CommodityCode">();
 export const commoditySymbol = z.string().trim().max(12).nullable();
 export const commodityPrecision = z.number().int().min(0).max(18);
+
+export const queryStatus = z
+  .enum(["active", "archived", "all"])
+  .default("active");
+
+export const queryStatusSchema = z
+  .object({
+    status: queryStatus,
+  })
+  .strict();

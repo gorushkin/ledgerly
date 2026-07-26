@@ -1,4 +1,4 @@
-import { apiErrorCodes } from '@ledgerly/shared/types';
+import { apiErrorCodes, type QueryStatus } from '@ledgerly/shared/types';
 import { type CommodityRepositoryUpdateInput } from 'src/application';
 import type { CommodityDbRow } from 'src/db/schemas/commodities';
 import { UserDbRow } from 'src/db/schemas/users';
@@ -84,28 +84,60 @@ describe('CommodityRepository', () => {
   });
 
   describe('getAll', () => {
-    it('should return all commodities for the user', async () => {
-      const userCommodities = await Promise.all([
-        testDB.createCommodity(user.id),
-        testDB.createCommodity(user.id),
-      ]);
+    const queryStatusCases: {
+      expectedTombstoneValues: boolean[];
+      status: QueryStatus;
+    }[] = [
+      { expectedTombstoneValues: [false, false], status: 'active' },
+      { expectedTombstoneValues: [true], status: 'archived' },
+      { expectedTombstoneValues: [false, false, true], status: 'all' },
+    ];
 
-      const commodities = await commodityRepository.getAll(user.id);
+    it.each(queryStatusCases)(
+      'should return $status commodities for the user',
+      async ({ expectedTombstoneValues, status }) => {
+        const activeCommodities = await Promise.all([
+          testDB.createCommodity(user.id),
+          testDB.createCommodity(user.id),
+        ]);
 
-      expect(commodities).toEqual(expect.arrayContaining(userCommodities));
+        const archivedCommodity = await testDB.createCommodity(user.id, {
+          isTombstone: true,
+        });
 
-      expect(commodities).toHaveLength(userCommodities.length);
-    });
+        const commodities = await commodityRepository.getAll(user.id, status);
+
+        const expectedCommodities =
+          status === 'active'
+            ? activeCommodities
+            : status === 'archived'
+              ? [archivedCommodity]
+              : [...activeCommodities, archivedCommodity];
+
+        expect(commodities).toEqual(
+          expect.arrayContaining(expectedCommodities),
+        );
+
+        expect(commodities).toHaveLength(expectedCommodities.length);
+
+        expect(
+          commodities.map(({ isTombstone }) => isTombstone).sort(),
+        ).toEqual(expectedTombstoneValues.sort());
+      },
+    );
 
     it('should return an empty array when the user has no commodities', async () => {
       const anotherUser = await testDB.createUser();
 
-      const commodities = await commodityRepository.getAll(anotherUser.id);
+      const commodities = await commodityRepository.getAll(
+        anotherUser.id,
+        'active',
+      );
 
       expect(commodities).toEqual([]);
     });
 
-    it('should not return tombstoned commodities', async () => {
+    it('should not return tombstoned commodities for active status', async () => {
       const commodity1 = await testDB.createCommodity(user.id);
       const commodity2 = await testDB.createCommodity(user.id);
 
@@ -113,22 +145,32 @@ describe('CommodityRepository', () => {
         updatedAt: Timestamp.create().valueOf(),
       });
 
-      const commodities = await commodityRepository.getAll(user.id);
+      const commodities = await commodityRepository.getAll(user.id, 'active');
 
       expect(commodities).toEqual(expect.arrayContaining([commodity2]));
       expect(commodities).not.toEqual(expect.arrayContaining([commodity1]));
     });
 
-    it('should not return commodities belonging to other users', async () => {
-      const commodity1 = await testDB.createCommodity(user.id);
-      const anotherUser = await testDB.createUser();
-      const commodity2 = await testDB.createCommodity(anotherUser.id);
+    it.each<QueryStatus>(['active', 'archived', 'all'])(
+      'should not return commodities belonging to other users for %s status',
+      async (status) => {
+        const commodity1 = await testDB.createCommodity(user.id);
+        const anotherUser = await testDB.createUser();
+        const commodity2 = await testDB.createCommodity(anotherUser.id, {
+          isTombstone: status === 'archived',
+        });
 
-      const commodities = await commodityRepository.getAll(user.id);
+        if (status === 'archived') {
+          await commodityRepository.delete(user.id, commodity1.id, {
+            updatedAt: Timestamp.create().valueOf(),
+          });
+        }
 
-      expect(commodities).toEqual(expect.arrayContaining([commodity1]));
-      expect(commodities).not.toEqual(expect.arrayContaining([commodity2]));
-    });
+        const commodities = await commodityRepository.getAll(user.id, status);
+
+        expect(commodities).not.toEqual(expect.arrayContaining([commodity2]));
+      },
+    );
   });
 
   describe('create', () => {

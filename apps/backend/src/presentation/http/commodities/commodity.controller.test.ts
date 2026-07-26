@@ -1,3 +1,4 @@
+import { type QueryStatus } from '@ledgerly/shared/types';
 import {
   ArchiveCommodityUseCase,
   CreateCommodityUseCase,
@@ -56,12 +57,55 @@ describe('CommodityController', () => {
   });
 
   describe('getAll', () => {
-    it('should call getAllCommoditiesUseCase.execute with correct user', async () => {
-      await commodityController.getAll(user);
+    const validQueryParams: {
+      expectedStatus: QueryStatus;
+      queryParams: unknown;
+    }[] = [
+      { expectedStatus: 'active', queryParams: { status: 'active' } },
+      { expectedStatus: 'archived', queryParams: { status: 'archived' } },
+      { expectedStatus: 'all', queryParams: { status: 'all' } },
+      { expectedStatus: 'active', queryParams: {} },
+    ];
 
-      expect(mockGetAllCommoditiesUseCase.execute).toHaveBeenCalledWith(user);
-      expect(mockGetAllCommoditiesUseCase.execute).toHaveBeenCalledTimes(1);
-    });
+    it.each(validQueryParams)(
+      'should call getAllCommoditiesUseCase.execute with $expectedStatus status',
+      async ({ expectedStatus, queryParams }) => {
+        await commodityController.getAll(user, queryParams);
+
+        expect(mockGetAllCommoditiesUseCase.execute).toHaveBeenCalledWith(
+          user,
+          expectedStatus,
+        );
+        expect(mockGetAllCommoditiesUseCase.execute).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    const invalidQueryParams = [
+      { invalidParam: 'invalidValue' },
+      { status: 'deleted' },
+      { status: '' },
+      { status: null },
+      { status: 1 },
+      { status: true },
+      'active',
+      'deleted',
+      '',
+      undefined,
+      null,
+      1,
+      true,
+    ];
+
+    it.each(invalidQueryParams)(
+      'should throw ZodError if queryParams is invalid: %s',
+      async (queryParams) => {
+        await expect(
+          commodityController.getAll(user, queryParams),
+        ).rejects.toThrow(ZodError);
+
+        expect(mockGetAllCommoditiesUseCase.execute).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('getById', () => {

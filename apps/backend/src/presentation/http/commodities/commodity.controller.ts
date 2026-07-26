@@ -3,6 +3,7 @@ import {
   commodityCreateSchema,
   commodityUpdateSchema,
   uniqueIdSchema,
+  queryStatusSchema,
 } from '@ledgerly/shared/validation';
 import {
   GetCommodityByIdUseCase,
@@ -22,8 +23,13 @@ export class CommodityController {
     private readonly archiveCommodityUseCase: ArchiveCommodityUseCase,
   ) {}
 
-  async getAll(user: User): Promise<CommodityResponseDTO[]> {
-    return this.getAllCommoditiesUseCase.execute(user);
+  async getAll(
+    user: User,
+    queryParams: unknown,
+  ): Promise<CommodityResponseDTO[]> {
+    const { status } = queryStatusSchema.parse(queryParams);
+
+    return this.getAllCommoditiesUseCase.execute(user, status);
   }
 
   async getById(

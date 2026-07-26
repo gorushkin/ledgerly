@@ -1,4 +1,4 @@
-import { UUID } from '@ledgerly/shared/types';
+import { QueryStatus, UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import {
   type CommodityRepositoryInterface,
@@ -36,17 +36,20 @@ export class CommodityRepository
     }, 'Failed to fetch commodity');
   }
 
-  getAll(userId: UUID): Promise<CommoditySnapshot[]> {
+  getAll(userId: UUID, status: QueryStatus): Promise<CommoditySnapshot[]> {
     return this.executeDatabaseOperation(async () => {
+      const whereClause =
+        status === 'all'
+          ? eq(commoditiesTable.userId, userId)
+          : and(
+              eq(commoditiesTable.userId, userId),
+              eq(commoditiesTable.isTombstone, status === 'archived'),
+            );
+
       const commodities = await this.db
         .select()
         .from(commoditiesTable)
-        .where(
-          and(
-            eq(commoditiesTable.userId, userId),
-            eq(commoditiesTable.isTombstone, false),
-          ),
-        )
+        .where(whereClause)
         .all();
 
       return commodities.map((commodity) =>

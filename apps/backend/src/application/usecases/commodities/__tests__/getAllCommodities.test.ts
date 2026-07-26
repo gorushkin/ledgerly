@@ -52,15 +52,19 @@ describe('GetAllCommoditiesUseCase', () => {
         },
       ];
 
+      const queryStatus = 'active';
+
       commodityRepository.getAll.mockResolvedValue(mockCommodities);
 
       // Act
-      const result = await getAllCommoditiesUseCase.execute(user);
+      const result = await getAllCommoditiesUseCase.execute(user, queryStatus);
 
       // Assert
       expect(commodityRepository.getAll).toHaveBeenCalledWith(
         user.getId().valueOf(),
+        queryStatus,
       );
+
       expect(result).toEqual(
         mockCommodities.map((commodity) => ({
           code: commodity.code,

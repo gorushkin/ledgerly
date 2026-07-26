@@ -6,7 +6,7 @@ export const commodityRoutes = (app: FastifyInstance) => {
   app.get('/', async (request) => {
     const user = request.user;
 
-    return await commodityController.getAll(user);
+    return await commodityController.getAll(user, request.query);
   });
 
   app.get('/:id', async (request) => {
