@@ -548,6 +548,16 @@ export class TestDB {
     return operations;
   };
 
+  getCommodityById = async (commodityId: UUID) => {
+    const commodity = await this.db
+      .select()
+      .from(schema.commoditiesTable)
+      .where(sql`${schema.commoditiesTable.id} = ${commodityId}`)
+      .get();
+
+    return commodity ?? null;
+  };
+
   deleteData = async () => {
     await this.db.delete(transactionsTable);
     await this.db.delete(accountsTable);

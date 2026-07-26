@@ -1,9 +1,11 @@
 import {
   CommodityCreateDTO,
   CommodityResponseDTO,
+  CommodityUpdateDTO,
 } from '@ledgerly/shared/types';
 import {
   CommoditySnapshot,
+  CommodityUpdateProps,
   CreateCommodityProps,
 } from 'src/domain/commodities';
 
@@ -31,6 +33,14 @@ export class CommodityMapper {
       code: props.code,
       name: props.name,
       precision: props.precision,
+      symbol: props.symbol,
+    };
+  }
+
+  static toUpdateProps(props: CommodityUpdateDTO): CommodityUpdateProps {
+    return {
+      code: props.code,
+      name: props.name,
       symbol: props.symbol,
     };
   }

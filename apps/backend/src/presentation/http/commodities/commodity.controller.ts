@@ -1,0 +1,66 @@
+import { CommodityResponseDTO } from '@ledgerly/shared/types';
+import {
+  commodityCreateSchema,
+  commodityUpdateSchema,
+  uniqueIdSchema,
+} from '@ledgerly/shared/validation';
+import {
+  GetCommodityByIdUseCase,
+  ArchiveCommodityUseCase,
+  CreateCommodityUseCase,
+  GetAllCommoditiesUseCase,
+  UpdateCommodityUseCase,
+} from 'src/application/usecases/commodities';
+import { User } from 'src/domain/users/user.entity';
+
+export class CommodityController {
+  constructor(
+    private readonly getCommodityByIdUseCase: GetCommodityByIdUseCase,
+    private readonly getAllCommoditiesUseCase: GetAllCommoditiesUseCase,
+    private readonly createCommodityUseCase: CreateCommodityUseCase,
+    private readonly updateCommodityUseCase: UpdateCommodityUseCase,
+    private readonly archiveCommodityUseCase: ArchiveCommodityUseCase,
+  ) {}
+
+  async getAll(user: User): Promise<CommodityResponseDTO[]> {
+    return this.getAllCommoditiesUseCase.execute(user);
+  }
+
+  async getById(
+    user: User,
+    requestParams: unknown,
+  ): Promise<CommodityResponseDTO> {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.getCommodityByIdUseCase.execute(user, id);
+  }
+
+  async create(
+    user: User,
+    requestBody: unknown,
+  ): Promise<CommodityResponseDTO> {
+    const commodityCreateDto = commodityCreateSchema.parse(requestBody);
+
+    return this.createCommodityUseCase.execute(user, commodityCreateDto);
+  }
+
+  async update(
+    user: User,
+    requestParams: unknown,
+    requestBody: unknown,
+  ): Promise<CommodityResponseDTO> {
+    const { id } = uniqueIdSchema.parse(requestParams);
+    const commodityUpdateDto = commodityUpdateSchema.parse(requestBody);
+
+    return this.updateCommodityUseCase.execute(user, id, commodityUpdateDto);
+  }
+
+  async archiveCommodity(
+    user: User,
+    requestParams: unknown,
+  ): Promise<CommodityResponseDTO> {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.archiveCommodityUseCase.execute(user, id);
+  }
+}

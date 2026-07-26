@@ -20,4 +20,4 @@ export type AmountString = z.infer<typeof amountString>;
 export type CommodityCodeString = z.infer<typeof commodityCode>;
 export type CommodityPrecisionNumber = z.infer<typeof commodityPrecision>;
 export type CommoditySymbolString = z.infer<typeof commoditySymbol>;
-export type NameString = z.infer<typeof requiredText>;
+export type RequiredText = z.infer<typeof requiredText>;

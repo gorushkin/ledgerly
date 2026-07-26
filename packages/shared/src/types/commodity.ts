@@ -3,13 +3,13 @@ import {
   CommodityPrecisionNumber,
   CommoditySymbolString,
   IsoDatetimeString,
-  NameString,
+  RequiredText,
   UUID,
 } from "./types";
 
 export type CommodityCreateDTO = {
   code: CommodityCodeString;
-  name: NameString;
+  name: RequiredText;
   precision?: CommodityPrecisionNumber;
   symbol?: CommoditySymbolString | null;
 };
@@ -19,9 +19,13 @@ export type CommodityResponseDTO = {
   createdAt: IsoDatetimeString;
   id: UUID;
   isTombstone: boolean;
-  name: NameString;
+  name: RequiredText;
   precision: CommodityPrecisionNumber;
   symbol: CommoditySymbolString | null;
   updatedAt: IsoDatetimeString;
   userId: UUID;
 };
+
+export type CommodityUpdateDTO = Partial<
+  Pick<CommodityCreateDTO, "name" | "code" | "symbol">
+>;

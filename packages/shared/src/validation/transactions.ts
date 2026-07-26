@@ -5,7 +5,12 @@ import {
   MIN_TRANSACTION_OPERATIONS,
 } from "../constants/transactions";
 
-import { uuid, requiredText, isoDate, amountString } from "./baseValidations";
+import {
+  uuid,
+  textWithDefault,
+  isoDate,
+  amountString,
+} from "./baseValidations";
 
 // amount — posting in the account Commodity
 // value  — posting in the transaction valuation Commodity (GnuCash convention)
@@ -14,7 +19,7 @@ import { uuid, requiredText, isoDate, amountString } from "./baseValidations";
 export const operationCreateSchema = z.object({
   accountId: uuid,
   amount: amountString,
-  description: requiredText,
+  description: textWithDefault,
   value: amountString,
 });
 
@@ -22,14 +27,14 @@ export const operationCreateSchema = z.object({
 export const operationUpdateSchema = z.object({
   accountId: uuid,
   amount: amountString,
-  description: requiredText,
+  description: textWithDefault,
   id: uuid,
   value: amountString,
 });
 
 export const transactionCreateSchema = z.object({
   commodityId: uuid,
-  description: requiredText,
+  description: textWithDefault,
   operations: z
     .array(operationCreateSchema)
     .min(MIN_TRANSACTION_OPERATIONS)
@@ -39,7 +44,7 @@ export const transactionCreateSchema = z.object({
 });
 
 export const transactionUpdateSchema = z.object({
-  description: requiredText,
+  description: textWithDefault,
   operations: z.object({
     create: z.array(operationCreateSchema).max(MAX_TRANSACTION_OPERATIONS),
     delete: z.array(uuid).max(MAX_TRANSACTION_OPERATIONS),

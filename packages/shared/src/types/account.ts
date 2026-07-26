@@ -1,4 +1,4 @@
-import { IsoDatetimeString, AmountString, UUID, NameString } from "./types";
+import { IsoDatetimeString, AmountString, UUID, RequiredText } from "./types";
 
 export type AccountTypeValue =
   | "asset"
@@ -29,7 +29,7 @@ export type AccountResponseDTO = {
   initialBalance: AmountString;
   isSystem: boolean;
   isTombstone: boolean;
-  name: NameString;
+  name: RequiredText;
   type: AccountTypeValue;
   updatedAt: IsoDatetimeString;
   userId: UUID;

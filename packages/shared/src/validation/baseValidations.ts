@@ -10,23 +10,17 @@ import {
   DEFAULT_TRANSACTION_SORT_ORDER,
 } from "../constants/transactions";
 
-export const requiredText = z.string().default("");
-
-export const defaultText = z.string().default("").optional();
-export const defaultNumber = z.number().default(0).optional();
-export const notNullText = z.string().min(1, "This field cannot be empty");
+export const textWithDefault = z.string().default("");
+export const requiredText = z.string();
 export const updatedAt = z.string();
 export const createdAt = z.string();
 export const uuid = z.string().uuid().brand<"UUID">();
-export const name = z.string().min(1);
 export const dateText = z.string().refine((d) => !isNaN(Date.parse(d)), {
   message: "Invalid date format",
 });
-
 export const uniqueIdSchema = z.object({
   id: uuid,
 });
-
 export const isoDatetime = z.string().datetime().brand<"IsoDatetimeString">();
 
 export const sha256String = z.string().regex(/^[a-f0-9]{64}$/, {
@@ -78,7 +72,6 @@ export const getTransactionsQuerySchema = z
 
 const COMMODITY_CODE_MIN_LENGTH = 3;
 const COMMODITY_CODE_MAX_LENGTH = 16;
-
 export const commodityCode = z
   .string()
   .trim()
@@ -96,7 +89,5 @@ export const commodityCode = z
     "Commodity code must start with a letter and contain only letters and digits",
   )
   .brand<"CommodityCode">();
-
 export const commoditySymbol = z.string().trim().max(12).nullable();
-
 export const commodityPrecision = z.number().int().min(0).max(18);

@@ -355,9 +355,12 @@ describe('CommodityRepository', () => {
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       });
 
-      await expect(
-        commodityRepository.getById(user.id, commodityDbRow.id),
-      ).rejects.toThrowError(RepositoryNotFoundError);
+      const archivedCommodity = await testDB.getCommodityById(
+        commodityDbRow.id,
+      );
+
+      expect(archivedCommodity).toBeDefined();
+      expect(archivedCommodity?.isTombstone).toBe(true);
     });
 
     it('should throw an error when the commodity does not exist', async () => {
