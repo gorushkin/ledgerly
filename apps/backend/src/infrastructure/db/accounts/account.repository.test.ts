@@ -1,10 +1,12 @@
 import { apiErrorCodes, AccountTypeValue, UUID } from '@ledgerly/shared/types';
 import dayjs from 'dayjs';
+import { eq } from 'drizzle-orm';
 import {
   AccountDbInsert,
   AccountDbRow,
   CommodityDbRow,
   UserDbRow,
+  accountsTable,
 } from 'src/db/schema';
 import { Amount, CommodityCode, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
@@ -442,6 +444,30 @@ describe('AccountRepository', () => {
       expect(updatedSecondUserAccount).toBeDefined();
       expect(updatedSecondUserAccount?.id).toBe(secondUserAccount.id);
       expect(updatedSecondUserAccount?.name).toBe(accountData.name);
+    });
+
+    it('should throw RepositoryNotFoundError when account is tombstoned', async () => {
+      const tombstonedAccount = await testDB.createAccount(
+        user.id,
+        usdCommodity.id,
+        {
+          name: 'Tombstoned Account',
+          type: 'asset',
+        },
+      );
+
+      await testDB.db
+        .update(accountsTable)
+        .set({ isTombstone: true })
+        .where(eq(accountsTable.id, tombstonedAccount.id));
+
+      await expect(
+        accountRepository.update(user.id, tombstonedAccount.id, {
+          name: 'Updated Tombstoned Account',
+          type: 'expense',
+          updatedAt: Timestamp.create().valueOf(),
+        }),
+      ).rejects.toThrowError(RepositoryNotFoundError);
     });
 
     it.todo('should preserve commodityId when updating account fields');
