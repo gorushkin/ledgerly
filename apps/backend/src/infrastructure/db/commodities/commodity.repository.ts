@@ -139,7 +139,7 @@ export class CommodityRepository
     );
   }
 
-  delete(
+  softDelete(
     userId: UUID,
     commodityId: UUID,
     data: CommodityRepositorySoftDeleteInput,
@@ -165,6 +165,6 @@ export class CommodityRepository
       );
 
       return CommodityPersistenceMapper.toSnapshot(existingCommodity);
-    }, 'Failed to delete commodity');
+    }, 'Failed to soft delete commodity');
   }
 }

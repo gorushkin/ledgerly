@@ -494,20 +494,20 @@ describe('AccountRepository', () => {
     });
   });
 
-  describe('delete', () => {
+  describe('softDelete', () => {
     let account: AccountDbRow;
 
     beforeEach(async () => {
       account = await testDB.createAccount(user.id, usdCommodity.id);
     });
 
-    it('should delete account when it exists and belongs to user', async () => {
+    it('should soft delete account when it exists and belongs to user', async () => {
       const deletedData = {
         isTombstone: true,
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       };
 
-      const deleted = await accountRepository.delete(
+      const deleted = await accountRepository.softDelete(
         user.id,
         account.id,
         deletedData,
@@ -542,7 +542,7 @@ describe('AccountRepository', () => {
       });
 
       await expect(
-        accountRepository.delete(secondUser.id, account.id, {
+        accountRepository.softDelete(secondUser.id, account.id, {
           updatedAt: Timestamp.create().valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
@@ -553,11 +553,27 @@ describe('AccountRepository', () => {
     });
 
     it('should throw RepositoryNotFoundError when account does not exist', async () => {
-      const result = accountRepository.delete(user.id, Id.create().valueOf(), {
-        updatedAt: Timestamp.create().valueOf(),
-      });
+      const result = accountRepository.softDelete(
+        user.id,
+        Id.create().valueOf(),
+        {
+          updatedAt: Timestamp.create().valueOf(),
+        },
+      );
 
       await expect(result).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('should throw RepositoryNotFoundError when account is already tombstoned', async () => {
+      await accountRepository.softDelete(user.id, account.id, {
+        updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
+      });
+
+      await expect(
+        accountRepository.softDelete(user.id, account.id, {
+          updatedAt: Timestamp.restore('2030-01-02T00:00:00.000Z').valueOf(),
+        }),
+      ).rejects.toThrowError(RepositoryNotFoundError);
     });
   });
 

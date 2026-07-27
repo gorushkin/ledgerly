@@ -1,4 +1,4 @@
-export { DeleteAccountUseCase } from './deleteAccount';
+export { ArchiveAccountUseCase } from './archiveAccount';
 export { CreateAccountUseCase } from './createAccount';
 export { GetAccountByIdUseCase } from './getAccountById';
 export { GetAllAccountsUseCase } from './getAllAccounts';

@@ -141,7 +141,7 @@ describe('CommodityRepository', () => {
       const commodity1 = await testDB.createCommodity(user.id);
       const commodity2 = await testDB.createCommodity(user.id);
 
-      await commodityRepository.delete(user.id, commodity1.id, {
+      await commodityRepository.softDelete(user.id, commodity1.id, {
         updatedAt: Timestamp.create().valueOf(),
       });
 
@@ -161,7 +161,7 @@ describe('CommodityRepository', () => {
         });
 
         if (status === 'archived') {
-          await commodityRepository.delete(user.id, commodity1.id, {
+          await commodityRepository.softDelete(user.id, commodity1.id, {
             updatedAt: Timestamp.create().valueOf(),
           });
         }
@@ -373,7 +373,7 @@ describe('CommodityRepository', () => {
     });
 
     it('should throw an error when trying to update tombstoned commodity', async () => {
-      await commodityRepository.delete(user.id, commodityDbRow.id, {
+      await commodityRepository.softDelete(user.id, commodityDbRow.id, {
         updatedAt: Timestamp.create().valueOf(),
       });
 
@@ -389,15 +389,15 @@ describe('CommodityRepository', () => {
     });
   });
 
-  describe('delete', () => {
+  describe('softDelete', () => {
     let commodityDbRow: CommodityDbRow;
 
     beforeEach(async () => {
       commodityDbRow = await testDB.createCommodity(user.id);
     });
 
-    it('should delete the commodity when it exists', async () => {
-      await commodityRepository.delete(user.id, commodityDbRow.id, {
+    it('should soft delete the commodity when it exists', async () => {
+      await commodityRepository.softDelete(user.id, commodityDbRow.id, {
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       });
 
@@ -413,7 +413,7 @@ describe('CommodityRepository', () => {
       const nonExistentId = Id.create().valueOf();
 
       await expect(
-        commodityRepository.delete(user.id, nonExistentId, {
+        commodityRepository.softDelete(user.id, nonExistentId, {
           updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
@@ -423,19 +423,19 @@ describe('CommodityRepository', () => {
       const anotherUser = await testDB.createUser();
 
       await expect(
-        commodityRepository.delete(anotherUser.id, commodityDbRow.id, {
+        commodityRepository.softDelete(anotherUser.id, commodityDbRow.id, {
           updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
     });
 
-    it('should throw an error when trying to delete a commodity that is already tombstoned', async () => {
-      await commodityRepository.delete(user.id, commodityDbRow.id, {
+    it('should throw an error when trying to soft delete a commodity that is already tombstoned', async () => {
+      await commodityRepository.softDelete(user.id, commodityDbRow.id, {
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       });
 
       await expect(
-        commodityRepository.delete(user.id, commodityDbRow.id, {
+        commodityRepository.softDelete(user.id, commodityDbRow.id, {
           updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);

@@ -160,7 +160,7 @@ export class AccountRepository
     );
   }
 
-  async delete(
+  async softDelete(
     userId: UUID,
     id: UUID,
     data: AccountRepositorySoftDeleteInput,
@@ -169,7 +169,13 @@ export class AccountRepository
       const deletedAccount = await this.db
         .update(accountsTable)
         .set({ isTombstone: true, updatedAt: data.updatedAt })
-        .where(and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)))
+        .where(
+          and(
+            eq(accountsTable.id, id),
+            eq(accountsTable.userId, userId),
+            eq(accountsTable.isTombstone, false),
+          ),
+        )
         .returning()
         .get();
 
@@ -180,7 +186,7 @@ export class AccountRepository
       );
 
       return AccountPersistenceMapper.toSnapshot(existingAccount);
-    }, `Failed to delete account with ID ${id}`);
+    }, `Failed to soft delete account with ID ${id}`);
   }
 
   async ensureUserOwnsAccount(userId: UUID, accountId: UUID) {

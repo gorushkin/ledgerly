@@ -24,7 +24,7 @@ export type CommodityRepositoryInterface = {
     commodityId: UUID,
     commodity: CommodityRepositoryUpdateInput,
   ): Promise<CommoditySnapshot>;
-  delete(
+  softDelete(
     userId: UUID,
     commodityId: UUID,
     data: CommodityRepositorySoftDeleteInput,

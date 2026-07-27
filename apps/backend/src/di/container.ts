@@ -4,7 +4,7 @@ import {
   LoginUserUseCase,
   RegisterUserUseCase,
   CreateAccountUseCase,
-  DeleteAccountUseCase,
+  ArchiveAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
   UpdateAccountUseCase,
@@ -84,7 +84,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
   const updateAccountUseCase = new UpdateAccountUseCase(accountRepository);
-  const deleteAccountUseCase = new DeleteAccountUseCase(accountRepository);
+  const archiveAccountUseCase = new ArchiveAccountUseCase(accountRepository);
 
   const loginUserUseCase = new LoginUserUseCase(userRepository);
 
@@ -150,7 +150,7 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const useCases: AppContainer['useCases'] = {
     account: {
-      archiveAccount: deleteAccountUseCase,
+      archiveAccount: archiveAccountUseCase,
       createAccount: createAccountUseCase,
       getAccountById: getAccountByIdUseCase,
       getAllAccounts: getAllAccountsUseCase,

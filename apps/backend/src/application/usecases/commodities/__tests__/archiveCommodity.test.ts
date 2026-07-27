@@ -17,8 +17,8 @@ describe('ArchiveCommodityUseCase', () => {
   let user: User;
 
   const commodityRepository = {
-    delete: vi.fn(),
     getById: vi.fn(),
+    softDelete: vi.fn(),
   };
 
   const archiveCommodityUseCase = new ArchiveCommodityUseCase(
@@ -32,7 +32,7 @@ describe('ArchiveCommodityUseCase', () => {
 
   beforeEach(() => {
     vi.useRealTimers();
-    commodityRepository.delete.mockClear();
+    commodityRepository.softDelete.mockClear();
     commodityRepository.getById.mockClear();
   });
 
@@ -66,7 +66,7 @@ describe('ArchiveCommodityUseCase', () => {
       };
 
       commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
-      commodityRepository.delete.mockResolvedValue(archivedCommodityData);
+      commodityRepository.softDelete.mockResolvedValue(archivedCommodityData);
 
       vi.setSystemTime(new Date(timestampDuringUpdatingValue));
 
@@ -83,7 +83,7 @@ describe('ArchiveCommodityUseCase', () => {
         commodityId,
       );
 
-      expect(commodityRepository.delete).toHaveBeenCalledWith(
+      expect(commodityRepository.softDelete).toHaveBeenCalledWith(
         userid,
         commodityId,
         { updatedAt: archivedCommodityData.timestamps.updatedAt },

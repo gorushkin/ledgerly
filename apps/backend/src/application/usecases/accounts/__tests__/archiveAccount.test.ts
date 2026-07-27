@@ -6,16 +6,16 @@ import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DeleteAccountUseCase } from '../deleteAccount';
+import { ArchiveAccountUseCase } from '../archiveAccount';
 
-describe('DeleteAccountUseCase', async () => {
-  let deleteAccountUseCase: DeleteAccountUseCase;
+describe('ArchiveAccountUseCase', async () => {
+  let archiveAccountUseCase: ArchiveAccountUseCase;
 
   const user = await createUser();
 
   let mockAccountRepository: {
-    delete: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
+    softDelete: ReturnType<typeof vi.fn>;
   };
 
   let mockUserRepository: { getById: ReturnType<typeof vi.fn> };
@@ -58,15 +58,15 @@ describe('DeleteAccountUseCase', async () => {
 
   beforeEach(() => {
     mockAccountRepository = {
-      delete: vi.fn(),
       getById: vi.fn(),
+      softDelete: vi.fn(),
     };
 
     mockUserRepository = {
       getById: vi.fn(),
     };
 
-    deleteAccountUseCase = new DeleteAccountUseCase(
+    archiveAccountUseCase = new ArchiveAccountUseCase(
       mockAccountRepository as unknown as AccountRepositoryInterface,
     );
   });
@@ -75,12 +75,12 @@ describe('DeleteAccountUseCase', async () => {
     it('should mark account as archived', async () => {
       mockUserRepository.getById.mockResolvedValue(mockUser);
       mockAccountRepository.getById.mockResolvedValue(mockAccountData);
-      mockAccountRepository.delete.mockResolvedValue(mockSavedAccountData);
+      mockAccountRepository.softDelete.mockResolvedValue(mockSavedAccountData);
 
-      const result = await deleteAccountUseCase.execute(user, accountId);
+      const result = await archiveAccountUseCase.execute(user, accountId);
       const { updatedAt: _updatedAt, ...expectedAccountData } = mockAccountData;
 
-      expect(mockAccountRepository.delete).toHaveBeenCalledWith(
+      expect(mockAccountRepository.softDelete).toHaveBeenCalledWith(
         user.getId().valueOf(),
         accountId,
         expect.objectContaining({

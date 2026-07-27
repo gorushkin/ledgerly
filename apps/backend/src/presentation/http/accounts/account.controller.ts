@@ -4,7 +4,7 @@ import {
   uniqueIdSchema,
 } from '@ledgerly/shared/validation';
 import {
-  DeleteAccountUseCase,
+  ArchiveAccountUseCase,
   CreateAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
@@ -18,7 +18,7 @@ export class AccountController {
     private readonly getAllAccountsUseCase: GetAllAccountsUseCase,
     private readonly createAccountUseCase: CreateAccountUseCase,
     private readonly updateAccountUseCase: UpdateAccountUseCase,
-    private readonly deleteAccountUseCase: DeleteAccountUseCase,
+    private readonly archiveAccountUseCase: ArchiveAccountUseCase,
   ) {}
 
   async getAll(user: User) {
@@ -47,6 +47,6 @@ export class AccountController {
   async deleteAccount(user: User, requestParams: unknown) {
     const { id } = uniqueIdSchema.parse(requestParams);
 
-    return this.deleteAccountUseCase.execute(user, id);
+    return this.archiveAccountUseCase.execute(user, id);
   }
 }
