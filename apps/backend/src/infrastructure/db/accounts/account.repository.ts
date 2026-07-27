@@ -134,7 +134,11 @@ export class AccountRepository
           .update(accountsTable)
           .set(safeData)
           .where(
-            and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)),
+            and(
+              eq(accountsTable.id, id),
+              eq(accountsTable.userId, userId),
+              eq(accountsTable.isTombstone, false),
+            ),
           )
           .returning()
           .get();
