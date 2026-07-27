@@ -4,7 +4,7 @@ import {
   LoginUserUseCase,
   RegisterUserUseCase,
   CreateAccountUseCase,
-  DeleteAccountUseCase,
+  ArchiveAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
   UpdateAccountUseCase,
@@ -51,7 +51,7 @@ type AccountUseCases = {
   getAllAccounts: GetAllAccountsUseCase;
   getAccountById: GetAccountByIdUseCase;
   updateAccount: UpdateAccountUseCase;
-  archiveAccount: DeleteAccountUseCase;
+  archiveAccount: ArchiveAccountUseCase;
 };
 
 type AuthUseCases = {

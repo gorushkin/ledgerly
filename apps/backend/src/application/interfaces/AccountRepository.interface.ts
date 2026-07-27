@@ -20,7 +20,7 @@ export type AccountRepositoryInterface = {
     id: UUID,
     data: AccountRepositoryUpdateInput,
   ): Promise<AccountSnapshot>;
-  delete(
+  softDelete(
     userId: UUID,
     id: UUID,
     data: AccountRepositorySoftDeleteInput,

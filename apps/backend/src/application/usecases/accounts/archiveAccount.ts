@@ -7,7 +7,7 @@ import { AccountRepositoryInterface } from '../../interfaces';
 
 import { AccountUseCaseBase } from './accountBase';
 
-export class DeleteAccountUseCase extends AccountUseCaseBase {
+export class ArchiveAccountUseCase extends AccountUseCaseBase {
   constructor(accountRepository: AccountRepositoryInterface) {
     super(accountRepository);
   }
@@ -18,7 +18,7 @@ export class DeleteAccountUseCase extends AccountUseCaseBase {
 
     account.markAsDeleted();
 
-    const deletedAccount = await this.accountRepository.delete(
+    const deletedAccount = await this.accountRepository.softDelete(
       user.getId().valueOf(),
       accountId,
       account.toSnapshot(),

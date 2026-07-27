@@ -1,6 +1,6 @@
 import { AccountCreateDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
 import {
-  DeleteAccountUseCase,
+  ArchiveAccountUseCase,
   CreateAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
@@ -38,7 +38,7 @@ describe('AccountController', () => {
     execute: vi.fn(),
   };
 
-  const mockDeleteAccountUseCase = {
+  const mockArchiveAccountUseCase = {
     execute: vi.fn(),
   };
 
@@ -47,7 +47,7 @@ describe('AccountController', () => {
     mockGetAllAccountsUseCase as unknown as GetAllAccountsUseCase,
     mockCreateAccountUseCase as unknown as CreateAccountUseCase,
     mockUpdateAccountUseCase as unknown as UpdateAccountUseCase,
-    mockDeleteAccountUseCase as unknown as DeleteAccountUseCase,
+    mockArchiveAccountUseCase as unknown as ArchiveAccountUseCase,
   );
 
   beforeEach(async () => {
@@ -179,25 +179,25 @@ describe('AccountController', () => {
     });
   });
 
-  describe('delete', () => {
-    it('should call accountService.delete with correct id and userId', async () => {
-      mockDeleteAccountUseCase.execute.mockResolvedValue(undefined);
+  describe('archiveAccount', () => {
+    it('should call archive account use case with correct account id and user', async () => {
+      mockArchiveAccountUseCase.execute.mockResolvedValue(undefined);
 
-      await accountController.deleteAccount(user, { id: accountId });
+      await accountController.archiveAccount(user, { id: accountId });
 
-      expect(mockDeleteAccountUseCase.execute).toHaveBeenCalledWith(
+      expect(mockArchiveAccountUseCase.execute).toHaveBeenCalledWith(
         user,
         accountId,
       );
-      expect(mockDeleteAccountUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(mockArchiveAccountUseCase.execute).toHaveBeenCalledTimes(1);
     });
 
     it('should throw ZodError for invalid request params', async () => {
       await expect(
-        accountController.deleteAccount(user, { id: 'not-a-uuid' }),
+        accountController.archiveAccount(user, { id: 'not-a-uuid' }),
       ).rejects.toThrow(ZodError);
 
-      expect(mockDeleteAccountUseCase.execute).not.toHaveBeenCalled();
+      expect(mockArchiveAccountUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });

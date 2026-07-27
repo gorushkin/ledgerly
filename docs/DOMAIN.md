@@ -121,6 +121,10 @@ Repositories persist timestamps received through snapshots/mappers.
 Soft-delete is a domain state transition, not an idempotent repository command.
 Calling `markAsDeleted()` on an already deleted entity must fail with
 `DELETED_ENTITY_OPERATION` and must not mutate `updatedAt` again.
+Repository APIs that persist this transition must use `softDelete(...)`.
+Application/use case APIs may use business-facing `archive...` names, and HTTP
+routes may still expose `DELETE /resource/:id` commands. Repository
+`delete(...)` is reserved for physical row deletion.
 
 Snapshot types live next to the entity in `domain/<module>/types.ts`. They use
 primitive/domain-safe fields and must not be aliases for DB rows or response

@@ -25,7 +25,7 @@ export const accountsRoutes = (app: FastifyInstance) => {
   app.delete('/:id', async (request, reply) => {
     const user = request.user;
 
-    await accountController.deleteAccount(user, request.params);
+    await accountController.archiveAccount(user, request.params);
 
     reply.status(204).send();
   });
