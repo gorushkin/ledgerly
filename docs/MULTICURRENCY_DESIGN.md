@@ -135,7 +135,8 @@ Commodity identity is a stable id, not a display code. See
 ### Transaction
 Top-level entity representing a financial event:
 - `id`, `userId`, `description`
-- `valuationCommodityId`, which determines `value` denomination
+- `commodityId`, which determines the transaction Commodity and `value`
+  denomination
 - `transactionDate`, `postingDate`
 - `version` (optimistic concurrency)
 - `createdAt`, `updatedAt`, `isTombstone`
@@ -144,7 +145,7 @@ Top-level entity representing a financial event:
 Individual account posting:
 - `id`, `transactionId`, `accountId`, `userId`
 - `amount` (signed integer, in the **account's Commodity**)
-- `value` (signed integer, in the **transaction valuation Commodity**)
+- `value` (signed integer, in the **transaction Commodity**)
 - `description` (optional)
 - `isSystem` (true for trading postings)
 - `createdAt`, `updatedAt`, `isTombstone`
@@ -156,14 +157,14 @@ This follows the standard GnuCash split model:
 | Field | Denomination | Purpose |
 |-------|--------------|---------|
 | `amount` | Account's Commodity | How much was posted to this account |
-| `value` | Transaction valuation Commodity | The equivalent amount in the transaction's denomination |
+| `value` | Transaction Commodity | The equivalent amount in the transaction's denomination |
 
 For **same-currency** transactions both fields are equal.
 
 For **cross-currency** transactions they differ:
 
 ```
-Transaction currency: USD
+Transaction Commodity: USD
   Operation on Assets:WalletRUB
     amount = -1000  (RUB — account's currency)
     value  =   -10  (USD — transaction's currency)
@@ -252,7 +253,7 @@ Currently, Ledgerly stays closer to GnuCash than to PTA.
 - From `MIN_TRANSACTION_OPERATIONS` to `MAX_TRANSACTION_OPERATIONS` active operations per transaction (currently 2 to 1000)
 - Balance validated by `sum(value) = 0` across all operations  
 - Immutable ledger operations  
-- `amount` = account currency; `value` = transaction currency (GnuCash convention)  
+- `amount` = account Commodity; `value` = transaction Commodity (GnuCash convention)
 
 ### Planned
 

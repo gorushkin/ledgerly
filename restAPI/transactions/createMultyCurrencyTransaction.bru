@@ -20,18 +20,21 @@ auth:bearer {
 
 body:json {
   {
+    "commodityId": "{{commodityId}}",
     "description": "MultiCurrency Transaction",
-    "entries": [
-      [
-        {
-          "accountId": "3141d189-4b2e-4af4-8b9c-f2ff0d7e0d72",
-          "amount": "-100"
-        },
-        {
-          "accountId": "{{accountId2}}",
-          "amount": "100"
-        }
-      ]
+    "operations": [
+      {
+        "accountId": "{{rubAccountId}}",
+        "amount": "-1000",
+        "description": "Spend RUB",
+        "value": "-10"
+      },
+      {
+        "accountId": "{{usdAccountId}}",
+        "amount": "10",
+        "description": "Receive USD",
+        "value": "10"
+      }
     ],
     "postingDate": "2025-11-07",
     "transactionDate": "2025-11-07"

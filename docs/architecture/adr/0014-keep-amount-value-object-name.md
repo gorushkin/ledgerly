@@ -8,16 +8,16 @@
 ## Context
 
 `Amount` represents a signed integer monetary magnitude in minor units without
-currency. It is used for `Operation.amount`, `Operation.value`, account
+Commodity identity. It is used for `Operation.amount`, `Operation.value`, account
 balances and test utilities.
 
 The name can be confused with the `Operation.amount` field, but the value
 object is intentionally broader than that field. `Operation.amount` is an
-`Amount` denominated in the account currency, while `Operation.value` is an
-`Amount` denominated in the transaction currency.
+`Amount` denominated in the account Commodity, while `Operation.value` is an
+`Amount` denominated in the transaction Commodity.
 
 Ledgerly previously had a separate `Money` value object for amount plus
-currency semantics, but it was unused by the current domain model and removed
+Commodity semantics, but it was unused by the current domain model and removed
 in LED-104.
 
 ## Decision
@@ -25,8 +25,8 @@ in LED-104.
 Keep the value object named `Amount`.
 
 Document `Amount` as a signed integer minor-unit monetary amount without
-currency. Use surrounding property names and domain context to explain the
-currency denomination when needed.
+Commodity identity. Use surrounding property names and domain context to
+explain the Commodity denomination when needed.
 
 Do not rename `Amount` as part of domain invariant cleanup.
 
@@ -36,7 +36,7 @@ Do not rename `Amount` as part of domain invariant cleanup.
 
 - Pros: highlights that the magnitude is monetary.
 - Cons: historically overlapped with `Money`, which meant amount plus
-  currency.
+  Commodity.
 
 2. Rename to `MinorUnitAmount`.
 
@@ -61,13 +61,13 @@ Positive:
 
 - Existing domain code keeps the short, established name.
 - `Amount` remains usable for both `Operation.amount` and `Operation.value`.
-- The distinction between `Amount` and currency denomination stays explicit:
+- The distinction between `Amount` and Commodity denomination stays explicit:
   `Amount` carries only the signed minor-unit magnitude, and surrounding domain
-  context supplies the currency.
+  context supplies the Commodity.
 
 Neutral/cost:
 
-- Readers still need domain context to know which currency an `Amount` is
+- Readers still need domain context to know which Commodity an `Amount` is
   denominated in.
 - `Operation.amount: Amount` keeps the field/type name overlap.
 

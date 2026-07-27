@@ -31,7 +31,7 @@ Represents a single financial posting affecting an account.
 - Links to a transaction (`transactionId`) and an account (`accountId`)
 - Belongs to a user (`userId`)
 - `amount` — signed integer in the **account's Commodity** minor units
-- `value` — signed integer in the **transaction valuation Commodity** minor units; used for balance validation
+- `value` — signed integer in the **transaction Commodity** minor units; used for balance validation
 - `amount` and `value` must be valid integer minor-unit values. `NaN`,
   `Infinity`, missing values, and decimal/floating-point values are invalid.
   Zero is allowed and is not rejected by the domain model.
@@ -75,7 +75,8 @@ metadata owned by each user. See
 
 - Each account has a designated Commodity
 - Account Commodity is immutable after account creation
-- Transactions have a valuation Commodity that determines `value` denomination
+- Transactions have `commodityId`, the transaction Commodity that determines
+  `value` denomination
 - Operations always store `amount` in the account's Commodity
 - Commodity `code`, `name`, and `symbol` are display metadata, not identity
 - Commodity `precision` defines integer minor-unit interpretation
@@ -246,7 +247,7 @@ tasks.
 
 ### Commodity Handling
 
-1. Each operation carries both `amount` (account Commodity) and `value` (transaction valuation Commodity)
+1. Each operation carries both `amount` (account Commodity) and `value` (transaction Commodity)
 2. For same-currency operations `amount === value`
 3. **Trading operations** (`isSystem = true`) and system trading accounts are **not currently implemented**; they are reserved for a future multi-currency reconciliation phase
 
@@ -366,7 +367,7 @@ Operation
 - transactionId: UUID (FK)   -- directly linked to Transaction (Entry removed)
 - accountId: UUID (FK)
 - amount: integer             -- in account Commodity minor units
-- value: integer              -- in transaction valuation Commodity minor units; used for balance validation
+- value: integer              -- in transaction Commodity minor units; used for balance validation
 - description: string (optional)
 - isSystem: boolean           -- reserved for future trading operations (currently always false)
 - isTombstone: boolean
