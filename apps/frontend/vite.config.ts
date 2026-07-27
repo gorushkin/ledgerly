@@ -1,7 +1,5 @@
 import path from 'path';
 
-import tailwindcss from '@tailwindcss/vite';
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
@@ -22,12 +20,7 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
     },
     envDir: path.resolve(__dirname, '../..'),
-    plugins: [
-      TanStackRouterVite({ autoCodeSplitting: true, target: 'react' }),
-      react(),
-      tailwindcss(),
-      tsconfigPaths(),
-    ],
+    plugins: [react(), tsconfigPaths()],
     server: {
       host,
       open: true,

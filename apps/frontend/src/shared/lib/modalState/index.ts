@@ -1,1 +1,0 @@
-export { ModalState } from './modalState';
