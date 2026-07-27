@@ -179,11 +179,11 @@ describe('AccountController', () => {
     });
   });
 
-  describe('deleteAccount', () => {
+  describe('archiveAccount', () => {
     it('should call archive account use case with correct account id and user', async () => {
       mockArchiveAccountUseCase.execute.mockResolvedValue(undefined);
 
-      await accountController.deleteAccount(user, { id: accountId });
+      await accountController.archiveAccount(user, { id: accountId });
 
       expect(mockArchiveAccountUseCase.execute).toHaveBeenCalledWith(
         user,
@@ -194,7 +194,7 @@ describe('AccountController', () => {
 
     it('should throw ZodError for invalid request params', async () => {
       await expect(
-        accountController.deleteAccount(user, { id: 'not-a-uuid' }),
+        accountController.archiveAccount(user, { id: 'not-a-uuid' }),
       ).rejects.toThrow(ZodError);
 
       expect(mockArchiveAccountUseCase.execute).not.toHaveBeenCalled();

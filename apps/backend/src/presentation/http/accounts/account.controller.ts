@@ -44,7 +44,7 @@ export class AccountController {
     return this.updateAccountUseCase.execute(user, id, accountUpdateDto);
   }
 
-  async deleteAccount(user: User, requestParams: unknown) {
+  async archiveAccount(user: User, requestParams: unknown) {
     const { id } = uniqueIdSchema.parse(requestParams);
 
     return this.archiveAccountUseCase.execute(user, id);

@@ -165,6 +165,6 @@ export class CommodityRepository
       );
 
       return CommodityPersistenceMapper.toSnapshot(existingCommodity);
-    }, 'Failed to soft delete commodity');
+    }, `Failed to soft delete commodity with ID ${commodityId}`);
   }
 }
