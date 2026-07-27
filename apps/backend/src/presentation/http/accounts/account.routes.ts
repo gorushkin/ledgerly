@@ -30,8 +30,7 @@ export const accountsRoutes = (app: FastifyInstance) => {
     reply.status(204).send();
   });
 
-  // or patch
-  app.put('/:id', async (request, reply) => {
+  app.patch('/:id', async (request, reply) => {
     const user = request.user;
 
     const updatedAccount = await accountController.update(

@@ -33,6 +33,11 @@ the referenced Commodity:
 - belongs to the same user as the write;
 - is not tombstoned.
 
+Create repositories accept the authenticated `userId` as an explicit argument
+and must reject snapshots whose `userId` differs from that argument. Snapshot
+ownership remains domain state, but repository writes must not trust it as the
+only authority for cross-user persistence boundaries.
+
 Use cases remain responsible for request orchestration, aggregate construction,
 transaction boundaries and calling repository interfaces. They do not need to
 load the Commodity solely to prove that the persistence reference is valid.
@@ -71,6 +76,8 @@ Commodity id has the expected UUID shape.
   Commodity existence/ownership/tombstone checks solely for reference integrity.
 - Account and transaction repositories must keep explicit pre-write checks for
   Commodity ownership and tombstone state.
+- Create repositories must keep authenticated `userId` separate from snapshots
+  and fail fast on ownership mismatches before inserting rows.
 - Tests for missing, foreign and tombstoned Commodity references belong at the
   repository/write-boundary level, with higher-level tests added only where they
   verify public error mapping or user-visible behavior.

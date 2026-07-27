@@ -15,7 +15,10 @@ export type CommodityRepositorySoftDeleteInput = Pick<
 export type CommodityRepositoryInterface = {
   getById(userId: UUID, commodityId: UUID): Promise<CommoditySnapshot>;
   getAll(userId: UUID, status: QueryStatus): Promise<CommoditySnapshot[]>;
-  create(commodity: CommoditySnapshot): Promise<CommoditySnapshot>;
+  create(
+    userId: UUID,
+    commodity: CommoditySnapshot,
+  ): Promise<CommoditySnapshot>;
   update(
     userId: UUID,
     commodityId: UUID,

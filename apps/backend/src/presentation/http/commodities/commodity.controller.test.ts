@@ -81,7 +81,6 @@ describe('CommodityController', () => {
     );
 
     const invalidQueryParams = [
-      { invalidParam: 'invalidValue' },
       { status: 'deleted' },
       { status: '' },
       { status: null },

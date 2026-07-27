@@ -22,7 +22,10 @@ export class CreateCommodityUseCase {
 
     const commoditySnapshot = commodity.toSnapshot();
 
-    await this.commodityRepository.create(commoditySnapshot);
+    await this.commodityRepository.create(
+      user.getId().valueOf(),
+      commoditySnapshot,
+    );
 
     return CommodityMapper.toResponseDTOFromSnapshot(commoditySnapshot);
   }

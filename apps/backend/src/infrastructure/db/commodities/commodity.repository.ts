@@ -7,6 +7,7 @@ import {
 } from 'src/application';
 import { commoditiesTable } from 'src/db/schemas/commodities';
 import { CommoditySnapshot } from 'src/domain/commodities/types';
+import { RepositoryInvariantError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -58,9 +59,18 @@ export class CommodityRepository
     }, 'Failed to fetch commodities');
   }
 
-  create(commodity: CommoditySnapshot): Promise<CommoditySnapshot> {
+  create(
+    userId: UUID,
+    commodity: CommoditySnapshot,
+  ): Promise<CommoditySnapshot> {
     return this.executeDatabaseOperation(
       async () => {
+        if (commodity.userId !== userId) {
+          throw new RepositoryInvariantError(
+            'Commodity snapshot userId must match repository create userId',
+          );
+        }
+
         const commodityRow =
           CommodityPersistenceMapper.toDBRowFromSnapshot(commodity);
 

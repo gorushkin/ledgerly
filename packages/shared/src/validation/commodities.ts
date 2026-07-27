@@ -11,7 +11,7 @@ export const commodityCreateSchema = z.object({
   code: commodityCode,
   name: requiredText,
   precision: commodityPrecision.optional(),
-  symbol: commoditySymbol.nullable().optional(),
+  symbol: commoditySymbol.optional(),
 });
 
 export const commodityUpdateSchema = commodityCreateSchema

@@ -49,20 +49,23 @@ describe('CreateAccountUseCase', async () => {
         type,
       });
 
-      expect(accountRepository.create).toHaveBeenCalledWith({
-        commodityId: result.commodityId,
-        createdAt: result.createdAt,
-        currentClearedBalanceLocal,
-        description,
-        id: result.id,
-        initialBalance,
-        isSystem: false,
-        isTombstone: false,
-        name,
-        type,
-        updatedAt: result.updatedAt,
-        userId: result.userId,
-      });
+      expect(accountRepository.create).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        {
+          commodityId: result.commodityId,
+          createdAt: result.createdAt,
+          currentClearedBalanceLocal,
+          description,
+          id: result.id,
+          initialBalance,
+          isSystem: false,
+          isTombstone: false,
+          name,
+          type,
+          updatedAt: result.updatedAt,
+          userId: result.userId,
+        },
+      );
 
       expect(result).toMatchObject({
         description,

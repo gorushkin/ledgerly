@@ -40,17 +40,20 @@ describe('CreateCommodityUseCase', () => {
       const result = await createCommodityUseCase.execute(user, data);
 
       // Assert
-      expect(commodityRepository.create).toHaveBeenCalledWith({
-        code: result.code,
-        createdAt: result.createdAt,
-        id: result.id,
-        isTombstone: false,
-        name: result.name,
-        precision: result.precision,
-        symbol: result.symbol,
-        updatedAt: result.updatedAt,
-        userId: result.userId,
-      });
+      expect(commodityRepository.create).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        {
+          code: result.code,
+          createdAt: result.createdAt,
+          id: result.id,
+          isTombstone: false,
+          name: result.name,
+          precision: result.precision,
+          symbol: result.symbol,
+          updatedAt: result.updatedAt,
+          userId: result.userId,
+        },
+      );
 
       expect(result).toMatchObject({
         code: data.code,

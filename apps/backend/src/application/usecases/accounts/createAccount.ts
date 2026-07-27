@@ -18,7 +18,10 @@ export class CreateAccountUseCase {
 
     const accountSnapshot = account.toSnapshot();
 
-    await this.accountRepository.create(accountSnapshot);
+    await this.accountRepository.create(
+      user.getId().valueOf(),
+      accountSnapshot,
+    );
 
     return AccountMapper.toResponseDTOFromSnapshot(accountSnapshot);
   }

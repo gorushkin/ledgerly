@@ -10,8 +10,13 @@ import {
   DEFAULT_TRANSACTION_SORT_ORDER,
 } from "../constants/transactions";
 
-export const textWithDefault = z.string().default("");
-export const requiredText = z.string();
+export const text = z.string();
+export const optionalText = text.optional();
+export const defaultText = text.default("");
+export const requiredText = z
+  .string()
+  .trim()
+  .min(1, "Required text must not be empty");
 export const updatedAt = z.string();
 export const createdAt = z.string();
 export const uuid = z.string().uuid().brand<"UUID">();
@@ -96,8 +101,6 @@ export const queryStatus = z
   .enum(["active", "archived", "all"])
   .default("active");
 
-export const queryStatusSchema = z
-  .object({
-    status: queryStatus,
-  })
-  .strict();
+export const queryStatusSchema = z.object({
+  status: queryStatus,
+});

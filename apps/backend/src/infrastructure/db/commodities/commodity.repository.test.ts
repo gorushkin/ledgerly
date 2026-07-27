@@ -187,8 +187,10 @@ describe('CommodityRepository', () => {
         userId: user.id,
       };
 
-      const createdCommodity =
-        await commodityRepository.create(newCommodityData);
+      const createdCommodity = await commodityRepository.create(
+        user.id,
+        newCommodityData,
+      );
 
       expect(createdCommodity).toMatchObject(newCommodityData);
 
@@ -216,7 +218,7 @@ describe('CommodityRepository', () => {
       };
 
       await expect(
-        commodityRepository.create(newCommodityData),
+        commodityRepository.create(user.id, newCommodityData),
       ).rejects.toThrowError(
         new RecordAlreadyExistsError({
           context: {
@@ -245,8 +247,10 @@ describe('CommodityRepository', () => {
         userId: anotherUser.id,
       };
 
-      const createdCommodityForAnotherUser =
-        await commodityRepository.create(newCommodityData);
+      const createdCommodityForAnotherUser = await commodityRepository.create(
+        anotherUser.id,
+        newCommodityData,
+      );
 
       expect(createdCommodityForAnotherUser).toMatchObject(newCommodityData);
 

@@ -57,7 +57,7 @@ describe('Commodities Integration Tests', () => {
   let commoditiesDbRows: CommodityDbRow[];
 
   type AuthorizedRequest = {
-    method: 'DELETE' | 'GET' | 'POST' | 'PUT';
+    method: 'DELETE' | 'GET' | 'PATCH' | 'POST';
     url: string;
     body?: Record<string, unknown>;
   };
@@ -457,7 +457,7 @@ describe('Commodities Integration Tests', () => {
     });
   });
 
-  describe('PUT /api/commodities/:id', () => {
+  describe('PATCH /api/commodities/:id', () => {
     it('should update editable commodity metadata', async () => {
       const commodityToUpdate = commoditiesDbRows[0];
 
@@ -469,7 +469,7 @@ describe('Commodities Integration Tests', () => {
 
       const response = await injectAuthorized({
         body: updateData,
-        method: 'PUT',
+        method: 'PATCH',
         url: `${url}/${commodityToUpdate.id}`,
       });
 
@@ -498,7 +498,7 @@ describe('Commodities Integration Tests', () => {
         body: {
           code: activeCommodityData2.code,
         },
-        method: 'PUT',
+        method: 'PATCH',
         url: `${url}/${commodityToUpdate.id}`,
       });
 
@@ -519,7 +519,7 @@ describe('Commodities Integration Tests', () => {
         body: {
           code: CommodityCode.create('JPY').valueOf(),
         },
-        method: 'PUT',
+        method: 'PATCH',
         url: `${url}/${commodityToUpdate.id}`,
       });
 
@@ -548,7 +548,7 @@ describe('Commodities Integration Tests', () => {
         body: {
           name: 'Updated Japanese Yen',
         },
-        method: 'PUT',
+        method: 'PATCH',
         url: `${url}/${otherUserCommodity.id}`,
       });
 
@@ -568,7 +568,7 @@ describe('Commodities Integration Tests', () => {
         body: {
           name: 'Updated British Pound',
         },
-        method: 'PUT',
+        method: 'PATCH',
         url: `${url}/${archivedCommodity.id}`,
       });
 
@@ -580,7 +580,7 @@ describe('Commodities Integration Tests', () => {
         body: {
           name: 'Updated Commodity',
         },
-        method: 'PUT',
+        method: 'PATCH',
         url: `${url}/invalid-id`,
       });
 
@@ -595,7 +595,7 @@ describe('Commodities Integration Tests', () => {
           code: '1',
           precision: 3,
         },
-        method: 'PUT',
+        method: 'PATCH',
         url: `${url}/${commodityToUpdate.id}`,
       });
 
@@ -609,7 +609,7 @@ describe('Commodities Integration Tests', () => {
         body: {
           name: 'Updated Commodity',
         },
-        method: 'PUT',
+        method: 'PATCH',
         url: `${url}/${commodityToUpdate.id}`,
       });
 
@@ -623,7 +623,7 @@ describe('Commodities Integration Tests', () => {
         body: {
           precision: 5,
         },
-        method: 'PUT',
+        method: 'PATCH',
         url: `${url}/${commodityToUpdate.id}`,
       });
 

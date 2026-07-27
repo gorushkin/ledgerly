@@ -7,7 +7,8 @@ import {
 
 import {
   uuid,
-  textWithDefault,
+  text,
+  defaultText,
   isoDate,
   amountString,
 } from "./baseValidations";
@@ -19,7 +20,7 @@ import {
 export const operationCreateSchema = z.object({
   accountId: uuid,
   amount: amountString,
-  description: textWithDefault,
+  description: defaultText,
   value: amountString,
 });
 
@@ -27,14 +28,14 @@ export const operationCreateSchema = z.object({
 export const operationUpdateSchema = z.object({
   accountId: uuid,
   amount: amountString,
-  description: textWithDefault,
+  description: text,
   id: uuid,
   value: amountString,
 });
 
 export const transactionCreateSchema = z.object({
   commodityId: uuid,
-  description: textWithDefault,
+  description: defaultText,
   operations: z
     .array(operationCreateSchema)
     .min(MIN_TRANSACTION_OPERATIONS)
@@ -44,7 +45,7 @@ export const transactionCreateSchema = z.object({
 });
 
 export const transactionUpdateSchema = z.object({
-  description: textWithDefault,
+  description: text,
   operations: z.object({
     create: z.array(operationCreateSchema).max(MAX_TRANSACTION_OPERATIONS),
     delete: z.array(uuid).max(MAX_TRANSACTION_OPERATIONS),
