@@ -58,7 +58,7 @@ erDiagram
 
     TRANSACTIONS {
         uuid id PK
-        uuid valuationCommodityId FK
+        uuid commodityId FK
         string description
         date transactionDate
         date postingDate
@@ -211,7 +211,7 @@ Top-level grouping of related financial events.
 | Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
 | `id` | UUID | Primary key | PK, NOT NULL |
-| `valuationCommodityId` | UUID | Commodity that denominates operation `value` fields | FK -> `commodities.id`, NOT NULL |
+| `commodityId` | UUID | Transaction Commodity that denominates operation `value` fields | FK -> `commodities.id`, NOT NULL |
 | `description` | String | Transaction description | NOT NULL |
 | `transactionDate` | Date | Transaction date | NOT NULL |
 | `postingDate` | Date | Posting date | NOT NULL |
@@ -233,7 +233,8 @@ Top-level grouping of related financial events.
 
 **Notes:**
 
-- `valuationCommodityId` determines the denomination of operation `value`.
+- `commodityId` determines the transaction Commodity and denominates operation
+  `value`.
 - `version` supports optimistic concurrency control and increments on aggregate
   updates.
 
@@ -249,7 +250,7 @@ Individual financial postings affecting accounts.
 | `transactionId` | UUID | Parent transaction | FK -> `transactions.id`, NOT NULL, ON DELETE CASCADE |
 | `accountId` | UUID | Affected account | FK -> `accounts.id`, NOT NULL, ON DELETE RESTRICT |
 | `amount` | Integer | Amount in the account's Commodity minor units | NOT NULL |
-| `value` | Integer | Amount in the transaction valuation Commodity minor units | NOT NULL |
+| `value` | Integer | Amount in the transaction Commodity minor units | NOT NULL |
 | `description` | String | Operation description | NOT NULL |
 | `isSystem` | Boolean | Reserved system operation flag | NOT NULL, default: false |
 | `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
@@ -266,7 +267,7 @@ Individual financial postings affecting accounts.
 **Business Rules:**
 
 - `amount` is denominated by the operation account's Commodity.
-- `value` is denominated by the parent transaction's valuation Commodity.
+- `value` is denominated by the parent transaction's Commodity.
 - Balance check: `sum(value)` across active operations in a transaction must
   equal 0.
 - System operations are reserved for future trading-account support.
@@ -349,7 +350,7 @@ USERS (root entity)
 1. **Double-entry bookkeeping**: `sum(value)` across active operations in a
    transaction must equal 0.
 2. **Commodity denomination**: `amount` is in account Commodity units; `value`
-   is in transaction valuation Commodity units.
+   is in transaction Commodity units.
 3. **Immutable operations**: operations cannot be edited, only recreated on
    transaction updates.
 

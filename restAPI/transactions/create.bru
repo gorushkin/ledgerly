@@ -20,18 +20,21 @@ auth:bearer {
 
 body:json {
   {
+    "commodityId": "{{commodityId}}",
     "description": "some transaction",
-    "entries": [
-      [
-        {
-          "accountId": "{{accountId1}}",
-          "amount": "-100"
-        },
-        {
-          "accountId": "{{accountId2}}",
-          "amount": "100"
-        }
-      ]
+    "operations": [
+      {
+        "accountId": "{{accountId1}}",
+        "amount": "-100",
+        "description": "Transfer from checking",
+        "value": "-100"
+      },
+      {
+        "accountId": "{{accountId2}}",
+        "amount": "100",
+        "description": "Transfer to savings",
+        "value": "100"
+      }
     ],
     "postingDate": "2025-11-07",
     "transactionDate": "2025-11-07"

@@ -50,9 +50,10 @@ Domain references should move from currency strings to Commodity ids:
 - `Account` references `commodityId`;
 - account Commodity is immutable after account creation; if the user selected
   the wrong Commodity, they create a new account;
-- `Transaction` references `valuationCommodityId`;
+- `Transaction` references `commodityId`, the transaction Commodity that
+  denominates operation `value`;
 - `Operation.amount` is denominated in the account Commodity;
-- `Operation.value` is denominated in the transaction valuation Commodity;
+- `Operation.value` is denominated in the transaction Commodity;
 - transaction balance validation continues to use the sum of active
   `Operation.value` values.
 
@@ -107,7 +108,7 @@ Those can be introduced by later ADRs if needed.
   currency strings to per-user Commodity records.
 - Account creation must require a Commodity; account Commodity changes are not
   allowed after creation.
-- Transaction creation must require a valuation Commodity.
+- Transaction creation must require `commodityId`, the transaction Commodity.
 - The validation boundary for Commodity-backed account and transaction writes is
   defined separately in ADR 0019.
 - Existing API and DTO surfaces may need compatibility fields while data and

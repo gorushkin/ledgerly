@@ -14,7 +14,7 @@ import {
 } from "./baseValidations";
 
 // amount — posting in the account Commodity
-// value  — posting in the transaction valuation Commodity (GnuCash convention)
+// value  — posting in the transaction Commodity (GnuCash convention)
 // For same-currency transactions amount === value.
 // Transaction balance is validated by summing value across all operations (must equal 0).
 export const operationCreateSchema = z.object({

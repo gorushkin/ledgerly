@@ -4,8 +4,8 @@ meta {
   seq: 5
 }
 
-post {
-  url: {{baseUrl}}/transactions
+put {
+  url: {{baseUrl}}/transactions/{{transactionId}}
   body: json
   auth: bearer
 }
@@ -20,20 +20,29 @@ auth:bearer {
 
 body:json {
   {
-    "description": "some transaction",
-    "entries": [
-      [
+    "description": "updated transaction",
+    "operations": {
+      "create": [],
+      "delete": [],
+      "update": [
         {
+          "id": "{{operationId1}}",
           "accountId": "{{accountId1}}",
-          "amount": "-100"
+          "amount": "-100",
+          "description": "Updated transfer from checking",
+          "value": "-100"
         },
         {
+          "id": "{{operationId2}}",
           "accountId": "{{accountId2}}",
-          "amount": "100"
+          "amount": "100",
+          "description": "Updated transfer to savings",
+          "value": "100"
         }
       ]
-    ],
+    },
     "postingDate": "2025-11-07",
-    "transactionDate": "2025-11-07"
+    "transactionDate": "2025-11-07",
+    "version": {{transactionVersion}}
   }
 }
