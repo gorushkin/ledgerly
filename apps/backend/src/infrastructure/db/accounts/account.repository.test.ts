@@ -11,6 +11,7 @@ import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
 import {
   RecordAlreadyExistsError,
+  RepositoryInvariantError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
@@ -93,7 +94,7 @@ describe('AccountRepository', () => {
         userId: user.id,
       });
 
-      const account = await accountRepository.create({
+      const account = await accountRepository.create(user.id, {
         ...newAccount,
       });
 
@@ -116,9 +117,27 @@ describe('AccountRepository', () => {
         userId: secondUser.id,
       });
 
-      await expect(accountRepository.create(newAccount)).rejects.toThrowError(
-        RepositoryNotFoundError,
-      );
+      await expect(
+        accountRepository.create(secondUser.id, newAccount),
+      ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('should throw an invariant error when create userId differs from account snapshot userId', async () => {
+      const secondUser = await testDB.createUser({
+        email: 'second-user@example.com',
+        name: 'Second User',
+      });
+
+      const newAccount = getAccountData({
+        commodityId: usdCommodity.id,
+        name: 'New Account',
+        type: 'asset',
+        userId: secondUser.id,
+      });
+
+      await expect(
+        accountRepository.create(user.id, newAccount),
+      ).rejects.toThrowError(RepositoryInvariantError);
     });
 
     it('should not allow duplicate account names for the same user', async () => {
@@ -131,7 +150,9 @@ describe('AccountRepository', () => {
 
       await testDB.createAccount(user.id, usdCommodity.id, newAccount);
 
-      await expect(accountRepository.create(newAccount)).rejects.toThrowError(
+      await expect(
+        accountRepository.create(user.id, newAccount),
+      ).rejects.toThrowError(
         new RecordAlreadyExistsError({
           context: {
             field: 'accountName',
@@ -203,9 +224,9 @@ describe('AccountRepository', () => {
         userId: user.id,
       });
 
-      await expect(accountRepository.create(newAccount)).rejects.toThrowError(
-        RepositoryNotFoundError,
-      );
+      await expect(
+        accountRepository.create(user.id, newAccount),
+      ).rejects.toThrowError(RepositoryNotFoundError);
     });
   });
 
@@ -524,7 +545,7 @@ describe('AccountRepository', () => {
         type: 'asset',
         userId: user.id,
       });
-      const account = await accountRepository.create(newAccount);
+      const account = await accountRepository.create(user.id, newAccount);
       const accountDate = dayjs(account.createdAt);
 
       const afterCreate = dayjs();

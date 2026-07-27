@@ -79,7 +79,12 @@ metadata owned by each user. See
 - Operations always store `amount` in the account's Commodity
 - Commodity `code`, `name`, and `symbol` are display metadata, not identity
 - Commodity `precision` defines integer minor-unit interpretation
-- Commodity soft deletion is represented by technical `isTombstone` state
+- Commodity archiving is represented by technical `isTombstone` state
+- `GET /commodities` returns active Commodities by default and supports
+  `status=active|archived|all`
+- `GET /commodities/:id` returns active and archived Commodities owned by the
+  authenticated user
+- Archived Commodities remain readable but cannot be updated or archived again
 
 ## Entity API Conventions
 

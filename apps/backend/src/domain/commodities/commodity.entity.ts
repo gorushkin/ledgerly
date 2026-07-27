@@ -17,7 +17,14 @@ import { DeletedEntityOperationError } from '../domain.errors';
 import { User } from '../users/user.entity';
 
 import { parseCommodityPrecision, parseCommoditySymbol } from './helpers';
-import type { CommoditySnapshot, CommodityUpdateProps } from './types';
+import type {
+  CommoditySnapshot,
+  CommodityUpdateProps,
+  CreateCommodityProps,
+} from './types';
+
+// const DEFAULT_PRECISION = 2;
+// const DEFAULT_SYMBOL = null;
 
 export class Commodity {
   static readonly entityType = 'commodity';
@@ -32,13 +39,10 @@ export class Commodity {
     private precision: CommodityPrecisionNumber,
   ) {}
 
-  static create(
-    user: User,
-    name: Name,
-    code: CommodityCode,
-    precision = 2,
-    symbol: string | null = null,
-  ): Commodity {
+  static readonly DEFAULT_PRECISION = 2;
+  static readonly DEFAULT_SYMBOL = null;
+
+  static create(user: User, props: CreateCommodityProps): Commodity {
     const identity = EntityIdentity.create();
     const softDelete = SoftDelete.create();
     const timestamps = EntityTimestamps.create();
@@ -48,17 +52,21 @@ export class Commodity {
       identity.getId(),
     );
 
-    const parsedCommoditySymbol = parseCommoditySymbol(symbol);
-    const parsedCommodityPrecision = parseCommodityPrecision(precision);
+    const parsedCommoditySymbol = parseCommoditySymbol(
+      props.symbol ?? Commodity.DEFAULT_SYMBOL,
+    );
+    const parsedCommodityPrecision = parseCommodityPrecision(
+      props.precision ?? Commodity.DEFAULT_PRECISION,
+    );
 
     return new Commodity(
       identity,
       timestamps,
       softDelete,
       ownership,
-      code,
+      CommodityCode.create(props.code),
       parsedCommoditySymbol,
-      name,
+      Name.create(props.name),
       parsedCommodityPrecision, // use the provided precision value
     );
   }

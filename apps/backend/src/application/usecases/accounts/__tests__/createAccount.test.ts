@@ -1,7 +1,7 @@
 import { AccountRepositoryInterface } from 'src/application';
 import { createUser } from 'src/db/createTestUser';
 import { Commodity } from 'src/domain';
-import { Amount, CommodityCode, Name } from 'src/domain/domain-core';
+import { Amount, CommodityCode } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateAccountUseCase } from '../createAccount';
@@ -20,13 +20,12 @@ describe('CreateAccountUseCase', async () => {
   const initialBalance = Amount.create('1000').valueOf();
   const currentClearedBalanceLocal = Amount.create('0').valueOf();
 
-  const commodity = Commodity.create(
-    user,
-    Name.create('Test Commodity'),
-    CommodityCode.create('TEST'),
-    2,
-    null,
-  );
+  const commodity = Commodity.create(user, {
+    code: CommodityCode.create('USD').valueOf(),
+    name: 'Test Commodity',
+    precision: 2,
+    symbol: null,
+  });
   const type = 'asset';
 
   beforeEach(() => {
@@ -50,20 +49,23 @@ describe('CreateAccountUseCase', async () => {
         type,
       });
 
-      expect(accountRepository.create).toHaveBeenCalledWith({
-        commodityId: result.commodityId,
-        createdAt: result.createdAt,
-        currentClearedBalanceLocal,
-        description,
-        id: result.id,
-        initialBalance,
-        isSystem: false,
-        isTombstone: false,
-        name,
-        type,
-        updatedAt: result.updatedAt,
-        userId: result.userId,
-      });
+      expect(accountRepository.create).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        {
+          commodityId: result.commodityId,
+          createdAt: result.createdAt,
+          currentClearedBalanceLocal,
+          description,
+          id: result.id,
+          initialBalance,
+          isSystem: false,
+          isTombstone: false,
+          name,
+          type,
+          updatedAt: result.updatedAt,
+          userId: result.userId,
+        },
+      );
 
       expect(result).toMatchObject({
         description,

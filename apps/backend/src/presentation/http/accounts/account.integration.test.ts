@@ -196,7 +196,7 @@ describe('Accounts Integration Tests', () => {
     });
   });
 
-  describe('PUT /api/accounts/:id', () => {
+  describe('PATCH /api/accounts/:id', () => {
     it('should update an account by ID', async () => {
       const accountToUpdate = accounts[0];
 
@@ -208,7 +208,7 @@ describe('Accounts Integration Tests', () => {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
-        method: 'PUT',
+        method: 'PATCH',
         payload: updatedData,
         url: `${url}/${accountToUpdate.id}`,
       });
@@ -266,8 +266,8 @@ describe('Accounts Integration Tests', () => {
     // - should return 400 when extra unexpected fields are provided
   });
 
-  // Validation Tests for PUT /api/accounts/:id
-  describe.todo('PUT /api/accounts/:id - Validation', () => {
+  // Validation Tests for PATCH /api/accounts/:id
+  describe.todo('PATCH /api/accounts/:id - Validation', () => {
     // - should return 400 when name is empty string
     // - should return 400 when name is not a string
     // - should return 400 when type is invalid enum value

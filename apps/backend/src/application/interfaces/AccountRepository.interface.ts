@@ -13,7 +13,7 @@ export type AccountRepositorySoftDeleteInput = Pick<
 
 export type AccountRepositoryInterface = {
   getAll(userId: UUID): Promise<AccountSnapshot[]>;
-  create(data: AccountSnapshot): Promise<AccountSnapshot>;
+  create(userId: UUID, data: AccountSnapshot): Promise<AccountSnapshot>;
   getById(userId: UUID, id: UUID): Promise<AccountSnapshot>;
   update(
     userId: UUID,

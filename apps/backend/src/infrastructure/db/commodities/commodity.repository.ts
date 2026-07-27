@@ -1,4 +1,4 @@
-import { UUID } from '@ledgerly/shared/types';
+import { QueryStatus, UUID } from '@ledgerly/shared/types';
 import { and, eq } from 'drizzle-orm';
 import {
   type CommodityRepositoryInterface,
@@ -7,6 +7,7 @@ import {
 } from 'src/application';
 import { commoditiesTable } from 'src/db/schemas/commodities';
 import { CommoditySnapshot } from 'src/domain/commodities/types';
+import { RepositoryInvariantError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -22,11 +23,7 @@ export class CommodityRepository
         .select()
         .from(commoditiesTable)
         .where(
-          and(
-            eq(commoditiesTable.userId, userId),
-            eq(commoditiesTable.id, id),
-            eq(commoditiesTable.isTombstone, false),
-          ),
+          and(eq(commoditiesTable.userId, userId), eq(commoditiesTable.id, id)),
         )
         .get();
 
@@ -40,17 +37,20 @@ export class CommodityRepository
     }, 'Failed to fetch commodity');
   }
 
-  getAll(userId: UUID): Promise<CommoditySnapshot[]> {
+  getAll(userId: UUID, status: QueryStatus): Promise<CommoditySnapshot[]> {
     return this.executeDatabaseOperation(async () => {
+      const whereClause =
+        status === 'all'
+          ? eq(commoditiesTable.userId, userId)
+          : and(
+              eq(commoditiesTable.userId, userId),
+              eq(commoditiesTable.isTombstone, status === 'archived'),
+            );
+
       const commodities = await this.db
         .select()
         .from(commoditiesTable)
-        .where(
-          and(
-            eq(commoditiesTable.userId, userId),
-            eq(commoditiesTable.isTombstone, false),
-          ),
-        )
+        .where(whereClause)
         .all();
 
       return commodities.map((commodity) =>
@@ -65,10 +65,14 @@ export class CommodityRepository
   ): Promise<CommoditySnapshot> {
     return this.executeDatabaseOperation(
       async () => {
-        const commodityRow = CommodityPersistenceMapper.toDBRowFromSnapshot({
-          ...commodity,
-          userId,
-        });
+        if (commodity.userId !== userId) {
+          throw new RepositoryInvariantError(
+            'Commodity snapshot userId must match repository create userId',
+          );
+        }
+
+        const commodityRow =
+          CommodityPersistenceMapper.toDBRowFromSnapshot(commodity);
 
         const createdCommodity = await this.db
           .insert(commoditiesTable)

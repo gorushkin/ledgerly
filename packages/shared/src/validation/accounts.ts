@@ -3,7 +3,8 @@ import { z } from "zod";
 import { ACCOUNT_TYPE_VALUES } from "../constants";
 
 import {
-  notNullText,
+  defaultText,
+  optionalText,
   requiredText,
   uuid,
   amountString,
@@ -13,16 +14,14 @@ const accountType = z.enum(ACCOUNT_TYPE_VALUES);
 
 export const accountCreateSchema = z.object({
   commodityId: uuid,
-  description: requiredText,
+  description: defaultText,
   initialBalance: amountString,
-  name: notNullText,
+  name: requiredText,
   type: accountType,
 });
 
-export const accountUpdateSchema = accountCreateSchema
-  .pick({
-    description: true,
-    name: true,
-    type: true,
-  })
-  .partial();
+export const accountUpdateSchema = z.object({
+  description: optionalText,
+  name: requiredText.optional(),
+  type: accountType.optional(),
+});

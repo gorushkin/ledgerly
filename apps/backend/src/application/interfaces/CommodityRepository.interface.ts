@@ -1,4 +1,4 @@
-import { UUID } from '@ledgerly/shared/types';
+import { QueryStatus, UUID } from '@ledgerly/shared/types';
 import { CommoditySnapshot } from 'src/domain/commodities';
 
 export type CommodityRepositoryUpdateInput = Pick<
@@ -14,7 +14,7 @@ export type CommodityRepositorySoftDeleteInput = Pick<
 
 export type CommodityRepositoryInterface = {
   getById(userId: UUID, commodityId: UUID): Promise<CommoditySnapshot>;
-  getAll(userId: UUID): Promise<CommoditySnapshot[]>;
+  getAll(userId: UUID, status: QueryStatus): Promise<CommoditySnapshot[]>;
   create(
     userId: UUID,
     commodity: CommoditySnapshot,

@@ -8,6 +8,7 @@ import {
 import { accountsTable } from 'src/db/schemas/accounts';
 import { commoditiesTable } from 'src/db/schemas/commodities';
 import { AccountSnapshot } from 'src/domain/accounts';
+import { RepositoryInvariantError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -36,9 +37,15 @@ export class AccountRepository
     }, 'Failed to fetch accounts');
   }
 
-  create(data: AccountSnapshot): Promise<AccountSnapshot> {
+  create(userId: UUID, data: AccountSnapshot): Promise<AccountSnapshot> {
     return this.executeDatabaseOperation(
       async () => {
+        if (data.userId !== userId) {
+          throw new RepositoryInvariantError(
+            'Account snapshot userId must match repository create userId',
+          );
+        }
+
         const existingCommodity = await this.db
           .select()
           .from(commoditiesTable)

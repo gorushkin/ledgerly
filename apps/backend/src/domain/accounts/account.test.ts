@@ -26,13 +26,12 @@ describe('Account Domain Entity', () => {
 
   beforeAll(async () => {
     user = await createUser();
-    commodity = Commodity.create(
-      user,
-      Name.create('commodity-name'),
-      CommodityCode.create('COM'),
-      2,
-      'C',
-    );
+    commodity = Commodity.create(user, {
+      code: CommodityCode.create('COM').valueOf(),
+      name: 'commodity-name',
+      precision: 2,
+      symbol: 'C',
+    });
     userId = user.getId();
   });
 

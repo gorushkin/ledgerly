@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { accountsRoutes } from './accounts';
 import { authRoutes } from './auth';
+import { commodityRoutes } from './commodities';
 import { authMiddleware } from './middleware';
 import { transactionsRoutes } from './transactions';
 import { registerUserRoutes } from './users';
@@ -29,6 +30,10 @@ export const registerRoutes = (fastify: FastifyInstance) => {
 
     protectedApp.register(registerUserRoutes, {
       prefix: ROUTES.user,
+    });
+
+    protectedApp.register(commodityRoutes, {
+      prefix: ROUTES.commodities,
     });
   });
 };

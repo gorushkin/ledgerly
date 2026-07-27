@@ -154,11 +154,10 @@ export class TransactionBuilder {
     currencyCodes.forEach((commodityCode) => {
       const code = CommodityCode.create(commodityCode);
 
-      const commodity = Commodity.create(
-        this.user,
-        Name.create(`Commodity ${commodityCode}`),
-        code,
-      );
+      const commodity = Commodity.create(this.user, {
+        code: code.valueOf(),
+        name: `Commodity ${commodityCode}`,
+      });
 
       const account = Account.create(this.user, {
         commodityId: commodity.getId(),

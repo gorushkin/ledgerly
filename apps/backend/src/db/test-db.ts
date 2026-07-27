@@ -37,6 +37,7 @@ import {
   OperationDbRow,
   CommodityDbInsert,
   commoditiesTable,
+  CommodityDbRow,
 } from './schema';
 import * as schema from './schemas';
 
@@ -393,7 +394,7 @@ export class TestDB {
       precision?: CommodityPrecisionNumber;
       isTombstone?: boolean;
     },
-  ) => {
+  ): Promise<CommodityDbRow> => {
     const nextName = this.commodityCounter.getNextName({ delimiter: '' });
 
     const commodityData = {
@@ -464,6 +465,45 @@ export class TestDB {
 
     return account;
   };
+
+  // createCommodity = async (
+  //   userId: UUID,
+  //   params?: {
+  //     code?: CommodityCodeString;
+  //     symbol?: CommoditySymbolString;
+  //     name?: string;
+  //     precision?: CommodityPrecisionNumber;
+  //     isTombstone?: boolean;
+  //   },
+  // ) => {
+  //   const nextName = this.commodityCounter.getNextName({ delimiter: '' });
+
+  //   const commodityData = {
+  //     code: params?.code ?? CommodityCode.create(`COM${nextName}`).valueOf(),
+  //     isTombstone: params?.isTombstone ?? false,
+  //     name: params?.name ?? `Commodity ${nextName}`,
+  //     precision: params?.precision ?? 2,
+  //     symbol: params?.symbol ?? `${nextName}`,
+  //     userId,
+  //   };
+
+  //   const commodity = await this.db
+  //     .insert(schema.commoditiesTable)
+  //     .values({
+  //       code: commodityData.code,
+  //       name: commodityData.name,
+  //       precision: commodityData.precision,
+  //       symbol: commodityData.symbol,
+  //       userId: commodityData.userId,
+  //       ...TestDB.createTimestamps,
+  //       ...TestDB.uuid,
+  //       isTombstone: commodityData.isTombstone,
+  //     })
+  //     .returning()
+  //     .get();
+
+  //   return commodity;
+  // };
 
   insertCommodity = async (commodityData: CommodityDbInsert) => {
     const insertedCommodity = await this.db
@@ -546,6 +586,16 @@ export class TestDB {
       );
 
     return operations;
+  };
+
+  getCommodityById = async (commodityId: UUID) => {
+    const commodity = await this.db
+      .select()
+      .from(schema.commoditiesTable)
+      .where(sql`${schema.commoditiesTable.id} = ${commodityId}`)
+      .get();
+
+    return commodity ?? null;
   };
 
   deleteData = async () => {
@@ -694,6 +744,14 @@ export class TestDB {
       with: {
         operations: true,
       },
+    });
+  };
+
+  getAllCommoditiesByUserId = async (
+    userId: UUID,
+  ): Promise<CommodityDbRow[]> => {
+    return await this.db.query.commoditiesTable.findMany({
+      where: eq(commoditiesTable.userId, userId),
     });
   };
 }

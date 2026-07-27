@@ -1,7 +1,7 @@
 export const ROUTES = {
   accounts: "/accounts",
   auth: "/auth",
-  entries: "/entries",
+  commodities: "/commodities",
   transactions: "/transactions",
   user: "/user",
 };

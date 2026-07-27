@@ -1,4 +1,4 @@
-import { IsoDatetimeString, AmountString, UUID } from "./types";
+import { IsoDatetimeString, AmountString, UUID, RequiredText } from "./types";
 
 export type AccountTypeValue =
   | "asset"
@@ -7,21 +7,6 @@ export type AccountTypeValue =
   | "income"
   | "currencyTrading"
   | "expense";
-
-export type AccountDomain = {
-  commodityId: UUID;
-  createdAt: IsoDatetimeString;
-  currentClearedBalanceLocal: AmountString;
-  description: string;
-  id: UUID;
-  initialBalance: AmountString;
-  isSystem: boolean;
-  isTombstone: boolean;
-  name: string;
-  type: AccountTypeValue;
-  updatedAt: IsoDatetimeString;
-  userId: UUID;
-};
 
 export type AccountCreateDTO = {
   commodityId: UUID;
@@ -35,4 +20,17 @@ export type AccountUpdateDTO = Partial<
   Pick<AccountCreateDTO, "name" | "description" | "type">
 >;
 
-export type AccountResponseDTO = AccountDomain;
+export type AccountResponseDTO = {
+  commodityId: UUID;
+  createdAt: IsoDatetimeString;
+  currentClearedBalanceLocal: AmountString;
+  description: string;
+  id: UUID;
+  initialBalance: AmountString;
+  isSystem: boolean;
+  isTombstone: boolean;
+  name: RequiredText;
+  type: AccountTypeValue;
+  updatedAt: IsoDatetimeString;
+  userId: UUID;
+};
