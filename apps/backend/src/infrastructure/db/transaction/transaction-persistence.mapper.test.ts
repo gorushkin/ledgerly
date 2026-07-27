@@ -7,8 +7,9 @@ import { TransactionPersistenceMapper } from './transaction-persistence.mapper';
 describe('TransactionPersistenceMapper', () => {
   it('maps a transaction aggregate to a persistence row', async () => {
     const user = await createUser();
+
     const { transaction } = TransactionBuilder.transaction({
-      accounts: ['USD'],
+      currencies: ['USD'],
       operations: [
         { accountKey: 'USD', amount: '100', description: 'Debit' },
         { accountKey: 'USD', amount: '-100', description: 'Credit' },
@@ -18,8 +19,8 @@ describe('TransactionPersistenceMapper', () => {
     const snapshot = transaction.toSnapshot();
 
     expect(TransactionPersistenceMapper.toDBRow(transaction)).toEqual({
+      commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
-      currency: snapshot.currency,
       description: snapshot.description,
       id: snapshot.id,
       isTombstone: snapshot.isTombstone,

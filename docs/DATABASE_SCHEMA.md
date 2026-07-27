@@ -1,17 +1,22 @@
-# 📊 Database Schema - Ledgerly
+# Database Schema - Ledgerly
 
 Database schema documentation for Ledgerly financial tracker.
 
-## 🎯 Overview
+## Overview
 
-Ledgerly uses SQLite with Drizzle ORM for personal finance management. The architecture is built on these principles:
-- **User data isolation** - all data is tied to userId
-- **Double-entry bookkeeping** - operations belong directly to transactions
-- **Multi-currency support** - different currencies with trading accounts
-- **Cascade deletions** - data integrity
-- **Soft deletes** - using `isTombstone` flag
+Ledgerly uses SQLite with Drizzle ORM for personal finance management. The
+architecture is built on these principles:
 
-## 📋 Entity Relationship Diagram
+- **User data isolation** - all user-owned data is tied to `userId`.
+- **Double-entry bookkeeping** - operations belong directly to transactions.
+- **Commodity-based accounting** - accounts and transactions reference
+  user-owned Commodities by stable id.
+- **Cascade deletions** - user-owned data is removed with the user where the
+  schema defines cascading relations.
+- **Soft deletes** - domain records use an `isTombstone` flag where deletion
+  must remain observable.
+
+## Entity Relationship Diagram
 
 ```mermaid
 erDiagram
@@ -23,18 +28,24 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
-    
-    CURRENCIES {
-        string code PK "USD, EUR, RUB"
+
+    COMMODITIES {
+        uuid id PK
+        uuid userId FK
+        string code
         string name
-        string symbol
+        string symbol "nullable"
+        integer precision
+        boolean isTombstone
+        timestamp createdAt
+        timestamp updatedAt
     }
-    
+
     ACCOUNTS {
         uuid id PK
+        uuid commodityId FK
         string name
         string type "Asset|Liability|Income|Expense"
-        string currency FK
         string description
         integer initialBalance
         integer currentClearedBalanceLocal
@@ -44,11 +55,11 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
-    
+
     TRANSACTIONS {
         uuid id PK
+        uuid commodityId FK
         string description
-        string currency
         date transactionDate
         date postingDate
         integer version
@@ -57,7 +68,7 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
-    
+
     OPERATIONS {
         uuid id PK
         uuid transactionId FK
@@ -71,33 +82,33 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
-    
+
     SETTINGS {
-        uuid userId PK,FK
-        string baseCurrency FK
+        uuid userId FK
         timestamp createdAt
         timestamp updatedAt
     }
 
-    %% Main relations
+    USERS ||--o{ COMMODITIES : "owns"
     USERS ||--o{ ACCOUNTS : "owns"
     USERS ||--o{ TRANSACTIONS : "makes"
     USERS ||--o{ OPERATIONS : "performs"
-    USERS ||--|| SETTINGS : "has"
-    
-    CURRENCIES ||--o{ ACCOUNTS : "denominated_in"
-    CURRENCIES ||--o{ SETTINGS : "base_currency"
-    
+    USERS ||--o{ SETTINGS : "has"
+
+    COMMODITIES ||--o{ ACCOUNTS : "denominates"
+    COMMODITIES ||--o{ TRANSACTIONS : "values"
+
     TRANSACTIONS ||--o{ OPERATIONS : "contains"
     ACCOUNTS ||--o{ OPERATIONS : "affects"
-    
-    %% Unique constraints
+
+    COMMODITIES }|--|| USERS : "unique(userId, code)"
     ACCOUNTS }|--|| USERS : "unique(userId, name)"
 ```
 
-## 🏗️ Entities
+## Entities
 
-### 🏦 **Users**
+### Users
+
 Base entity for authentication and authorization.
 
 | Field | Type | Description | Constraints |
@@ -110,203 +121,248 @@ Base entity for authentication and authorization.
 | `updatedAt` | Timestamp | Last update date | NOT NULL |
 
 **Relations:**
+
+- `1:N` with `commodities` (cascade delete)
 - `1:N` with `accounts` (cascade delete)
 - `1:N` with `transactions` (cascade delete)
 - `1:N` with `operations` (cascade delete)
-- `1:1` with `settings`
+- `1:N` with `settings`
 
 ---
 
-### 💰 **Accounts**
+### Commodities
+
+User-owned monetary units used by accounts and transactions.
+
+| Field | Type | Description | Constraints |
+|------|-----|----------|-------------|
+| `id` | UUID | Stable Commodity identity | PK, NOT NULL |
+| `userId` | UUID | Commodity owner | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
+| `code` | String | User-visible display/search code | NOT NULL, unique per user |
+| `name` | String | Display name | NOT NULL |
+| `symbol` | String | Optional display symbol | NULLABLE |
+| `precision` | Integer | Minor-unit scale for integer amounts | NOT NULL, immutable after creation |
+| `isTombstone` | Boolean | Technical soft delete flag | NOT NULL, default: false |
+| `createdAt` | Timestamp | Creation date | NOT NULL |
+| `updatedAt` | Timestamp | Last update date | NOT NULL |
+
+**Constraints:**
+
+- `UNIQUE(userId, code)` through `commodities_user_id_code_unique_idx`.
+
+**Relations:**
+
+- `N:1` with `users`
+- `1:N` with `accounts`
+- `1:N` with `transactions`
+
+**Notes:**
+
+- Commodity identity is `id`, not `code`.
+- Predefined currencies such as `USD`, `EUR`, and `RUB` are ordinary per-user
+  Commodity records when created.
+- The MVP does not include global Commodity records, `ReferenceAsset`, market
+  rates, provider metadata, automatic conversion, or Commodity archiving.
+
+---
+
+### Accounts
+
 User's financial accounts for tracking funds.
 
 | Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
 | `id` | UUID | Primary key | PK, NOT NULL |
+| `commodityId` | UUID | Account Commodity | FK -> `commodities.id`, NOT NULL |
 | `name` | String | Account name | NOT NULL |
 | `type` | Enum | Account type | `Asset\|Liability\|Income\|Expense` |
-| `currency` | String | Account currency | NOT NULL (CurrencyCode) |
-| `description` | String | Account description | NULLABLE |
-| `initialBalance` | Integer | Initial balance (in cents) | NOT NULL, default: 0 |
-| `currentClearedBalanceLocal` | Integer | Current balance (in cents) | NOT NULL, default: 0 |
-| `isSystem` | Boolean | System account flag (for trading accounts) | NOT NULL, default: false |
+| `description` | String | Account description | NOT NULL |
+| `initialBalance` | Integer | Initial balance in minor units | NOT NULL, default: 0 |
+| `currentClearedBalanceLocal` | Integer | Current local balance in minor units | NOT NULL, default: 0 |
+| `isSystem` | Boolean | Reserved system account flag | NOT NULL, default: false |
 | `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
-| `userId` | UUID | Account owner | FK → `users.id` |
+| `userId` | UUID | Account owner | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
 | `createdAt` | Timestamp | Creation date | NOT NULL |
 | `updatedAt` | Timestamp | Last update date | NOT NULL |
 
 **Constraints:**
-- `UNIQUE(userId, name)` - unique name per user
+
+- `UNIQUE(userId, name)` through `user_id_name_unique_idx`.
 
 **Relations:**
+
 - `N:1` with `users`
+- `N:1` with `commodities`
 - `1:N` with `operations`
 
 **Notes:**
-- Currency constraint to `currencies` table is removed for test performance
-- Application-level validation should ensure valid currency codes
-- Money amounts stored as integers (cents) to avoid floating-point issues
-- System accounts (trading accounts) have `isSystem = true`
+
+- Account Commodity is immutable after account creation.
+- Money amounts are stored as integer minor units to avoid floating-point
+  issues.
+- System accounts are reserved for future trading-account support.
 
 ---
 
-### 💱 **Currencies**
-Dictionary of supported currencies.
+### Transactions
 
-> Design note: this table is an MVP currency dictionary, not the final identity
-> model for all monetary units. Ledgerly is expected to need an asset/commodity
-> registry for fiat currencies, crypto assets, network-specific tokens, and
-> custom user assets before final transaction currency existence validation is
-> implemented. See
-> [ADR 0006](./architecture/adr/0006-asset-registry-before-currency-validation.md).
-
-| Field | Type | Description | Constraints |
-|------|-----|----------|-------------|
-| `code` | String | Currency code (ISO 4217) | PK, NOT NULL |
-| `name` | String | Full name | NOT NULL |
-| `symbol` | String | Currency symbol | NOT NULL |
-
-**Examples:**
-- `USD` - United States Dollar - `$`
-- `EUR` - Euro - `€`
-- `RUB` - Russian Ruble - `₽`
-
-**Relations:**
-- `1:N` with `accounts`
-- `1:N` with `settings`
-
----
-
-### 📝 **Transactions**
 Top-level grouping of related financial events.
 
 | Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
 | `id` | UUID | Primary key | PK, NOT NULL |
+| `commodityId` | UUID | Transaction Commodity that denominates operation `value` fields | FK -> `commodities.id`, NOT NULL |
 | `description` | String | Transaction description | NOT NULL |
-| `currency` | String | Base currency of the transaction | NOT NULL (CurrencyCode) |
 | `transactionDate` | Date | Transaction date | NOT NULL |
 | `postingDate` | Date | Posting date | NOT NULL |
 | `version` | Integer | Optimistic concurrency version | NOT NULL, default: 0 |
 | `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
-| `userId` | UUID | Transaction owner | FK → `users.id` |
+| `userId` | UUID | Transaction owner | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
 | `createdAt` | Timestamp | Creation date | NOT NULL |
 | `updatedAt` | Timestamp | Last update date | NOT NULL |
 
 **Relations:**
+
 - `N:1` with `users`
+- `N:1` with `commodities`
 - `1:N` with `operations` (cascade delete)
 
 **Indexes:**
-- `idx_transactions_user_date` on `(userId, transactionDate)`
+
+- `idx_transactions_user_date` on `(userId, transactionDate)`.
 
 **Notes:**
-- `currency` is the base/reporting currency for the entire transaction; used to compute `value` on each operation
-- `version` supports optimistic concurrency control—increment on every update
+
+- `commodityId` determines the transaction Commodity and denominates operation
+  `value`.
+- `version` supports optimistic concurrency control and increments on aggregate
+  updates.
 
 ---
 
-### 🔄 **Operations**
+### Operations
+
 Individual financial postings affecting accounts.
 
 | Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
 | `id` | UUID | Primary key | PK, NOT NULL |
-| `transactionId` | UUID | Parent transaction | FK → `transactions.id` |
-| `accountId` | UUID | Affected account | FK → `accounts.id` |
-| `amount` | Integer | Amount in **account's** currency (cents) | NOT NULL |
-| `value` | Integer | Amount in **transaction's** currency (cents) | NOT NULL |
-| `description` | String | Operation description | NULLABLE |
-| `isSystem` | Boolean | System operation flag (for trading ops) | NOT NULL, default: false |
+| `transactionId` | UUID | Parent transaction | FK -> `transactions.id`, NOT NULL, ON DELETE CASCADE |
+| `accountId` | UUID | Affected account | FK -> `accounts.id`, NOT NULL, ON DELETE RESTRICT |
+| `amount` | Integer | Amount in the account's Commodity minor units | NOT NULL |
+| `value` | Integer | Amount in the transaction Commodity minor units | NOT NULL |
+| `description` | String | Operation description | NOT NULL |
+| `isSystem` | Boolean | Reserved system operation flag | NOT NULL, default: false |
 | `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
-| `userId` | UUID | Operation owner | FK → `users.id` |
+| `userId` | UUID | Operation owner | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
 | `createdAt` | Timestamp | Creation date | NOT NULL |
 | `updatedAt` | Timestamp | Last update date | NOT NULL |
 
 **Relations:**
-- `N:1` with `transactions` (cascade delete)
-- `N:1` with `accounts` (restrict delete)
+
+- `N:1` with `transactions`
+- `N:1` with `accounts`
 - `N:1` with `users`
 
 **Business Rules:**
-- `amount` is always in the account's native currency
-- `value` is in the transaction's base currency (equal to `amount` for same-currency transactions)
-- Positive = debit (increases Asset/Expense, decreases Liability/Income)
-- Negative = credit (decreases Asset/Expense, increases Liability/Income)
-- System operations (trading operations) have `isSystem = true`
-- Balance check: `sum(value)` across all operations in a transaction must equal 0
+
+- `amount` is denominated by the operation account's Commodity.
+- `value` is denominated by the parent transaction's Commodity.
+- Balance check: `sum(value)` across active operations in a transaction must
+  equal 0.
+- System operations are reserved for future trading-account support.
 
 **Indexes:**
-- `idx_operations_transaction` on `transactionId`
-- `idx_operations_account` on `accountId`
-- `idx_operations_user` on `userId`
+
+- `idx_operations_transaction` on `transactionId`.
+- `idx_operations_account` on `accountId`.
+- `idx_operations_user` on `userId`.
 
 ---
 
-### ⚙️ **Settings**
+### Settings
+
 User application settings.
 
 | Field | Type | Description | Constraints |
 |------|-----|----------|-------------|
-| `userId` | UUID | User | PK, FK → `users.id` |
-| `baseCurrency` | String | Base currency for reporting | FK → `currencies.code`, default: 'RUB' |
+| `userId` | UUID | User | FK -> `users.id`, NOT NULL |
 | `createdAt` | Timestamp | Creation date | NOT NULL |
 | `updatedAt` | Timestamp | Last update date | NOT NULL |
 
 **Relations:**
-- `1:1` with `users`
-- `N:1` with `currencies`
+
+- `N:1` with `users`
+
+**Notes:**
+
+- Settings do not currently store a base reporting Commodity.
 
 ---
 
-## 🔗 Relationships
+## Relationships
 
 ### Data Hierarchy
-```
+
+```text
 USERS (root entity)
-├── ACCOUNTS (financial accounts)
-├── TRANSACTIONS (financial events)
-│   └── OPERATIONS (individual postings)
-└── SETTINGS (user preferences)
+|- COMMODITIES (user-owned monetary units)
+|- ACCOUNTS (financial accounts)
+|- TRANSACTIONS (financial events)
+|  `- OPERATIONS (individual postings)
+`- SETTINGS (user preferences)
 ```
 
 ### Entity Relations
-- **Users ↔ Accounts**: `1:N` with cascade delete
-- **Users ↔ Transactions**: `1:N` with cascade delete
-- **Users ↔ Operations**: `1:N` with cascade delete
-- **Users ↔ Settings**: `1:1`
-- **Transactions ↔ Operations**: `1:N` with cascade delete
-- **Accounts ↔ Operations**: `1:N` (restrict delete)
-- **Currencies ↔ Accounts**: `1:N`
-- **Currencies ↔ Settings**: `1:N`
+
+- **Users <-> Commodities**: `1:N` with cascade delete.
+- **Users <-> Accounts**: `1:N` with cascade delete.
+- **Users <-> Transactions**: `1:N` with cascade delete.
+- **Users <-> Operations**: `1:N` with cascade delete.
+- **Users <-> Settings**: `1:N`.
+- **Commodities <-> Accounts**: `1:N`.
+- **Commodities <-> Transactions**: `1:N`.
+- **Transactions <-> Operations**: `1:N` with cascade delete.
+- **Accounts <-> Operations**: `1:N` with restrict delete.
 
 ---
 
-## 💡 Business Rules
+## Business Rules
 
 ### Uniqueness
-1. **User email** must be unique system-wide
-2. **Account name** must be unique per user
+
+1. **User email** must be unique system-wide.
+2. **Commodity code** must be unique per user.
+3. **Account name** must be unique per user.
 
 ### Data Integrity
-1. **Cascade deletions**: When a user is deleted, all their data is deleted
-2. **Required relations**: Each operation must have a transaction and account
-3. **Currency constraints**: All accounts reference existing currencies (application-level)
-4. **Soft deletes**: Entities use `isTombstone` flag instead of hard deletes
+
+1. **User ownership**: accounts and transactions may reference only active
+   Commodities owned by the same user. Write repositories enforce this check
+   immediately before persisting Commodity-backed references.
+2. **Required relations**: each operation must have a transaction and account.
+3. **Soft deletes**: entities use `isTombstone` where the deletion must be
+   retained in storage.
+4. **Commodity precision**: `precision` is immutable after Commodity creation.
 
 ### Accounting Principles
-1. **Double-entry bookkeeping**: `sum(value)` across all operations in a transaction must equal 0
-2. **Multi-currency support**: Handled through `amount` (account currency) + `value` (transaction currency) and trading accounts
-3. **Immutable operations**: Operations cannot be edited, only recreated on transaction updates
+
+1. **Double-entry bookkeeping**: `sum(value)` across active operations in a
+   transaction must equal 0.
+2. **Commodity denomination**: `amount` is in account Commodity units; `value`
+   is in transaction Commodity units.
+3. **Immutable operations**: operations cannot be edited, only recreated on
+   transaction updates.
 
 ---
 
-## 🚀 Schema Files
+## Schema Files
 
 Schemas are defined in the following files:
+
 - `apps/backend/src/db/schemas/users.ts` - Users
+- `apps/backend/src/db/schemas/commodities.ts` - Commodities
 - `apps/backend/src/db/schemas/accounts.ts` - Accounts
-- `apps/backend/src/db/schemas/currencies.ts` - Currencies
 - `apps/backend/src/db/schemas/transactions.ts` - Transactions
 - `apps/backend/src/db/schemas/operations.ts` - Operations
 - `apps/backend/src/db/schemas/settings.ts` - Settings
@@ -315,4 +371,4 @@ All schemas are exported through `apps/backend/src/db/schema.ts`.
 
 ---
 
-*Last updated: March 11, 2026*
+*Last updated: July 23, 2026*

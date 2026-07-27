@@ -10,28 +10,22 @@ import {
   DEFAULT_TRANSACTION_SORT_ORDER,
 } from "../constants/transactions";
 
-export const requiredText = z.string().default("");
-
-export const defaultText = z.string().default("").optional();
-export const defaultNumber = z.number().default(0).optional();
-export const notNullText = z.string().min(1, "This field cannot be empty");
+export const text = z.string();
+export const optionalText = text.optional();
+export const defaultText = text.default("");
+export const requiredText = z
+  .string()
+  .trim()
+  .min(1, "Required text must not be empty");
 export const updatedAt = z.string();
 export const createdAt = z.string();
 export const uuid = z.string().uuid().brand<"UUID">();
-export const name = z.string().min(1);
 export const dateText = z.string().refine((d) => !isNaN(Date.parse(d)), {
   message: "Invalid date format",
 });
-
 export const uniqueIdSchema = z.object({
   id: uuid,
 });
-
-export const currencyCode = z
-  .string()
-  .length(3, "Currency code must be exactly 3 characters")
-  .brand<"CurrencyCode">();
-
 export const isoDatetime = z.string().datetime().brand<"IsoDatetimeString">();
 
 export const sha256String = z.string().regex(/^[a-f0-9]{64}$/, {
@@ -80,3 +74,33 @@ export const getTransactionsQuerySchema = z
       });
     }
   });
+
+const COMMODITY_CODE_MIN_LENGTH = 3;
+const COMMODITY_CODE_MAX_LENGTH = 16;
+export const commodityCode = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .min(
+    COMMODITY_CODE_MIN_LENGTH,
+    `Commodity code must be at least ${COMMODITY_CODE_MIN_LENGTH} characters long`,
+  )
+  .max(
+    COMMODITY_CODE_MAX_LENGTH,
+    `Commodity code must be at most ${COMMODITY_CODE_MAX_LENGTH} characters long`,
+  )
+  .regex(
+    /^[A-Z][A-Z0-9]*$/,
+    "Commodity code must start with a letter and contain only letters and digits",
+  )
+  .brand<"CommodityCode">();
+export const commoditySymbol = z.string().trim().max(12).nullable();
+export const commodityPrecision = z.number().int().min(0).max(18);
+
+export const queryStatus = z
+  .enum(["active", "archived", "all"])
+  .default("active");
+
+export const queryStatusSchema = z.object({
+  status: queryStatus,
+});

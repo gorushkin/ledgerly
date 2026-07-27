@@ -1,13 +1,23 @@
-import { AccountResponseDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
-import { AccountSnapshot, AccountUpdateProps } from 'src/domain/accounts';
+import {
+  AccountCreateDTO,
+  AccountResponseDTO,
+  AccountUpdateDTO,
+} from '@ledgerly/shared/types';
+import {
+  AccountSnapshot,
+  AccountType,
+  AccountUpdateProps,
+} from 'src/domain/accounts';
+import { CreateAccountProps } from 'src/domain/accounts/types';
+import { Amount, Id, Name } from 'src/domain/domain-core';
 
 export class AccountMapper {
   static toResponseDTOFromSnapshot(
     snapshot: AccountSnapshot,
   ): AccountResponseDTO {
     return {
+      commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
-      currency: snapshot.currency,
       currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
       description: snapshot.description,
       id: snapshot.id,
@@ -20,10 +30,18 @@ export class AccountMapper {
       userId: snapshot.userId,
     };
   }
+  static toCreateAccountProps(dto: AccountCreateDTO): CreateAccountProps {
+    return {
+      commodityId: Id.restore(dto.commodityId),
+      description: dto.description,
+      initialBalance: Amount.create(dto.initialBalance),
+      name: Name.create(dto.name),
+      type: AccountType.create(dto.type),
+    };
+  }
 
   static toUpdateProps(dto: AccountUpdateDTO): AccountUpdateProps {
     return {
-      currency: dto.currency,
       description: dto.description,
       name: dto.name,
       type: dto.type,

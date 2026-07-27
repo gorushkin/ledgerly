@@ -5,7 +5,10 @@ import {
   type ValidationFieldErrorCode,
 } from '@ledgerly/shared/types';
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
-import { DatabaseError } from 'src/infrastructure/errors';
+import {
+  DatabaseError,
+  RecordAlreadyExistsError,
+} from 'src/infrastructure/errors';
 import { isCodedError } from 'src/shared/errors';
 import { reportDatabaseError } from 'src/shared/errors/reportDatabaseError';
 import { ZodError, type ZodIssue } from 'zod';
@@ -26,6 +29,9 @@ const statusByErrorCode = {
   [apiErrorCodes.internalServerError]: 500,
   [apiErrorCodes.invalidAccountType]: 400,
   [apiErrorCodes.invalidAmount]: 400,
+  [apiErrorCodes.invalidCommodityCode]: 400,
+  [apiErrorCodes.invalidCommodityPrecision]: 400,
+  [apiErrorCodes.invalidCommoditySymbol]: 400,
   [apiErrorCodes.invalidDate]: 400,
   [apiErrorCodes.invalidEmail]: 400,
   [apiErrorCodes.invalidIdentifier]: 400,
@@ -102,6 +108,15 @@ export function errorHandler(
       statusByErrorCode[error.code],
       error.code,
       error.context,
+    );
+  }
+
+  if (error instanceof RecordAlreadyExistsError) {
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.conflict],
+      apiErrorCodes.conflict,
+      {},
     );
   }
 

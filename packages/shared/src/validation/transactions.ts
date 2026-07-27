@@ -7,21 +7,20 @@ import {
 
 import {
   uuid,
-  requiredText,
+  text,
+  defaultText,
   isoDate,
-  isoDatetime,
   amountString,
-  currencyCode,
 } from "./baseValidations";
 
-// amount — posting in the account's native currency
-// value  — posting in the transaction's currency (GnuCash convention)
+// amount — posting in the account Commodity
+// value  — posting in the transaction Commodity (GnuCash convention)
 // For same-currency transactions amount === value.
 // Transaction balance is validated by summing value across all operations (must equal 0).
 export const operationCreateSchema = z.object({
   accountId: uuid,
   amount: amountString,
-  description: requiredText,
+  description: defaultText,
   value: amountString,
 });
 
@@ -29,14 +28,14 @@ export const operationCreateSchema = z.object({
 export const operationUpdateSchema = z.object({
   accountId: uuid,
   amount: amountString,
-  description: requiredText,
+  description: text,
   id: uuid,
   value: amountString,
 });
 
 export const transactionCreateSchema = z.object({
-  currencyCode: currencyCode,
-  description: requiredText,
+  commodityId: uuid,
+  description: defaultText,
   operations: z
     .array(operationCreateSchema)
     .min(MIN_TRANSACTION_OPERATIONS)
@@ -46,7 +45,7 @@ export const transactionCreateSchema = z.object({
 });
 
 export const transactionUpdateSchema = z.object({
-  description: requiredText,
+  description: text,
   operations: z.object({
     create: z.array(operationCreateSchema).max(MAX_TRANSACTION_OPERATIONS),
     delete: z.array(uuid).max(MAX_TRANSACTION_OPERATIONS),
@@ -57,21 +56,7 @@ export const transactionUpdateSchema = z.object({
   version: z.number().int().nonnegative(),
 });
 
-export const transactionResponseSchema = z.object({
-  createdAt: isoDatetime,
-  description: requiredText,
-  id: uuid,
-  isTombstone: z.boolean(),
-  postingDate: isoDate,
-  transactionDate: isoDate,
-  updatedAt: isoDatetime,
-  userId: uuid,
-  version: z.number().int().nonnegative(),
-});
-
 export type OperationCreateInput = z.infer<typeof operationCreateSchema>;
 export type OperationUpdateInput = z.infer<typeof operationUpdateSchema>;
-
 export type TransactionCreateInput = z.infer<typeof transactionCreateSchema>;
 export type TransactionUpdateInput = z.infer<typeof transactionUpdateSchema>;
-export type TransactionResponse = z.infer<typeof transactionResponseSchema>;

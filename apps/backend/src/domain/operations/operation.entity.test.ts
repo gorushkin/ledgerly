@@ -31,7 +31,7 @@ describe('Operation Domain Entity', () => {
   let eurAccount: Account;
 
   const transactionData: TransactionProps = {
-    currencyCode: 'USD',
+    currency: 'USD',
     description: 'Test transaction',
     postingDate: '2024-01-01',
     transactionDate: '2024-01-01',
@@ -50,7 +50,7 @@ describe('Operation Domain Entity', () => {
     userId = user.getId();
 
     const data = TransactionBuilder.transaction({
-      accounts: ['USD', 'EUR'],
+      currencies: ['USD', 'EUR'],
       operations: [
         { accountKey: 'USD', amount: '100', description: 'Debit' },
         { accountKey: 'EUR', amount: '-100', description: 'Credit' },

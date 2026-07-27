@@ -30,8 +30,8 @@ Represents a single financial posting affecting an account.
 
 - Links to a transaction (`transactionId`) and an account (`accountId`)
 - Belongs to a user (`userId`)
-- `amount` — signed integer in the **account's native currency** (cents)
-- `value` — signed integer in the **transaction's currency** (cents); used for balance validation
+- `amount` — signed integer in the **account's Commodity** minor units
+- `value` — signed integer in the **transaction Commodity** minor units; used for balance validation
 - `amount` and `value` must be valid integer minor-unit values. `NaN`,
   `Infinity`, missing values, and decimal/floating-point values are invalid.
   Zero is allowed and is not rejected by the domain model.
@@ -55,7 +55,7 @@ Represents different financial accounts with unified structure for all account t
   - **Liability**: Debts, loans, credit
   - **Income**: Revenue sources (salary, interest)
   - **Expense**: Spending categories
-- Has a designated currency
+- Has a designated Commodity
 - **Balance tracking**:
   - For Asset/Liability: real balance stored in `currentClearedBalanceLocal`, must match reality
   - For Income/Expense: reporting metric (sum over period), calculated from operations
@@ -64,24 +64,28 @@ Represents different financial accounts with unified structure for all account t
 - `isSystem = true` is reserved for future system trading accounts (currently unused)
 - Has soft delete support (`isTombstone`)
 
-### Currency
+### Commodity
 
-Represents different monetary units used in the system.
-
-> Design note: this concept is expected to evolve into an asset/commodity
-> registry before transaction currency existence validation is finalized. Fiat
-> currencies, crypto assets, tokenized assets on different networks, and custom
-> user-defined assets should not all rely on a currency code as primary
-> identity. See
-> [ADR 0006](./architecture/adr/0006-asset-registry-before-currency-validation.md).
+Represents a user-owned monetary unit used in the system. Commodity identity is
+a stable id, not `code`; display codes such as `USD`, `EUR`, or `RUB` are
+metadata owned by each user. See
+[ADR 0006](./architecture/adr/0006-commodity-registry-before-currency-validation.md).
 
 #### Key Properties
 
-- Each account has a designated currency
-- System has a base currency for reporting
-- Operations always store amounts in the account's currency
-- Currency conversion is handled through trading operations
-- Historical rates can be stored for accurate reporting
+- Each account has a designated Commodity
+- Account Commodity is immutable after account creation
+- Transactions have `commodityId`, the transaction Commodity that determines
+  `value` denomination
+- Operations always store `amount` in the account's Commodity
+- Commodity `code`, `name`, and `symbol` are display metadata, not identity
+- Commodity `precision` defines integer minor-unit interpretation
+- Commodity archiving is represented by technical `isTombstone` state
+- `GET /commodities` returns active Commodities by default and supports
+  `status=active|archived|all`
+- `GET /commodities/:id` returns active and archived Commodities owned by the
+  authenticated user
+- Archived Commodities remain readable but cannot be updated or archived again
 
 ## Entity API Conventions
 
@@ -117,6 +121,10 @@ Repositories persist timestamps received through snapshots/mappers.
 Soft-delete is a domain state transition, not an idempotent repository command.
 Calling `markAsDeleted()` on an already deleted entity must fail with
 `DELETED_ENTITY_OPERATION` and must not mutate `updatedAt` again.
+Repository APIs that persist this transition must use `softDelete(...)`.
+Application/use case APIs may use business-facing `archive...` names, and HTTP
+routes may still expose `DELETE /resource/:id` commands. Repository
+`delete(...)` is reserved for physical row deletion.
 
 Snapshot types live next to the entity in `domain/<module>/types.ts`. They use
 primitive/domain-safe fields and must not be aliases for DB rows or response
@@ -208,6 +216,11 @@ repository interfaces and transaction boundaries. Mappers own conversion
 between domain snapshots, read models, response DTOs and persistence shapes.
 Repositories own persistence access.
 
+Commodity-backed account and transaction writes are a documented boundary
+exception: repositories enforce Commodity existence, ownership and tombstone
+state immediately before persistence. See
+[ADR 0019](./architecture/adr/0019-repository-enforced-commodity-reference-validation.md).
+
 New endpoint operations should be implemented as application use cases.
 `apps/backend/src/application/services/*` is reserved for helper orchestration
 used by use cases. Root-level `apps/backend/src/services/*` is legacy and must
@@ -236,9 +249,9 @@ tasks.
    can be a valid transaction when the transaction-level balance rule is
    satisfied; there is no separate "non-zero net effect per account" invariant.
 
-### Currency Handling
+### Commodity Handling
 
-1. Each operation carries both `amount` (account currency) and `value` (transaction currency)
+1. Each operation carries both `amount` (account Commodity) and `value` (transaction Commodity)
 2. For same-currency operations `amount === value`
 3. **Trading operations** (`isSystem = true`) and system trading accounts are **not currently implemented**; they are reserved for a future multi-currency reconciliation phase
 
@@ -343,6 +356,7 @@ Balance: `sum(value) = 0` ✓ — currently this phase is not implemented.
 ```
 Transaction
 - id: UUID
+- сommodityId: UUID (FK) -- denominates operation value fields
 - description: string
 - transactionDate: date (ISO string)
 - postingDate: date (ISO string)
@@ -356,8 +370,8 @@ Operation
 - id: UUID
 - transactionId: UUID (FK)   -- directly linked to Transaction (Entry removed)
 - accountId: UUID (FK)
-- amount: integer             -- in account's native currency (cents)
-- value: integer              -- in transaction's currency (cents); used for balance validation
+- amount: integer             -- in account Commodity minor units
+- value: integer              -- in transaction Commodity minor units; used for balance validation
 - description: string (optional)
 - isSystem: boolean           -- reserved for future trading operations (currently always false)
 - isTombstone: boolean
@@ -369,7 +383,7 @@ Account
 - id: UUID
 - name: string
 - type: enum (Asset, Liability, Income, Expense)
-- currency: string (FK)
+- commodityId: UUID (FK)
 - description: string
 - initialBalance: integer (cents)
 - currentClearedBalanceLocal: integer (cents)
@@ -379,22 +393,19 @@ Account
 - createdAt: timestamp
 - updatedAt: timestamp
 
-Currency
-- code: string (PK)
+Commodity
+- id: UUID
+- userId: UUID (FK)
+- code: string                 -- display/search value, unique per user
 - name: string
-- symbol: string
-
-Future asset registry direction:
-- id: UUID or stable asset identifier
-- type: fiat | crypto | commodity | custom
-- code/symbol: display and search values, not necessarily globally unique
-- precision: minor-unit scale for integer amount storage
-- network and contract address: optional metadata for tokenized assets
-- createdByUserId: nullable owner for user-defined assets
+- symbol: string (optional)
+- precision: integer           -- immutable after creation in the MVP
+- isTombstone: boolean
+- createdAt: timestamp
+- updatedAt: timestamp
 
 Settings
-- userId: UUID (PK, FK)
-- baseCurrency: string (FK)
+- userId: UUID (FK)
 - createdAt: timestamp
 - updatedAt: timestamp
 ```
@@ -427,7 +438,7 @@ Settings
    - Schema validation (Zod)
    - Domain validation (business rules)
    - Database constraints (Drizzle)
-2. Branded types for CurrencyCode and other primitive domain values where useful
+2. Branded types for Commodity codes, Commodity precision, and other primitive domain values where useful
 3. Operation hash-based idempotent updates
 4. Enhanced error handling with domain-specific errors
 
@@ -459,7 +470,7 @@ Settings
    - Domain business accessors expose active operations by default
 6. **Type safety**:
    - Branded types for dates (`IsoDatetimeString`)
-   - Planned branded types for `CurrencyCode` and other primitive domain values where useful
+   - Branded types for Commodity codes, Commodity precision, dates, and other primitive domain values where useful
    - Strict TypeScript configuration
    - Error handling
    - Response serialization

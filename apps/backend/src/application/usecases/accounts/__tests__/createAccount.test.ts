@@ -1,9 +1,7 @@
-import { CurrencyCode } from '@ledgerly/shared/types';
-import { AccountFactory } from 'src/application/services/account.factory';
+import { AccountRepositoryInterface } from 'src/application';
 import { createUser } from 'src/db/createTestUser';
-import { AccountType } from 'src/domain';
-import { Account } from 'src/domain/accounts/account.entity';
-import { Amount, Currency, Name } from 'src/domain/domain-core';
+import { Commodity } from 'src/domain';
+import { Amount, CommodityCode } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateAccountUseCase } from '../createAccount';
@@ -13,21 +11,26 @@ describe('CreateAccountUseCase', async () => {
 
   let createAccountUseCase: CreateAccountUseCase;
 
-  let accountFactory: { createAccount: ReturnType<typeof vi.fn> };
+  const accountRepository = {
+    create: vi.fn(),
+  };
 
   const name = 'Test Account';
   const description = 'Test account description';
   const initialBalance = Amount.create('1000').valueOf();
-  const currency = 'USD' as CurrencyCode;
+  const currentClearedBalanceLocal = Amount.create('0').valueOf();
+
+  const commodity = Commodity.create(user, {
+    code: CommodityCode.create('USD').valueOf(),
+    name: 'Test Commodity',
+    precision: 2,
+    symbol: null,
+  });
   const type = 'asset';
 
   beforeEach(() => {
-    accountFactory = {
-      createAccount: vi.fn(),
-    };
-
     createAccountUseCase = new CreateAccountUseCase(
-      accountFactory as unknown as AccountFactory,
+      accountRepository as unknown as AccountRepositoryInterface,
     );
   });
 
@@ -35,36 +38,36 @@ describe('CreateAccountUseCase', async () => {
     it('should create a new account successfully', async () => {
       // Arrange
 
-      const mockedAccount = Account.create(
-        user,
-        Name.create(name),
-        description,
-        Amount.create(initialBalance),
-        Currency.create(currency),
-        AccountType.create(type),
-      );
-
-      accountFactory.createAccount.mockResolvedValue(mockedAccount);
+      const mockedCommoditySnapshot = commodity.toSnapshot();
 
       // Act
       const result = await createAccountUseCase.execute(user, {
-        currency: currency,
+        commodityId: mockedCommoditySnapshot.id,
         description,
         initialBalance,
         name,
         type,
       });
 
-      expect(accountFactory.createAccount).toHaveBeenCalledWith(user, {
-        currency: currency,
-        description,
-        initialBalance,
-        name,
-        type,
-      });
+      expect(accountRepository.create).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        {
+          commodityId: result.commodityId,
+          createdAt: result.createdAt,
+          currentClearedBalanceLocal,
+          description,
+          id: result.id,
+          initialBalance,
+          isSystem: false,
+          isTombstone: false,
+          name,
+          type,
+          updatedAt: result.updatedAt,
+          userId: result.userId,
+        },
+      );
 
       expect(result).toMatchObject({
-        currency,
         description,
         initialBalance,
         isSystem: false,

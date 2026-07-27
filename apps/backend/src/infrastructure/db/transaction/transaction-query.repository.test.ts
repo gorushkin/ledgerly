@@ -1,20 +1,22 @@
 import { DEFAULT_TRANSACTION_QUERY } from '@ledgerly/shared/constants';
-import { CurrencyCode, IsoDateString, UUID } from '@ledgerly/shared/types';
+import { IsoDateString, UUID } from '@ledgerly/shared/types';
 import { UserDbRow } from 'src/db/schema';
 import { TestDB, TransactionSeed } from 'src/db/test-db';
+import { CommodityCode, Name } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TransactionManager, TransactionQueryRepository } from '../';
 
 type TestAccount = {
   id: UUID;
-  currency: CurrencyCode;
 };
 
 describe('TransactionQueryRepository', () => {
   let testDB: TestDB;
   let transactionQueryRepo: TransactionQueryRepository;
   let user: UserDbRow;
+  let valuationCommodityId: UUID;
+
   let usdAccount: TestAccount;
   let eurAccount: TestAccount;
 
@@ -26,22 +28,20 @@ describe('TransactionQueryRepository', () => {
   };
 
   const createAccount = async (
-    currency: CurrencyCode,
     name: string,
+    commodityId: UUID,
   ): Promise<TestAccount> => {
-    const account = await testDB.createAccount(user.id, {
-      currency,
+    const account = await testDB.createAccount(user.id, commodityId, {
       name,
     });
 
     return {
-      currency: account.currency,
       id: account.id,
     };
   };
 
   const createTransaction = (seed: TransactionSeed) =>
-    testDB.createTransactionFromSeed(user.id, seed);
+    testDB.createTransactionFromSeed(user.id, valuationCommodityId, seed);
 
   const expectTransactionToMatchSeed = (
     transaction: Awaited<ReturnType<TransactionQueryRepository['findById']>>,
@@ -53,7 +53,6 @@ describe('TransactionQueryRepository', () => {
       return;
     }
 
-    expect(transaction.currency).toBe(seed.currencyCode ?? 'USD');
     expect(transaction.description).toBe(seed.description);
     expect(transaction.postingDate).toBe(seed.postingDate ?? '2023-01-01');
     expect(transaction.transactionDate).toBe(
@@ -80,8 +79,33 @@ describe('TransactionQueryRepository', () => {
     await testDB.setupTestDb();
 
     user = await testDB.createUser();
-    usdAccount = await createAccount('USD' as CurrencyCode, 'Cash USD');
-    eurAccount = await createAccount('EUR' as CurrencyCode, 'Cash EUR');
+
+    const commodity = await testDB.createCommodity(user.id, {
+      code: CommodityCode.create('RUB').valueOf(),
+    });
+
+    valuationCommodityId = commodity.id;
+
+    const usdCommodityId = (
+      await testDB.createCommodity(user.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      })
+    ).id;
+
+    const eurCommodityId = (
+      await testDB.createCommodity(user.id, {
+        code: CommodityCode.create('EUR').valueOf(),
+      })
+    ).id;
+
+    usdAccount = await createAccount(
+      Name.create('USD').valueOf(),
+      usdCommodityId,
+    );
+    eurAccount = await createAccount(
+      Name.create('EUR').valueOf(),
+      eurCommodityId,
+    );
 
     transactionQueryRepo = new TransactionQueryRepository(
       transactionManager as unknown as TransactionManager,
@@ -124,7 +148,6 @@ describe('TransactionQueryRepository', () => {
           transactionDate: '2023-01-02' as IsoDateString,
         },
         {
-          currencyCode: 'EUR' as CurrencyCode,
           description: 'Transfer',
           operations: [
             {
@@ -393,7 +416,6 @@ describe('TransactionQueryRepository', () => {
           transactionDate: '2023-01-02' as IsoDateString,
         },
         {
-          currencyCode: 'EUR' as CurrencyCode,
           description: 'Transfer',
           operations: [
             {
@@ -463,8 +485,8 @@ describe('TransactionQueryRepository', () => {
 
       expect(Object.keys(transaction).sort()).toEqual(
         [
+          'commodityId',
           'createdAt',
-          'currency',
           'description',
           'id',
           'operations',
@@ -500,7 +522,6 @@ describe('TransactionQueryRepository', () => {
   describe('findById', () => {
     it('should return transaction by id with operations', async () => {
       const transactionSeed: TransactionSeed = {
-        currencyCode: 'EUR' as CurrencyCode,
         description: 'Exchange',
         operations: [
           {

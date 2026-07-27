@@ -4,7 +4,6 @@ import { getTransactionsQuerySchema } from "../validation/baseValidations";
 
 import type { PaginatedResponse } from "./pagination";
 import type {
-  CurrencyCode,
   IsoDateString,
   IsoDatetimeString,
   AmountString,
@@ -43,7 +42,7 @@ export type OperationResponseDTO = {
 };
 
 export type CreateTransactionRequestDTO = {
-  currencyCode: CurrencyCode;
+  commodityId: UUID;
   description: string;
   operations: CreateOperationRequestDTO[];
   postingDate: IsoDateString;
@@ -63,8 +62,8 @@ export type UpdateTransactionRequestDTO = {
 };
 
 export type TransactionResponseDTO = {
+  commodityId: UUID;
   createdAt: IsoDatetimeString;
-  currency: CurrencyCode;
   description: string;
   id: UUID;
   operations: OperationResponseDTO[];

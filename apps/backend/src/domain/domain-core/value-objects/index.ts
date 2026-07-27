@@ -1,7 +1,6 @@
 export { Id } from './Id';
 export { Timestamp } from './Timestamp';
 export { Amount } from './Amount';
-export { Currency } from './Currency';
 export { Name } from './Name';
 export { Email } from './Email';
 export { ParentChildRelation } from './ParentChildRelation';
@@ -9,3 +8,4 @@ export { Password } from './Password';
 export { DateValue } from './DateValue';
 export { Version } from './Version';
 export { parseValueObject } from './parseValueObject';
+export { CommodityCode } from './CommodityCode';

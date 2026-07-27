@@ -75,6 +75,57 @@ export class InvalidAmountError extends CodedDomainError<'INVALID_AMOUNT'> {
   }
 }
 
+export class InvalidCommodityCodeError extends CodedDomainError<'INVALID_COMMODITY_CODE'> {
+  constructor(
+    public readonly value: unknown,
+    cause?: Error,
+  ) {
+    super(
+      'commodity code is invalid',
+      apiErrorCodes.invalidCommodityCode,
+      {
+        reason: 'INVALID_FORMAT',
+        received: String(value),
+      },
+      cause,
+    );
+  }
+}
+
+export class InvalidCommodityPrecisionError extends CodedDomainError<'INVALID_COMMODITY_PRECISION'> {
+  constructor(
+    public readonly value: unknown,
+    cause?: Error,
+  ) {
+    super(
+      'commodity precision is invalid',
+      apiErrorCodes.invalidCommodityPrecision,
+      {
+        reason: 'INVALID_FORMAT',
+        received: String(value),
+      },
+      cause,
+    );
+  }
+}
+
+export class InvalidCommoditySymbolError extends CodedDomainError<'INVALID_COMMODITY_SYMBOL'> {
+  constructor(
+    public readonly value: unknown,
+    cause?: Error,
+  ) {
+    super(
+      'commodity symbol is invalid',
+      apiErrorCodes.invalidCommoditySymbol,
+      {
+        reason: 'INVALID_FORMAT',
+        received: String(value),
+      },
+      cause,
+    );
+  }
+}
+
 export class InvalidDateError extends CodedDomainError<'INVALID_DATE'> {
   constructor(cause?: Error) {
     super(

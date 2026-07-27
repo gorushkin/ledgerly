@@ -1,5 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
-import { OperationDbRow, UserDbRow } from 'src/db/schema';
+import { eq } from 'drizzle-orm';
+import { commoditiesTable, OperationDbRow, UserDbRow } from 'src/db/schema';
 import { TestDB } from 'src/db/test-db';
 import {
   compareEntities,
@@ -9,10 +10,7 @@ import {
 import { Account } from 'src/domain';
 import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import {
-  ForeignKeyConstraintError,
-  RepositoryNotFoundError,
-} from 'src/infrastructure/errors';
+import { RepositoryNotFoundError } from 'src/infrastructure/errors';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -21,6 +19,7 @@ import {
   TransactionRepository,
 } from '../';
 import { AccountPersistenceMapper } from '../accounts';
+import { CommodityPersistenceMapper } from '../commodities';
 import { OperationPersistenceMapper } from '../operations';
 import { UserPersistenceMapper } from '../user';
 
@@ -58,7 +57,7 @@ describe('TransactionRepository', () => {
     user = await testDB.createUser();
 
     data = TransactionBuilder.persistence({
-      accounts: ['USD', 'EUR'],
+      currencies: ['USD', 'EUR'],
       operations: [
         {
           accountKey: 'USD',
@@ -85,27 +84,26 @@ describe('TransactionRepository', () => {
       user: UserPersistenceMapper.toDomain(user),
     });
 
+    const usdCommodity = data.getCommodityByKey('USD');
+    const eurCommodity = data.getCommodityByKey('EUR');
+
+    await testDB.insertCommodity(
+      CommodityPersistenceMapper.toDBRowFromSnapshot(usdCommodity.toSnapshot()),
+    );
+
+    await testDB.insertCommodity(
+      CommodityPersistenceMapper.toDBRowFromSnapshot(eurCommodity.toSnapshot()),
+    );
+
     usdAccount = data.getAccountByKey('USD');
     eurAccount = data.getAccountByKey('EUR');
-
-    const usdSystemAccount = data.getSystemAccountByCurrency('USD');
-    const eurSystemAccount = data.getSystemAccountByCurrency('EUR');
 
     await testDB.insertAccount(
       AccountPersistenceMapper.toDBRowFromSnapshot(usdAccount.toSnapshot()),
     );
+
     await testDB.insertAccount(
       AccountPersistenceMapper.toDBRowFromSnapshot(eurAccount.toSnapshot()),
-    );
-    await testDB.insertAccount(
-      AccountPersistenceMapper.toDBRowFromSnapshot(
-        usdSystemAccount.toSnapshot(),
-      ),
-    );
-    await testDB.insertAccount(
-      AccountPersistenceMapper.toDBRowFromSnapshot(
-        eurSystemAccount.toSnapshot(),
-      ),
     );
 
     transactionRepository = new TransactionRepository(
@@ -134,8 +132,8 @@ describe('TransactionRepository', () => {
 
       const insertedTransaction = await testDB.createTransactionWithOperations(
         user.id,
+        transaction.toSnapshot().commodityId,
         {
-          currencyCode: transaction.currency.valueOf(),
           description: transaction.description,
           operations: operationsDataToInsert,
           postingDate: transaction.getPostingDate().valueOf(),
@@ -148,8 +146,18 @@ describe('TransactionRepository', () => {
         insertedTransaction.id,
       );
 
+      const retrievedTransactionSnapshot = retrievedTransaction?.toSnapshot();
+
+      expect(retrievedTransactionSnapshot?.commodityId).toEqual(
+        transaction.toSnapshot().commodityId,
+      );
+
       expect(retrievedTransaction).not.toBeNull();
       expect(retrievedTransaction?.description).toBe(transaction.description);
+
+      expect(retrievedTransaction?.getId().valueOf()).toBe(
+        insertedTransaction.id,
+      );
 
       expect(retrievedTransaction?.getPostingDate().valueOf()).toBe(
         transaction.getPostingDate().valueOf(),
@@ -269,7 +277,54 @@ describe('TransactionRepository', () => {
 
       await expect(
         transactionRepository.create(nonExistentUserId, transaction),
-      ).rejects.toThrow(ForeignKeyConstraintError);
+      ).rejects.toThrow(RepositoryNotFoundError);
+    });
+
+    it('should not create a transaction when commodity does not exist', async () => {
+      const transaction = TransactionBuilder.persistence({
+        currencies: ['USD'],
+        operations: [
+          {
+            accountKey: 'USD',
+            amount: '-200',
+            description: 'Credit operation',
+          },
+          {
+            accountKey: 'USD',
+            amount: '200',
+            description: 'Debit operation',
+          },
+        ],
+        settings: { description },
+        user: UserPersistenceMapper.toDomain(user),
+      }).transaction;
+
+      await expect(
+        transactionRepository.create(user.id, transaction),
+      ).rejects.toThrow(RepositoryNotFoundError);
+    });
+
+    it('should not create a transaction when commodity belongs to another user', async () => {
+      const otherUser = await testDB.createUser();
+      const transaction = data.transaction;
+
+      await expect(
+        transactionRepository.create(otherUser.id, transaction),
+      ).rejects.toThrow(RepositoryNotFoundError);
+    });
+
+    it('should not create a transaction when commodity is tombstoned', async () => {
+      const transaction = data.transaction;
+      const commodityId = transaction.toSnapshot().commodityId;
+
+      await testDB.db
+        .update(commoditiesTable)
+        .set({ isTombstone: true })
+        .where(eq(commoditiesTable.id, commodityId));
+
+      await expect(
+        transactionRepository.create(user.id, transaction),
+      ).rejects.toThrow(RepositoryNotFoundError);
     });
 
     it('should create a new transaction', async () => {
@@ -683,8 +738,6 @@ describe('TransactionRepository', () => {
       expect(transaction.getTransactionDate().valueOf()).toBe(
         deletedTransaction?.transactionDate,
       );
-
-      expect(deletedTransaction?.currency).toBe(transaction.currency.valueOf());
 
       const expectedOperations: OperationDbRow[] = [];
 

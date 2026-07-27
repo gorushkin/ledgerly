@@ -5,7 +5,11 @@ import {
   TransactionRepositoryInterface,
   TransactionUpdateResult,
 } from 'src/application';
-import { TransactionWithRelations, transactionsTable } from 'src/db/schema';
+import {
+  TransactionWithRelations,
+  commoditiesTable,
+  transactionsTable,
+} from 'src/db/schema';
 import { Transaction } from 'src/domain';
 import { Version } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
@@ -59,6 +63,27 @@ export class TransactionRepository
   ): Promise<void> {
     const transactionData = TransactionPersistenceMapper.toDBRow(transaction);
 
+    const existingCommodity = await this.db
+      .select()
+      .from(commoditiesTable)
+      .where(
+        and(
+          eq(commoditiesTable.id, transactionData.commodityId),
+          eq(commoditiesTable.userId, userId),
+          eq(commoditiesTable.isTombstone, false),
+        ),
+      )
+      .get();
+
+    this.ensureEntityExists(
+      existingCommodity,
+      `Commodity with ID ${transaction.toSnapshot().commodityId} not found`,
+      this.entityNotFoundContext(
+        'commodity',
+        transaction.toSnapshot().commodityId,
+      ),
+    );
+
     await this.db
       .insert(transactionsTable)
       .values({ ...transactionData, userId });
@@ -76,7 +101,6 @@ export class TransactionRepository
       'postingDate',
       'transactionDate',
       'updatedAt',
-      'currency',
       'version',
     ]);
 

@@ -38,42 +38,4 @@ export class AmountFormatter {
 
     return `${formattedMajor}${decimalSeparator}${minor}`;
   }
-
-  formatWithCurrency(
-    amount: Amount,
-    currencyCode: string,
-    locale = 'en-US',
-  ): string {
-    const minorUnits = amount.valueOf();
-    const { major, minor } = this.minorToMajor(minorUnits);
-
-    const formatted = new Intl.NumberFormat(locale, {
-      currency: currencyCode,
-      style: 'currency',
-    }).format(Number(`${major}.${minor}`));
-
-    return formatted;
-  }
-
-  formatCompact(amount: Amount, locale = 'en-US'): string {
-    const minorUnits = amount.valueOf();
-    const { major, minor } = this.minorToMajor(minorUnits);
-
-    return new Intl.NumberFormat(locale, {
-      maximumFractionDigits: 1,
-      minimumFractionDigits: 0,
-      notation: 'compact',
-    }).format(Number(`${major}.${minor}`));
-  }
-
-  formatForTable(amount: Amount, locale = 'en-US'): string {
-    const formatted = this.formatWithSign(amount, locale);
-    return formatted.padStart(15);
-  }
-
-  formatWithSign(amount: Amount, locale = 'en-US'): string {
-    const formatted = this.format(amount, locale);
-    const sign = amount.isPositive() ? '+' : '';
-    return `${sign}${formatted}`;
-  }
 }

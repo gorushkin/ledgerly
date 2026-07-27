@@ -1,4 +1,4 @@
-import { CurrencyCode, UUID } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
   type AccountRepositoryInterface,
@@ -6,7 +6,9 @@ import {
   type AccountRepositoryUpdateInput,
 } from 'src/application';
 import { accountsTable } from 'src/db/schemas/accounts';
+import { commoditiesTable } from 'src/db/schemas/commodities';
 import { AccountSnapshot } from 'src/domain/accounts';
+import { RepositoryInvariantError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -35,9 +37,33 @@ export class AccountRepository
     }, 'Failed to fetch accounts');
   }
 
-  create(data: AccountSnapshot): Promise<AccountSnapshot> {
+  create(userId: UUID, data: AccountSnapshot): Promise<AccountSnapshot> {
     return this.executeDatabaseOperation(
       async () => {
+        if (data.userId !== userId) {
+          throw new RepositoryInvariantError(
+            'Account snapshot userId must match repository create userId',
+          );
+        }
+
+        const existingCommodity = await this.db
+          .select()
+          .from(commoditiesTable)
+          .where(
+            and(
+              eq(commoditiesTable.id, data.commodityId),
+              eq(commoditiesTable.userId, data.userId),
+              eq(commoditiesTable.isTombstone, false),
+            ),
+          )
+          .get();
+
+        this.ensureEntityExists(
+          existingCommodity,
+          `Commodity with ID ${data.commodityId} not found`,
+          this.entityNotFoundContext('commodity', data.commodityId),
+        );
+
         const account = await this.db
           .insert(accountsTable)
           .values({
@@ -100,7 +126,6 @@ export class AccountRepository
           'description',
           'initialBalance',
           'name',
-          'currency',
           'type',
           'updatedAt',
         ]);
@@ -109,7 +134,11 @@ export class AccountRepository
           .update(accountsTable)
           .set(safeData)
           .where(
-            and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)),
+            and(
+              eq(accountsTable.id, id),
+              eq(accountsTable.userId, userId),
+              eq(accountsTable.isTombstone, false),
+            ),
           )
           .returning()
           .get();
@@ -131,7 +160,7 @@ export class AccountRepository
     );
   }
 
-  async delete(
+  async softDelete(
     userId: UUID,
     id: UUID,
     data: AccountRepositorySoftDeleteInput,
@@ -140,7 +169,13 @@ export class AccountRepository
       const deletedAccount = await this.db
         .update(accountsTable)
         .set({ isTombstone: true, updatedAt: data.updatedAt })
-        .where(and(eq(accountsTable.id, id), eq(accountsTable.userId, userId)))
+        .where(
+          and(
+            eq(accountsTable.id, id),
+            eq(accountsTable.userId, userId),
+            eq(accountsTable.isTombstone, false),
+          ),
+        )
         .returning()
         .get();
 
@@ -151,35 +186,7 @@ export class AccountRepository
       );
 
       return AccountPersistenceMapper.toSnapshot(existingAccount);
-    }, `Failed to delete account with ID ${id}`);
-  }
-
-  async findSystemAccount(
-    userId: UUID,
-    currency: CurrencyCode,
-  ): Promise<AccountSnapshot> {
-    return this.executeDatabaseOperation<AccountSnapshot>(async () => {
-      const account = await this.db
-        .select()
-        .from(accountsTable)
-        .where(
-          and(
-            eq(accountsTable.userId, userId),
-            eq(accountsTable.currency, currency),
-            eq(accountsTable.isSystem, true),
-            eq(accountsTable.isTombstone, false),
-          ),
-        )
-        .get();
-
-      const existingAccount = this.ensureEntityExists(
-        account,
-        `System account not found for currency: ${currency}`,
-        this.entityNotFoundContext('account'),
-      );
-
-      return AccountPersistenceMapper.toSnapshot(existingAccount);
-    }, 'Failed to fetch system account');
+    }, `Failed to soft delete account with ID ${id}`);
   }
 
   async ensureUserOwnsAccount(userId: UUID, accountId: UUID) {

@@ -128,17 +128,15 @@ Trading accounts will never be displayed to the user.
 
 ## 5. Data Structure
 
-> Design note: the current schema uses `currency` strings, but this should not
-> be treated as the final persistence model for monetary units. Before adding
-> existence validation for transaction currency, define an asset/commodity
-> registry that can represent fiat currencies, crypto assets, tokens on specific
-> networks, and custom user assets. See
-> [ADR 0006](./architecture/adr/0006-asset-registry-before-currency-validation.md).
+Ledgerly stores monetary-unit identity through user-owned Commodities.
+Commodity identity is a stable id, not a display code. See
+[ADR 0006](./architecture/adr/0006-commodity-registry-before-currency-validation.md).
 
 ### Transaction
 Top-level entity representing a financial event:
 - `id`, `userId`, `description`
-- `currency` (base currency for the transaction — determines `value` denomination)
+- `commodityId`, which determines the transaction Commodity and `value`
+  denomination
 - `transactionDate`, `postingDate`
 - `version` (optimistic concurrency)
 - `createdAt`, `updatedAt`, `isTombstone`
@@ -146,8 +144,8 @@ Top-level entity representing a financial event:
 ### Operation
 Individual account posting:
 - `id`, `transactionId`, `accountId`, `userId`
-- `amount` (signed integer, in **account's currency**)
-- `value` (signed integer, in **transaction's currency**)
+- `amount` (signed integer, in the **account's Commodity**)
+- `value` (signed integer, in the **transaction Commodity**)
 - `description` (optional)
 - `isSystem` (true for trading postings)
 - `createdAt`, `updatedAt`, `isTombstone`
@@ -156,17 +154,17 @@ Individual account posting:
 
 This follows the standard GnuCash split model:
 
-| Field | Currency | Purpose |
-|-------|----------|---------|
-| `amount` | Account's native currency | How much was posted to this account |
-| `value` | Transaction's currency | The equivalent amount in the transaction's denomination |
+| Field | Denomination | Purpose |
+|-------|--------------|---------|
+| `amount` | Account's Commodity | How much was posted to this account |
+| `value` | Transaction Commodity | The equivalent amount in the transaction's denomination |
 
 For **same-currency** transactions both fields are equal.
 
 For **cross-currency** transactions they differ:
 
 ```
-Transaction currency: USD
+Transaction Commodity: USD
   Operation on Assets:WalletRUB
     amount = -1000  (RUB — account's currency)
     value  =   -10  (USD — transaction's currency)
@@ -175,7 +173,7 @@ Transaction currency: USD
 **Balance validation** is performed on `value`: the sum of `value` across all operations of a transaction must equal zero, regardless of how many currencies are involved.
 
 Notes:
-- Currency is determined by the account.
+- Account denomination is determined by the account's Commodity.
 - Operations are immutable.
 - Normal operations have `isSystem = false`.
 - Trading operations have `isSystem = true`.
@@ -255,7 +253,7 @@ Currently, Ledgerly stays closer to GnuCash than to PTA.
 - From `MIN_TRANSACTION_OPERATIONS` to `MAX_TRANSACTION_OPERATIONS` active operations per transaction (currently 2 to 1000)
 - Balance validated by `sum(value) = 0` across all operations  
 - Immutable ledger operations  
-- `amount` = account currency; `value` = transaction currency (GnuCash convention)  
+- `amount` = account Commodity; `value` = transaction Commodity (GnuCash convention)
 
 ### Planned
 

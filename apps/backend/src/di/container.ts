@@ -1,31 +1,40 @@
-import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
-import { AccountFactory } from 'src/application/services';
+import {
+  GetAllCommoditiesUseCase,
+  GetCommodityByIdUseCase,
+  LoginUserUseCase,
+  RegisterUserUseCase,
+  CreateAccountUseCase,
+  ArchiveAccountUseCase,
+  GetAccountByIdUseCase,
+  GetAllAccountsUseCase,
+  UpdateAccountUseCase,
+  DeleteTransactionUseCase,
+  GetAllTransactionsUseCase,
+  GetTransactionByIdUseCase,
+  UpdateTransactionUseCase,
+  CreateTransactionUseCase,
+  UpdateCommodityUseCase,
+  ArchiveCommodityUseCase,
+  CreateCommodityUseCase,
+} from 'src/application';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
-import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
-import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
-import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
-import { GetAllAccountsUseCase } from 'src/application/usecases/accounts/getAllAccounts';
-import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAccount';
-import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
-import { DeleteTransactionUseCase } from 'src/application/usecases/transaction/DeleteTransaction';
-import { GetAllTransactionsUseCase } from 'src/application/usecases/transaction/GetAllTransactions';
-import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
-import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
+import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import {
   TransactionRepository,
   TransactionQueryRepository,
   OperationRepository,
-  CurrencyRepository,
   TransactionManager,
   AccountRepository,
   UserRepository,
 } from 'src/infrastructure/db';
+import { CommodityRepository } from 'src/infrastructure/db';
 import {
   AccountController,
   AuthController,
+  CommodityController,
   TransactionController,
   UserController,
 } from 'src/presentation/http';
@@ -37,7 +46,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const transactionManager = new TransactionManager(db);
 
   const accountRepository = new AccountRepository(transactionManager);
-  const currencyRepository = new CurrencyRepository(transactionManager);
+  const commodityRepository = new CommodityRepository(transactionManager);
   const operationRepository = new OperationRepository(transactionManager);
   const transactionRepository = new TransactionRepository(
     operationRepository,
@@ -52,15 +61,13 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
-    currency: currencyRepository,
+    commodity: commodityRepository,
     transaction: transactionRepository,
     transactionQuery: transactionQueryRepository,
     user: userRepository,
   };
 
   // Services and Factories
-
-  const accountFactory = new AccountFactory(accountRepository);
 
   const transactionContextLoader = new TransactionContextLoader(
     accountRepository,
@@ -73,11 +80,11 @@ export const createContainer = (db: DataBase): AppContainer => {
   };
 
   // Create Account Use Cases
-  const createAccountUseCase = new CreateAccountUseCase(accountFactory);
+  const createAccountUseCase = new CreateAccountUseCase(accountRepository);
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
   const updateAccountUseCase = new UpdateAccountUseCase(accountRepository);
-  const deleteAccountUseCase = new DeleteAccountUseCase(accountRepository);
+  const archiveAccountUseCase = new ArchiveAccountUseCase(accountRepository);
 
   const loginUserUseCase = new LoginUserUseCase(userRepository);
 
@@ -111,9 +118,39 @@ export const createContainer = (db: DataBase): AppContainer => {
     ensureEntityExistsAndOwned,
   );
 
+  const getCommodityByIdUseCase = new GetCommodityByIdUseCase(
+    commodityRepository,
+  );
+
+  const getAllCommoditiesUseCase = new GetAllCommoditiesUseCase(
+    commodityRepository,
+  );
+
+  const updateCommodityUseCase = new UpdateCommodityUseCase(
+    commodityRepository,
+    ensureOwnedSnapshot,
+  );
+
+  const archiveCommodityUseCase = new ArchiveCommodityUseCase(
+    commodityRepository,
+    ensureOwnedSnapshot,
+  );
+
+  const createCommodityUseCase = new CreateCommodityUseCase(
+    commodityRepository,
+  );
+
+  const commodityController = new CommodityController(
+    getCommodityByIdUseCase,
+    getAllCommoditiesUseCase,
+    createCommodityUseCase,
+    updateCommodityUseCase,
+    archiveCommodityUseCase,
+  );
+
   const useCases: AppContainer['useCases'] = {
     account: {
-      archiveAccount: deleteAccountUseCase,
+      archiveAccount: archiveAccountUseCase,
       createAccount: createAccountUseCase,
       getAccountById: getAccountByIdUseCase,
       getAllAccounts: getAllAccountsUseCase,
@@ -122,6 +159,13 @@ export const createContainer = (db: DataBase): AppContainer => {
     auth: {
       loginUser: loginUserUseCase,
       registerUser: registerUserUseCase,
+    },
+    commodity: {
+      archiveCommodity: archiveCommodityUseCase,
+      createCommodity: createCommodityUseCase,
+      getAllCommodities: getAllCommoditiesUseCase,
+      getCommodityById: getCommodityByIdUseCase,
+      updateCommodity: updateCommodityUseCase,
     },
     transaction: {
       createTransaction: createTransactionUseCase,
@@ -157,18 +201,14 @@ export const createContainer = (db: DataBase): AppContainer => {
   const controllers: AppContainer['controllers'] = {
     account: accountController,
     auth: authController,
+    commodity: commodityController,
     transaction: transactionController,
     user: userController,
-  };
-
-  const factories: AppContainer['factories'] = {
-    account: accountFactory,
   };
 
   return {
     controllers,
     db,
-    factories,
     repositories,
     services,
     useCases,

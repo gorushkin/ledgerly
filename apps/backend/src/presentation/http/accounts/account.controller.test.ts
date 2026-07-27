@@ -1,13 +1,12 @@
 import { AccountCreateDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
 import {
-  DeleteAccountUseCase,
+  ArchiveAccountUseCase,
   CreateAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
   UpdateAccountUseCase,
 } from 'src/application/usecases/accounts';
 import { Amount } from 'src/domain/domain-core';
-import { Currency } from 'src/domain/domain-core/value-objects/Currency';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { User } from 'src/domain/users/user.entity';
 import { createUser } from 'src/testing';
@@ -39,7 +38,7 @@ describe('AccountController', () => {
     execute: vi.fn(),
   };
 
-  const mockDeleteAccountUseCase = {
+  const mockArchiveAccountUseCase = {
     execute: vi.fn(),
   };
 
@@ -48,7 +47,7 @@ describe('AccountController', () => {
     mockGetAllAccountsUseCase as unknown as GetAllAccountsUseCase,
     mockCreateAccountUseCase as unknown as CreateAccountUseCase,
     mockUpdateAccountUseCase as unknown as UpdateAccountUseCase,
-    mockDeleteAccountUseCase as unknown as DeleteAccountUseCase,
+    mockArchiveAccountUseCase as unknown as ArchiveAccountUseCase,
   );
 
   beforeEach(async () => {
@@ -101,7 +100,7 @@ describe('AccountController', () => {
   describe('create', () => {
     it('should call accountService.create with correct data', async () => {
       const requestBody: AccountCreateDTO = {
-        currency: Currency.create('USD').valueOf(),
+        commodityId: Id.create().valueOf(),
         description: 'Test Account',
         initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
@@ -125,7 +124,7 @@ describe('AccountController', () => {
 
     it('should handle invalid requestBody gracefully', async () => {
       const invalidRequestBody = {
-        currency: null,
+        commodityId: null,
         name: 123,
         type: 'invalid-type',
       };
@@ -138,7 +137,6 @@ describe('AccountController', () => {
 
   describe('update', () => {
     const requestBody: AccountUpdateDTO = {
-      currency: Currency.create('USD').valueOf(),
       description: 'Test Account',
       name: 'New Account',
       type: 'liability',
@@ -162,8 +160,8 @@ describe('AccountController', () => {
 
     it('should handle invalid requestBody gracefully', async () => {
       const invalidRequestBody = {
+        commodityId: null,
         name: 123,
-        originalCurrency: null,
         type: 'invalid-type',
       };
 
@@ -181,25 +179,25 @@ describe('AccountController', () => {
     });
   });
 
-  describe('delete', () => {
-    it('should call accountService.delete with correct id and userId', async () => {
-      mockDeleteAccountUseCase.execute.mockResolvedValue(undefined);
+  describe('archiveAccount', () => {
+    it('should call archive account use case with correct account id and user', async () => {
+      mockArchiveAccountUseCase.execute.mockResolvedValue(undefined);
 
-      await accountController.deleteAccount(user, { id: accountId });
+      await accountController.archiveAccount(user, { id: accountId });
 
-      expect(mockDeleteAccountUseCase.execute).toHaveBeenCalledWith(
+      expect(mockArchiveAccountUseCase.execute).toHaveBeenCalledWith(
         user,
         accountId,
       );
-      expect(mockDeleteAccountUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(mockArchiveAccountUseCase.execute).toHaveBeenCalledTimes(1);
     });
 
     it('should throw ZodError for invalid request params', async () => {
       await expect(
-        accountController.deleteAccount(user, { id: 'not-a-uuid' }),
+        accountController.archiveAccount(user, { id: 'not-a-uuid' }),
       ).rejects.toThrow(ZodError);
 
-      expect(mockDeleteAccountUseCase.execute).not.toHaveBeenCalled();
+      expect(mockArchiveAccountUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });

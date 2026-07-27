@@ -1,4 +1,5 @@
 export { prettyPrint } from './prettyPrint';
+export { parseResponse } from './parseResponse';
 export {
   OperationDataForTransaction,
   TransactionBuilder,
@@ -7,4 +8,4 @@ export {
   TransactionPersistenceBuilderResult,
   TransactionRequestBuilderResult,
 } from './testEntityBuilder';
-export { compareEntities } from './entityComparer';
+export { compareEntities, compareEntityArrays } from './entityComparer';

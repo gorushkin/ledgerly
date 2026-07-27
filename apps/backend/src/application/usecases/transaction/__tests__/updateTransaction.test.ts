@@ -147,7 +147,7 @@ describe('UpdateTransactionUseCase', () => {
     vi.clearAllMocks();
 
     const data = TransactionBuilder.transaction({
-      accounts: ['USD', 'EUR'],
+      currencies: ['USD', 'EUR'],
       operations: [
         {
           accountKey: 'USD',

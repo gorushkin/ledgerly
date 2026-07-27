@@ -17,3 +17,8 @@ export type {
   TransactionContext,
 } from './TransactionManager.interface';
 export type { OperationRepositoryInterface } from './OperationRepository.interface';
+export type {
+  CommodityRepositoryInterface,
+  CommodityRepositoryUpdateInput,
+  CommodityRepositorySoftDeleteInput,
+} from './CommodityRepository.interface';

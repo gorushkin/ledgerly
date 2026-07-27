@@ -5,3 +5,4 @@ export * from "./types";
 export * from "./error-contract";
 export * from "./pagination";
 export * from "./transaction";
+export * from "./commodity";

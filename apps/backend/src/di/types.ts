@@ -1,36 +1,42 @@
-import { LoginUserUseCase, RegisterUserUseCase } from 'src/application';
-import { AccountFactory } from 'src/application/services';
-import { CreateAccountUseCase } from 'src/application/usecases/accounts/createAccount';
-import { DeleteAccountUseCase } from 'src/application/usecases/accounts/deleteAccount';
-import { GetAccountByIdUseCase } from 'src/application/usecases/accounts/getAccountById';
-import { GetAllAccountsUseCase } from 'src/application/usecases/accounts/getAllAccounts';
-import { UpdateAccountUseCase } from 'src/application/usecases/accounts/updateAccount';
 import {
+  GetAllCommoditiesUseCase,
+  GetCommodityByIdUseCase,
+  LoginUserUseCase,
+  RegisterUserUseCase,
+  CreateAccountUseCase,
+  ArchiveAccountUseCase,
+  GetAccountByIdUseCase,
+  GetAllAccountsUseCase,
+  UpdateAccountUseCase,
   DeleteTransactionUseCase,
   GetAllTransactionsUseCase,
-} from 'src/application/usecases/transaction';
-import { CreateTransactionUseCase } from 'src/application/usecases/transaction/CreateTransaction';
-import { GetTransactionByIdUseCase } from 'src/application/usecases/transaction/GetTransactionById';
-import { UpdateTransactionUseCase } from 'src/application/usecases/transaction/UpdateTransaction';
+  GetTransactionByIdUseCase,
+  UpdateTransactionUseCase,
+  CreateTransactionUseCase,
+  UpdateCommodityUseCase,
+  ArchiveCommodityUseCase,
+  CreateCommodityUseCase,
+} from 'src/application';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import {
   TransactionQueryRepository,
   AccountRepository,
-  CurrencyRepository,
   TransactionRepository,
+  CommodityRepository,
   UserRepository,
 } from 'src/infrastructure/db';
 import {
   AccountController,
   AuthController,
   TransactionController,
+  CommodityController,
   UserController,
 } from 'src/presentation/http';
 
 type Repositories = {
-  currency: CurrencyRepository;
   transaction: TransactionRepository;
+  commodity: CommodityRepository;
   transactionQuery: TransactionQueryRepository;
   account: AccountRepository;
   user: UserRepository;
@@ -45,7 +51,7 @@ type AccountUseCases = {
   getAllAccounts: GetAllAccountsUseCase;
   getAccountById: GetAccountByIdUseCase;
   updateAccount: UpdateAccountUseCase;
-  archiveAccount: DeleteAccountUseCase;
+  archiveAccount: ArchiveAccountUseCase;
 };
 
 type AuthUseCases = {
@@ -61,15 +67,20 @@ type TransactionUseCases = {
   deleteTransaction: DeleteTransactionUseCase;
 };
 
+type CommodityUseCases = {
+  getCommodityById: GetCommodityByIdUseCase;
+  getAllCommodities: GetAllCommoditiesUseCase;
+  updateCommodity: UpdateCommodityUseCase;
+  archiveCommodity: ArchiveCommodityUseCase;
+  createCommodity: CreateCommodityUseCase;
+};
+
 type Controllers = {
   account: AccountController;
   user: UserController;
   auth: AuthController;
   transaction: TransactionController;
-};
-
-type Factories = {
-  account: AccountFactory;
+  commodity: CommodityController;
 };
 
 export type AppContainer = {
@@ -80,7 +91,7 @@ export type AppContainer = {
     account: AccountUseCases;
     auth: AuthUseCases;
     transaction: TransactionUseCases;
+    commodity: CommodityUseCases;
   };
   controllers: Controllers;
-  factories: Factories;
 };

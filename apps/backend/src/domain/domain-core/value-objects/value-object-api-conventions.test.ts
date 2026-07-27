@@ -4,7 +4,6 @@ import { AccountType } from '../../accounts';
 import { EntityIdentity, EntityTimestamps, SoftDelete } from '../behaviors';
 
 import { Amount } from './Amount';
-import { Currency } from './Currency';
 import { DateValue } from './DateValue';
 import { Email } from './Email';
 import { Id } from './Id';
@@ -19,7 +18,6 @@ describe('value object API conventions', () => {
     const id = '11111111-1111-4111-8111-111111111111';
 
     expect(Amount.restore('1200').valueOf()).toBe('1200');
-    expect(Currency.restore('USD').valueOf()).toBe('USD');
     expect(DateValue.restore('2026-07-10').valueOf()).toBe('2026-07-10');
     expect(Email.restore('user@example.com').valueOf()).toBe(
       'user@example.com',
@@ -41,7 +39,6 @@ describe('value object API conventions', () => {
     const childId = Id.restore('22222222-2222-4222-8222-222222222222');
 
     expect(Amount.create('1200').equals(Amount.restore('1200'))).toBe(true);
-    expect(Currency.create('usd').equals(Currency.restore('USD'))).toBe(true);
     expect(
       DateValue.restore('2026-07-10').equals(DateValue.restore('2026-07-10')),
     ).toBe(true);
@@ -73,7 +70,6 @@ describe('value object API conventions', () => {
   it('does not expose domain fromPersistence restoration aliases', () => {
     const constructors = [
       Amount,
-      Currency,
       Email,
       Id,
       Name,
@@ -95,8 +91,6 @@ describe('value object API conventions', () => {
     const valueObjects = [
       Amount.create('1200'),
       Amount.restore('1200'),
-      Currency.create('usd'),
-      Currency.restore('USD'),
       DateValue.create(),
       DateValue.restore('2026-07-10'),
       Email.create('USER@example.com'),

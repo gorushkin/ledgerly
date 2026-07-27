@@ -1,25 +1,28 @@
 import { AccountCreateDTO, AccountResponseDTO } from '@ledgerly/shared/types';
+import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
-import { AccountFactory } from 'src/application/services';
+import { Account } from 'src/domain/';
 import { User } from 'src/domain/users/user.entity';
-
 export class CreateAccountUseCase {
-  constructor(protected readonly accountFactory: AccountFactory) {}
-
+  constructor(
+    protected readonly accountRepository: AccountRepositoryInterface,
+  ) {}
   async execute(
     user: User,
     data: AccountCreateDTO,
   ): Promise<AccountResponseDTO> {
-    const { currency, description, initialBalance, name, type } = data;
+    const account = Account.create(
+      user,
+      AccountMapper.toCreateAccountProps(data),
+    );
 
-    const account = await this.accountFactory.createAccount(user, {
-      currency,
-      description,
-      initialBalance,
-      name,
-      type,
-    });
+    const accountSnapshot = account.toSnapshot();
 
-    return AccountMapper.toResponseDTOFromSnapshot(account.toSnapshot());
+    await this.accountRepository.create(
+      user.getId().valueOf(),
+      accountSnapshot,
+    );
+
+    return AccountMapper.toResponseDTOFromSnapshot(accountSnapshot);
   }
 }

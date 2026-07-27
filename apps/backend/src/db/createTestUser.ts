@@ -1,14 +1,13 @@
-import { Account, AccountType } from 'src/domain';
+import { Account, AccountType, Commodity } from 'src/domain';
 import {
   Name,
   Email,
   Password,
   Amount,
-  Currency,
+  CommodityCode,
 } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 
-// TODO: move to the test builder
 export const createUser = async (
   params: {
     name?: string;
@@ -28,63 +27,46 @@ export const createUser = async (
   return User.create(userName, userEmail, userPassword);
 };
 
-export const createAccount = (
+export const createCommodity = (
   user: User,
-  params: { currency?: Currency; description?: string; name?: string } = {},
-) => {
-  return Account.create(
-    user,
-    Name.create(params.name ?? 'Test Account'),
-    params.description ?? 'Account for testing',
-    Amount.create('0'),
-    params.currency ?? Currency.create('USD'),
-    AccountType.create('asset'),
-  );
+  params: {
+    name?: string;
+    code?: string;
+    precision?: number;
+    symbol?: string | null;
+  } = {},
+): Commodity => {
+  const {
+    code = 'TEST',
+    name = 'Test Commodity',
+    precision = 2,
+    symbol = null,
+  } = params;
+
+  return Commodity.create(user, {
+    code: CommodityCode.create(code).valueOf(),
+    name: Name.create(name).valueOf(),
+    precision,
+    symbol,
+  });
 };
 
-// export const createTransaction = (
-//   user: User,
-//   params: {
-//     description?: string;
-//     postingDate?: IsoDateString;
-//     transactionDate?: IsoDateString;
-//   } = {},
-// ) => {
-//   const {
-//     description = 'Test Transaction',
-//     postingDate = '2023-01-01' as IsoDateString,
-//     transactionDate = '2023-01-01' as IsoDateString,
-//   } = params;
+export const createAccount = (
+  user: User,
 
-//   // const postingDate = DateValue.restore(postingDate)
+  params: {
+    description?: string;
+    name?: string;
+    commodity?: Commodity;
+  } = {},
+) => {
+  const commodity = params.commodity ?? createCommodity(user);
 
-//   return Transaction.create(
-//     user,
-//     {
-//       description,
-//       entries: [],
-//       postingDate,
-//       transactionDate,
-//     },
-//     {}, // EntryContext placeholder
-//     // DateValue.restore(transactionDate),
-//   );
-// };
-
-// export const createEntry = (
-//   user: User,
-//   transaction: Transaction,
-//   operations: Operation[],
-// ) => {
-//   return Entry.create(user, transaction, 'Test entry', operations);
-// };
-
-// export const createOperation = (
-//   user: User,
-//   account: Account,
-//   entry: Entry,
-//   amount: Amount,
-//   description: string,
-// ) => {
-//   return Operation.create(user, account, entry, amount, description);
-// };
+  return Account.create(user, {
+    commodityId: commodity.getId(),
+    description: params.description ?? 'Account for testing',
+    initialBalance: Amount.create('0'),
+    name: Name.create(params.name ?? 'Test Account'),
+    type: AccountType.create('asset'),
+  });
+};

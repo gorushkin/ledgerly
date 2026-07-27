@@ -10,14 +10,14 @@
 `LED-53` proposed requiring every transaction to contain at least one operation
 with a positive `amount` and one with a negative `amount`.
 
-`amount` is denominated in an operation's account currency. Its sign represents
+`amount` is denominated in an operation's account Commodity. Its sign represents
 the change to that particular account, not a universal debit or credit
 classification. The meaning of a debit or credit depends on account type, and
-cross-currency transactions may use `amount` values that cannot be compared as
+cross-Commodity transactions may use `amount` values that cannot be compared as
 a transaction-wide accounting invariant.
 
 The domain already validates the relevant transaction-level invariant: the sum
-of operation `value` values in the transaction currency must equal zero.
+of operation `value` values in the transaction Commodity must equal zero.
 
 ## Decision
 
@@ -34,7 +34,7 @@ account types correctly.
 1. Require both `amount` signs in every transaction
 
 - Pros: rejects a small class of suspicious operation sets.
-- Cons: treats raw account-currency amounts as debit/credit semantics and can
+- Cons: treats raw account-Commodity amounts as debit/credit semantics and can
   reject valid accounting shapes.
 
 2. Derive debit and credit from account types
@@ -54,7 +54,7 @@ account types correctly.
 - `LED-53` is not implemented as a domain validation rule.
 - No code or test changes are required for this decision.
 - Any later debit/credit validation must be designed around account types,
-  currencies, and a defined business use case.
+  Commodities, and a defined business use case.
 
 ## Related
 

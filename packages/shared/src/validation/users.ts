@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { notNullText } from "./baseValidations";
+import { requiredText } from "./baseValidations";
 
 const password = z
   .string()
@@ -12,7 +12,7 @@ const password = z
 
 export const usersCreateSchema = z.object({
   email: z.string().email().toLowerCase().trim().min(1).max(255),
-  name: notNullText,
+  name: requiredText,
   password,
 });
 
@@ -25,7 +25,7 @@ export const usersResponseSchema = z
 export const usersUpdateSchema = z
   .object({
     email: z.string().email().toLowerCase().trim().min(1).max(255).optional(),
-    name: notNullText.optional(),
+    name: requiredText.optional(),
   })
   .strict()
   .refine((data) => Object.keys(data).length > 0, {
@@ -33,6 +33,6 @@ export const usersUpdateSchema = z
   });
 
 export const passwordChangeSchema = z.object({
-  currentPassword: notNullText,
+  currentPassword: requiredText,
   newPassword: password,
 });
