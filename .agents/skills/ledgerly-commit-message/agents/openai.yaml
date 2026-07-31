@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ledgerly Commit Message"
+  short_description: "Format Ledgerly commits from branch tickets"
+  default_prompt: "Use $ledgerly-commit-message to create a valid Ledgerly commit message from the current branch."

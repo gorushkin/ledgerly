@@ -178,6 +178,37 @@ describe('TransactionContextLoader', () => {
     );
   });
 
+  it('should throw a domain error when an account is closed', async () => {
+    const account = createAccount(user);
+    const accountSnapshot = {
+      ...account.toSnapshot(),
+      isClosed: true,
+    };
+
+    const rawOperations: OperationRequestDTO[] = [
+      {
+        accountId: account.getId().valueOf(),
+        amount: Amount.create('100').valueOf(),
+        description: 'Op 1',
+        value: Amount.create('100').valueOf(),
+      },
+      {
+        accountId: account.getId().valueOf(),
+        amount: Amount.create('-100').valueOf(),
+        description: 'Op 2',
+        value: Amount.create('-100').valueOf(),
+      },
+    ];
+
+    mockAccountRepository.getByIds.mockResolvedValueOnce([accountSnapshot]);
+
+    await expect(
+      transactionContextLoader.loadContext(user, rawOperations),
+    ).rejects.toThrowError(
+      new DeletedEntityOperationError(Account.entityType, 'use'),
+    );
+  });
+
   it('should return empty maps when operations list is empty', async () => {
     mockAccountRepository.getByIds.mockResolvedValueOnce([]);
 

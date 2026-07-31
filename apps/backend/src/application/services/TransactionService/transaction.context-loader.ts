@@ -32,7 +32,7 @@ export class TransactionContextLoader {
     for (const snapshot of accountRows) {
       const account = Account.restore(snapshot);
 
-      if (account.isDeleted()) {
+      if (account.isDeleted() || account.closed) {
         throw DeletedEntityOperationError.forUse(Account.entityType);
       }
 
