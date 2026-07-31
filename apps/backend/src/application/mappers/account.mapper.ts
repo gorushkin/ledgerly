@@ -7,8 +7,8 @@ import {
   AccountSnapshot,
   AccountType,
   AccountUpdateProps,
+  CreateAccountProps,
 } from 'src/domain/accounts';
-import { CreateAccountProps } from 'src/domain/accounts/types';
 import { Amount, Id, Name } from 'src/domain/domain-core';
 
 export class AccountMapper {

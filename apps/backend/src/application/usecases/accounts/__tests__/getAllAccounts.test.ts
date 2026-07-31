@@ -3,7 +3,7 @@ import { AccountQuery } from '@ledgerly/shared/validation';
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
-import { AccountSnapshot } from 'src/domain/accounts/types';
+import { AccountSnapshot } from 'src/domain/accounts';
 import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

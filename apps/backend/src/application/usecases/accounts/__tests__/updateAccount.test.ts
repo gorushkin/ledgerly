@@ -8,10 +8,9 @@ import type {
   TransactionManagerInterface,
 } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
-import { AccountOperationPolicy } from 'src/application/services/AccountOperationPolicy/account-operation.policy';
+import { AccountOperationPolicy } from 'src/application/services';
 import { createUser } from 'src/db/createTestUser';
-import { Account } from 'src/domain/accounts/account.entity';
-import { AccountSnapshot } from 'src/domain/accounts/types';
+import { Account, AccountSnapshot } from 'src/domain/accounts';
 import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { ClosedAccountOperationError } from 'src/domain/domain.errors';

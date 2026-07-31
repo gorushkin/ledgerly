@@ -8,7 +8,7 @@ import type {
   TransactionManagerInterface,
 } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
-import { AccountOperationPolicy } from 'src/application/services/AccountOperationPolicy/account-operation.policy';
+import { AccountOperationPolicy } from 'src/application/services';
 import { createUser } from 'src/db/createTestUser';
 import { AccountSnapshot } from 'src/domain/accounts';
 import { Amount, Timestamp } from 'src/domain/domain-core';

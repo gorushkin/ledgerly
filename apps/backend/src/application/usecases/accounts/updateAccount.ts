@@ -8,7 +8,7 @@ import type {
   TransactionManagerInterface,
 } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
-import { AccountOperationPolicy } from 'src/application/services/';
+import { AccountOperationPolicy } from 'src/application/services';
 import { Account } from 'src/domain/accounts';
 import { ClosedAccountOperationError } from 'src/domain/domain.errors';
 import { User } from 'src/domain/users/user.entity';
