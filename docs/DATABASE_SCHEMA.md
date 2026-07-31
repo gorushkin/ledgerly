@@ -179,8 +179,9 @@ User's financial accounts for tracking funds.
 | `description` | String | Account description | NOT NULL |
 | `initialBalance` | Integer | Initial balance in minor units | NOT NULL, default: 0 |
 | `currentClearedBalanceLocal` | Integer | Current local balance in minor units | NOT NULL, default: 0 |
+| `isClosed` | Boolean | Reversible account close state | NOT NULL, default: false |
 | `isSystem` | Boolean | Reserved system account flag | NOT NULL, default: false |
-| `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
+| `isTombstone` | Boolean | Terminal tombstone delete flag | NOT NULL, default: false |
 | `userId` | UUID | Account owner | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
 | `createdAt` | Timestamp | Creation date | NOT NULL |
 | `updatedAt` | Timestamp | Last update date | NOT NULL |
@@ -200,6 +201,13 @@ User's financial accounts for tracking funds.
 - Account Commodity is immutable after account creation.
 - Money amounts are stored as integer minor units to avoid floating-point
   issues.
+- `isClosed` and `isTombstone` are separate lifecycle axes. Closed accounts are
+  historical, reversible records; tombstoned accounts are hidden from normal
+  reads and cannot be restored.
+- `GET /accounts` filters use `status=open|closed|all` and always exclude
+  tombstoned accounts.
+- Terminal account delete is allowed only when no active operations reference the
+  account.
 - System accounts are reserved for future trading-account support.
 
 ---

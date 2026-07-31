@@ -62,7 +62,16 @@ Represents different financial accounts with unified structure for all account t
 - Balance is calculated from operations
 - Has initial balance (`initialBalance`)
 - `isSystem = true` is reserved for future system trading accounts (currently unused)
-- Has soft delete support (`isTombstone`)
+- Reversible account close state is represented by `isClosed`
+- Terminal account deletion is represented by `isTombstone`
+- `GET /accounts` returns open accounts by default and supports
+  `status=open|closed|all`; all normal list filters exclude tombstoned accounts
+- Closed accounts keep history and reports but cannot receive new operations
+- Closed accounts cannot be updated through the regular account update flow;
+  descriptive-field editing must be handled as an explicit lifecycle exception
+- Account `type` can be changed only while the account has no active operations
+- `DELETE /accounts/:id` means terminal tombstone delete and is rejected while
+  active operations still reference the account
 
 ### Commodity
 
