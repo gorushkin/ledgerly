@@ -124,6 +124,7 @@ describe('DeleteAccountUseCase', async () => {
     });
 
     it('should throw when account has active operations', async () => {
+      mockAccountRepository.getById.mockResolvedValue(mockAccountData);
       mockAccountOperationPolicy.assertNoActiveOperations.mockRejectedValue(
         new AccountHasActiveOperationsError(accountId),
       );
@@ -151,6 +152,9 @@ describe('DeleteAccountUseCase', async () => {
         user.getId().valueOf(),
         accountId,
       );
+      expect(
+        mockAccountOperationPolicy.assertNoActiveOperations,
+      ).not.toHaveBeenCalled();
 
       expect(mockAccountRepository.delete).not.toHaveBeenCalled();
     });

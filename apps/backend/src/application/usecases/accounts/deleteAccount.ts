@@ -21,15 +21,16 @@ export class DeleteAccountUseCase extends AccountUseCaseBase {
 
   async execute(user: User, accountId: UUID): Promise<AccountResponseDTO> {
     const accountSnapshot = await this.transactionManager.run(async () => {
+      const accountData = await this.ensureAccountExistsAndOwned(
+        user,
+        accountId,
+      );
+
       await this.accountOperationPolicy.assertNoActiveOperations(
         user.getId().valueOf(),
         accountId,
       );
 
-      const accountData = await this.ensureAccountExistsAndOwned(
-        user,
-        accountId,
-      );
       const account = Account.restore(accountData);
 
       const result = account.delete();
