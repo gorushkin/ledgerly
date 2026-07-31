@@ -1,10 +1,12 @@
 import { AccountCreateDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
 import { AccountQuery } from 'node_modules/@ledgerly/shared/src/validation/accounts';
 import {
+  CloseAccountUseCase,
   DeleteAccountUseCase,
   CreateAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
+  OpenAccountUseCase,
   UpdateAccountUseCase,
 } from 'src/application/usecases/accounts';
 import { Amount } from 'src/domain/domain-core';
@@ -43,12 +45,22 @@ describe('AccountController', () => {
     execute: vi.fn(),
   };
 
+  const mockCloseAccountUseCase = {
+    execute: vi.fn(),
+  };
+
+  const mockOpenAccountUseCase = {
+    execute: vi.fn(),
+  };
+
   const accountController = new AccountController(
     mockGetAccountByIdUseCase as unknown as GetAccountByIdUseCase,
     mockGetAllAccountsUseCase as unknown as GetAllAccountsUseCase,
     mockCreateAccountUseCase as unknown as CreateAccountUseCase,
     mockUpdateAccountUseCase as unknown as UpdateAccountUseCase,
     mockArchiveAccountUseCase as unknown as DeleteAccountUseCase,
+    mockCloseAccountUseCase as unknown as CloseAccountUseCase,
+    mockOpenAccountUseCase as unknown as OpenAccountUseCase,
   );
 
   beforeEach(async () => {
@@ -204,6 +216,50 @@ describe('AccountController', () => {
       ).rejects.toThrow(ZodError);
 
       expect(mockArchiveAccountUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('closeAccount', () => {
+    it('should call closeAccount use case with correct account id and user', async () => {
+      mockCloseAccountUseCase.execute.mockResolvedValue(undefined);
+
+      await accountController.closeAccount(user, { id: accountId });
+
+      expect(mockCloseAccountUseCase.execute).toHaveBeenCalledWith(
+        user,
+        accountId,
+      );
+      expect(mockCloseAccountUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      await expect(
+        accountController.closeAccount(user, { id: 'not-a-uuid' }),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockCloseAccountUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('openAccount', () => {
+    it('should call openAccount use case with correct account id and user', async () => {
+      mockOpenAccountUseCase.execute.mockResolvedValue(undefined);
+
+      await accountController.openAccount(user, { id: accountId });
+
+      expect(mockOpenAccountUseCase.execute).toHaveBeenCalledWith(
+        user,
+        accountId,
+      );
+      expect(mockOpenAccountUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw ZodError for invalid request params', async () => {
+      await expect(
+        accountController.openAccount(user, { id: 'not-a-uuid' }),
+      ).rejects.toThrow(ZodError);
+
+      expect(mockOpenAccountUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });

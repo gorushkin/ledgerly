@@ -3,7 +3,10 @@ import {
   AccountUpdateDTO,
   UUID,
 } from '@ledgerly/shared/types';
-import type { AccountRepositoryInterface } from 'src/application/interfaces';
+import type {
+  AccountRepositoryInterface,
+  TransactionManagerInterface,
+} from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { AccountOperationPolicy } from 'src/application/services/';
 import { Account } from 'src/domain/accounts';
@@ -16,6 +19,7 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
   constructor(
     accountRepository: AccountRepositoryInterface,
     private readonly accountOperationPolicy: AccountOperationPolicy,
+    private readonly transactionManager: TransactionManagerInterface,
   ) {
     super(accountRepository);
   }
@@ -43,19 +47,26 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
     accountId: UUID,
     data: AccountUpdateDTO,
   ): Promise<AccountResponseDTO> {
-    const accountData = await this.ensureAccountExistsAndOwned(user, accountId);
+    const accountSnapshot = await this.transactionManager.run(async () => {
+      const accountData = await this.ensureAccountExistsAndOwned(
+        user,
+        accountId,
+      );
 
-    const account = Account.restore(accountData);
-    await this.checkAccountUpdateValidity(user, accountId, account, data);
+      const account = Account.restore(accountData);
+      await this.checkAccountUpdateValidity(user, accountId, account, data);
 
-    account.update(AccountMapper.toUpdateProps(data));
+      account.update(AccountMapper.toUpdateProps(data));
 
-    await this.accountRepository.update(
-      user.getId().valueOf(),
-      accountId,
-      account.toSnapshot(),
-    );
+      await this.accountRepository.update(
+        user.getId().valueOf(),
+        accountId,
+        account.toSnapshot(),
+      );
 
-    return AccountMapper.toResponseDTOFromSnapshot(account.toSnapshot());
+      return account.toSnapshot();
+    });
+
+    return AccountMapper.toResponseDTOFromSnapshot(accountSnapshot);
   }
 }

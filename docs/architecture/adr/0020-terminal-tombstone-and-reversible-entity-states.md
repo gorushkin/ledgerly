@@ -93,11 +93,11 @@ Every normal account list filter excludes tombstoned accounts.
 | `closed` | `isClosed = true` and `isTombstone = false` |
 | `all` | `isTombstone = false` |
 
-Account close and reopen are exposed as explicit HTTP actions:
+Account close and open are exposed as explicit HTTP actions:
 
 ```http
 POST /accounts/:id/close
-POST /accounts/:id/reopen
+POST /accounts/:id/open
 ```
 
 `PATCH /accounts/:id` remains for editable account attributes, not lifecycle
@@ -274,7 +274,7 @@ The intended public domain methods are:
 
 - [LED-123: Define entity lifecycle states](https://gorushkin.atlassian.net/browse/LED-123)
 - [LED-122: Define terminal tombstone and reversible archive/close states](https://gorushkin.atlassian.net/browse/LED-122)
-- [LED-124: Implement Account close reopen and terminal delete](https://gorushkin.atlassian.net/browse/LED-124)
+- [LED-124: Implement Account close open and terminal delete](https://gorushkin.atlassian.net/browse/LED-124)
 - [LED-125: Implement Commodity archive unarchive and terminal delete](https://gorushkin.atlassian.net/browse/LED-125)
 - [ADR 0011: Domain Entity API Conventions](./0011-domain-entity-api-conventions.md)
 - [ADR 0015: Domain Restoration Factory Naming](./0015-domain-restoration-factory-naming.md)

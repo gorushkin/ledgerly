@@ -259,7 +259,7 @@ describe('Account Domain Entity', () => {
     );
   });
 
-  it('should reopen and touch the account', () => {
+  it('should open and touch the account', () => {
     const account = Account.create(user, {
       commodityId: commodity.getId(),
       description: 'account-description',
@@ -270,7 +270,7 @@ describe('Account Domain Entity', () => {
 
     account.close();
 
-    const updatedAtBeforeReopen = account.getUpdatedAt();
+    const updatedAtBeforeOpen = account.getUpdatedAt();
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
@@ -279,7 +279,7 @@ describe('Account Domain Entity', () => {
 
     expect(account.closed).toBe(false);
     expect(account.getUpdatedAt().toString()).not.toBe(
-      updatedAtBeforeReopen.toString(),
+      updatedAtBeforeOpen.toString(),
     );
   });
 

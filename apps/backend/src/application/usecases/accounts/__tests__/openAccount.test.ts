@@ -2,7 +2,10 @@ import {
   EntityNotFoundError,
   UnauthorizedAccessError,
 } from 'src/application/application.errors';
-import type { AccountRepositoryInterface } from 'src/application/interfaces';
+import type {
+  AccountRepositoryInterface,
+  TransactionManagerInterface,
+} from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
 import { AccountSnapshot } from 'src/domain/accounts';
@@ -25,6 +28,12 @@ describe('OpenAccountUseCase', async () => {
   const mockUserRepository = {
     getById: vi.fn(),
   };
+
+  const mockTransactionManager = {
+    run: vi.fn(),
+  };
+  const runTransaction: TransactionManagerInterface['run'] = async (callback) =>
+    callback();
 
   const accountId = Id.restore(
     '550e8400-e29b-41d4-a716-446655440001',
@@ -63,9 +72,12 @@ describe('OpenAccountUseCase', async () => {
     mockAccountRepository.getById.mockReset();
 
     mockUserRepository.getById.mockReset();
+    mockTransactionManager.run.mockReset();
+    mockTransactionManager.run.mockImplementation(runTransaction);
 
     openAccountUseCase = new OpenAccountUseCase(
       mockAccountRepository as unknown as AccountRepositoryInterface,
+      mockTransactionManager as unknown as TransactionManagerInterface,
     );
   });
 
@@ -93,6 +105,7 @@ describe('OpenAccountUseCase', async () => {
           isClosed: false,
         }),
       );
+      expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
 
       expect(result).toEqual(
         AccountMapper.toResponseDTOFromSnapshot({

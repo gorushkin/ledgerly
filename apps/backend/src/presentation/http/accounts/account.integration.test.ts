@@ -293,6 +293,197 @@ describe('Accounts Integration Tests', () => {
     });
   });
 
+  describe('POST /api/accounts/:id/close', () => {
+    it('should return 200 and close an open account by id', async () => {
+      const accountToClose = accounts.find(
+        (account) => !account.isClosed && !account.isTombstone,
+      );
+
+      if (!accountToClose) {
+        throw new Error('No account available to close');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${accountToClose.id}/close`,
+      });
+
+      const closedAccount = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(closedAccount).toMatchObject({
+        id: accountToClose.id,
+        isClosed: true,
+      });
+
+      const finalResponse = await injectAuthorized({
+        method: 'GET',
+        url: `${url}/${accountToClose.id}`,
+      });
+
+      const retrievedAccount = JSON.parse(
+        finalResponse.body,
+      ) as AccountResponseDTO;
+
+      expect(finalResponse.statusCode).toBe(200);
+      expect(retrievedAccount.isClosed).toBe(true);
+    });
+
+    it('should be idempotent for an already closed account', async () => {
+      const closedAccount = accounts.find(
+        (account) => account.isClosed && !account.isTombstone,
+      );
+
+      if (!closedAccount) {
+        throw new Error('No closed account available');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${closedAccount.id}/close`,
+      });
+
+      const account = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(account).toMatchObject({
+        id: closedAccount.id,
+        isClosed: true,
+      });
+    });
+
+    it('should return 404 when account belongs to a different user', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId);
+      const otherUserAccount = await testDB.createAccount(
+        otherUserId,
+        otherUserCommodity.id,
+      );
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${otherUserAccount.id}/close`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when account is deleted', async () => {
+      const deletedAccount = accounts.find((account) => account.isTombstone);
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${deletedAccount?.id}/close`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 when account id has an invalid UUID format', async () => {
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/invalid-uuid/close`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe('POST /api/accounts/:id/open', () => {
+    it('should return 200 and open a closed account by id', async () => {
+      const accountToOpen = accounts.find(
+        (account) => account.isClosed && !account.isTombstone,
+      );
+
+      if (!accountToOpen) {
+        throw new Error('No account available to open');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${accountToOpen.id}/open`,
+      });
+
+      const openedAccount = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(openedAccount).toMatchObject({
+        id: accountToOpen.id,
+        isClosed: false,
+      });
+
+      const finalResponse = await injectAuthorized({
+        method: 'GET',
+        url: `${url}/${accountToOpen.id}`,
+      });
+
+      const retrievedAccount = JSON.parse(
+        finalResponse.body,
+      ) as AccountResponseDTO;
+
+      expect(finalResponse.statusCode).toBe(200);
+      expect(retrievedAccount.isClosed).toBe(false);
+    });
+
+    it('should be idempotent for an already open account', async () => {
+      const openAccount = accounts.find(
+        (account) => !account.isClosed && !account.isTombstone,
+      );
+
+      if (!openAccount) {
+        throw new Error('No open account available');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${openAccount.id}/open`,
+      });
+
+      const account = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(account).toMatchObject({
+        id: openAccount.id,
+        isClosed: false,
+      });
+    });
+
+    it('should return 404 when account belongs to a different user', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId);
+      const otherUserAccount = await testDB.createAccount(
+        otherUserId,
+        otherUserCommodity.id,
+        { isClosed: true },
+      );
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${otherUserAccount.id}/open`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when account is deleted', async () => {
+      const deletedAccount = accounts.find((account) => account.isTombstone);
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${deletedAccount?.id}/open`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 when account id has an invalid UUID format', async () => {
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/invalid-uuid/open`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+  });
+
   describe('PATCH /api/accounts/:id', () => {
     it('should return 200 and update an account by id', async () => {
       const accountToUpdate = accounts.find(

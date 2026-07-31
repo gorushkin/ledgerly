@@ -3,10 +3,12 @@ import {
   GetCommodityByIdUseCase,
   LoginUserUseCase,
   RegisterUserUseCase,
+  CloseAccountUseCase,
   CreateAccountUseCase,
   DeleteAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
+  OpenAccountUseCase,
   UpdateAccountUseCase,
   DeleteTransactionUseCase,
   GetAllTransactionsUseCase,
@@ -95,10 +97,20 @@ export const createContainer = (db: DataBase): AppContainer => {
   const updateAccountUseCase = new UpdateAccountUseCase(
     accountRepository,
     accountOperationPolicy,
+    transactionManager,
   );
   const deleteAccountUseCase = new DeleteAccountUseCase(
     accountRepository,
     accountOperationPolicy,
+    transactionManager,
+  );
+  const closeAccountUseCase = new CloseAccountUseCase(
+    accountRepository,
+    transactionManager,
+  );
+  const openAccountUseCase = new OpenAccountUseCase(
+    accountRepository,
+    transactionManager,
   );
 
   const loginUserUseCase = new LoginUserUseCase(userRepository);
@@ -165,10 +177,12 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const useCases: AppContainer['useCases'] = {
     account: {
+      closeAccount: closeAccountUseCase,
       createAccount: createAccountUseCase,
       deleteAccount: deleteAccountUseCase,
       getAccountById: getAccountByIdUseCase,
       getAllAccounts: getAllAccountsUseCase,
+      openAccount: openAccountUseCase,
       updateAccount: updateAccountUseCase,
     },
     auth: {
@@ -197,6 +211,8 @@ export const createContainer = (db: DataBase): AppContainer => {
     useCases.account.createAccount,
     useCases.account.updateAccount,
     useCases.account.deleteAccount,
+    useCases.account.closeAccount,
+    useCases.account.openAccount,
   );
 
   const userController = new UserController();

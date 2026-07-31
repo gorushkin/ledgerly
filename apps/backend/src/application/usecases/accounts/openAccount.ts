@@ -1,33 +1,43 @@
 import { AccountResponseDTO, UUID } from '@ledgerly/shared/types';
+import type {
+  AccountRepositoryInterface,
+  TransactionManagerInterface,
+} from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { Account } from 'src/domain/accounts/account.entity';
 import { User } from 'src/domain/users/user.entity';
 
-import { AccountRepositoryInterface } from '../../interfaces';
-
 import { AccountUseCaseBase } from './accountBase';
 
 export class OpenAccountUseCase extends AccountUseCaseBase {
-  constructor(accountRepository: AccountRepositoryInterface) {
+  constructor(
+    accountRepository: AccountRepositoryInterface,
+    private readonly transactionManager: TransactionManagerInterface,
+  ) {
     super(accountRepository);
   }
 
   async execute(user: User, accountId: UUID): Promise<AccountResponseDTO> {
-    const accountData = await this.ensureAccountExistsAndOwned(user, accountId);
-    const account = Account.restore(accountData);
+    const accountSnapshot = await this.transactionManager.run(async () => {
+      const accountData = await this.ensureAccountExistsAndOwned(
+        user,
+        accountId,
+      );
+      const account = Account.restore(accountData);
 
-    const result = account.open();
+      const result = account.open();
 
-    if (result === 'unchanged') {
-      return AccountMapper.toResponseDTOFromSnapshot(account.toSnapshot());
-    }
+      if (result === 'changed') {
+        await this.accountRepository.open(
+          user.getId().valueOf(),
+          accountId,
+          account.toSnapshot(),
+        );
+      }
 
-    await this.accountRepository.open(
-      user.getId().valueOf(),
-      accountId,
-      account.toSnapshot(),
-    );
+      return account.toSnapshot();
+    });
 
-    return AccountMapper.toResponseDTOFromSnapshot(account.toSnapshot());
+    return AccountMapper.toResponseDTOFromSnapshot(accountSnapshot);
   }
 }

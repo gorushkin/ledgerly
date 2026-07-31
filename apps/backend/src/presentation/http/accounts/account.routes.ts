@@ -30,6 +30,22 @@ export const accountsRoutes = (app: FastifyInstance) => {
     reply.status(204).send();
   });
 
+  app.post('/:id/close', async (request, reply) => {
+    const user = request.user;
+
+    const account = await accountController.closeAccount(user, request.params);
+
+    reply.status(200).send(account);
+  });
+
+  app.post('/:id/open', async (request, reply) => {
+    const user = request.user;
+
+    const account = await accountController.openAccount(user, request.params);
+
+    reply.status(200).send(account);
+  });
+
   app.patch('/:id', async (request, reply) => {
     const user = request.user;
 

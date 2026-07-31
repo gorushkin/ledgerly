@@ -3,7 +3,10 @@ import {
   AccountHasActiveOperationsError,
   EntityNotFoundError,
 } from 'src/application/application.errors';
-import type { AccountRepositoryInterface } from 'src/application/interfaces';
+import type {
+  AccountRepositoryInterface,
+  TransactionManagerInterface,
+} from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { AccountOperationPolicy } from 'src/application/services/AccountOperationPolicy/account-operation.policy';
 import { createUser } from 'src/db/createTestUser';
@@ -30,6 +33,12 @@ describe('UpdateAccount', async () => {
   const mockAccountOperationPolicy = {
     assertNoActiveOperations: vi.fn(),
   };
+
+  const mockTransactionManager = {
+    run: vi.fn(),
+  };
+  const runTransaction: TransactionManagerInterface['run'] = async (callback) =>
+    callback();
 
   const accountId = Id.restore(
     '550e8400-e29b-41d4-a716-446655440001',
@@ -62,9 +71,12 @@ describe('UpdateAccount', async () => {
   };
 
   beforeEach(() => {
+    mockTransactionManager.run.mockImplementation(runTransaction);
+
     updateAccountUseCase = new UpdateAccountUseCase(
       mockAccountRepository as unknown as AccountRepositoryInterface,
       mockAccountOperationPolicy as unknown as AccountOperationPolicy,
+      mockTransactionManager as unknown as TransactionManagerInterface,
     );
   });
 
@@ -73,6 +85,7 @@ describe('UpdateAccount', async () => {
     mockAccountOperationPolicy.assertNoActiveOperations.mockReset();
     mockAccountRepository.getById.mockReset();
     mockAccountRepository.update.mockReset();
+    mockTransactionManager.run.mockReset();
   });
 
   describe('execute', () => {
@@ -99,6 +112,7 @@ describe('UpdateAccount', async () => {
         accountId,
         expect.objectContaining({ name: 'Updated Account' }),
       );
+      expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
 
       expect(result.name).toBe('Updated Account');
       expect(result).toEqual(
@@ -203,6 +217,7 @@ describe('UpdateAccount', async () => {
       expect(
         mockAccountOperationPolicy.assertNoActiveOperations,
       ).toHaveBeenCalledWith(user.getId().valueOf(), accountId);
+      expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
     });
 
     it('should not call assertNoActiveOperations when account type is not changed', async () => {

@@ -5,10 +5,12 @@ import {
   uniqueIdSchema,
 } from '@ledgerly/shared/validation';
 import {
+  CloseAccountUseCase,
   DeleteAccountUseCase,
   CreateAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
+  OpenAccountUseCase,
   UpdateAccountUseCase,
 } from 'src/application/usecases/accounts';
 import { User } from 'src/domain/users/user.entity';
@@ -20,6 +22,8 @@ export class AccountController {
     private readonly createAccountUseCase: CreateAccountUseCase,
     private readonly updateAccountUseCase: UpdateAccountUseCase,
     private readonly deleteAccountUseCase: DeleteAccountUseCase,
+    private readonly closeAccountUseCase: CloseAccountUseCase,
+    private readonly openAccountUseCase: OpenAccountUseCase,
   ) {}
 
   async getAll(user: User, query: unknown) {
@@ -50,5 +54,17 @@ export class AccountController {
     const { id } = uniqueIdSchema.parse(requestParams);
 
     return this.deleteAccountUseCase.execute(user, id);
+  }
+
+  async closeAccount(user: User, requestParams: unknown) {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.closeAccountUseCase.execute(user, id);
+  }
+
+  async openAccount(user: User, requestParams: unknown) {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.openAccountUseCase.execute(user, id);
   }
 }

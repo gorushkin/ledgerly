@@ -4,9 +4,11 @@ import {
   LoginUserUseCase,
   RegisterUserUseCase,
   CreateAccountUseCase,
+  CloseAccountUseCase,
   DeleteAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
+  OpenAccountUseCase,
   UpdateAccountUseCase,
   DeleteTransactionUseCase,
   GetAllTransactionsUseCase,
@@ -49,9 +51,11 @@ type Services = {
 };
 
 type AccountUseCases = {
+  closeAccount: CloseAccountUseCase;
   createAccount: CreateAccountUseCase;
   getAllAccounts: GetAllAccountsUseCase;
   getAccountById: GetAccountByIdUseCase;
+  openAccount: OpenAccountUseCase;
   updateAccount: UpdateAccountUseCase;
   deleteAccount: DeleteAccountUseCase;
 };

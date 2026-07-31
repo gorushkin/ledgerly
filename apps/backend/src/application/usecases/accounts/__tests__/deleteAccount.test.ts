@@ -3,7 +3,10 @@ import {
   EntityNotFoundError,
   UnauthorizedAccessError,
 } from 'src/application/application.errors';
-import type { AccountRepositoryInterface } from 'src/application/interfaces';
+import type {
+  AccountRepositoryInterface,
+  TransactionManagerInterface,
+} from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { AccountOperationPolicy } from 'src/application/services/AccountOperationPolicy/account-operation.policy';
 import { createUser } from 'src/db/createTestUser';
@@ -27,6 +30,12 @@ describe('DeleteAccountUseCase', async () => {
   const mockAccountOperationPolicy = {
     assertNoActiveOperations: vi.fn(),
   };
+
+  const mockTransactionManager = {
+    run: vi.fn(),
+  };
+  const runTransaction: TransactionManagerInterface['run'] = async (callback) =>
+    callback();
 
   const accountId = Id.restore(
     '550e8400-e29b-41d4-a716-446655440001',
@@ -61,10 +70,12 @@ describe('DeleteAccountUseCase', async () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
+    mockTransactionManager.run.mockImplementation(runTransaction);
 
     deleteAccountUseCase = new DeleteAccountUseCase(
       mockAccountRepository as unknown as AccountRepositoryInterface,
       mockAccountOperationPolicy as unknown as AccountOperationPolicy,
+      mockTransactionManager as unknown as TransactionManagerInterface,
     );
   });
 
@@ -75,6 +86,7 @@ describe('DeleteAccountUseCase', async () => {
     mockAccountOperationPolicy.assertNoActiveOperations.mockReset();
     mockAccountRepository.getById.mockReset();
     mockAccountRepository.delete.mockReset();
+    mockTransactionManager.run.mockReset();
   });
 
   describe('execute', () => {
@@ -101,6 +113,7 @@ describe('DeleteAccountUseCase', async () => {
           isTombstone: true,
         }),
       );
+      expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
 
       expect(result).toEqual(
         AccountMapper.toResponseDTOFromSnapshot({
@@ -122,6 +135,7 @@ describe('DeleteAccountUseCase', async () => {
       expect(
         mockAccountOperationPolicy.assertNoActiveOperations,
       ).toHaveBeenCalledWith(user.getId().valueOf(), accountId);
+      expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
 
       expect(mockAccountRepository.delete).not.toHaveBeenCalled();
     });
