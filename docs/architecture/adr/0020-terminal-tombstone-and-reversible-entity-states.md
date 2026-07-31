@@ -267,7 +267,7 @@ The intended public domain methods are:
   records should remain hidden from normal reads.
 - Tests must cover tombstone terminality and business-state invariants:
   tombstoned entities cannot be restored or modified; closed accounts cannot
-  receive new operations and cannot be updated through the regular update flow;
+  receive new operations and can only update descriptive account fields;
   archived commodities cannot be selected for new active links.
 
 ## Related

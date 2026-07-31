@@ -37,13 +37,13 @@ describe("accountUpdateSchema", () => {
 });
 
 describe("accountQuerySchema", () => {
-  it("defaults omitted closed filter to open accounts", () => {
-    expect(accountQuerySchema.parse({})).toEqual({ closed: "open" });
+  it("defaults omitted status filter to open accounts", () => {
+    expect(accountQuerySchema.parse({})).toEqual({ status: "open" });
   });
 
   it("allows querying all accounts", () => {
-    expect(accountQuerySchema.parse({ closed: "all" })).toEqual({
-      closed: "all",
+    expect(accountQuerySchema.parse({ status: "all" })).toEqual({
+      status: "all",
     });
   });
 });

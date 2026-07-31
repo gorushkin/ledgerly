@@ -1,6 +1,9 @@
 import { UUID } from '@ledgerly/shared/types';
 import { Account, User } from 'src/domain';
-import { DeletedEntityOperationError } from 'src/domain/domain.errors';
+import {
+  ClosedAccountOperationError,
+  DeletedEntityOperationError,
+} from 'src/domain/domain.errors';
 import { TransactionBuildContext } from 'src/domain/transactions/types';
 
 import { OperationRequestDTO } from '../../dto';
@@ -32,8 +35,12 @@ export class TransactionContextLoader {
     for (const snapshot of accountRows) {
       const account = Account.restore(snapshot);
 
-      if (account.isDeleted() || account.closed) {
+      if (account.isDeleted()) {
         throw DeletedEntityOperationError.forUse(Account.entityType);
+      }
+
+      if (account.closed) {
+        throw ClosedAccountOperationError.forUse(account.getId().valueOf());
       }
 
       accountsMap.set(snapshot.id, account);

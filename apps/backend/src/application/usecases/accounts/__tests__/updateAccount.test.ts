@@ -202,6 +202,41 @@ describe('UpdateAccount', async () => {
       expect(mockAccountRepository.update).not.toHaveBeenCalled();
     });
 
+    it('should allow updating name and description when account is closed', async () => {
+      mockAccountRepository.getById.mockResolvedValue({
+        ...mockAccountData,
+        isClosed: true,
+      });
+
+      const result = await updateAccountUseCase.execute(user, accountId, {
+        description: 'Updated description',
+        name: 'Updated Account',
+      });
+
+      expect(mockAccountRepository.getById).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        accountId,
+      );
+
+      expect(
+        mockAccountOperationPolicy.assertNoActiveOperations,
+      ).not.toHaveBeenCalled();
+
+      expect(mockAccountRepository.update).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        accountId,
+        expect.objectContaining({
+          description: 'Updated description',
+          isClosed: true,
+          name: 'Updated Account',
+        }),
+      );
+
+      expect(result.name).toBe('Updated Account');
+      expect(result.description).toBe('Updated description');
+      expect(result.isClosed).toBe(true);
+    });
+
     it('should call assertNoActiveOperations when account type is changed', async () => {
       mockAccountRepository.getById.mockResolvedValue(mockAccountData);
 

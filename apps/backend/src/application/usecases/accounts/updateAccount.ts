@@ -30,7 +30,7 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
     account: Account,
     data: AccountUpdateDTO,
   ): Promise<void> {
-    if (account.closed) {
+    if (account.closed && data.type !== undefined) {
       throw ClosedAccountOperationError.forUpdate(accountId);
     }
 

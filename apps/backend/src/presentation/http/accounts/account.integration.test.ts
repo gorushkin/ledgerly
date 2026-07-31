@@ -520,6 +520,55 @@ describe('Accounts Integration Tests', () => {
 
       expect(accountsAfterUpdate).toContainEqual(updatedAccount);
     });
+
+    it('should return 200 and update name and description for a closed account', async () => {
+      const accountToUpdate = accounts.find(
+        (account) => account.isClosed && !account.isTombstone,
+      );
+
+      if (!accountToUpdate) {
+        throw new Error('No closed account available for update');
+      }
+
+      const updatedData = {
+        description: 'Updated closed account description',
+        name: 'Updated Closed Account',
+      };
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: updatedData,
+        url: `${url}/${accountToUpdate.id}`,
+      });
+
+      const updatedAccount = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(updatedAccount).toMatchObject({
+        description: updatedData.description,
+        id: accountToUpdate.id,
+        isClosed: true,
+        name: updatedData.name,
+      });
+    });
+
+    it('should return 409 when updating type for a closed account', async () => {
+      const accountToUpdate = accounts.find(
+        (account) => account.isClosed && !account.isTombstone,
+      );
+
+      if (!accountToUpdate) {
+        throw new Error('No closed account available for update');
+      }
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: { type: 'liability' as AccountTypeValue },
+        url: `${url}/${accountToUpdate.id}`,
+      });
+
+      expect(response.statusCode).toBe(409);
+    });
   });
 
   describe('Authentication', () => {

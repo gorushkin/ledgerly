@@ -3,7 +3,10 @@ import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { createAccount } from 'src/db/createTestUser';
 import { Account, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
-import { DeletedEntityOperationError } from 'src/domain/domain.errors';
+import {
+  ClosedAccountOperationError,
+  DeletedEntityOperationError,
+} from 'src/domain/domain.errors';
 import { createUser } from 'src/testing';
 import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 
@@ -205,7 +208,7 @@ describe('TransactionContextLoader', () => {
     await expect(
       transactionContextLoader.loadContext(user, rawOperations),
     ).rejects.toThrowError(
-      new DeletedEntityOperationError(Account.entityType, 'use'),
+      ClosedAccountOperationError.forUse(account.getId().valueOf()),
     );
   });
 
