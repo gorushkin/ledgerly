@@ -11,6 +11,7 @@ import { Account } from 'src/domain/accounts/account.entity';
 import { AccountSnapshot } from 'src/domain/accounts/types';
 import { Amount, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
+import { ClosedAccountOperationError } from 'src/domain/domain.errors';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UpdateAccountUseCase } from '../updateAccount';
@@ -153,6 +154,37 @@ describe('UpdateAccount', async () => {
       expect(
         mockAccountOperationPolicy.assertNoActiveOperations,
       ).toHaveBeenCalledWith(user.getId().valueOf(), accountId);
+      expect(mockAccountRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when account type is changed and account is closed', async () => {
+      mockAccountRepository.getById.mockResolvedValue({
+        ...mockAccountData,
+        isClosed: true,
+      });
+
+      const result = updateAccountUseCase.execute(user, accountId, {
+        type: 'liability' as AccountTypeValue,
+      });
+
+      await expect(result).rejects.toThrow(ClosedAccountOperationError);
+      await expect(result).rejects.toMatchObject({
+        code: apiErrorCodes.closedAccountOperation,
+        context: {
+          accountId,
+          operation: 'update',
+        },
+      });
+
+      expect(mockAccountRepository.getById).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        accountId,
+      );
+
+      expect(
+        mockAccountOperationPolicy.assertNoActiveOperations,
+      ).not.toHaveBeenCalled();
+
       expect(mockAccountRepository.update).not.toHaveBeenCalled();
     });
 

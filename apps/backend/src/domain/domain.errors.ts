@@ -299,6 +299,29 @@ export class DeletedEntityOperationError extends CodedDomainError<'DELETED_ENTIT
   }
 }
 
+type ClosedAccountOperation = 'update' | 'use';
+
+export class ClosedAccountOperationError extends CodedDomainError<'CLOSED_ACCOUNT_OPERATION'> {
+  constructor(
+    public readonly accountId: UUID,
+    public readonly operation: ClosedAccountOperation,
+  ) {
+    super(
+      `cannot ${operation} closed account ${accountId}`,
+      apiErrorCodes.closedAccountOperation,
+      { accountId, operation },
+    );
+  }
+
+  static forUpdate(accountId: UUID): ClosedAccountOperationError {
+    return new ClosedAccountOperationError(accountId, 'update');
+  }
+
+  static forUse(accountId: UUID): ClosedAccountOperationError {
+    return new ClosedAccountOperationError(accountId, 'use');
+  }
+}
+
 /**
  * Thrown when the same operation ID appears in multiple patch arrays simultaneously.
  */

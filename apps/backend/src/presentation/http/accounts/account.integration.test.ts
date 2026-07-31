@@ -295,11 +295,17 @@ describe('Accounts Integration Tests', () => {
 
   describe('PATCH /api/accounts/:id', () => {
     it('should return 200 and update an account by id', async () => {
-      const accountToUpdate = accounts[0];
+      const accountToUpdate = accounts.find(
+        (account) => !account.isClosed && !account.isTombstone,
+      );
 
       const updatedData = {
         name: 'Updated Account Name',
       };
+
+      if (!accountToUpdate) {
+        throw new Error('No account available for update');
+      }
 
       const response = await injectAuthorized({
         method: 'PATCH',

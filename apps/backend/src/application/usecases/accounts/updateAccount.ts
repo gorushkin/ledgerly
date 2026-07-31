@@ -6,7 +6,8 @@ import {
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { AccountOperationPolicy } from 'src/application/services/';
-import { Account, AccountSnapshot } from 'src/domain/accounts';
+import { Account } from 'src/domain/accounts';
+import { ClosedAccountOperationError } from 'src/domain/domain.errors';
 import { User } from 'src/domain/users/user.entity';
 
 import { AccountUseCaseBase } from './accountBase';
@@ -22,10 +23,14 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
   private async checkAccountUpdateValidity(
     user: User,
     accountId: UUID,
-    accountData: AccountSnapshot,
+    account: Account,
     data: AccountUpdateDTO,
   ): Promise<void> {
-    if (data.type && data.type !== accountData.type) {
+    if (account.closed) {
+      throw ClosedAccountOperationError.forUpdate(accountId);
+    }
+
+    if (data.type && data.type !== account.toSnapshot().type) {
       await this.accountOperationPolicy.assertNoActiveOperations(
         user.getId().valueOf(),
         accountId,
@@ -40,9 +45,8 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
   ): Promise<AccountResponseDTO> {
     const accountData = await this.ensureAccountExistsAndOwned(user, accountId);
 
-    await this.checkAccountUpdateValidity(user, accountId, accountData, data);
-
     const account = Account.restore(accountData);
+    await this.checkAccountUpdateValidity(user, accountId, account, data);
 
     account.update(AccountMapper.toUpdateProps(data));
 

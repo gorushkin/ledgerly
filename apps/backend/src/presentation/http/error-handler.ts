@@ -20,6 +20,7 @@ const statusByErrorCode = {
   [apiErrorCodes.accountNotFoundInContext]: 400,
   [apiErrorCodes.authenticationFailed]: 401,
   [apiErrorCodes.badRequest]: 400,
+  [apiErrorCodes.closedAccountOperation]: 409,
   [apiErrorCodes.conflict]: 409,
   [apiErrorCodes.conflictingOperationIds]: 400,
   [apiErrorCodes.deletedEntityOperation]: 400,

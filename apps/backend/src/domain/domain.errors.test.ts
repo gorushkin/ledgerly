@@ -1,6 +1,7 @@
 import { apiErrorCodes } from '@ledgerly/shared/types';
 import {
   DomainError,
+  ClosedAccountOperationError,
   DeletedEntityOperationError,
   EmptyOperationsError,
   ExcessiveOperationsError,
@@ -45,6 +46,18 @@ describe('coded domain errors', () => {
       context: {
         entityType: 'account',
         operation: 'use',
+      },
+    });
+  });
+
+  it('exposes CLOSED_ACCOUNT_OPERATION context for update operations', () => {
+    const accountId = '550e8400-e29b-41d4-a716-446655440001' as never;
+
+    expect(ClosedAccountOperationError.forUpdate(accountId)).toMatchObject({
+      code: apiErrorCodes.closedAccountOperation,
+      context: {
+        accountId,
+        operation: 'update',
       },
     });
   });

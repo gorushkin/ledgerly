@@ -5,6 +5,7 @@ export const apiErrorCodes = {
   accountNotFoundInContext: "ACCOUNT_NOT_FOUND_IN_CONTEXT",
   authenticationFailed: "AUTHENTICATION_FAILED",
   badRequest: "BAD_REQUEST",
+  closedAccountOperation: "CLOSED_ACCOUNT_OPERATION",
   conflict: "CONFLICT",
   conflictingOperationIds: "CONFLICTING_OPERATION_IDS",
   deletedEntityOperation: "DELETED_ENTITY_OPERATION",
@@ -64,6 +65,10 @@ export type ErrorContextByCode = {
   };
   AUTHENTICATION_FAILED: Record<string, never>;
   BAD_REQUEST: Record<string, never>;
+  CLOSED_ACCOUNT_OPERATION: {
+    accountId: UUID;
+    operation: "update" | "use";
+  };
   CONFLICT: Record<string, never>;
   CONFLICTING_OPERATION_IDS: {
     conflict:
