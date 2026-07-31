@@ -14,6 +14,7 @@ import { AccountSnapshot } from 'src/domain/accounts';
 import {
   AccountPersistenceConflictError,
   RepositoryInvariantError,
+  RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
@@ -45,7 +46,7 @@ const getWhereClauseForGetAll = (userId: UUID, query: AccountQuery) => {
   );
 };
 
-const lifeCycleMapper: Record<
+const lifecycleMapper: Record<
   LifecycleAction,
   { name: string; params: Record<string, boolean> }
 > = {
@@ -57,6 +58,13 @@ export class AccountRepository
   extends BaseRepository
   implements AccountRepositoryInterface
 {
+  private accountNotFoundError(id: UUID): RepositoryNotFoundError {
+    return new RepositoryNotFoundError(
+      `Account with ID ${id} not found`,
+      this.entityNotFoundContext('account', id),
+    );
+  }
+
   async getAll(userId: UUID, query: AccountQuery): Promise<AccountSnapshot[]> {
     return this.executeDatabaseOperation<AccountSnapshot[]>(async () => {
       const whereClause = getWhereClauseForGetAll(userId, query);
@@ -182,7 +190,7 @@ export class AccountRepository
           'updatedAt',
         ]);
 
-        const updatedAccount = await this.db
+        const result = await this.db
           .update(accountsTable)
           .set(safeData)
           .where(
@@ -191,14 +199,11 @@ export class AccountRepository
               eq(accountsTable.userId, userId),
               eq(accountsTable.isTombstone, false),
             ),
-          )
-          .returning()
-          .get();
+          );
 
-        this.ensureEntityExists(
-          updatedAccount,
-          `Account with ID ${id} not found`,
-          this.entityNotFoundContext('account', id),
+        this.ensureRowsAffected(
+          result.rowsAffected,
+          this.accountNotFoundError(id),
         );
       },
       `Failed to update account with ID ${id}`,
@@ -216,9 +221,9 @@ export class AccountRepository
     data: AccountLifecycleUpdateInput,
   ): Promise<void> {
     const { action, updatedAt } = data;
-    const { name, params } = lifeCycleMapper[action];
+    const { name, params } = lifecycleMapper[action];
     return this.executeDatabaseOperation<void>(async () => {
-      const updatedAccount = await this.db
+      const result = await this.db
         .update(accountsTable)
         .set({ ...params, updatedAt })
         .where(
@@ -227,14 +232,11 @@ export class AccountRepository
             eq(accountsTable.userId, userId),
             eq(accountsTable.isTombstone, false),
           ),
-        )
-        .returning()
-        .get();
+        );
 
-      this.ensureEntityExists(
-        updatedAccount,
-        `Account with ID ${id} not found`,
-        this.entityNotFoundContext('account', id),
+      this.ensureRowsAffected(
+        result.rowsAffected,
+        this.accountNotFoundError(id),
       );
 
       // No return value for lifecycle updates
@@ -269,7 +271,7 @@ export class AccountRepository
     data: AccountRepositoryLifecycleInput,
   ): Promise<void> {
     return this.executeDatabaseOperation<void>(async () => {
-      const deletedAccount = await this.db
+      const result = await this.db
         .update(accountsTable)
         .set({ isTombstone: true, updatedAt: data.updatedAt })
         .where(
@@ -278,14 +280,11 @@ export class AccountRepository
             eq(accountsTable.userId, userId),
             eq(accountsTable.isTombstone, false),
           ),
-        )
-        .returning()
-        .get();
+        );
 
-      this.ensureEntityExists(
-        deletedAccount,
-        `Account with ID ${id} not found`,
-        this.entityNotFoundContext('account', id),
+      this.ensureRowsAffected(
+        result.rowsAffected,
+        this.accountNotFoundError(id),
       );
     }, `Failed to soft delete account with ID ${id}`);
   }

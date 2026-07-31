@@ -62,7 +62,7 @@ describe('SoftDelete', () => {
     const deleted = SoftDelete.create().markAsDeleted();
 
     expect(() => deleted.markAsDeleted()).toThrow(
-      SoftDelete.defaultUpdateError(),
+      SoftDelete.defaultDeleteError(),
     );
   });
 

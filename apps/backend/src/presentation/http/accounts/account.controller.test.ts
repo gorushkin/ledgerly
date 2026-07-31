@@ -1,5 +1,5 @@
 import { AccountCreateDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
-import { AccountQuery } from 'node_modules/@ledgerly/shared/src/validation/accounts';
+import { AccountQuery } from '@ledgerly/shared/validation';
 import {
   CloseAccountUseCase,
   DeleteAccountUseCase,

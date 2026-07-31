@@ -281,7 +281,7 @@ describe('Accounts Integration Tests', () => {
 
       const finalResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}/?status=all`,
+        url: `${url}?status=all`,
       });
 
       const accountsAfterDeletion = JSON.parse(

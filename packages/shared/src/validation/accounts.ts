@@ -30,7 +30,9 @@ export const accountUpdateSchema = z
     type: accountType.optional(),
   })
   .strict()
-  .refine((data) => Object.keys(data).length > 0);
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided for update",
+  });
 
 export const accountQuerySchema = z.object({
   status: z.enum(ACCOUNT_STATUS_FILTER_VALUES).default("open"),

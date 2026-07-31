@@ -34,6 +34,22 @@ describe("accountUpdateSchema", () => {
       description: "",
     });
   });
+
+  it("requires at least one field for update", () => {
+    const result = accountUpdateSchema.safeParse({});
+
+    expect(result.success).toBe(false);
+    if (result.success) {
+      throw new Error("Expected empty account update to fail validation");
+    }
+
+    expect(result.error.issues).toContainEqual(
+      expect.objectContaining({
+        message: "At least one field must be provided for update",
+        path: [],
+      }),
+    );
+  });
 });
 
 describe("accountQuerySchema", () => {

@@ -1,5 +1,5 @@
 import { AccountResponseDTO } from '@ledgerly/shared/types';
-import { AccountQuery } from 'node_modules/@ledgerly/shared/src/validation/accounts';
+import { AccountQuery } from '@ledgerly/shared/validation';
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { User } from 'src/domain/users/user.entity';

@@ -10,7 +10,7 @@ export class SoftDelete {
    * Marks the entity as deleted
    */
   markAsDeleted(error?: Error): SoftDelete {
-    this.validateUpdateIsAllowed(error ?? SoftDelete.defaultUpdateError());
+    this.validateUpdateIsAllowed(error ?? SoftDelete.defaultDeleteError());
     return new SoftDelete(true);
   }
 
@@ -39,6 +39,10 @@ export class SoftDelete {
 
   static defaultUpdateError(): Error {
     return new Error('Cannot update a deleted entity');
+  }
+
+  static defaultDeleteError(): Error {
+    return new Error('Cannot delete a deleted entity');
   }
 
   /**
