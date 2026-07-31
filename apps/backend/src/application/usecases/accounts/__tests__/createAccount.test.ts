@@ -1,4 +1,7 @@
-import { AccountRepositoryInterface } from 'src/application';
+import type {
+  TransactionManagerInterface,
+  AccountRepositoryInterface,
+} from 'src/application';
 import { createUser } from 'src/db/createTestUser';
 import { Commodity } from 'src/domain';
 import { Amount, CommodityCode } from 'src/domain/domain-core';
@@ -13,6 +16,10 @@ describe('CreateAccountUseCase', async () => {
 
   const accountRepository = {
     create: vi.fn(),
+  };
+
+  const transactionManager = {
+    run: vi.fn((cb: () => unknown) => cb()),
   };
 
   const name = 'Test Account';
@@ -31,6 +38,7 @@ describe('CreateAccountUseCase', async () => {
   beforeEach(() => {
     createAccountUseCase = new CreateAccountUseCase(
       accountRepository as unknown as AccountRepositoryInterface,
+      transactionManager as unknown as TransactionManagerInterface,
     );
   });
 
@@ -58,6 +66,7 @@ describe('CreateAccountUseCase', async () => {
           description,
           id: result.id,
           initialBalance,
+          isClosed: false,
           isSystem: false,
           isTombstone: false,
           name,

@@ -9,10 +9,8 @@ export class SoftDelete {
   /**
    * Marks the entity as deleted
    */
-  markAsDeleted(
-    error: Error = new Error('Cannot delete a deleted entity'),
-  ): SoftDelete {
-    this.validateUpdateIsAllowed(error);
+  markAsDeleted(error?: Error): SoftDelete {
+    this.validateUpdateIsAllowed(error ?? SoftDelete.defaultDeleteError());
     return new SoftDelete(true);
   }
 
@@ -26,11 +24,9 @@ export class SoftDelete {
   /**
    * Checks if the entity can be updated
    */
-  validateUpdateIsAllowed(
-    error: Error = new Error('Cannot update a deleted entity'),
-  ): void {
+  validateUpdateIsAllowed(error?: Error): void {
     if (this.isTombstone) {
-      throw error;
+      throw error ?? SoftDelete.defaultUpdateError();
     }
   }
 
@@ -39,6 +35,14 @@ export class SoftDelete {
    */
   getIsTombstone(): boolean {
     return this.isTombstone;
+  }
+
+  static defaultUpdateError(): Error {
+    return new Error('Cannot update a deleted entity');
+  }
+
+  static defaultDeleteError(): Error {
+    return new Error('Cannot delete a deleted entity');
   }
 
   /**

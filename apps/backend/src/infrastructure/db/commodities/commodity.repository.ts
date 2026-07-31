@@ -1,4 +1,5 @@
-import { QueryStatus, UUID } from '@ledgerly/shared/types';
+import { UUID } from '@ledgerly/shared/types';
+import { CommodityQuery } from '@ledgerly/shared/validation';
 import { and, eq } from 'drizzle-orm';
 import {
   type CommodityRepositoryInterface,
@@ -12,6 +13,19 @@ import { RepositoryInvariantError } from 'src/infrastructure/errors';
 import { BaseRepository } from '../BaseRepository';
 
 import { CommodityPersistenceMapper } from './commodity-persistence.mapper';
+
+const getWhereClauseForGetAll = (userId: UUID, query: CommodityQuery) => {
+  const { status } = query;
+
+  if (status === 'all') {
+    return eq(commoditiesTable.userId, userId);
+  }
+
+  return and(
+    eq(commoditiesTable.userId, userId),
+    eq(commoditiesTable.isTombstone, status === 'archived'),
+  );
+};
 
 export class CommodityRepository
   extends BaseRepository
@@ -37,15 +51,9 @@ export class CommodityRepository
     }, 'Failed to fetch commodity');
   }
 
-  getAll(userId: UUID, status: QueryStatus): Promise<CommoditySnapshot[]> {
+  getAll(userId: UUID, query: CommodityQuery): Promise<CommoditySnapshot[]> {
     return this.executeDatabaseOperation(async () => {
-      const whereClause =
-        status === 'all'
-          ? eq(commoditiesTable.userId, userId)
-          : and(
-              eq(commoditiesTable.userId, userId),
-              eq(commoditiesTable.isTombstone, status === 'archived'),
-            );
+      const whereClause = getWhereClauseForGetAll(userId, query);
 
       const commodities = await this.db
         .select()

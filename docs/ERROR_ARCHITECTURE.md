@@ -39,7 +39,8 @@ Domain errors represent invariant and value-object failures. They may expose a
 stable API code and context, but they do not decide how that code is transported.
 
 Examples include invalid amounts, invalid identifiers, transaction balance
-violations and operation ownership mismatches.
+violations, operation ownership mismatches and closed-account lifecycle
+violations such as `ClosedAccountOperationError`.
 
 ### Application
 

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "59edadf8-a69b-4dbb-a24a-828a220d6559",
+  "id": "72b37ad6-4dd9-43c4-8017-7b838aee4e7b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -45,6 +45,13 @@
         "initial_balance": {
           "name": "initial_balance",
           "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "is_closed": {
+          "name": "is_closed",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false

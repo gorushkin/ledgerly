@@ -1,5 +1,10 @@
 import { createUser } from 'src/db/createTestUser';
-import { AccountType, Commodity } from 'src/domain/';
+import { compareEntities } from 'src/db/test-utils';
+import {
+  AccountType,
+  Commodity,
+  DeletedEntityOperationError,
+} from 'src/domain/';
 import {
   Amount,
   Name,
@@ -41,9 +46,11 @@ describe('Account Domain Entity', () => {
 
   describe('create method', () => {
     it('should create account with valid data', () => {
+      const description = 'account-description';
+
       const account = Account.create(user, {
         commodityId: commodity.getId(),
-        description: 'account-description',
+        description,
         initialBalance: Amount.create('0'),
         name,
         type: accountType,
@@ -53,7 +60,7 @@ describe('Account Domain Entity', () => {
       expect(account.getId()).toBeDefined();
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account).toHaveProperty('name', name);
-      expect(account).toHaveProperty('description', 'account-description');
+      expect(account).toHaveProperty('description', description);
       expect(account).toHaveProperty('initialBalance', Amount.create('0'));
       expect(account.getType().valueOf()).toBe(accountType.valueOf());
       expect(account.belongsToUser(userId)).toBe(true);
@@ -83,6 +90,7 @@ describe('Account Domain Entity', () => {
         description: 'restored-description',
         id: accountId.valueOf(),
         initialBalance: Amount.create('500').valueOf(),
+        isClosed: false,
         isSystem: false,
         isTombstone: false,
         name: 'restored-account',
@@ -118,6 +126,22 @@ describe('Account Domain Entity', () => {
 
       expect(account).toHaveProperty('name', Name.create('updated-name'));
     });
+
+    it('should not allow update after deletion', () => {
+      const account = Account.create(user, {
+        commodityId: commodity.getId(),
+        description: 'description',
+        initialBalance: Amount.create('0'),
+        name,
+        type: accountType,
+      });
+
+      account.delete();
+
+      expect(() => account.update({ name: 'updated-name' })).toThrowError(
+        DeletedEntityOperationError,
+      );
+    });
   });
 
   describe('softDelete method', () => {
@@ -132,7 +156,7 @@ describe('Account Domain Entity', () => {
 
       expect(account.isDeleted()).toBe(false);
 
-      account.markAsDeleted();
+      account.delete();
 
       expect(account.isDeleted()).toBe(true);
     });
@@ -146,14 +170,14 @@ describe('Account Domain Entity', () => {
         type: accountType,
       });
 
-      account.markAsDeleted();
+      account.delete();
 
       expect(() => account.update({ name: 'new-name' })).toThrowError(
-        'Cannot update a deleted entity',
+        DeletedEntityOperationError,
       );
     });
 
-    it('should not allow deleting an already deleted account', () => {
+    it('should allow multiple delete calls without throwing error', () => {
       const account = Account.create(user, {
         commodityId: commodity.getId(),
         description: 'account-description',
@@ -162,26 +186,19 @@ describe('Account Domain Entity', () => {
         type: accountType,
       });
 
-      account.markAsDeleted();
+      expect(account.isDeleted()).toBe(false);
 
-      const deletedSnapshot = account.toSnapshot();
+      const firstDeleteResult = account.delete();
+      const secondDeleteResult = account.delete();
 
-      let thrownError: unknown;
+      expect(firstDeleteResult).toBe('changed');
+      expect(secondDeleteResult).toBe('unchanged');
+      expect(account.isDeleted()).toBe(true);
 
-      try {
-        account.markAsDeleted();
-      } catch (error) {
-        thrownError = error;
-      }
-
-      expect(thrownError).toMatchObject({
-        code: 'DELETED_ENTITY_OPERATION',
-        context: {
-          entityType: Account.entityType,
-          operation: 'delete',
-        },
+      compareEntities(account.toSnapshot(), {
+        ...account.toSnapshot(),
+        isTombstone: true,
       });
-      expect(account.toSnapshot()).toEqual(deletedSnapshot);
     });
 
     it('should only mark account as deleted and update timestamp during soft deletion', () => {
@@ -203,7 +220,7 @@ describe('Account Domain Entity', () => {
 
       vi.setSystemTime(new Date('2026-01-01T00:00:01.000Z'));
 
-      account.markAsDeleted();
+      account.delete();
 
       expect(account.isDeleted()).toBe(true);
 
@@ -218,6 +235,66 @@ describe('Account Domain Entity', () => {
         accountBeforeDeleting.updatedAt,
       );
     });
+  });
+
+  it('should close and touch the account', () => {
+    const account = Account.create(user, {
+      commodityId: commodity.getId(),
+      description: 'account-description',
+      initialBalance: Amount.create('0'),
+      name,
+      type: accountType,
+    });
+
+    const updatedAtBeforeClose = account.getUpdatedAt();
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    account.close();
+
+    expect(account.closed).toBe(true);
+    expect(account.getUpdatedAt().toString()).not.toBe(
+      updatedAtBeforeClose.toString(),
+    );
+  });
+
+  it('should open and touch the account', () => {
+    const account = Account.create(user, {
+      commodityId: commodity.getId(),
+      description: 'account-description',
+      initialBalance: Amount.create('0'),
+      name,
+      type: accountType,
+    });
+
+    account.close();
+
+    const updatedAtBeforeOpen = account.getUpdatedAt();
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    account.open();
+
+    expect(account.closed).toBe(false);
+    expect(account.getUpdatedAt().toString()).not.toBe(
+      updatedAtBeforeOpen.toString(),
+    );
+  });
+
+  it('should not allow update isClosed and touch the account when it is deleted', () => {
+    const account = Account.create(user, {
+      commodityId: commodity.getId(),
+      description: 'account-description',
+      initialBalance: Amount.create('0'),
+      name,
+      type: accountType,
+    });
+
+    account.delete();
+
+    expect(() => account.close()).toThrowError(DeletedEntityOperationError);
   });
 
   it.todo('add test to cover isSystem property');

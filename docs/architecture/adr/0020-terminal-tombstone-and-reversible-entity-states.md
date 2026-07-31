@@ -52,23 +52,25 @@ A closed account:
 - keeps its full history;
 - participates in reports and calculations;
 - does not accept new operations;
-- can be reopened.
+- can be opened again.
 
 The domain API should express that lifecycle explicitly:
 
 ```ts
 account.close();
-account.reopen();
+account.open();
 ```
 
 The `close` term matches account lifecycle language: an account can stop
-accepting new operations while keeping its history and later be reopened.
+accepting new operations while keeping its history and later be opened again.
 
-`close()` and `reopen()` are idempotent. Calling `close()` for an already closed
-account leaves it closed. Calling `reopen()` for an already active account
-leaves it active.
+`close()` and `open()` are idempotent. Calling `close()` for an already closed
+account leaves it closed. Calling `open()` for an already open account leaves it
+open.
 
-Closed accounts can still be edited, but only for descriptive fields:
+Closed accounts cannot be edited through the regular account update flow. The
+only user-facing fields that may remain editable for a closed account are
+descriptive fields:
 
 - `name`;
 - `description`.
@@ -77,20 +79,25 @@ Closed accounts can still be edited, but only for descriptive fields:
 account has participated in operations, its type is part of the historical
 accounting model and must not be changed.
 
-Account list queries should support the same lifecycle filtering shape as
-commodity list queries:
+Account list queries use account lifecycle language:
 
-- `active`;
+- `open`;
 - `closed`;
 - `all`.
 
 Every normal account list filter excludes tombstoned accounts.
 
-Account close and reopen are exposed as explicit domain actions:
+| Filter | Predicate |
+| --- | --- |
+| `open` | `isClosed = false` and `isTombstone = false` |
+| `closed` | `isClosed = true` and `isTombstone = false` |
+| `all` | `isTombstone = false` |
+
+Account close and open are exposed as explicit HTTP actions:
 
 ```http
 POST /accounts/:id/close
-POST /accounts/:id/reopen
+POST /accounts/:id/open
 ```
 
 `PATCH /accounts/:id` remains for editable account attributes, not lifecycle
@@ -213,7 +220,7 @@ The intended public domain methods are:
 
 | Entity | Reversible state | Methods |
 | --- | --- | --- |
-| `Account` | `isClosed` | `close()` / `reopen()` |
+| `Account` | `isClosed` | `close()` / `open()` |
 | `Commodity` | `isArchived` | `archive()` / `unarchive()` |
 | Any entity | `isTombstone` | `delete()` |
 
@@ -248,25 +255,26 @@ The intended public domain methods are:
 ## Consequences
 
 - `Transaction` and `Operation` tombstone state is irreversible.
-- `Account` needs `isClosed`, plus `close()` and `reopen()` behavior.
+- `Account` needs `isClosed`, plus `close()` and `open()` behavior.
 - `Commodity` needs `isArchived`, plus `archive()` and `unarchive()` behavior.
 - `DELETE` routes should mean terminal deletion. Account deletion must be
   rejected while active operations still reference the account. Commodity
   deletion must be rejected while any active domain entity still references the
   commodity.
-- Query filters for account and commodity reads should distinguish active,
-  closed or archived, and all non-tombstoned records. Tombstoned records should
-  remain hidden from normal reads.
+- Query filters for account and commodity reads should distinguish open,
+  closed or archived, and all non-tombstoned records. Account filters use
+  `open|closed|all`; commodity filters use `active|archived|all`. Tombstoned
+  records should remain hidden from normal reads.
 - Tests must cover tombstone terminality and business-state invariants:
   tombstoned entities cannot be restored or modified; closed accounts cannot
-  receive new operations; archived commodities cannot be selected for new active
-  links.
+  receive new operations and can only update descriptive account fields;
+  archived commodities cannot be selected for new active links.
 
 ## Related
 
 - [LED-123: Define entity lifecycle states](https://gorushkin.atlassian.net/browse/LED-123)
 - [LED-122: Define terminal tombstone and reversible archive/close states](https://gorushkin.atlassian.net/browse/LED-122)
-- [LED-124: Implement Account close reopen and terminal delete](https://gorushkin.atlassian.net/browse/LED-124)
+- [LED-124: Implement Account close open and terminal delete](https://gorushkin.atlassian.net/browse/LED-124)
 - [LED-125: Implement Commodity archive unarchive and terminal delete](https://gorushkin.atlassian.net/browse/LED-125)
 - [ADR 0011: Domain Entity API Conventions](./0011-domain-entity-api-conventions.md)
 - [ADR 0015: Domain Restoration Factory Naming](./0015-domain-restoration-factory-naming.md)

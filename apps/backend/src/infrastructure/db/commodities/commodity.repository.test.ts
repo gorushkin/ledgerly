@@ -1,4 +1,5 @@
-import { apiErrorCodes, type QueryStatus } from '@ledgerly/shared/types';
+import { apiErrorCodes } from '@ledgerly/shared/types';
+import { CommodityQuery } from '@ledgerly/shared/validation';
 import { type CommodityRepositoryUpdateInput } from 'src/application';
 import type { CommodityDbRow } from 'src/db/schemas/commodities';
 import { UserDbRow } from 'src/db/schemas/users';
@@ -84,18 +85,21 @@ describe('CommodityRepository', () => {
   });
 
   describe('getAll', () => {
-    const queryStatusCases: {
+    const commodityStatusFilterCases: {
       expectedTombstoneValues: boolean[];
-      status: QueryStatus;
+      query: CommodityQuery;
     }[] = [
-      { expectedTombstoneValues: [false, false], status: 'active' },
-      { expectedTombstoneValues: [true], status: 'archived' },
-      { expectedTombstoneValues: [false, false, true], status: 'all' },
+      { expectedTombstoneValues: [false, false], query: { status: 'active' } },
+      { expectedTombstoneValues: [true], query: { status: 'archived' } },
+      {
+        expectedTombstoneValues: [false, false, true],
+        query: { status: 'all' },
+      },
     ];
 
-    it.each(queryStatusCases)(
-      'should return $status commodities for the user',
-      async ({ expectedTombstoneValues, status }) => {
+    it.each(commodityStatusFilterCases)(
+      'should return $status.status commodities for the user',
+      async ({ expectedTombstoneValues, query }) => {
         const activeCommodities = await Promise.all([
           testDB.createCommodity(user.id),
           testDB.createCommodity(user.id),
@@ -105,12 +109,12 @@ describe('CommodityRepository', () => {
           isTombstone: true,
         });
 
-        const commodities = await commodityRepository.getAll(user.id, status);
+        const commodities = await commodityRepository.getAll(user.id, query);
 
         const expectedCommodities =
-          status === 'active'
+          query.status === 'active'
             ? activeCommodities
-            : status === 'archived'
+            : query.status === 'archived'
               ? [archivedCommodity]
               : [...activeCommodities, archivedCommodity];
 
@@ -129,10 +133,9 @@ describe('CommodityRepository', () => {
     it('should return an empty array when the user has no commodities', async () => {
       const anotherUser = await testDB.createUser();
 
-      const commodities = await commodityRepository.getAll(
-        anotherUser.id,
-        'active',
-      );
+      const commodities = await commodityRepository.getAll(anotherUser.id, {
+        status: 'active',
+      });
 
       expect(commodities).toEqual([]);
     });
@@ -145,15 +148,21 @@ describe('CommodityRepository', () => {
         updatedAt: Timestamp.create().valueOf(),
       });
 
-      const commodities = await commodityRepository.getAll(user.id, 'active');
+      const commodities = await commodityRepository.getAll(user.id, {
+        status: 'active',
+      });
 
       expect(commodities).toEqual(expect.arrayContaining([commodity2]));
       expect(commodities).not.toEqual(expect.arrayContaining([commodity1]));
     });
 
-    it.each<QueryStatus>(['active', 'archived', 'all'])(
-      'should not return commodities belonging to other users for %s status',
-      async (status) => {
+    it.each<CommodityQuery>([
+      { status: 'active' },
+      { status: 'archived' },
+      { status: 'all' },
+    ])(
+      'should not return commodities belonging to other users for $status.status status',
+      async ({ status }) => {
         const commodity1 = await testDB.createCommodity(user.id);
         const anotherUser = await testDB.createUser();
         const commodity2 = await testDB.createCommodity(anotherUser.id, {
@@ -166,7 +175,9 @@ describe('CommodityRepository', () => {
           });
         }
 
-        const commodities = await commodityRepository.getAll(user.id, status);
+        const commodities = await commodityRepository.getAll(user.id, {
+          status,
+        });
 
         expect(commodities).not.toEqual(expect.arrayContaining([commodity2]));
       },

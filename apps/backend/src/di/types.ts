@@ -4,9 +4,11 @@ import {
   LoginUserUseCase,
   RegisterUserUseCase,
   CreateAccountUseCase,
-  ArchiveAccountUseCase,
+  CloseAccountUseCase,
+  DeleteAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
+  OpenAccountUseCase,
   UpdateAccountUseCase,
   DeleteTransactionUseCase,
   GetAllTransactionsUseCase,
@@ -25,6 +27,7 @@ import {
   TransactionRepository,
   CommodityRepository,
   UserRepository,
+  OperationRepository,
 } from 'src/infrastructure/db';
 import {
   AccountController,
@@ -40,6 +43,7 @@ type Repositories = {
   transactionQuery: TransactionQueryRepository;
   account: AccountRepository;
   user: UserRepository;
+  operation: OperationRepository;
 };
 
 type Services = {
@@ -47,11 +51,13 @@ type Services = {
 };
 
 type AccountUseCases = {
+  closeAccount: CloseAccountUseCase;
   createAccount: CreateAccountUseCase;
   getAllAccounts: GetAllAccountsUseCase;
   getAccountById: GetAccountByIdUseCase;
+  openAccount: OpenAccountUseCase;
   updateAccount: UpdateAccountUseCase;
-  archiveAccount: ArchiveAccountUseCase;
+  deleteAccount: DeleteAccountUseCase;
 };
 
 type AuthUseCases = {
