@@ -1,4 +1,4 @@
-import { type QueryStatus } from '@ledgerly/shared/types';
+import { CommodityQuery } from '@ledgerly/shared/validation';
 import {
   ArchiveCommodityUseCase,
   CreateCommodityUseCase,
@@ -58,23 +58,23 @@ describe('CommodityController', () => {
 
   describe('getAll', () => {
     const validQueryParams: {
-      expectedStatus: QueryStatus;
+      query: CommodityQuery;
       queryParams: unknown;
     }[] = [
-      { expectedStatus: 'active', queryParams: { status: 'active' } },
-      { expectedStatus: 'archived', queryParams: { status: 'archived' } },
-      { expectedStatus: 'all', queryParams: { status: 'all' } },
-      { expectedStatus: 'active', queryParams: {} },
+      { query: { status: 'active' }, queryParams: { status: 'active' } },
+      { query: { status: 'archived' }, queryParams: { status: 'archived' } },
+      { query: { status: 'all' }, queryParams: { status: 'all' } },
+      { query: { status: 'active' }, queryParams: {} },
     ];
 
     it.each(validQueryParams)(
-      'should call getAllCommoditiesUseCase.execute with $expectedStatus status',
-      async ({ expectedStatus, queryParams }) => {
+      'should call getAllCommoditiesUseCase.execute with $query.status status',
+      async ({ query, queryParams }) => {
         await commodityController.getAll(user, queryParams);
 
         expect(mockGetAllCommoditiesUseCase.execute).toHaveBeenCalledWith(
           user,
-          expectedStatus,
+          query,
         );
         expect(mockGetAllCommoditiesUseCase.execute).toHaveBeenCalledTimes(1);
       },

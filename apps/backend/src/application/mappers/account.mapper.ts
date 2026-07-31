@@ -22,6 +22,7 @@ export class AccountMapper {
       description: snapshot.description,
       id: snapshot.id,
       initialBalance: snapshot.initialBalance,
+      isClosed: snapshot.isClosed,
       isSystem: snapshot.isSystem,
       isTombstone: snapshot.isTombstone,
       name: snapshot.name,

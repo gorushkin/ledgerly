@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { accountCreateSchema, accountUpdateSchema } from "./accounts";
+import {
+  accountCreateSchema,
+  accountQuerySchema,
+  accountUpdateSchema,
+} from "./accounts";
 
 const validCreateAccount = {
   commodityId: "00000000-0000-4000-8000-000000000000",
@@ -28,6 +32,18 @@ describe("accountUpdateSchema", () => {
   it("allows an explicit empty description to clear the field", () => {
     expect(accountUpdateSchema.parse({ description: "" })).toEqual({
       description: "",
+    });
+  });
+});
+
+describe("accountQuerySchema", () => {
+  it("defaults omitted closed filter to open accounts", () => {
+    expect(accountQuerySchema.parse({})).toEqual({ closed: "open" });
+  });
+
+  it("allows querying all accounts", () => {
+    expect(accountQuerySchema.parse({ closed: "all" })).toEqual({
+      closed: "all",
     });
   });
 });

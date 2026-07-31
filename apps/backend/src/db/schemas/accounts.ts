@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPE_VALUES } from '@ledgerly/shared/constants';
+import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
@@ -12,6 +12,7 @@ import {
   isTombstone,
   getAmountColumn,
   isSystem,
+  getBooleanColumn,
 } from './common';
 import { usersTable } from './users';
 
@@ -29,11 +30,12 @@ export const accountsTable = sqliteTable(
     description,
     id,
     initialBalance: getAmountColumn('initial_balance'),
+    isClosed: getBooleanColumn('is_closed'),
     isSystem,
     isTombstone,
     name: text('name').notNull(),
     type: text('type', {
-      enum: ACCOUNT_TYPE_VALUES,
+      enum: ACCOUNT_TYPES,
     }).notNull(),
     updatedAt,
     userId: text('user_id')

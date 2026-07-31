@@ -1,6 +1,7 @@
 import type { UUID } from "./types";
 
 export const apiErrorCodes = {
+  accountHasActiveOperations: "ACCOUNT_HAS_ACTIVE_OPERATIONS",
   accountNotFoundInContext: "ACCOUNT_NOT_FOUND_IN_CONTEXT",
   authenticationFailed: "AUTHENTICATION_FAILED",
   badRequest: "BAD_REQUEST",
@@ -54,6 +55,9 @@ export type ValidationFieldError = {
 };
 
 export type ErrorContextByCode = {
+  ACCOUNT_HAS_ACTIVE_OPERATIONS: {
+    accountId: UUID;
+  };
   ACCOUNT_NOT_FOUND_IN_CONTEXT: {
     accountId: string;
     operationId: string;
@@ -70,7 +74,7 @@ export type ErrorContextByCode = {
   };
   DELETED_ENTITY_OPERATION: {
     entityType: string;
-    operation: "delete" | "update";
+    operation: "delete" | "update" | "use";
   };
   EMPTY_OPERATIONS: Record<string, never>;
   ENTITY_NOT_FOUND: {

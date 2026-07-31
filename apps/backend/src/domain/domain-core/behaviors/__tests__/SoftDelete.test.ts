@@ -62,7 +62,7 @@ describe('SoftDelete', () => {
     const deleted = SoftDelete.create().markAsDeleted();
 
     expect(() => deleted.markAsDeleted()).toThrow(
-      'Cannot delete a deleted entity',
+      SoftDelete.defaultUpdateError(),
     );
   });
 

@@ -64,6 +64,19 @@ export class ForbiddenAccessError extends CodedInfrastructureError<'UNAUTHORIZED
 }
 
 /**
+ * Thrown when the persistence layer fails to satisfy its write contract.
+ *
+ * A repository expected to persist a change to exactly one row but did not.
+ * This represents an infrastructure invariant violation rather than a
+ * business error.
+ */
+export class AccountPersistenceConflictError extends CodedInfrastructureError<'CONFLICT'> {
+  constructor(message = 'Account persistence conflict') {
+    super(message, apiErrorCodes.conflict, {});
+  }
+}
+
+/**
  * Thrown when repository input violates expected persistence invariants.
  */
 export class RepositoryInvariantError extends InfrastructureError {

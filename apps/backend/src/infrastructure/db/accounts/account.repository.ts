@@ -1,34 +1,70 @@
 import { UUID } from '@ledgerly/shared/types';
+import { AccountQuery } from '@ledgerly/shared/validation';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
+  type AccountLifecycleUpdateInput,
   type AccountRepositoryInterface,
-  type AccountRepositorySoftDeleteInput,
+  type AccountRepositoryLifecycleInput,
   type AccountRepositoryUpdateInput,
+  type LifecycleAction,
 } from 'src/application';
 import { accountsTable } from 'src/db/schemas/accounts';
 import { commoditiesTable } from 'src/db/schemas/commodities';
 import { AccountSnapshot } from 'src/domain/accounts';
-import { RepositoryInvariantError } from 'src/infrastructure/errors';
+import {
+  AccountPersistenceConflictError,
+  RepositoryInvariantError,
+} from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
 
 import { AccountPersistenceMapper } from './account-persistence.mapper';
 
+const getWhereClauseForGetAll = (userId: UUID, query: AccountQuery) => {
+  const { status } = query;
+
+  if (status === 'all') {
+    return and(
+      eq(accountsTable.userId, userId),
+      eq(accountsTable.isTombstone, false),
+    );
+  }
+
+  if (status === 'open') {
+    return and(
+      eq(accountsTable.userId, userId),
+      eq(accountsTable.isClosed, false),
+      eq(accountsTable.isTombstone, false),
+    );
+  }
+
+  return and(
+    eq(accountsTable.userId, userId),
+    eq(accountsTable.isClosed, true),
+    eq(accountsTable.isTombstone, false),
+  );
+};
+
+const lifeCycleMapper: Record<
+  LifecycleAction,
+  { name: string; params: Record<string, boolean> }
+> = {
+  close: { name: 'close', params: { isClosed: true } },
+  open: { name: 'open', params: { isClosed: false } },
+};
+
 export class AccountRepository
   extends BaseRepository
   implements AccountRepositoryInterface
 {
-  async getAll(userId: UUID): Promise<AccountSnapshot[]> {
+  async getAll(userId: UUID, query: AccountQuery): Promise<AccountSnapshot[]> {
     return this.executeDatabaseOperation<AccountSnapshot[]>(async () => {
+      const whereClause = getWhereClauseForGetAll(userId, query);
+
       const accounts = await this.db
         .select()
         .from(accountsTable)
-        .where(
-          and(
-            eq(accountsTable.userId, userId),
-            eq(accountsTable.isTombstone, false),
-          ),
-        )
+        .where(whereClause)
         .all();
 
       return accounts.map((account) =>
@@ -37,9 +73,10 @@ export class AccountRepository
     }, 'Failed to fetch accounts');
   }
 
-  create(userId: UUID, data: AccountSnapshot): Promise<AccountSnapshot> {
+  create(userId: UUID, data: AccountSnapshot): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
+        // TODO: consider moving to the base repository or a utility function to avoid duplication
         if (data.userId !== userId) {
           throw new RepositoryInvariantError(
             'Account snapshot userId must match repository create userId',
@@ -64,16 +101,17 @@ export class AccountRepository
           this.entityNotFoundContext('commodity', data.commodityId),
         );
 
-        const account = await this.db
-          .insert(accountsTable)
-          .values({
-            ...AccountPersistenceMapper.toDBRowFromSnapshot(data),
-            currentClearedBalanceLocal: data.currentClearedBalanceLocal ?? '0',
-          })
-          .returning()
-          .get();
+        const result = await this.db.insert(accountsTable).values({
+          ...AccountPersistenceMapper.toDBRowFromSnapshot(data),
+          currentClearedBalanceLocal: data.currentClearedBalanceLocal ?? '0',
+        });
 
-        return AccountPersistenceMapper.toSnapshot(account);
+        this.ensureRowsAffected(
+          result.rowsAffected,
+          new AccountPersistenceConflictError(
+            `Failed to create account with ID ${data.id}`,
+          ),
+        );
       },
       'Failed to create account',
       {
@@ -91,18 +129,24 @@ export class AccountRepository
     );
   }
 
-  getById(userId: UUID, id: UUID): Promise<AccountSnapshot> {
+  private getByIdInternal(
+    userId: UUID,
+    id: UUID,
+    options: { includeTombstone: boolean },
+  ): Promise<AccountSnapshot> {
     return this.executeDatabaseOperation<AccountSnapshot>(async () => {
-      const account = await this.db
-        .select()
-        .from(accountsTable)
-        .where(
-          and(
+      const whereClause = options.includeTombstone
+        ? and(eq(accountsTable.id, id), eq(accountsTable.userId, userId))
+        : and(
             eq(accountsTable.id, id),
             eq(accountsTable.userId, userId),
             eq(accountsTable.isTombstone, false),
-          ),
-        )
+          );
+
+      const account = await this.db
+        .select()
+        .from(accountsTable)
+        .where(whereClause)
         .get();
 
       const existingAccount = this.ensureEntityExists(
@@ -115,12 +159,20 @@ export class AccountRepository
     }, 'Failed to fetch account by ID');
   }
 
+  getByIdForLifecycle(userId: UUID, id: UUID): Promise<AccountSnapshot> {
+    return this.getByIdInternal(userId, id, { includeTombstone: true });
+  }
+
+  getById(userId: UUID, id: UUID): Promise<AccountSnapshot> {
+    return this.getByIdInternal(userId, id, { includeTombstone: false });
+  }
+
   async update(
     userId: UUID,
     id: UUID,
     data: AccountRepositoryUpdateInput,
-  ): Promise<AccountSnapshot> {
-    return this.executeDatabaseOperation(
+  ): Promise<void> {
+    await this.executeDatabaseOperation(
       async () => {
         const safeData = this.getSafeUpdate(data, [
           'description',
@@ -143,13 +195,11 @@ export class AccountRepository
           .returning()
           .get();
 
-        const existingAccount = this.ensureEntityExists(
+        this.ensureEntityExists(
           updatedAccount,
           `Account with ID ${id} not found`,
           this.entityNotFoundContext('account', id),
         );
-
-        return AccountPersistenceMapper.toSnapshot(existingAccount);
       },
       `Failed to update account with ID ${id}`,
       {
@@ -160,12 +210,65 @@ export class AccountRepository
     );
   }
 
-  async softDelete(
+  async updateLifecycle(
     userId: UUID,
     id: UUID,
-    data: AccountRepositorySoftDeleteInput,
-  ): Promise<AccountSnapshot> {
-    return this.executeDatabaseOperation<AccountSnapshot>(async () => {
+    data: AccountLifecycleUpdateInput,
+  ): Promise<void> {
+    const { action, updatedAt } = data;
+    const { name, params } = lifeCycleMapper[action];
+    return this.executeDatabaseOperation<void>(async () => {
+      const updatedAccount = await this.db
+        .update(accountsTable)
+        .set({ ...params, updatedAt })
+        .where(
+          and(
+            eq(accountsTable.id, id),
+            eq(accountsTable.userId, userId),
+            eq(accountsTable.isTombstone, false),
+          ),
+        )
+        .returning()
+        .get();
+
+      this.ensureEntityExists(
+        updatedAccount,
+        `Account with ID ${id} not found`,
+        this.entityNotFoundContext('account', id),
+      );
+
+      // No return value for lifecycle updates
+    }, `Failed to ${name} account with ID ${id}`);
+  }
+
+  async open(
+    userId: UUID,
+    id: UUID,
+    data: AccountLifecycleUpdateInput,
+  ): Promise<void> {
+    await this.updateLifecycle(userId, id, {
+      action: 'open',
+      updatedAt: data.updatedAt,
+    });
+  }
+
+  async close(
+    userId: UUID,
+    id: UUID,
+    data: AccountLifecycleUpdateInput,
+  ): Promise<void> {
+    await this.updateLifecycle(userId, id, {
+      action: 'close',
+      updatedAt: data.updatedAt,
+    });
+  }
+
+  async delete(
+    userId: UUID,
+    id: UUID,
+    data: AccountRepositoryLifecycleInput,
+  ): Promise<void> {
+    return this.executeDatabaseOperation<void>(async () => {
       const deletedAccount = await this.db
         .update(accountsTable)
         .set({ isTombstone: true, updatedAt: data.updatedAt })
@@ -179,13 +282,11 @@ export class AccountRepository
         .returning()
         .get();
 
-      const existingAccount = this.ensureEntityExists(
+      this.ensureEntityExists(
         deletedAccount,
         `Account with ID ${id} not found`,
         this.entityNotFoundContext('account', id),
       );
-
-      return AccountPersistenceMapper.toSnapshot(existingAccount);
     }, `Failed to soft delete account with ID ${id}`);
   }
 
@@ -207,6 +308,7 @@ export class AccountRepository
         `Account with ID ${accountId} not found`,
         this.entityNotFoundContext('account', accountId),
       );
+
       this.ensureAccess(
         existingAccount.userId === userId,
         'You do not have permission to access this account',

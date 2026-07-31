@@ -9,6 +9,7 @@ declare module '@fastify/jwt' {
     payload: {
       userId: UUID;
       email: string;
+      exp?: number;
     };
     user: User;
   }

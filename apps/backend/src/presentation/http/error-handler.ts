@@ -16,6 +16,7 @@ import { ZodError, type ZodIssue } from 'zod';
 import { HttpApiError } from './errors';
 
 const statusByErrorCode = {
+  [apiErrorCodes.accountHasActiveOperations]: 409,
   [apiErrorCodes.accountNotFoundInContext]: 400,
   [apiErrorCodes.authenticationFailed]: 401,
   [apiErrorCodes.badRequest]: 400,
@@ -83,11 +84,50 @@ const sendCodedError = <Code extends ApiErrorCode>(
     error: true,
   });
 
+type InvalidJsonError = SyntaxError & {
+  statusCode: 400;
+};
+
+const isInvalidJsonError = (error: unknown): error is InvalidJsonError => {
+  return (
+    error instanceof SyntaxError &&
+    'statusCode' in error &&
+    error.statusCode === 400
+  );
+};
+
+const isFastifyError = (error: unknown): error is FastifyError => {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    typeof error.code === 'string' &&
+    error.code.startsWith('FST_')
+  );
+};
+
 export function errorHandler(
   error: FastifyError | Error,
   _request: FastifyRequest,
   reply: FastifyReply,
 ) {
+  if (isInvalidJsonError(error)) {
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.badRequest],
+      apiErrorCodes.badRequest,
+      {},
+    );
+  }
+
+  if (isFastifyError(error)) {
+    return sendCodedError(
+      reply,
+      statusByErrorCode[apiErrorCodes.badRequest],
+      apiErrorCodes.badRequest,
+      {},
+    );
+  }
+
   if (error instanceof ZodError) {
     const fields = error.issues.map((issue) => ({
       code: getValidationFieldErrorCode(issue),

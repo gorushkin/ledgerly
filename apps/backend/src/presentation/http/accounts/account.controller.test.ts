@@ -1,6 +1,7 @@
 import { AccountCreateDTO, AccountUpdateDTO } from '@ledgerly/shared/types';
+import { AccountQuery } from 'node_modules/@ledgerly/shared/src/validation/accounts';
 import {
-  ArchiveAccountUseCase,
+  DeleteAccountUseCase,
   CreateAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
@@ -47,7 +48,7 @@ describe('AccountController', () => {
     mockGetAllAccountsUseCase as unknown as GetAllAccountsUseCase,
     mockCreateAccountUseCase as unknown as CreateAccountUseCase,
     mockUpdateAccountUseCase as unknown as UpdateAccountUseCase,
-    mockArchiveAccountUseCase as unknown as ArchiveAccountUseCase,
+    mockArchiveAccountUseCase as unknown as DeleteAccountUseCase,
   );
 
   beforeEach(async () => {
@@ -57,21 +58,26 @@ describe('AccountController', () => {
   });
 
   describe('getAll', () => {
-    it('should call accountService.getAll with correct userId', async () => {
+    it('should call accountController.getAll with correct userId', async () => {
       const mockAccounts = [{ id: '1', name: 'Test Account' }];
 
       mockGetAllAccountsUseCase.execute.mockResolvedValue(mockAccounts);
 
-      const result = await accountController.getAll(user);
+      const query: AccountQuery = { status: 'all' };
 
-      expect(mockGetAllAccountsUseCase.execute).toHaveBeenCalledWith(user);
+      const result = await accountController.getAll(user, query);
+
+      expect(mockGetAllAccountsUseCase.execute).toHaveBeenCalledWith(
+        user,
+        query,
+      );
       expect(mockGetAllAccountsUseCase.execute).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockAccounts);
     });
   });
 
   describe('getById', () => {
-    it('should call accountService.getById with correct userId and id', async () => {
+    it('should call accountController.getById with correct userId and id', async () => {
       const accountId = Id.create().valueOf();
       const requestParams = { id: accountId };
       const mockAccount = { id: accountId, name: 'Test Account' };
@@ -98,7 +104,7 @@ describe('AccountController', () => {
   });
 
   describe('create', () => {
-    it('should call accountService.create with correct data', async () => {
+    it('should call accountController.create with correct data', async () => {
       const requestBody: AccountCreateDTO = {
         commodityId: Id.create().valueOf(),
         description: 'Test Account',
@@ -142,7 +148,7 @@ describe('AccountController', () => {
       type: 'liability',
     };
 
-    it('should call accountService.update with correct data', async () => {
+    it('should call accountController.update with correct data', async () => {
       await accountController.update(user, { id: accountId }, requestBody);
 
       const { ...mockAccountResponse } = {
@@ -179,11 +185,11 @@ describe('AccountController', () => {
     });
   });
 
-  describe('archiveAccount', () => {
-    it('should call archive account use case with correct account id and user', async () => {
+  describe('deleteAccount', () => {
+    it('should call accountController.deleteAccount with correct account id and user', async () => {
       mockArchiveAccountUseCase.execute.mockResolvedValue(undefined);
 
-      await accountController.archiveAccount(user, { id: accountId });
+      await accountController.deleteAccount(user, { id: accountId });
 
       expect(mockArchiveAccountUseCase.execute).toHaveBeenCalledWith(
         user,
@@ -194,7 +200,7 @@ describe('AccountController', () => {
 
     it('should throw ZodError for invalid request params', async () => {
       await expect(
-        accountController.archiveAccount(user, { id: 'not-a-uuid' }),
+        accountController.deleteAccount(user, { id: 'not-a-uuid' }),
       ).rejects.toThrow(ZodError);
 
       expect(mockArchiveAccountUseCase.execute).not.toHaveBeenCalled();

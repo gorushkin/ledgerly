@@ -27,6 +27,7 @@ export type AccountResponseDTO = {
   description: string;
   id: UUID;
   initialBalance: AmountString;
+  isClosed: boolean;
   isSystem: boolean;
   isTombstone: boolean;
   name: RequiredText;

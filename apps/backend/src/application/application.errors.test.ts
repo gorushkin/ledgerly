@@ -1,5 +1,6 @@
-import { apiErrorCodes } from '@ledgerly/shared/types';
+import { apiErrorCodes, type UUID } from '@ledgerly/shared/types';
 import {
+  AccountHasActiveOperationsError,
   AuthenticationFailedError,
   InvalidPasswordError,
   ApplicationError,
@@ -39,6 +40,15 @@ describe('coded application errors', () => {
     expect(new UserAlreadyExistsError()).toMatchObject({
       code: apiErrorCodes.registrationConflict,
       context: {},
+    });
+  });
+
+  it('uses a stable public code for an account with active operations', () => {
+    const accountId = '550e8400-e29b-41d4-a716-446655440001' as UUID;
+
+    expect(new AccountHasActiveOperationsError(accountId)).toMatchObject({
+      code: apiErrorCodes.accountHasActiveOperations,
+      context: { accountId },
     });
   });
 });

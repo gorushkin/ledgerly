@@ -4,7 +4,7 @@ import {
   LoginUserUseCase,
   RegisterUserUseCase,
   CreateAccountUseCase,
-  ArchiveAccountUseCase,
+  DeleteAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
   UpdateAccountUseCase,
@@ -17,6 +17,7 @@ import {
   ArchiveCommodityUseCase,
   CreateCommodityUseCase,
 } from 'src/application';
+import { AccountOperationPolicy } from 'src/application/services/AccountOperationPolicy/account-operation.policy';
 import { TransactionContextLoader } from 'src/application/services/TransactionService';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
@@ -62,6 +63,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
     commodity: commodityRepository,
+    operation: operationRepository,
     transaction: transactionRepository,
     transactionQuery: transactionQueryRepository,
     user: userRepository,
@@ -73,6 +75,10 @@ export const createContainer = (db: DataBase): AppContainer => {
     accountRepository,
   );
 
+  const accountOperationPolicy = new AccountOperationPolicy(
+    operationRepository,
+  );
+
   const passwordManager = new PasswordManager();
 
   const services: AppContainer['services'] = {
@@ -80,11 +86,20 @@ export const createContainer = (db: DataBase): AppContainer => {
   };
 
   // Create Account Use Cases
-  const createAccountUseCase = new CreateAccountUseCase(accountRepository);
+  const createAccountUseCase = new CreateAccountUseCase(
+    accountRepository,
+    transactionManager,
+  );
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
-  const updateAccountUseCase = new UpdateAccountUseCase(accountRepository);
-  const archiveAccountUseCase = new ArchiveAccountUseCase(accountRepository);
+  const updateAccountUseCase = new UpdateAccountUseCase(
+    accountRepository,
+    accountOperationPolicy,
+  );
+  const deleteAccountUseCase = new DeleteAccountUseCase(
+    accountRepository,
+    accountOperationPolicy,
+  );
 
   const loginUserUseCase = new LoginUserUseCase(userRepository);
 
@@ -150,8 +165,8 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const useCases: AppContainer['useCases'] = {
     account: {
-      archiveAccount: archiveAccountUseCase,
       createAccount: createAccountUseCase,
+      deleteAccount: deleteAccountUseCase,
       getAccountById: getAccountByIdUseCase,
       getAllAccounts: getAllAccountsUseCase,
       updateAccount: updateAccountUseCase,
@@ -181,7 +196,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     useCases.account.getAllAccounts,
     useCases.account.createAccount,
     useCases.account.updateAccount,
-    useCases.account.archiveAccount,
+    useCases.account.deleteAccount,
   );
 
   const userController = new UserController();

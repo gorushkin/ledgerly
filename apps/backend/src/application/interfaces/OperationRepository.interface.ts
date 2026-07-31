@@ -7,4 +7,5 @@ export type OperationRepositoryInterface = {
     operations: OperationSnapshot[],
     snapshots?: Map<UUID, OperationSnapshot>,
   ): Promise<void>;
+  existsActiveByAccountId(userId: UUID, accountId: UUID): Promise<boolean>;
 };

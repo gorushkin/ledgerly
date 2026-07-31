@@ -47,6 +47,7 @@ describe('GetAccountByIdUseCase', async () => {
     description,
     id: accountId,
     initialBalance,
+    isClosed: false,
     isSystem: false,
     isTombstone: false,
     name: accountName,
