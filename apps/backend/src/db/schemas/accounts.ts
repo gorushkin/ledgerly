@@ -10,9 +10,9 @@ import {
   updatedAt,
   id,
   isTombstone,
+  isClosed,
   getAmountColumn,
   isSystem,
-  getBooleanColumn,
 } from './common';
 import { usersTable } from './users';
 
@@ -30,7 +30,7 @@ export const accountsTable = sqliteTable(
     description,
     id,
     initialBalance: getAmountColumn('initial_balance'),
-    isClosed: getBooleanColumn('is_closed'),
+    isClosed,
     isSystem,
     isTombstone,
     name: text('name').notNull(),

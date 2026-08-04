@@ -8,6 +8,13 @@
       "when": 1785508223175,
       "tag": "0000_clammy_invisible_woman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1785859950401,
+      "tag": "0001_adorable_star_brand",
+      "breakpoints": true
     }
   ]
 }

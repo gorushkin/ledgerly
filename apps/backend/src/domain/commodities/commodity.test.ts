@@ -1,3 +1,4 @@
+import { compareEntities } from 'src/db/test-utils';
 import { createUser } from 'src/testing';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -117,6 +118,7 @@ describe('Commodity Domain Entity', () => {
         code: commodityCode.valueOf(),
         createdAt: createdAt.valueOf(),
         id: commodityId.valueOf(),
+        isClosed: false,
         isTombstone: false,
         name: commodityName.valueOf(),
         precision: commodityPrecision,
@@ -144,6 +146,7 @@ describe('Commodity Domain Entity', () => {
         code: commodityCode.valueOf(),
         createdAt: Timestamp.create().valueOf(),
         id: Id.create().valueOf(),
+        isClosed: false,
         isTombstone: false,
         name: commodityName.valueOf(),
         precision: -1, // Invalid precision
@@ -162,6 +165,7 @@ describe('Commodity Domain Entity', () => {
         code: commodityCode.valueOf(),
         createdAt: Timestamp.create().valueOf(),
         id: Id.create().valueOf(),
+        isClosed: false,
         isTombstone: false,
         name: commodityName.valueOf(),
         precision: commodityPrecision,
@@ -183,7 +187,7 @@ describe('Commodity Domain Entity', () => {
 
         expect(commodity.isDeleted()).toBe(false);
 
-        commodity.markAsDeleted();
+        commodity.delete();
 
         expect(commodity.isDeleted()).toBe(true);
       });
@@ -191,7 +195,7 @@ describe('Commodity Domain Entity', () => {
       it('should not allow updates on a deleted commodity', () => {
         const commodity = Commodity.create(user, commodityCreateProps);
 
-        commodity.markAsDeleted();
+        commodity.delete();
 
         const newCode = CommodityCode.create('updatedCode');
 
@@ -200,30 +204,22 @@ describe('Commodity Domain Entity', () => {
         }).toThrow(DeletedEntityOperationError);
       });
 
-      it('should not allow deleting an already deleted commodity', () => {
+      it('should allow multiple delete calls without throwing error', () => {
         const commodity = Commodity.create(user, commodityCreateProps);
 
-        commodity.markAsDeleted();
+        expect(commodity.isDeleted()).toBe(false);
 
-        const deletedSnapshot = commodity.toSnapshot();
+        const firstDeleteResult = commodity.delete();
+        const secondDeleteResult = commodity.delete();
 
-        let thrownError: unknown;
+        expect(firstDeleteResult).toBe('changed');
+        expect(secondDeleteResult).toBe('unchanged');
+        expect(commodity.isDeleted()).toBe(true);
 
-        try {
-          commodity.markAsDeleted();
-        } catch (error) {
-          thrownError = error;
-        }
-
-        expect(thrownError).toMatchObject({
-          code: 'DELETED_ENTITY_OPERATION',
-          context: {
-            entityType: Commodity.entityType,
-            operation: 'delete',
-          },
+        compareEntities(commodity.toSnapshot(), {
+          ...commodity.toSnapshot(),
+          isTombstone: true,
         });
-
-        expect(commodity.toSnapshot()).toEqual(deletedSnapshot);
       });
 
       it('should only mark commodity as deleted and update timestamp during soft deletion', () => {
@@ -242,7 +238,7 @@ describe('Commodity Domain Entity', () => {
 
         vi.setSystemTime(new Date(timestampDuringDeletionValue));
 
-        commodity.markAsDeleted();
+        commodity.delete();
 
         const commoditySnapshotAfterDeletion = commodity.toSnapshot();
 
@@ -257,6 +253,78 @@ describe('Commodity Domain Entity', () => {
         expect(commoditySnapshotAfterDeletion.updatedAt).not.toBe(
           commoditySnapshotBeforeDeletion.updatedAt,
         );
+      });
+    });
+
+    describe('close and open methods', () => {
+      it('should close and touch the commodity', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'));
+
+        const commodity = Commodity.create(user, commodityCreateProps);
+
+        const before = commodity.toSnapshot();
+
+        vi.setSystemTime(new Date('2025-01-01T00:00:01.000Z'));
+
+        const closeResult = commodity.close();
+
+        const afterClose = commodity.toSnapshot();
+
+        expect(closeResult).toBe('changed');
+        expect(afterClose.isClosed).toBe(true);
+        expect(afterClose.updatedAt).not.toBe(before.updatedAt);
+      });
+
+      it('should open and touch the commodity', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'));
+
+        const commodity = Commodity.create(user, commodityCreateProps);
+
+        commodity.close();
+
+        const before = commodity.toSnapshot();
+
+        vi.setSystemTime(new Date('2025-01-01T00:00:01.000Z'));
+
+        const openResult = commodity.open();
+
+        const afterOpen = commodity.toSnapshot();
+
+        expect(openResult).toBe('changed');
+        expect(afterOpen.isClosed).toBe(false);
+        expect(afterOpen.updatedAt).not.toBe(before.updatedAt);
+      });
+
+      it('should not update timestamp for unchanged close operation', () => {
+        const commodity = Commodity.create(user, commodityCreateProps);
+
+        commodity.close();
+
+        const before = commodity.toSnapshot();
+
+        const closeResult = commodity.close();
+
+        const afterClose = commodity.toSnapshot();
+
+        expect(closeResult).toBe('unchanged');
+        expect(afterClose.isClosed).toBe(true);
+        expect(afterClose.updatedAt).toBe(before.updatedAt);
+      });
+
+      it('should not update timestamp for unchanged open operation', () => {
+        const commodity = Commodity.create(user, commodityCreateProps);
+
+        const before = commodity.toSnapshot();
+
+        const openResult = commodity.open();
+
+        const afterOpen = commodity.toSnapshot();
+
+        expect(openResult).toBe('unchanged');
+        expect(afterOpen.isClosed).toBe(false);
+        expect(afterOpen.updatedAt).toBe(before.updatedAt);
       });
     });
 

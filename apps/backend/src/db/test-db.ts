@@ -394,12 +394,14 @@ export class TestDB {
       name?: string;
       precision?: CommodityPrecisionNumber;
       isTombstone?: boolean;
+      isClosed?: boolean;
     },
   ): Promise<CommodityDbRow> => {
     const nextName = this.commodityCounter.getNextName({ delimiter: '' });
 
     const commodityData = {
       code: params?.code ?? CommodityCode.create(`COM${nextName}`).valueOf(),
+      isClosed: params?.isClosed ?? false,
       isTombstone: params?.isTombstone ?? false,
       name: params?.name ?? `Commodity ${nextName}`,
       precision: params?.precision ?? 2,
@@ -417,6 +419,7 @@ export class TestDB {
         userId: commodityData.userId,
         ...TestDB.createTimestamps,
         ...TestDB.uuid,
+        isClosed: commodityData.isClosed,
         isTombstone: commodityData.isTombstone,
       })
       .returning()

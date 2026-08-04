@@ -12,6 +12,7 @@ export type CommoditySnapshot = {
   id: UUID;
   isTombstone: boolean;
   code: CommodityCodeString;
+  isClosed: boolean;
   symbol: CommoditySymbolString | null;
   updatedAt: IsoDatetimeString;
   userId: UUID;

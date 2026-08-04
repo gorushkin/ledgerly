@@ -20,6 +20,7 @@ export const id = text('id').notNull().primaryKey().$type<UUID>();
 export const getBooleanColumn = (fieldName: string) =>
   integer(fieldName, { mode: 'boolean' }).notNull();
 export const isTombstone = getBooleanColumn('is_tombstone');
+export const isClosed = getBooleanColumn('is_closed');
 export const getNumericColumn = <T>(fieldName: string) => {
   return text(fieldName).notNull().$type<T>();
 };

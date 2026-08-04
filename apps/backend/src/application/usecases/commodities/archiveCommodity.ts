@@ -30,7 +30,7 @@ export class ArchiveCommodityUseCase {
 
     const commodity = Commodity.restore(commodityData);
 
-    commodity.markAsDeleted();
+    commodity.delete();
 
     const updatedCommodity = await this.commodityRepository.softDelete(
       user.getId().valueOf(),

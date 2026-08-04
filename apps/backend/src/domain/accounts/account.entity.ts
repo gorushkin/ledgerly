@@ -8,6 +8,7 @@ import {
   EntityIdentity,
   EntityTimestamps,
   SoftDelete,
+  type TransitionResult,
 } from '../domain-core';
 import { DeletedEntityOperationError } from '../domain.errors';
 import { User } from '../users/user.entity';
@@ -18,8 +19,6 @@ import {
   AccountUpdateProps,
   CreateAccountProps,
 } from './types';
-
-type TransitionResult = 'changed' | 'unchanged';
 
 export class Account {
   static readonly entityType = 'account';

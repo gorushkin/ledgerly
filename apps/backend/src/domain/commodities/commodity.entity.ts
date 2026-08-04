@@ -12,6 +12,7 @@ import {
   ParentChildRelation,
   SoftDelete,
   Timestamp,
+  TransitionResult,
 } from '../domain-core';
 import { DeletedEntityOperationError } from '../domain.errors';
 import { User } from '../users/user.entity';
@@ -22,9 +23,6 @@ import type {
   CommodityUpdateProps,
   CreateCommodityProps,
 } from './types';
-
-// const DEFAULT_PRECISION = 2;
-// const DEFAULT_SYMBOL = null;
 
 export class Commodity {
   static readonly entityType = 'commodity';
@@ -37,6 +35,7 @@ export class Commodity {
     public symbol: CommoditySymbolString | null,
     public name: Name,
     private precision: CommodityPrecisionNumber,
+    private isClosed: boolean,
   ) {}
 
   static readonly DEFAULT_PRECISION = 2;
@@ -68,6 +67,7 @@ export class Commodity {
       parsedCommoditySymbol,
       Name.create(props.name),
       parsedCommodityPrecision, // use the provided precision value
+      false,
     );
   }
 
@@ -76,6 +76,7 @@ export class Commodity {
       code,
       createdAt,
       id,
+      isClosed,
       isTombstone,
       precision,
       symbol,
@@ -112,6 +113,7 @@ export class Commodity {
       parsedCommoditySymbol,
       commodityName,
       parsedCommodityPrecision,
+      isClosed,
     );
   }
 
@@ -132,11 +134,17 @@ export class Commodity {
     this.timestamps = this.timestamps.touch(now);
   }
 
-  markAsDeleted(): void {
+  delete(): TransitionResult {
+    if (this.isDeleted()) {
+      return 'unchanged';
+    }
+
     this.softDelete = this.softDelete.markAsDeleted(
       new DeletedEntityOperationError(Commodity.entityType, 'delete'),
     );
+
     this.touch();
+    return 'changed';
   }
 
   isDeleted(): boolean {
@@ -162,6 +170,7 @@ export class Commodity {
       code: this.code.valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
       id: this.getId().valueOf(),
+      isClosed: this.isClosed,
       isTombstone: this.softDelete.getIsTombstone(),
       name: this.name.valueOf(),
       precision: this.precision,
@@ -194,5 +203,32 @@ export class Commodity {
     if (isUpdated) {
       this.touch();
     }
+  }
+  close(): TransitionResult {
+    this.validateUpdateIsAllowed();
+
+    if (this.isClosed) {
+      return 'unchanged';
+    }
+
+    this.isClosed = true;
+    this.touch();
+    return 'changed';
+  }
+
+  open(): TransitionResult {
+    this.validateUpdateIsAllowed();
+
+    if (!this.isClosed) {
+      return 'unchanged';
+    }
+
+    this.isClosed = false;
+    this.touch();
+    return 'changed';
+  }
+
+  get closed(): boolean {
+    return this.isClosed;
   }
 }

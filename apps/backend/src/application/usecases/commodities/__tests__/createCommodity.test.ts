@@ -46,6 +46,7 @@ describe('CreateCommodityUseCase', () => {
           code: result.code,
           createdAt: result.createdAt,
           id: result.id,
+          isClosed: false,
           isTombstone: false,
           name: result.name,
           precision: result.precision,

@@ -23,6 +23,7 @@ export type CommodityResponseDTO = {
   code: CommodityCodeString;
   createdAt: IsoDatetimeString;
   id: UUID;
+  isClosed: boolean;
   isTombstone: boolean;
   name: RequiredText;
   precision: CommodityPrecisionNumber;
