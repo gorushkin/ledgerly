@@ -77,7 +77,7 @@ type CommodityUseCases = {
   getCommodityById: GetCommodityByIdUseCase;
   getAllCommodities: GetAllCommoditiesUseCase;
   updateCommodity: UpdateCommodityUseCase;
-  archiveCommodity: DeleteCommodityUseCase;
+  deleteCommodity: DeleteCommodityUseCase;
   createCommodity: CreateCommodityUseCase;
 };
 

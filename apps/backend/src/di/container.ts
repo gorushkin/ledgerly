@@ -161,7 +161,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     transactionManager,
   );
 
-  const archiveCommodityUseCase = new DeleteCommodityUseCase(
+  const deleteCommodityUseCase = new DeleteCommodityUseCase(
     commodityRepository,
     ensureOwnedSnapshot,
     transactionManager,
@@ -176,7 +176,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     getAllCommoditiesUseCase,
     createCommodityUseCase,
     updateCommodityUseCase,
-    archiveCommodityUseCase,
+    deleteCommodityUseCase,
   );
 
   const useCases: AppContainer['useCases'] = {
@@ -194,8 +194,8 @@ export const createContainer = (db: DataBase): AppContainer => {
       registerUser: registerUserUseCase,
     },
     commodity: {
-      archiveCommodity: archiveCommodityUseCase,
       createCommodity: createCommodityUseCase,
+      deleteCommodity: deleteCommodityUseCase,
       getAllCommodities: getAllCommoditiesUseCase,
       getCommodityById: getCommodityByIdUseCase,
       updateCommodity: updateCommodityUseCase,
