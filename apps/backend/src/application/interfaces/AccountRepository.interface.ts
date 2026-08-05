@@ -44,5 +44,6 @@ export type AccountRepositoryInterface = {
     userId: UUID,
     accountId: UUID,
   ): Promise<AccountSnapshot>;
+  existsActiveByCommodityId(userId: UUID, commodityId: UUID): Promise<boolean>;
   getByIds(userId: UUID, accountIds: UUID[]): Promise<AccountSnapshot[]>;
 };

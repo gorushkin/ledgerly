@@ -1,6 +1,13 @@
 import { apiErrorCodes } from '@ledgerly/shared/types';
-import { CommodityClosedError } from 'src/application/application.errors';
-import type { CommodityRepositoryInterface } from 'src/application/interfaces';
+import {
+  CommodityClosedError,
+  CommodityHasActiveReferencesError,
+} from 'src/application/application.errors';
+import type {
+  AccountRepositoryInterface,
+  CommodityRepositoryInterface,
+  TransactionRepositoryInterface,
+} from 'src/application/interfaces';
 import { CommodityReferencePolicy } from 'src/application/services/CommodityReferencePolicy';
 import { createUser } from 'src/db/createTestUser';
 import { Commodity } from 'src/domain/commodities';
@@ -16,9 +23,17 @@ describe('CommodityReferencePolicy', async () => {
   const commodityRepository = {
     getById: vi.fn(),
   };
+  const accountRepository = {
+    existsActiveByCommodityId: vi.fn(),
+  };
+  const transactionRepository = {
+    existsActiveByCommodityId: vi.fn(),
+  };
 
   const policy = new CommodityReferencePolicy(
     commodityRepository as unknown as CommodityRepositoryInterface,
+    accountRepository as unknown as AccountRepositoryInterface,
+    transactionRepository as unknown as TransactionRepositoryInterface,
   );
 
   const createCommodity = () =>
@@ -31,6 +46,8 @@ describe('CommodityReferencePolicy', async () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    accountRepository.existsActiveByCommodityId.mockResolvedValue(false);
+    transactionRepository.existsActiveByCommodityId.mockResolvedValue(false);
   });
 
   it('allows open commodities for new account references', async () => {
@@ -101,5 +118,50 @@ describe('CommodityReferencePolicy', async () => {
     await expect(
       policy.assertUsableForNewAccount(userId, commodityId),
     ).rejects.toBe(repositoryError);
+  });
+
+  it('allows deleting commodities without active references', async () => {
+    await expect(
+      policy.assertNoActiveReferences(userId, commodityId),
+    ).resolves.toBeUndefined();
+
+    expect(accountRepository.existsActiveByCommodityId).toHaveBeenCalledWith(
+      userId,
+      commodityId,
+    );
+    expect(
+      transactionRepository.existsActiveByCommodityId,
+    ).toHaveBeenCalledWith(userId, commodityId);
+  });
+
+  it('rejects deleting commodities with active account references', async () => {
+    accountRepository.existsActiveByCommodityId.mockResolvedValueOnce(true);
+
+    const assertion = policy.assertNoActiveReferences(userId, commodityId);
+
+    await expect(assertion).rejects.toThrowError(
+      CommodityHasActiveReferencesError,
+    );
+    await expect(assertion).rejects.toMatchObject({
+      code: apiErrorCodes.commodityHasActiveReferences,
+      context: { commodityId },
+    });
+    expect(
+      transactionRepository.existsActiveByCommodityId,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('rejects deleting commodities with active transaction references', async () => {
+    transactionRepository.existsActiveByCommodityId.mockResolvedValueOnce(true);
+
+    const assertion = policy.assertNoActiveReferences(userId, commodityId);
+
+    await expect(assertion).rejects.toThrowError(
+      CommodityHasActiveReferencesError,
+    );
+    await expect(assertion).rejects.toMatchObject({
+      code: apiErrorCodes.commodityHasActiveReferences,
+      context: { commodityId },
+    });
   });
 });

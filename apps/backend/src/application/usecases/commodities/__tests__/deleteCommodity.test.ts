@@ -3,12 +3,14 @@ import {
   TransactionManagerInterface,
 } from 'src/application';
 import {
+  CommodityHasActiveReferencesError,
   EntityNotFoundError,
   UnauthorizedAccessError,
 } from 'src/application/application.errors';
+import { CommodityReferencePolicy } from 'src/application/services';
 import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { createCommodity } from 'src/db/createTestUser';
-import { Commodity } from 'src/domain/commodities/commodity.entity';
+import { Commodity } from 'src/domain/commodities';
 import { Id, Timestamp } from 'src/domain/domain-core/';
 import { User } from 'src/domain/users/user.entity';
 import { createUser } from 'src/testing/helpers';
@@ -27,12 +29,16 @@ describe('DeleteCommodityUseCase', () => {
   const mockTransactionManager = {
     run: vi.fn(),
   };
+  const commodityReferencePolicy = {
+    assertNoActiveReferences: vi.fn(),
+  };
   const runTransaction: TransactionManagerInterface['run'] = async (callback) =>
     callback();
 
   const deleteCommodityUseCase = new DeleteCommodityUseCase(
     commodityRepository as unknown as CommodityRepositoryInterface,
     ensureOwnedSnapshot,
+    commodityReferencePolicy as unknown as CommodityReferencePolicy,
     mockTransactionManager as unknown as TransactionManagerInterface,
   );
 
@@ -43,8 +49,12 @@ describe('DeleteCommodityUseCase', () => {
   beforeEach(() => {
     vi.useRealTimers();
     mockTransactionManager.run.mockImplementation(runTransaction);
+    commodityReferencePolicy.assertNoActiveReferences.mockResolvedValue(
+      undefined,
+    );
     commodityRepository.delete.mockClear();
     commodityRepository.getByIdForLifecycle.mockClear();
+    commodityReferencePolicy.assertNoActiveReferences.mockClear();
     mockTransactionManager.run.mockClear();
   });
 
@@ -93,6 +103,9 @@ describe('DeleteCommodityUseCase', () => {
         commodityId,
         { updatedAt },
       );
+      expect(
+        commodityReferencePolicy.assertNoActiveReferences,
+      ).toHaveBeenCalledWith(userid, commodityId);
 
       expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
       expect(result).toBeUndefined();
@@ -119,9 +132,37 @@ describe('DeleteCommodityUseCase', () => {
         user.getId().valueOf(),
         commodityId,
       );
+      expect(
+        commodityReferencePolicy.assertNoActiveReferences,
+      ).toHaveBeenCalledWith(user.getId().valueOf(), commodityId);
       expect(commodityRepository.delete).not.toHaveBeenCalled();
       expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
       expect(result).toBeUndefined();
+    });
+
+    it('should throw when commodity has active references', async () => {
+      const commodity = createCommodity(user, {
+        code: 'TEST',
+        name: 'Test Commodity',
+        precision: 2,
+        symbol: 'T',
+      });
+      const commodityId = commodity.getId().valueOf();
+
+      const error = new CommodityHasActiveReferencesError(commodityId);
+
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(
+        commodity.toSnapshot(),
+      );
+      commodityReferencePolicy.assertNoActiveReferences.mockRejectedValue(
+        error,
+      );
+
+      await expect(
+        deleteCommodityUseCase.execute(user, commodityId),
+      ).rejects.toThrowError(error);
+
+      expect(commodityRepository.delete).not.toHaveBeenCalled();
     });
 
     it('should throw an error if the commodity does not exist', async () => {

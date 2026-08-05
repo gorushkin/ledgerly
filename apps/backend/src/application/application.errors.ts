@@ -85,6 +85,21 @@ export class CommodityClosedError extends CodedApplicationError<'CLOSED_COMMODIT
 }
 
 /**
+ * Thrown when a commodity cannot be deleted because it is still referenced.
+ */
+export class CommodityHasActiveReferencesError extends CodedApplicationError<'COMMODITY_HAS_ACTIVE_REFERENCES'> {
+  constructor(
+    commodityId: ErrorContextByCode['COMMODITY_HAS_ACTIVE_REFERENCES']['commodityId'],
+  ) {
+    super(
+      `Cannot delete commodity ${commodityId} because it has active references.`,
+      apiErrorCodes.commodityHasActiveReferences,
+      { commodityId },
+    );
+  }
+}
+
+/**
  * A deliberately non-specific authentication failure.
  *
  * The diagnostic message may distinguish internal causes, but the public

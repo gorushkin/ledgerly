@@ -8,7 +8,13 @@ import {
   TransactionPersistenceBuilderResult,
 } from 'src/db/test-utils';
 import { Account } from 'src/domain';
-import { Amount, DateValue, Id, Version } from 'src/domain/domain-core';
+import {
+  Amount,
+  CommodityCode,
+  DateValue,
+  Id,
+  Version,
+} from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
 import { RepositoryNotFoundError } from 'src/infrastructure/errors';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -266,6 +272,54 @@ describe('TransactionRepository', () => {
       );
 
       expect(retrievedTransaction).toBeNull();
+    });
+  });
+
+  describe('existsActiveByCommodityId', () => {
+    it('returns true when a non-tombstoned transaction references the commodity', async () => {
+      const commodity = data.getCommodityByKey('USD');
+
+      await testDB.createTransaction(user.id, commodity.getId().valueOf());
+
+      await expect(
+        transactionRepository.existsActiveByCommodityId(
+          user.id,
+          commodity.getId().valueOf(),
+        ),
+      ).resolves.toBe(true);
+    });
+
+    it('returns false when only tombstoned transactions reference the commodity', async () => {
+      const commodity = data.getCommodityByKey('USD');
+
+      await testDB.createTransaction(user.id, commodity.getId().valueOf(), {
+        isTombstone: true,
+      });
+
+      await expect(
+        transactionRepository.existsActiveByCommodityId(
+          user.id,
+          commodity.getId().valueOf(),
+        ),
+      ).resolves.toBe(false);
+    });
+
+    it('returns false for transactions owned by another user', async () => {
+      const secondUser = await testDB.createUser({
+        email: 'second-user@example.com',
+      });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
+
+      await testDB.createTransaction(secondUser.id, secondUserCommodity.id);
+
+      await expect(
+        transactionRepository.existsActiveByCommodityId(
+          user.id,
+          secondUserCommodity.id,
+        ),
+      ).resolves.toBe(false);
     });
   });
 

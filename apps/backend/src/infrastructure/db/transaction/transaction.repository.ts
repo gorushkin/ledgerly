@@ -1,5 +1,5 @@
 import { UUID } from '@ledgerly/shared/types';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import {
   OperationRepositoryInterface,
   TransactionRepositoryInterface,
@@ -53,6 +53,35 @@ export class TransactionRepository
         field: 'transactionId',
         tableName: 'transactions',
         value: transaction.getId().valueOf(),
+      },
+    );
+  }
+
+  async existsActiveByCommodityId(
+    userId: UUID,
+    commodityId: UUID,
+  ): Promise<boolean> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const count = await this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(transactionsTable)
+          .where(
+            and(
+              eq(transactionsTable.userId, userId),
+              eq(transactionsTable.commodityId, commodityId),
+              eq(transactionsTable.isTombstone, false),
+            ),
+          )
+          .get();
+
+        return !!count && count.count > 0;
+      },
+      'TransactionRepository.existsActiveByCommodityId',
+      {
+        field: 'commodityId',
+        tableName: 'transactions',
+        value: commodityId,
       },
     );
   }

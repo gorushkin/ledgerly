@@ -18,4 +18,5 @@ export type TransactionRepositoryInterface = {
   create(userId: UUID, transaction: Transaction): Promise<void>;
   getById(userId: UUID, transactionId: UUID): Promise<Transaction | null>;
   softDelete(userId: UUID, transaction: Transaction): Promise<void>;
+  existsActiveByCommodityId(userId: UUID, commodityId: UUID): Promise<boolean>;
 };

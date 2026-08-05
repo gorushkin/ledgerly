@@ -3,6 +3,7 @@ import {
   AccountHasActiveOperationsError,
   AuthenticationFailedError,
   CommodityClosedError,
+  CommodityHasActiveReferencesError,
   InvalidPasswordError,
   ApplicationError,
   EntityNotFoundError,
@@ -61,6 +62,15 @@ describe('coded application errors', () => {
     ).toMatchObject({
       code: apiErrorCodes.closedCommodityReference,
       context: { commodityId, operation: 'create_account' },
+    });
+  });
+
+  it('uses a stable public code for a commodity with active references', () => {
+    const commodityId = '550e8400-e29b-41d4-a716-446655440002' as UUID;
+
+    expect(new CommodityHasActiveReferencesError(commodityId)).toMatchObject({
+      code: apiErrorCodes.commodityHasActiveReferences,
+      context: { commodityId },
     });
   });
 });

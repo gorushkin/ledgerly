@@ -1138,6 +1138,44 @@ describe('AccountRepository', () => {
     });
   });
 
+  describe('existsActiveByCommodityId', () => {
+    it('returns true when a non-tombstoned account references the commodity', async () => {
+      await testDB.createAccount(user.id, usdCommodity.id);
+
+      await expect(
+        accountRepository.existsActiveByCommodityId(user.id, usdCommodity.id),
+      ).resolves.toBe(true);
+    });
+
+    it('returns false when only tombstoned accounts reference the commodity', async () => {
+      await testDB.createAccount(user.id, usdCommodity.id, {
+        isTombstone: true,
+      });
+
+      await expect(
+        accountRepository.existsActiveByCommodityId(user.id, usdCommodity.id),
+      ).resolves.toBe(false);
+    });
+
+    it('returns false for accounts owned by another user', async () => {
+      const secondUser = await testDB.createUser({
+        email: 'second-user@example.com',
+      });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
+
+      await testDB.createAccount(secondUser.id, secondUserCommodity.id);
+
+      await expect(
+        accountRepository.existsActiveByCommodityId(
+          user.id,
+          secondUserCommodity.id,
+        ),
+      ).resolves.toBe(false);
+    });
+  });
+
   describe('getByIds', () => {
     it.todo('should return all requested accounts owned by the user');
 

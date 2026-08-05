@@ -5,6 +5,7 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   AccountHasActiveOperationsError,
+  CommodityHasActiveReferencesError,
   InvalidPasswordError,
   UserAlreadyExistsError,
   UserNotFoundError,
@@ -91,6 +92,7 @@ describe('getValidationFieldErrorCode', () => {
 
 describe('errorHandler', () => {
   const accountId = Id.create().valueOf();
+  const commodityId = Id.create().valueOf();
 
   const handle = (error: Error) => {
     const { reply, response } = createReply();
@@ -141,6 +143,13 @@ describe('errorHandler', () => {
       409,
       apiErrorCodes.accountHasActiveOperations,
       { accountId },
+    ],
+    [
+      'a commodity with active references',
+      new CommodityHasActiveReferencesError(commodityId),
+      409,
+      apiErrorCodes.commodityHasActiveReferences,
+      { commodityId },
     ],
   ])(
     'serializes %s through the generic coded-error path',

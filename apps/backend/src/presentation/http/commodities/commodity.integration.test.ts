@@ -1,6 +1,11 @@
 import { CommodityStatusFilterValue } from '@ledgerly/shared/constants';
 import { ROUTES } from '@ledgerly/shared/routes';
-import { CommodityResponseDTO, UUID } from '@ledgerly/shared/types';
+import {
+  apiErrorCodes,
+  ApiErrorResponse,
+  CommodityResponseDTO,
+  UUID,
+} from '@ledgerly/shared/types';
 import { CommodityDbRow } from 'src/db/schemas';
 import { TestDB } from 'src/db/test-db';
 import { compareEntityArrays, parseResponse } from 'src/db/test-utils';
@@ -968,6 +973,67 @@ describe('Commodities Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 409 when deleting a commodity with active account references', async () => {
+      const referencedCommodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
+      });
+      await testDB.createAccount(userId, referencedCommodity.id);
+
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `${url}/${referencedCommodity.id}`,
+      });
+
+      const parsedResponse = parseResponse<ApiErrorResponse>(response);
+
+      expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.commodityHasActiveReferences,
+        context: { commodityId: referencedCommodity.id },
+        error: true,
+      });
+
+      const retrievedCommodity = await testDB.getCommodityById(
+        referencedCommodity.id,
+      );
+
+      expect(retrievedCommodity?.isTombstone).toBe(false);
+    });
+
+    it('should return 409 when deleting a commodity with active transaction references', async () => {
+      const referencedCommodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
+      });
+
+      await testDB.createTransaction(userId, referencedCommodity.id);
+
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `${url}/${referencedCommodity.id}`,
+      });
+
+      const parsedResponse = parseResponse<ApiErrorResponse>(response);
+
+      expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.commodityHasActiveReferences,
+        context: { commodityId: referencedCommodity.id },
+        error: true,
+      });
+
+      const retrievedCommodity = await testDB.getCommodityById(
+        referencedCommodity.id,
+      );
+
+      expect(retrievedCommodity?.isTombstone).toBe(false);
     });
 
     it('should return 204 when deleting an already deleted commodity', async () => {

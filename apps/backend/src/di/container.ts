@@ -88,6 +88,8 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const commodityReferencePolicy = new CommodityReferencePolicy(
     commodityRepository,
+    accountRepository,
+    transactionRepository,
   );
 
   const passwordManager = new PasswordManager();
@@ -172,6 +174,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const deleteCommodityUseCase = new DeleteCommodityUseCase(
     commodityRepository,
     ensureOwnedSnapshot,
+    commodityReferencePolicy,
     transactionManager,
   );
 

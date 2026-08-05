@@ -1,6 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { AccountQuery } from '@ledgerly/shared/validation';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   type AccountLifecycleUpdateInput,
   type AccountRepositoryInterface,
@@ -323,6 +323,35 @@ export class AccountRepository
 
       return AccountPersistenceMapper.toSnapshot(existingAccount);
     }, 'Failed to verify account ownership');
+  }
+
+  async existsActiveByCommodityId(
+    userId: UUID,
+    commodityId: UUID,
+  ): Promise<boolean> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const count = await this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(accountsTable)
+          .where(
+            and(
+              eq(accountsTable.userId, userId),
+              eq(accountsTable.commodityId, commodityId),
+              eq(accountsTable.isTombstone, false),
+            ),
+          )
+          .get();
+
+        return !!count && count.count > 0;
+      },
+      'AccountRepository.existsActiveByCommodityId',
+      {
+        field: 'commodityId',
+        tableName: 'accounts',
+        value: commodityId,
+      },
+    );
   }
 
   async getByIds(userId: UUID, accountIds: UUID[]): Promise<AccountSnapshot[]> {

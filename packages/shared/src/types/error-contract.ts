@@ -7,6 +7,7 @@ export const apiErrorCodes = {
   badRequest: "BAD_REQUEST",
   closedAccountOperation: "CLOSED_ACCOUNT_OPERATION",
   closedCommodityReference: "CLOSED_COMMODITY_REFERENCE",
+  commodityHasActiveReferences: "COMMODITY_HAS_ACTIVE_REFERENCES",
   conflict: "CONFLICT",
   conflictingOperationIds: "CONFLICTING_OPERATION_IDS",
   deletedEntityOperation: "DELETED_ENTITY_OPERATION",
@@ -73,6 +74,9 @@ export type ErrorContextByCode = {
   CLOSED_COMMODITY_REFERENCE: {
     commodityId: UUID;
     operation: "create_account";
+  };
+  COMMODITY_HAS_ACTIVE_REFERENCES: {
+    commodityId: UUID;
   };
   CONFLICT: Record<string, never>;
   CONFLICTING_OPERATION_IDS: {
