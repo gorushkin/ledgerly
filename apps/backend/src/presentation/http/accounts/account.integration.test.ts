@@ -1235,9 +1235,46 @@ describe('Accounts Integration Tests', () => {
         deletedAccount!.id,
       );
 
+      expect(accountBeforeDelete).toBeDefined();
+      expect(accountAfterDelete).toBeDefined();
       expect(response.statusCode).toBe(204);
-      expect(accountAfterDelete?.updatedAt).toBe(
-        accountBeforeDelete?.updatedAt,
+      expect(accountAfterDelete!.updatedAt).toEqual(
+        accountBeforeDelete!.updatedAt,
+      );
+    });
+
+    it('should return 204 when an already deleted account has stale active operations', async () => {
+      const deletedAccount = accounts.find((account) => account.isTombstone);
+      expect(deletedAccount).toBeDefined();
+
+      await testDB.createTransactionWithOperations(userId, commodity.id, {
+        operations: [
+          {
+            accountId: deletedAccount!.id,
+            amount: Amount.create('100').valueOf(),
+            description: 'Stale active operation',
+            id: Id.create().valueOf(),
+            value: Amount.create('100').valueOf(),
+          },
+        ],
+      });
+
+      const accountBeforeDelete = await testDB.getAccountById(
+        deletedAccount!.id,
+      );
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `/api/accounts/${deletedAccount!.id}`,
+      });
+      const accountAfterDelete = await testDB.getAccountById(
+        deletedAccount!.id,
+      );
+
+      expect(accountBeforeDelete).toBeDefined();
+      expect(accountAfterDelete).toBeDefined();
+      expect(response.statusCode).toBe(204);
+      expect(accountAfterDelete!.updatedAt).toEqual(
+        accountBeforeDelete!.updatedAt,
       );
     });
 

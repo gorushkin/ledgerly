@@ -35,9 +35,7 @@ export class DeleteAccountUseCase extends AccountUseCaseBase {
 
       const account = Account.restore(accountData);
 
-      const result = account.delete();
-
-      if (result !== 'changed') {
+      if (account.isDeleted()) {
         return;
       }
 
@@ -45,6 +43,8 @@ export class DeleteAccountUseCase extends AccountUseCaseBase {
         user.getId().valueOf(),
         accountId,
       );
+
+      account.delete();
 
       await this.accountRepository.delete(
         user.getId().valueOf(),

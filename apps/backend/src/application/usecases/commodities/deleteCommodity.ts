@@ -39,17 +39,15 @@ export class DeleteCommodityUseCase {
         commodityId,
       );
 
-      const result = commodity.delete();
+      commodity.delete();
 
-      if (result === 'changed') {
-        await this.commodityRepository.delete(
-          user.getId().valueOf(),
-          commodityId,
-          {
-            updatedAt: commodity.getUpdatedAt().valueOf(),
-          },
-        );
-      }
+      await this.commodityRepository.delete(
+        user.getId().valueOf(),
+        commodityId,
+        {
+          updatedAt: commodity.getUpdatedAt().valueOf(),
+        },
+      );
     });
   }
 }
