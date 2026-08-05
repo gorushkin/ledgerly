@@ -25,5 +25,5 @@ export type {
   CommodityRepositoryInterface,
   CommodityRepositoryLifecycleInput,
   CommodityRepositoryUpdateInput,
-  CommodityRepositorySoftDeleteInput,
+  CommodityRepositoryDeleteInput,
 } from './CommodityRepository.interface';

@@ -7,7 +7,7 @@ import {
   type CommodityRepositoryInterface,
   type CommodityRepositoryLifecycleInput,
   type CommodityRepositoryUpdateInput,
-  type CommodityRepositorySoftDeleteInput,
+  type CommodityRepositoryDeleteInput,
 } from 'src/application';
 import { commoditiesTable } from 'src/db/schemas/commodities';
 import { CommoditySnapshot } from 'src/domain/commodities/types';
@@ -196,7 +196,7 @@ export class CommodityRepository
   delete(
     userId: UUID,
     commodityId: UUID,
-    data: CommodityRepositorySoftDeleteInput,
+    data: CommodityRepositoryDeleteInput,
   ): Promise<void> {
     return this.executeDatabaseOperation(async () => {
       const result = await this.db
@@ -214,7 +214,7 @@ export class CommodityRepository
         result.rowsAffected,
         this.commodityNotFoundError(commodityId),
       );
-    }, `Failed to soft delete commodity with ID ${commodityId}`);
+    }, `Failed to delete commodity with ID ${commodityId}`);
   }
 
   private updateLifecycle(

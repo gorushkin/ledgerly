@@ -24,10 +24,7 @@ import { usersTable } from './users';
 export const accountsTable = sqliteTable(
   'accounts',
   {
-    commodityId: text('commodity_id')
-      .notNull()
-      .references(() => commoditiesTable.id)
-      .$type<UUID>(),
+    commodityId: text('commodity_id').notNull().$type<UUID>(),
     createdAt,
     currentClearedBalanceLocal: getAmountColumn(
       'current_cleared_balance_local',

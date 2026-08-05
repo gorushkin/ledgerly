@@ -55,6 +55,7 @@ Examples include:
 - `InvalidPasswordError`
 - `UserAlreadyExistsError`
 - `VersionConflictError`
+- `CommodityClosedError`
 
 Authentication failures intentionally map to the same public
 `AUTHENTICATION_FAILED` code with empty context.
@@ -96,7 +97,11 @@ not import them.
 Public imports from outside the HTTP module should go through:
 
 ```typescript
-import { HttpApiError, UnauthorizedError, errorHandler } from 'src/presentation/http';
+import {
+  HttpApiError,
+  UnauthorizedError,
+  errorHandler,
+} from "src/presentation/http";
 ```
 
 ## HTTP Response Contract
@@ -139,9 +144,9 @@ Use a coded error when the failure is expected and should be represented to API
 clients.
 
 ```typescript
-export class VersionConflictError extends CodedApplicationError<'VERSION_CONFLICT'> {
-  constructor(context: ErrorContextByCode['VERSION_CONFLICT']) {
-    super('Version conflict', apiErrorCodes.versionConflict, context);
+export class VersionConflictError extends CodedApplicationError<"VERSION_CONFLICT"> {
+  constructor(context: ErrorContextByCode["VERSION_CONFLICT"]) {
+    super("Version conflict", apiErrorCodes.versionConflict, context);
   }
 }
 ```
@@ -155,8 +160,11 @@ Use a coded infrastructure error only when the public response can safely expose
 allowlisted context.
 
 ```typescript
-export class RepositoryNotFoundError extends CodedInfrastructureError<'ENTITY_NOT_FOUND'> {
-  constructor(message: string, context: ErrorContextByCode['ENTITY_NOT_FOUND']) {
+export class RepositoryNotFoundError extends CodedInfrastructureError<"ENTITY_NOT_FOUND"> {
+  constructor(
+    message: string,
+    context: ErrorContextByCode["ENTITY_NOT_FOUND"],
+  ) {
     super(message, apiErrorCodes.entityNotFound, context);
   }
 }
@@ -171,7 +179,7 @@ Use `HttpApiError` only inside the HTTP adapter.
 
 ```typescript
 export class UnauthorizedError extends HttpApiError {
-  constructor(message = 'Unauthorized') {
+  constructor(message = "Unauthorized") {
     super(message, 401);
   }
 }
@@ -185,7 +193,7 @@ HTTP-specific errors live in `presentation/http/errors` and are exported through
 Correct:
 
 ```typescript
-import { UserNotFoundError } from 'src/application/application.errors';
+import { UserNotFoundError } from "src/application/application.errors";
 
 throw new UserNotFoundError();
 ```
@@ -193,17 +201,17 @@ throw new UserNotFoundError();
 Correct:
 
 ```typescript
-import { RepositoryNotFoundError } from 'src/infrastructure/errors';
+import { RepositoryNotFoundError } from "src/infrastructure/errors";
 
-throw new RepositoryNotFoundError('Account not found', {
-  entityType: 'account',
+throw new RepositoryNotFoundError("Account not found", {
+  entityType: "account",
 });
 ```
 
 Wrong:
 
 ```typescript
-import { UnauthorizedError } from 'src/presentation/http';
+import { UnauthorizedError } from "src/presentation/http";
 
 throw new UnauthorizedError();
 ```

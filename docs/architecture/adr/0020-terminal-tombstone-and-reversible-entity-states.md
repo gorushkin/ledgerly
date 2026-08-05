@@ -10,11 +10,12 @@
 `isTombstone` currently risks carrying two different meanings:
 
 - irreversible deletion for `Transaction` and `Operation`;
-- reversible archive or close behavior for `Account` and `Commodity`.
+- reversible close behavior for `Account` and `Commodity`.
 
 This makes use case, repository and HTTP handler naming harder to reason about.
-For example, a `DELETE` route can end up invoking an archive or soft-delete
-operation even though the domain operation is potentially reversible.
+For example, a `DELETE` route can end up invoking a reversible lifecycle or
+soft-delete operation even though the domain operation is potentially
+reversible.
 
 The domain needs one stable meaning for tombstone state and separate business
 states for reversible lifecycle changes.
@@ -38,12 +39,12 @@ restore method.
 
 Entity states are separated as follows:
 
-| Entity | Reversible state | Irreversible state |
-| --- | --- | --- |
-| `Transaction` | --- | `isTombstone` |
-| `Operation` | --- | `isTombstone` |
-| `Account` | `isClosed` | `isTombstone` |
-| `Commodity` | `isArchived` | `isTombstone` |
+| Entity        | Reversible state | Irreversible state |
+| ------------- | ---------------- | ------------------ |
+| `Transaction` | ---              | `isTombstone`      |
+| `Operation`   | ---              | `isTombstone`      |
+| `Account`     | `isClosed`       | `isTombstone`      |
+| `Commodity`   | `isClosed`       | `isTombstone`      |
 
 ### Account
 
@@ -87,11 +88,11 @@ Account list queries use account lifecycle language:
 
 Every normal account list filter excludes tombstoned accounts.
 
-| Filter | Predicate |
-| --- | --- |
-| `open` | `isClosed = false` and `isTombstone = false` |
-| `closed` | `isClosed = true` and `isTombstone = false` |
-| `all` | `isTombstone = false` |
+| Filter   | Predicate                                    |
+| -------- | -------------------------------------------- |
+| `open`   | `isClosed = false` and `isTombstone = false` |
+| `closed` | `isClosed = true` and `isTombstone = false`  |
+| `all`    | `isTombstone = false`                        |
 
 Account close and open are exposed as explicit HTTP actions:
 
@@ -117,26 +118,25 @@ It must not become the general account read path.
 
 ### Commodity
 
-An archived commodity:
+A closed commodity:
 
 - remains available for old operations;
 - participates in historical calculations;
 - is not offered for new accounts or active selection;
-- can be returned from archive.
+- can be opened again.
 
 The domain API should express that lifecycle explicitly:
 
 ```ts
-commodity.archive();
-commodity.unarchive();
+commodity.close();
+commodity.open();
 ```
 
-The `archive` term matches commodity lifecycle language: a commodity is removed
-from active choices without being deleted from historical records. A commodity
-is not naturally "closed", and an account is not naturally "archived"; the
-domain API should not force identical method names for unlike lifecycles.
+Commodity uses the same reversible lifecycle vocabulary as accounts. `close`
+means the commodity remains a historical accounting unit, but it cannot be used
+for new active references until it is opened again.
 
-`archive()` and `unarchive()` are idempotent. Repeating either command keeps the
+`close()` and `open()` are idempotent. Repeating either command keeps the
 desired final state and must not:
 
 - throw a domain error;
@@ -145,23 +145,23 @@ desired final state and must not:
 - create another journal record;
 - publish another domain event.
 
-Archived commodity remains editable because archive is not an immutable state.
-It is a reversible exclusion from active choice. Ordinary edits use
+Closed commodity remains editable because close is not an immutable state. It is
+a reversible exclusion from active choice. Ordinary edits use
 `PATCH /commodities/:id` and must not accept lifecycle fields such as
-`isArchived`.
+`isClosed`.
 
 Commodity lifecycle commands are exposed as explicit domain actions:
 
 ```http
-POST /commodities/:id/archive
-POST /commodities/:id/unarchive
+POST /commodities/:id/close
+POST /commodities/:id/open
 ```
 
 The expected HTTP responses are:
 
 ```http
-POST /commodities/:id/archive -> 204 No Content
-POST /commodities/:id/unarchive -> 204 No Content
+POST /commodities/:id/close -> 200 OK
+POST /commodities/:id/open -> 200 OK
 PATCH /commodities/:id -> 200 OK
 DELETE /commodities/:id -> 204 No Content
 ```
@@ -171,7 +171,7 @@ already tombstoned commodity keeps the tombstone state and returns `204 No
 Content`. The domain `commodity.delete()` operation may be a no-op in that
 state, without changing version, `updatedAt`, journal records or domain events.
 
-Archived commodity means the commodity cannot be used to create new active
+Closed commodity means the commodity cannot be used to create new active
 links. It is forbidden to:
 
 - create a new account with this commodity;
@@ -181,18 +181,18 @@ links. It is forbidden to:
 Existing accounts that already reference the commodity remain valid and keep
 their history.
 
-Commodity list filters use `isArchived` and `isTombstone` as separate state
+Commodity list filters use `isClosed` and `isTombstone` as separate state
 axes:
 
-| Filter | Predicate |
-| --- | --- |
-| `active` | `isArchived = false` and `isTombstone = false` |
-| `archived` | `isArchived = true` and `isTombstone = false` |
-| `all` | `isTombstone = false` |
+| Filter   | Predicate                                    |
+| -------- | -------------------------------------------- |
+| `open`   | `isClosed = false` and `isTombstone = false` |
+| `closed` | `isClosed = true` and `isTombstone = false`  |
+| `all`    | `isTombstone = false`                        |
 
 Tombstoned commodities are always hidden from normal commodity reads.
 
-`unarchive()` does not depend on the lifecycle state of related accounts.
+`open()` does not depend on the lifecycle state of related accounts.
 
 ### Deletion
 
@@ -206,7 +206,7 @@ commodity.delete();
 ```
 
 `DELETE` means only terminal tombstone deletion. It must not be used for
-reversible account close or commodity archive transitions.
+reversible account or commodity close transitions.
 
 An account can be terminally deleted only when all related operations are either:
 
@@ -226,15 +226,16 @@ it. Deletion is allowed when:
 The check is about active references, not historical rows.
 
 With this split, `isTombstone` remains a technical marker for irreversible
-deletion, while `isClosed` and `isArchived` describe reversible business states.
+deletion, while `isClosed` describes reversible business states for accounts
+and commodities.
 
 The intended public domain methods are:
 
-| Entity | Reversible state | Methods |
-| --- | --- | --- |
-| `Account` | `isClosed` | `close()` / `open()` |
-| `Commodity` | `isArchived` | `archive()` / `unarchive()` |
-| Any entity | `isTombstone` | `delete()` |
+| Entity      | Reversible state | Methods              |
+| ----------- | ---------------- | -------------------- |
+| `Account`   | `isClosed`       | `close()` / `open()` |
+| `Commodity` | `isClosed`       | `close()` / `open()` |
+| Any entity  | `isTombstone`    | `delete()`           |
 
 ## Alternatives Considered
 
@@ -257,37 +258,37 @@ The intended public domain methods are:
   deletion, and lets account and commodity lifecycle rules evolve separately.
 - Cons: requires schema, domain, repository, use case, API and test updates.
 
-4. Use symmetric lifecycle methods for `Account` and `Commodity`
+4. Use separate archive terminology for `Commodity`
 
-- Pros: makes method names look uniform.
-- Cons: hides the actual domain language. `account.archive()` and
-  `commodity.close()` are both less precise than `account.close()` and
-  `commodity.archive()`.
+- Pros: can describe removal from active selection more literally.
+- Cons: creates an unnecessary vocabulary split for two reversible states that
+  behave the same way in API and persistence. Symmetric `close()` / `open()`
+  operations are easier to use consistently across `Account` and `Commodity`.
 
 ## Consequences
 
 - `Transaction` and `Operation` tombstone state is irreversible.
 - `Account` needs `isClosed`, plus `close()` and `open()` behavior.
-- `Commodity` needs `isArchived`, plus `archive()` and `unarchive()` behavior.
+- `Commodity` needs `isClosed`, plus `close()` and `open()` behavior.
 - `DELETE` routes should mean terminal deletion. Account deletion must be
   rejected while active operations still reference the account. Commodity
   deletion must be rejected while any active domain entity still references the
   commodity.
-- Query filters for account and commodity reads should distinguish open,
-  closed or archived, and all non-tombstoned records. Account filters use
-  `open|closed|all`; commodity filters use `active|archived|all`. Tombstoned
-  records should remain hidden from normal reads.
+- Query filters for account and commodity reads should distinguish open, closed
+  and all non-tombstoned records. Account and commodity filters use
+  `open|closed|all`. Tombstoned records should remain hidden from normal reads.
 - Tests must cover tombstone terminality and business-state invariants:
   tombstoned entities cannot be restored or modified; closed accounts cannot
-  receive new operations and can only update descriptive account fields;
-  archived commodities cannot be selected for new active links.
+  receive new operations and can only update descriptive account fields; closed
+  commodities cannot be selected for new active links.
 
 ## Related
 
 - [LED-123: Define entity lifecycle states](https://gorushkin.atlassian.net/browse/LED-123)
 - [LED-122: Define terminal tombstone and reversible archive/close states](https://gorushkin.atlassian.net/browse/LED-122)
 - [LED-124: Implement Account close open and terminal delete](https://gorushkin.atlassian.net/browse/LED-124)
-- [LED-125: Implement Commodity archive unarchive and terminal delete](https://gorushkin.atlassian.net/browse/LED-125)
+- [LED-125: Implement Commodity close open and terminal delete](https://gorushkin.atlassian.net/browse/LED-125)
 - [ADR 0011: Domain Entity API Conventions](./0011-domain-entity-api-conventions.md)
 - [ADR 0015: Domain Restoration Factory Naming](./0015-domain-restoration-factory-naming.md)
 - [ADR 0019: Repository-Enforced Commodity Reference Validation](./0019-repository-enforced-commodity-reference-validation.md)
+- [ADR 0021: Split Commodity Reference Business Policy From Persistence Integrity](./0021-split-commodity-reference-business-policy-from-persistence-integrity.md)

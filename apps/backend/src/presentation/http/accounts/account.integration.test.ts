@@ -1,3 +1,4 @@
+import { AccountStatusFilterValue } from '@ledgerly/shared/constants';
 import { ROUTES } from '@ledgerly/shared/routes';
 import {
   AccountCreateDTO,
@@ -7,7 +8,6 @@ import {
   apiErrorCodes,
   UUID,
 } from '@ledgerly/shared/types';
-import { AccountStatusFilterValue } from 'node_modules/@ledgerly/shared/src/constants/accounts';
 import { CommodityDbRow } from 'src/db/schemas/commodities';
 import { TestDB } from 'src/db/test-db';
 import { compareEntityArrays } from 'src/db/test-utils/entityComparer';

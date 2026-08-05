@@ -1,5 +1,6 @@
 import { apiErrorCodes } from '@ledgerly/shared/types';
 import { CommodityQuery } from '@ledgerly/shared/validation';
+import dayjs from 'dayjs';
 import { type CommodityRepositoryUpdateInput } from 'src/application';
 import type { CommodityDbRow } from 'src/db/schemas/commodities';
 import { UserDbRow } from 'src/db/schemas/users';
@@ -9,6 +10,7 @@ import { CommodityCode, Name, Timestamp } from 'src/domain/domain-core/';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import {
   RecordAlreadyExistsError,
+  RepositoryInvariantError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
 import { describe, vi, beforeEach, it, expect } from 'vitest';
@@ -224,6 +226,17 @@ describe('CommodityRepository', () => {
       expect(commodities).toEqual([]);
     });
 
+    it('should return an empty array when the user does not exist', async () => {
+      const commodities = await commodityRepository.getAll(
+        Id.create().valueOf(),
+        {
+          status: 'all',
+        },
+      );
+
+      expect(commodities).toEqual([]);
+    });
+
     it.each<CommodityQuery>([
       { status: 'open' },
       { status: 'closed' },
@@ -279,6 +292,27 @@ describe('CommodityRepository', () => {
       );
 
       expect(retrievedCommodity).toMatchObject(newCommodityData);
+    });
+
+    it('should throw RepositoryInvariantError when create userId differs from commodity snapshot userId', async () => {
+      const anotherUser = await testDB.createUser();
+
+      const newCommodityData: CommoditySnapshot = {
+        code: CommodityCode.create('NEW').valueOf(),
+        createdAt: Timestamp.create().valueOf(),
+        id: Id.create().valueOf(),
+        isClosed: false,
+        isTombstone: false,
+        name: Name.create('New Commodity').valueOf(),
+        precision: 2,
+        symbol: 'N',
+        updatedAt: Timestamp.create().valueOf(),
+        userId: anotherUser.id,
+      };
+
+      await expect(
+        commodityRepository.create(user.id, newCommodityData),
+      ).rejects.toThrowError(RepositoryInvariantError);
     });
 
     it('should throw an error when trying to create a commodity with an existing CommodityCode', async () => {
@@ -792,6 +826,57 @@ describe('CommodityRepository', () => {
           updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+  });
+
+  describe('timestamp behavior', () => {
+    it('sets createdAt and updatedAt on creation', async () => {
+      const beforeCreate = dayjs();
+
+      const newCommodityData: CommoditySnapshot = {
+        code: CommodityCode.create('NEW').valueOf(),
+        createdAt: Timestamp.create().valueOf(),
+        id: Id.create().valueOf(),
+        isClosed: false,
+        isTombstone: false,
+        name: Name.create('New Commodity').valueOf(),
+        precision: 2,
+        symbol: 'N',
+        updatedAt: Timestamp.create().valueOf(),
+        userId: user.id,
+      };
+
+      await commodityRepository.create(user.id, newCommodityData);
+
+      const commodity = await testDB.getCommodityById(newCommodityData.id);
+      const commodityDate = dayjs(commodity?.createdAt);
+      const afterCreate = dayjs();
+
+      expect(commodity?.createdAt).toBeDefined();
+      expect(commodity?.updatedAt).toBeDefined();
+      expect(dayjs(commodity?.createdAt)).toBeInstanceOf(dayjs);
+      expect(dayjs(commodity?.updatedAt)).toBeInstanceOf(dayjs);
+
+      expect(beforeCreate.unix()).toBeLessThanOrEqual(commodityDate.unix());
+      expect(commodityDate.unix()).toBeLessThanOrEqual(afterCreate.unix());
+    });
+
+    it('updates updatedAt on commodity update', async () => {
+      const commodity = await testDB.createCommodity(user.id);
+      const originalUpdatedAt = dayjs(commodity.updatedAt);
+      const updatedAt = Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf();
+
+      await commodityRepository.update(user.id, commodity.id, {
+        name: Name.create('Updated Commodity').valueOf(),
+        updatedAt,
+      });
+
+      const updatedCommodity = await testDB.getCommodityById(commodity.id);
+      const newUpdatedAt = dayjs(updatedCommodity?.updatedAt);
+
+      expect(updatedCommodity?.updatedAt).toBe(updatedAt);
+      expect(updatedCommodity?.updatedAt).not.toBe(commodity.updatedAt);
+      expect(originalUpdatedAt.unix()).toBeLessThanOrEqual(newUpdatedAt.unix());
     });
   });
 });

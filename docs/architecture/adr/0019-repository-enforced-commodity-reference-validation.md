@@ -1,6 +1,6 @@
 # ADR 0019: Repository-Enforced Commodity Reference Validation
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-07-23
 - Jira: https://gorushkin.atlassian.net/browse/LED-69
 - PR: TBD
@@ -88,5 +88,6 @@ Commodity id has the expected UUID shape.
 
 - [ADR 0006: Commodity Registry Before Currency Validation](./0006-commodity-registry-before-currency-validation.md)
 - [ADR 0016: Backend Request Flow](./0016-backend-request-flow.md)
+- Superseded by [ADR 0021: Split Commodity Reference Business Policy From Persistence Integrity](./0021-split-commodity-reference-business-policy-from-persistence-integrity.md)
 - [LED-64: Commodity Registry Epic](https://gorushkin.atlassian.net/browse/LED-64)
-- [LED-69: Validate Commodity existence, ownership, and archive state](https://gorushkin.atlassian.net/browse/LED-69)
+- [LED-69: Validate Commodity existence, ownership, and lifecycle state](https://gorushkin.atlassian.net/browse/LED-69)

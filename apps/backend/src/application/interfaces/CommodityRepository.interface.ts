@@ -8,7 +8,7 @@ export type CommodityRepositoryUpdateInput = Pick<
 > &
   Partial<Pick<CommoditySnapshot, 'code' | 'symbol' | 'name'>>;
 
-export type CommodityRepositorySoftDeleteInput = Pick<
+export type CommodityRepositoryDeleteInput = Pick<
   CommoditySnapshot,
   'updatedAt'
 >;
@@ -40,7 +40,7 @@ export type CommodityRepositoryInterface = {
   delete(
     userId: UUID,
     commodityId: UUID,
-    data: CommodityRepositorySoftDeleteInput,
+    data: CommodityRepositoryDeleteInput,
   ): Promise<void>;
   open(
     userId: UUID,

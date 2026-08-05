@@ -644,7 +644,7 @@ describe('Commodities Integration Tests', () => {
   });
 
   describe('POST /api/commodities/:id/close', () => {
-    it('should close an open commodity by id', async () => {
+    it('should return 200 and close an open commodity by id', async () => {
       const commodityToClose = commoditiesDbRows.find(
         (commodity) => !commodity.isClosed && !commodity.isTombstone,
       );
@@ -658,7 +658,13 @@ describe('Commodities Integration Tests', () => {
         url: `${url}/${commodityToClose.id}/close`,
       });
 
-      expect(response.statusCode).toBe(204);
+      const responseBody = parseResponse<CommodityResponseDTO>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(responseBody).toMatchObject({
+        id: commodityToClose.id,
+        isClosed: true,
+      });
 
       const closedCommodity = await testDB.getCommodityById(
         commodityToClose.id,
@@ -682,7 +688,13 @@ describe('Commodities Integration Tests', () => {
         url: `${url}/${closedCommodity.id}/close`,
       });
 
-      expect(response.statusCode).toBe(204);
+      const responseBody = parseResponse<CommodityResponseDTO>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(responseBody).toMatchObject({
+        id: closedCommodity.id,
+        isClosed: true,
+      });
 
       const retrievedCommodity = await testDB.getCommodityById(
         closedCommodity.id,
@@ -747,7 +759,7 @@ describe('Commodities Integration Tests', () => {
   });
 
   describe('POST /api/commodities/:id/open', () => {
-    it('should open a closed commodity by id', async () => {
+    it('should return 200 and open a closed commodity by id', async () => {
       const commodityToOpen = await testDB.createCommodity(userId, {
         code: CommodityCode.create('CHF').valueOf(),
         isClosed: true,
@@ -762,7 +774,13 @@ describe('Commodities Integration Tests', () => {
         url: `${url}/${commodityToOpen.id}/open`,
       });
 
-      expect(response.statusCode).toBe(204);
+      const responseBody = parseResponse<CommodityResponseDTO>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(responseBody).toMatchObject({
+        id: commodityToOpen.id,
+        isClosed: false,
+      });
 
       const openedCommodity = await testDB.getCommodityById(commodityToOpen.id);
 
@@ -783,7 +801,13 @@ describe('Commodities Integration Tests', () => {
         url: `${url}/${openCommodity.id}/open`,
       });
 
-      expect(response.statusCode).toBe(204);
+      const responseBody = parseResponse<CommodityResponseDTO>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(responseBody).toMatchObject({
+        id: openCommodity.id,
+        isClosed: false,
+      });
 
       const retrievedCommodity = await testDB.getCommodityById(
         openCommodity.id,
