@@ -52,7 +52,7 @@ describe('GetAllCommoditiesUseCase', () => {
         },
       ];
 
-      const status = 'active';
+      const status = 'open';
 
       commodityRepository.getAll.mockResolvedValue(mockCommodities);
 

@@ -10,3 +10,6 @@ export const ACCOUNT_TYPES = [
 ] as const satisfies readonly AccountTypeValue[];
 
 export const ACCOUNT_STATUS_FILTER_VALUES = ["open", "closed", "all"] as const;
+
+export type AccountStatusFilterValue =
+  (typeof ACCOUNT_STATUS_FILTER_VALUES)[number];

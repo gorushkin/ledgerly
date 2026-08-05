@@ -1,3 +1,4 @@
+import { CommodityStatusFilterValue } from '@ledgerly/shared/constants';
 import { ROUTES } from '@ledgerly/shared/routes';
 import { CommodityResponseDTO, UUID } from '@ledgerly/shared/types';
 import { CommodityDbRow } from 'src/db/schemas';
@@ -119,69 +120,87 @@ describe('Commodities Integration Tests', () => {
   });
 
   describe('GET /api/commodities', () => {
-    it('should return all active commodities for the authenticated user when no status is provided', async () => {
-      const response = await injectAuthorized({
-        method: 'GET',
-        url,
+    let listCommodities: CommodityDbRow[];
+
+    const getWithQueryParamsUrl = (status: CommodityStatusFilterValue) =>
+      `${url}?status=${status}`;
+
+    const testCases = [
+      {
+        description:
+          'should return all open commodities by default for the user',
+        expectedCommodities: (commodities: CommodityDbRow[]) =>
+          commodities.filter(
+            (commodity) => !commodity.isClosed && !commodity.isTombstone,
+          ),
+        query: {},
+      },
+      {
+        description:
+          'should return all open commodities when query param status=open',
+        expectedCommodities: (commodities: CommodityDbRow[]) =>
+          commodities.filter(
+            (commodity) => !commodity.isClosed && !commodity.isTombstone,
+          ),
+        query: { status: 'open' },
+      },
+      {
+        description:
+          'should return all commodities including closed when query param status=all',
+        expectedCommodities: (commodities: CommodityDbRow[]) =>
+          commodities.filter((commodity) => !commodity.isTombstone),
+        query: { status: 'all' },
+      },
+      {
+        description:
+          'should return all closed commodities when query param status=closed',
+        expectedCommodities: (commodities: CommodityDbRow[]) =>
+          commodities.filter(
+            (commodity) => commodity.isClosed && !commodity.isTombstone,
+          ),
+        query: { status: 'closed' },
+      },
+    ] satisfies {
+      description: string;
+      expectedCommodities: (commodities: CommodityDbRow[]) => CommodityDbRow[];
+      query: Partial<{ status: CommodityStatusFilterValue }>;
+    }[];
+
+    beforeEach(async () => {
+      const closedCommodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        isClosed: true,
+        isTombstone: false,
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
       });
 
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO[]>(response);
-
-      expect(parsedResponse).toHaveLength(activeCommoditiesData.length);
-
-      compareEntityArrays(activeCommoditiesData, parsedResponse);
+      listCommodities = [...commoditiesDbRows, closedCommodity];
     });
 
-    it('should return active commodities when status=active is provided', async () => {
-      const response = await injectAuthorized({
-        method: 'GET',
-        url: `${url}?status=active`,
+    testCases.forEach(({ description, expectedCommodities, query }) => {
+      it(description, async () => {
+        const queryString = query.status
+          ? new URLSearchParams({ status: query.status }).toString()
+          : '';
+        const requestUrl = queryString ? `${url}?${queryString}` : url;
+
+        const response = await injectAuthorized({
+          method: 'GET',
+          url: requestUrl,
+        });
+
+        expect(response.statusCode).toBe(200);
+
+        const responseCommodities =
+          parseResponse<CommodityResponseDTO[]>(response);
+
+        compareEntityArrays(
+          expectedCommodities(listCommodities),
+          responseCommodities,
+        );
       });
-
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO[]>(response);
-
-      expect(parsedResponse).toHaveLength(activeCommoditiesData.length);
-
-      compareEntityArrays(activeCommoditiesData, parsedResponse);
-    });
-
-    it('should return archived commodities when status=archived is provided', async () => {
-      const response = await injectAuthorized({
-        method: 'GET',
-        url: `${url}?status=archived`,
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO[]>(response);
-
-      expect(parsedResponse).toHaveLength(1);
-
-      compareEntityArrays([archivedCommodityData1], parsedResponse);
-    });
-
-    it('should return all commodities when status=all is provided', async () => {
-      const response = await injectAuthorized({
-        method: 'GET',
-        url: `${url}?status=all`,
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO[]>(response);
-
-      expect(parsedResponse).toHaveLength(
-        activeCommoditiesData.length + 1, // +1 for the archived commodity
-      );
-
-      compareEntityArrays(
-        [...activeCommoditiesData, archivedCommodityData1],
-        parsedResponse,
-      );
     });
 
     it('should return 400 for invalid status query parameter', async () => {
@@ -204,7 +223,7 @@ describe('Commodities Integration Tests', () => {
 
       const response = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=all`,
+        url: getWithQueryParamsUrl('all'),
       });
 
       expect(response.statusCode).toBe(200);
@@ -215,15 +234,16 @@ describe('Commodities Integration Tests', () => {
         expect(commodity.code).not.toBe(otherUserCommodity.code);
       });
 
-      expect(parsedResponse).toHaveLength(allCommoditiesData.length);
-
-      compareEntityArrays(allCommoditiesData, parsedResponse);
+      compareEntityArrays(
+        listCommodities.filter((commodity) => !commodity.isTombstone),
+        parsedResponse,
+      );
     });
 
     it('should return 401 without authorization', async () => {
       const response = await server.inject({
         method: 'GET',
-        url: `${url}?status=all`,
+        url: getWithQueryParamsUrl('all'),
       });
 
       expect(response.statusCode).toBe(401);
@@ -708,19 +728,19 @@ describe('Commodities Integration Tests', () => {
       );
     });
 
-    it('should return the archived commodity in the list marked as archived', async () => {
-      const commodityToArchive = commoditiesDbRows[0];
+    it('should not return the deleted commodity in the list', async () => {
+      const commodityToDelete = commoditiesDbRows[0];
 
       const deleteResponse = await injectAuthorized({
         method: 'DELETE',
-        url: `${url}/${commodityToArchive.id}`,
+        url: `${url}/${commodityToDelete.id}`,
       });
 
       expect(deleteResponse.statusCode).toBe(204);
 
       const listResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=archived`,
+        url: `${url}?status=all`,
       });
 
       expect(listResponse.statusCode).toBe(200);
@@ -728,23 +748,12 @@ describe('Commodities Integration Tests', () => {
       const parsedListResponse =
         parseResponse<CommodityResponseDTO[]>(listResponse);
 
-      expect(parsedListResponse).toHaveLength(
-        archivedCommoditiesData.length + 1,
-      );
+      expect(parsedListResponse).toHaveLength(activeCommoditiesData.length - 1);
 
-      compareEntityArrays(
-        [
-          archivedCommodityData1,
-          {
-            code: commodityToArchive.code,
-            isTombstone: true,
-            name: commodityToArchive.name,
-            precision: commodityToArchive.precision,
-            symbol: commodityToArchive.symbol,
-          },
-        ],
-        parsedListResponse,
-      );
+      parsedListResponse.forEach((commodity) => {
+        expect(commodity.id).not.toBe(commodityToDelete.id);
+        expect(commodity.isTombstone).toBe(false);
+      });
     });
 
     it('should return 404 when archiving another user commodity', async () => {

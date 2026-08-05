@@ -1,15 +1,19 @@
 import { CommodityResponseDTO, UUID } from '@ledgerly/shared/types';
 import { CommodityMapper } from 'src/application';
 import { EntityNotFoundError } from 'src/application/application.errors';
-import { CommodityRepositoryInterface } from 'src/application/interfaces';
+import {
+  CommodityRepositoryInterface,
+  TransactionManagerInterface,
+} from 'src/application/interfaces';
 import { EnsureOwnedSnapshotFn } from 'src/application/shared/ensureOwnedSnapshot';
 import { Commodity, CommoditySnapshot } from 'src/domain/commodities';
 import { User } from 'src/domain/users/user.entity';
 
-export class ArchiveCommodityUseCase {
+export class DeleteCommodityUseCase {
   constructor(
     protected readonly commodityRepository: CommodityRepositoryInterface,
     protected readonly ensureOwnedSnapshot: EnsureOwnedSnapshotFn,
+    private readonly transactionManager: TransactionManagerInterface,
   ) {}
 
   async execute(user: User, commodityId: UUID): Promise<CommodityResponseDTO> {
@@ -32,7 +36,7 @@ export class ArchiveCommodityUseCase {
 
     commodity.delete();
 
-    const updatedCommodity = await this.commodityRepository.softDelete(
+    const updatedCommodity = await this.commodityRepository.delete(
       user.getId().valueOf(),
       commodityId,
       { updatedAt: commodity.getUpdatedAt().valueOf() },

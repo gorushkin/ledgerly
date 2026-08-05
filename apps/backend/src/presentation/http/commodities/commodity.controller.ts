@@ -7,7 +7,7 @@ import {
 } from '@ledgerly/shared/validation';
 import {
   GetCommodityByIdUseCase,
-  ArchiveCommodityUseCase,
+  DeleteCommodityUseCase,
   CreateCommodityUseCase,
   GetAllCommoditiesUseCase,
   UpdateCommodityUseCase,
@@ -20,7 +20,7 @@ export class CommodityController {
     private readonly getAllCommoditiesUseCase: GetAllCommoditiesUseCase,
     private readonly createCommodityUseCase: CreateCommodityUseCase,
     private readonly updateCommodityUseCase: UpdateCommodityUseCase,
-    private readonly archiveCommodityUseCase: ArchiveCommodityUseCase,
+    private readonly deleteCommodityUseCase: DeleteCommodityUseCase,
   ) {}
 
   async getAll(
@@ -61,12 +61,12 @@ export class CommodityController {
     return this.updateCommodityUseCase.execute(user, id, commodityUpdateDto);
   }
 
-  async archiveCommodity(
+  async delete(
     user: User,
     requestParams: unknown,
   ): Promise<CommodityResponseDTO> {
     const { id } = uniqueIdSchema.parse(requestParams);
 
-    return this.archiveCommodityUseCase.execute(user, id);
+    return this.deleteCommodityUseCase.execute(user, id);
   }
 }

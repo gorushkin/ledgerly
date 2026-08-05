@@ -16,7 +16,7 @@ import {
   UpdateTransactionUseCase,
   CreateTransactionUseCase,
   UpdateCommodityUseCase,
-  ArchiveCommodityUseCase,
+  DeleteCommodityUseCase,
   CreateCommodityUseCase,
 } from 'src/application';
 import { DataBase } from 'src/db';
@@ -77,7 +77,7 @@ type CommodityUseCases = {
   getCommodityById: GetCommodityByIdUseCase;
   getAllCommodities: GetAllCommoditiesUseCase;
   updateCommodity: UpdateCommodityUseCase;
-  archiveCommodity: ArchiveCommodityUseCase;
+  archiveCommodity: DeleteCommodityUseCase;
   createCommodity: CreateCommodityUseCase;
 };
 

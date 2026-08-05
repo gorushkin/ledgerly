@@ -3,6 +3,7 @@ import { CommodityQuery } from '@ledgerly/shared/validation';
 import { type CommodityRepositoryUpdateInput } from 'src/application';
 import type { CommodityDbRow } from 'src/db/schemas/commodities';
 import { UserDbRow } from 'src/db/schemas/users';
+import { compareEntities, compareEntityArrays } from 'src/db/test-utils';
 import { CommoditySnapshot } from 'src/domain/commodities/types';
 import { CommodityCode, Name, Timestamp } from 'src/domain/domain-core/';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
@@ -85,48 +86,75 @@ describe('CommodityRepository', () => {
   });
 
   describe('getAll', () => {
-    const commodityStatusFilterCases: {
-      expectedTombstoneValues: boolean[];
-      query: CommodityQuery;
-    }[] = [
-      { expectedTombstoneValues: [false, false], query: { status: 'active' } },
-      { expectedTombstoneValues: [true], query: { status: 'archived' } },
+    const commoditiesDataList = [
       {
-        expectedTombstoneValues: [false, false, true],
-        query: { status: 'all' },
+        code: CommodityCode.create('TOMB').valueOf(),
+        isClosed: false,
+        isTombstone: true,
+        name: 'Tombstoned Commodity',
+      },
+      {
+        code: CommodityCode.create('OPEN').valueOf(),
+        isClosed: false,
+        isTombstone: false,
+        name: 'Open Commodity',
+      },
+      {
+        code: CommodityCode.create('CLOSED').valueOf(),
+        isClosed: true,
+        isTombstone: false,
+        name: 'Closed Commodity',
       },
     ];
 
-    it.each(commodityStatusFilterCases)(
-      'should return $status.status commodities for the user',
-      async ({ expectedTombstoneValues, query }) => {
-        const activeCommodities = await Promise.all([
-          testDB.createCommodity(user.id),
-          testDB.createCommodity(user.id),
-        ]);
+    const allCommodities = commoditiesDataList.filter(
+      (commodity) => !commodity.isTombstone,
+    );
 
-        const archivedCommodity = await testDB.createCommodity(user.id, {
-          isTombstone: true,
+    const openCommodities = commoditiesDataList.filter(
+      (commodity) => !commodity.isClosed && !commodity.isTombstone,
+    );
+
+    const closedCommodities = commoditiesDataList.filter(
+      (commodity) => commodity.isClosed && !commodity.isTombstone,
+    );
+
+    type TestData = {
+      code: string;
+      isClosed: boolean;
+      isTombstone: boolean;
+      name: string;
+    };
+
+    const testData: [CommodityQuery, TestData[]][] = [
+      [{ status: 'all' }, allCommodities],
+      [{ status: 'open' }, openCommodities],
+      [{ status: 'closed' }, closedCommodities],
+    ];
+
+    beforeEach(async () => {
+      for (const data of commoditiesDataList) {
+        await testDB.createCommodity(user.id, {
+          code: data.code,
+          isClosed: data.isClosed,
+          isTombstone: data.isTombstone,
+          name: data.name,
+        });
+      }
+    });
+
+    it.each(testData)(
+      'returns commodities matching query %s',
+      async ({ status }: CommodityQuery, expectedCommodities: TestData[]) => {
+        const commodities = await commodityRepository.getAll(user.id, {
+          status,
         });
 
-        const commodities = await commodityRepository.getAll(user.id, query);
+        compareEntityArrays(commodities, expectedCommodities, {
+          fields: ['code', 'name', 'isClosed', 'isTombstone'],
+        });
 
-        const expectedCommodities =
-          query.status === 'active'
-            ? activeCommodities
-            : query.status === 'archived'
-              ? [archivedCommodity]
-              : [...activeCommodities, archivedCommodity];
-
-        expect(commodities).toEqual(
-          expect.arrayContaining(expectedCommodities),
-        );
-
-        expect(commodities).toHaveLength(expectedCommodities.length);
-
-        expect(
-          commodities.map(({ isTombstone }) => isTombstone).sort(),
-        ).toEqual(expectedTombstoneValues.sort());
+        expect(commodities.length).toBe(expectedCommodities.length);
       },
     );
 
@@ -134,52 +162,40 @@ describe('CommodityRepository', () => {
       const anotherUser = await testDB.createUser();
 
       const commodities = await commodityRepository.getAll(anotherUser.id, {
-        status: 'active',
+        status: 'open',
       });
 
       expect(commodities).toEqual([]);
     });
 
-    it('should not return tombstoned commodities for active status', async () => {
-      const commodity1 = await testDB.createCommodity(user.id);
-      const commodity2 = await testDB.createCommodity(user.id);
-
-      await commodityRepository.softDelete(user.id, commodity1.id, {
-        updatedAt: Timestamp.create().valueOf(),
-      });
-
-      const commodities = await commodityRepository.getAll(user.id, {
-        status: 'active',
-      });
-
-      expect(commodities).toEqual(expect.arrayContaining([commodity2]));
-      expect(commodities).not.toEqual(expect.arrayContaining([commodity1]));
-    });
-
     it.each<CommodityQuery>([
-      { status: 'active' },
-      { status: 'archived' },
+      { status: 'open' },
+      { status: 'closed' },
       { status: 'all' },
     ])(
       'should not return commodities belonging to other users for $status.status status',
       async ({ status }) => {
-        const commodity1 = await testDB.createCommodity(user.id);
         const anotherUser = await testDB.createUser();
-        const commodity2 = await testDB.createCommodity(anotherUser.id, {
-          isTombstone: status === 'archived',
+        await testDB.createCommodity(anotherUser.id, {
+          code: CommodityCode.create('OTHER').valueOf(),
+          isClosed: status === 'closed',
+          name: 'Other User Commodity',
         });
-
-        if (status === 'archived') {
-          await commodityRepository.softDelete(user.id, commodity1.id, {
-            updatedAt: Timestamp.create().valueOf(),
-          });
-        }
 
         const commodities = await commodityRepository.getAll(user.id, {
           status,
         });
 
-        expect(commodities).not.toEqual(expect.arrayContaining([commodity2]));
+        const expectedCommodities =
+          status === 'all'
+            ? allCommodities
+            : status === 'open'
+              ? openCommodities
+              : closedCommodities;
+
+        compareEntityArrays(commodities, expectedCommodities, {
+          fields: ['code', 'name', 'isClosed', 'isTombstone'],
+        });
       },
     );
   });
@@ -387,7 +403,7 @@ describe('CommodityRepository', () => {
     });
 
     it('should throw an error when trying to update tombstoned commodity', async () => {
-      await commodityRepository.softDelete(user.id, commodityDbRow.id, {
+      await commodityRepository.delete(user.id, commodityDbRow.id, {
         updatedAt: Timestamp.create().valueOf(),
       });
 
@@ -403,15 +419,15 @@ describe('CommodityRepository', () => {
     });
   });
 
-  describe('softDelete', () => {
+  describe('delete', () => {
     let commodityDbRow: CommodityDbRow;
 
     beforeEach(async () => {
       commodityDbRow = await testDB.createCommodity(user.id);
     });
 
-    it('should soft delete the commodity when it exists', async () => {
-      await commodityRepository.softDelete(user.id, commodityDbRow.id, {
+    it('should delete the commodity when it exists', async () => {
+      await commodityRepository.delete(user.id, commodityDbRow.id, {
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       });
 
@@ -427,7 +443,7 @@ describe('CommodityRepository', () => {
       const nonExistentId = Id.create().valueOf();
 
       await expect(
-        commodityRepository.softDelete(user.id, nonExistentId, {
+        commodityRepository.delete(user.id, nonExistentId, {
           updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
@@ -437,19 +453,239 @@ describe('CommodityRepository', () => {
       const anotherUser = await testDB.createUser();
 
       await expect(
-        commodityRepository.softDelete(anotherUser.id, commodityDbRow.id, {
+        commodityRepository.delete(anotherUser.id, commodityDbRow.id, {
           updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
     });
 
-    it('should throw an error when trying to soft delete a commodity that is already tombstoned', async () => {
-      await commodityRepository.softDelete(user.id, commodityDbRow.id, {
+    it('should throw an error when trying to delete a commodity that is already tombstoned', async () => {
+      await commodityRepository.delete(user.id, commodityDbRow.id, {
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       });
 
       await expect(
-        commodityRepository.softDelete(user.id, commodityDbRow.id, {
+        commodityRepository.delete(user.id, commodityDbRow.id, {
+          updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
+        }),
+      ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+  });
+
+  describe('close', () => {
+    let commodityDbRow: CommodityDbRow;
+
+    beforeEach(async () => {
+      commodityDbRow = await testDB.createCommodity(user.id);
+    });
+
+    it("updates only the 'isClosed' and 'updatedAt' fields when closing a commodity", async () => {
+      const updatedAt = Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf();
+
+      const closedCommodity = await commodityRepository.close(
+        user.id,
+        commodityDbRow.id,
+        { updatedAt },
+      );
+
+      expect(closedCommodity).toMatchObject({
+        id: commodityDbRow.id,
+        isClosed: true,
+        updatedAt,
+      });
+
+      const retrievedCommodity = await testDB.getCommodityById(
+        commodityDbRow.id,
+      );
+
+      expect(retrievedCommodity?.isClosed).toBe(true);
+      expect(retrievedCommodity?.updatedAt).toBe(updatedAt);
+
+      if (!retrievedCommodity) {
+        throw new Error('Failed to retrieve commodity for comparison');
+      }
+
+      compareEntities(retrievedCommodity, closedCommodity, [
+        'isClosed',
+        'updatedAt',
+      ]);
+    });
+
+    it("throws RepositoryNotFoundError when trying to close a commodity that doesn't exist", async () => {
+      await expect(
+        commodityRepository.close(user.id, Id.create().valueOf(), {
+          updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
+        }),
+      ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('throws RepositoryNotFoundError when trying to close a commodity that belongs to another user', async () => {
+      const anotherUser = await testDB.createUser();
+
+      await expect(
+        commodityRepository.close(anotherUser.id, commodityDbRow.id, {
+          updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
+        }),
+      ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('is idempotent for an already closed commodity', async () => {
+      const initialUpdatedAt = Timestamp.restore(
+        '2030-01-01T00:00:00.000Z',
+      ).valueOf();
+      const ignoredUpdatedAt = Timestamp.restore(
+        '2031-01-01T00:00:00.000Z',
+      ).valueOf();
+
+      await commodityRepository.close(user.id, commodityDbRow.id, {
+        updatedAt: initialUpdatedAt,
+      });
+
+      const initialRetrievedCommodity = await testDB.getCommodityById(
+        commodityDbRow.id,
+      );
+
+      const secondCloseAttempt = await commodityRepository.close(
+        user.id,
+        commodityDbRow.id,
+        { updatedAt: ignoredUpdatedAt },
+      );
+
+      expect(secondCloseAttempt).toMatchObject({
+        id: commodityDbRow.id,
+        isClosed: true,
+        updatedAt: initialUpdatedAt,
+      });
+
+      const retrievedCommodity = await testDB.getCommodityById(
+        commodityDbRow.id,
+      );
+
+      if (!initialRetrievedCommodity || !retrievedCommodity) {
+        throw new Error('Failed to retrieve commodity for comparison');
+      }
+
+      compareEntities(initialRetrievedCommodity, retrievedCommodity);
+    });
+
+    it('throws RepositoryNotFoundError when trying to close a tombstoned commodity', async () => {
+      await commodityRepository.delete(user.id, commodityDbRow.id, {
+        updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
+      });
+
+      await expect(
+        commodityRepository.close(user.id, commodityDbRow.id, {
+          updatedAt: Timestamp.restore('2031-01-01T00:00:00.000Z').valueOf(),
+        }),
+      ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+  });
+
+  describe('open', () => {
+    let closedCommodityDbRow: CommodityDbRow;
+
+    beforeEach(async () => {
+      closedCommodityDbRow = await testDB.createCommodity(user.id, {
+        isClosed: true,
+      });
+    });
+
+    it('should open the closed commodity when it exists', async () => {
+      const updatedAt = Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf();
+
+      const openedCommodity = await commodityRepository.open(
+        user.id,
+        closedCommodityDbRow.id,
+        { updatedAt },
+      );
+
+      expect(openedCommodity).toMatchObject({
+        id: closedCommodityDbRow.id,
+        isClosed: false,
+        updatedAt,
+      });
+
+      const retrievedCommodity = await testDB.getCommodityById(
+        closedCommodityDbRow.id,
+      );
+
+      expect(retrievedCommodity?.isClosed).toBe(false);
+      expect(retrievedCommodity?.updatedAt).toBe(updatedAt);
+
+      if (!retrievedCommodity) {
+        throw new Error('Failed to retrieve commodity for comparison');
+      }
+
+      compareEntities(retrievedCommodity, openedCommodity, [
+        'isClosed',
+        'updatedAt',
+      ]);
+    });
+
+    it('is idempotent for an already open commodity', async () => {
+      const initialUpdatedAt = Timestamp.restore(
+        '2030-01-01T00:00:00.000Z',
+      ).valueOf();
+      const ignoredUpdatedAt = Timestamp.restore(
+        '2031-01-01T00:00:00.000Z',
+      ).valueOf();
+
+      await commodityRepository.open(user.id, closedCommodityDbRow.id, {
+        updatedAt: initialUpdatedAt,
+      });
+
+      const initialRetrievedCommodity = await testDB.getCommodityById(
+        closedCommodityDbRow.id,
+      );
+
+      const secondOpenAttempt = await commodityRepository.open(
+        user.id,
+        closedCommodityDbRow.id,
+        { updatedAt: ignoredUpdatedAt },
+      );
+
+      expect(secondOpenAttempt).toMatchObject({
+        id: closedCommodityDbRow.id,
+        isClosed: false,
+        updatedAt: initialUpdatedAt,
+      });
+
+      const retrievedCommodity = await testDB.getCommodityById(
+        closedCommodityDbRow.id,
+      );
+
+      if (!initialRetrievedCommodity || !retrievedCommodity) {
+        throw new Error('Failed to retrieve commodity for comparison');
+      }
+
+      compareEntities(initialRetrievedCommodity, retrievedCommodity);
+    });
+
+    it("throws RepositoryNotFoundError when trying to open a commodity that doesn't exist", async () => {
+      await expect(
+        commodityRepository.open(user.id, Id.create().valueOf(), {
+          updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
+        }),
+      ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('throws RepositoryNotFoundError when trying to open a tombstoned commodity', async () => {
+      await commodityRepository.delete(user.id, closedCommodityDbRow.id, {
+        updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
+      });
+
+      await expect(
+        commodityRepository.open(user.id, closedCommodityDbRow.id, {
+          updatedAt: Timestamp.restore('2031-01-01T00:00:00.000Z').valueOf(),
+        }),
+      ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('throws RepositoryNotFoundError when trying to open a commodity that belongs to another user', async () => {
+      const anotherUser = await testDB.createUser();
+
+      await expect(
+        commodityRepository.open(anotherUser.id, closedCommodityDbRow.id, {
           updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);

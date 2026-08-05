@@ -72,6 +72,11 @@ Represents different financial accounts with unified structure for all account t
 - Account `type` can be changed only while the account has no active operations
 - `DELETE /accounts/:id` means terminal tombstone delete and is rejected while
   active operations still reference the account
+- `DELETE /accounts/:id` should be idempotent for an account that already
+  belongs to the user and already has `isTombstone = true`; current code has a
+  repository hook named `getByIdForLifecycle(...)` for that delete-specific
+  lookup, but it is not wired into the delete use case yet and should not be
+  used for normal reads, update, close or open flows
 
 ### Commodity
 

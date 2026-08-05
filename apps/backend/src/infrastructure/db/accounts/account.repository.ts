@@ -31,17 +31,9 @@ const getWhereClauseForGetAll = (userId: UUID, query: AccountQuery) => {
     );
   }
 
-  if (status === 'open') {
-    return and(
-      eq(accountsTable.userId, userId),
-      eq(accountsTable.isClosed, false),
-      eq(accountsTable.isTombstone, false),
-    );
-  }
-
   return and(
     eq(accountsTable.userId, userId),
-    eq(accountsTable.isClosed, true),
+    eq(accountsTable.isClosed, status !== 'open'),
     eq(accountsTable.isTombstone, false),
   );
 };
@@ -167,6 +159,7 @@ export class AccountRepository
     }, 'Failed to fetch account by ID');
   }
 
+  // TODO: it should be used for idempotent deleting
   getByIdForLifecycle(userId: UUID, id: UUID): Promise<AccountSnapshot> {
     return this.getByIdInternal(userId, id, { includeTombstone: true });
   }
@@ -215,14 +208,38 @@ export class AccountRepository
     );
   }
 
-  async updateLifecycle(
+  private async updateLifecycle(
     userId: UUID,
     id: UUID,
     data: AccountLifecycleUpdateInput,
   ): Promise<void> {
     const { action, updatedAt } = data;
     const { name, params } = lifecycleMapper[action];
+    const targetIsClosed = params.isClosed;
+
     return this.executeDatabaseOperation<void>(async () => {
+      const account = await this.db
+        .select()
+        .from(accountsTable)
+        .where(
+          and(
+            eq(accountsTable.id, id),
+            eq(accountsTable.userId, userId),
+            eq(accountsTable.isTombstone, false),
+          ),
+        )
+        .get();
+
+      const existingAccount = this.ensureEntityExists(
+        account,
+        `Account with ID ${id} not found`,
+        this.entityNotFoundContext('account', id),
+      );
+
+      if (existingAccount.isClosed === targetIsClosed) {
+        return;
+      }
+
       const result = await this.db
         .update(accountsTable)
         .set({ ...params, updatedAt })
@@ -246,7 +263,7 @@ export class AccountRepository
   async open(
     userId: UUID,
     id: UUID,
-    data: AccountLifecycleUpdateInput,
+    data: AccountRepositoryLifecycleInput,
   ): Promise<void> {
     await this.updateLifecycle(userId, id, {
       action: 'open',
@@ -257,7 +274,7 @@ export class AccountRepository
   async close(
     userId: UUID,
     id: UUID,
-    data: AccountLifecycleUpdateInput,
+    data: AccountRepositoryLifecycleInput,
   ): Promise<void> {
     await this.updateLifecycle(userId, id, {
       action: 'close',

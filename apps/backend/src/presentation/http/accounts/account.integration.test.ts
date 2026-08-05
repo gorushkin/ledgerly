@@ -7,6 +7,7 @@ import {
   apiErrorCodes,
   UUID,
 } from '@ledgerly/shared/types';
+import { AccountStatusFilterValue } from 'node_modules/@ledgerly/shared/src/constants/accounts';
 import { CommodityDbRow } from 'src/db/schemas/commodities';
 import { TestDB } from 'src/db/test-db';
 import { compareEntityArrays } from 'src/db/test-utils/entityComparer';
@@ -18,6 +19,9 @@ import { createHttpTestClient } from 'src/presentation/http/test-utils';
 import { describe, beforeEach, it, expect } from 'vitest';
 
 const url = `/api${ROUTES.accounts}`;
+
+const getWithQueryParamsUrl = (status: AccountStatusFilterValue) =>
+  `${url}?status=${status}`;
 
 const closedAccountsData = [
   {
@@ -252,7 +256,7 @@ describe('Accounts Integration Tests', () => {
 
       const finalResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=all`,
+        url: getWithQueryParamsUrl('all'),
       });
 
       const accountsAfterCreation = JSON.parse(
@@ -281,7 +285,7 @@ describe('Accounts Integration Tests', () => {
 
       const finalResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=all`,
+        url: getWithQueryParamsUrl('all'),
       });
 
       const accountsAfterDeletion = JSON.parse(
@@ -511,7 +515,7 @@ describe('Accounts Integration Tests', () => {
 
       const finalResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=all`,
+        url: getWithQueryParamsUrl('all'),
       });
 
       const accountsAfterUpdate = JSON.parse(
@@ -610,7 +614,9 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when status is an invalid enum value', async () => {
       const response = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=archived`,
+        url: getWithQueryParamsUrl(
+          'archived' as unknown as AccountStatusFilterValue,
+        ),
       });
 
       expect(response.statusCode).toBe(400);
@@ -1279,7 +1285,9 @@ describe('Accounts Integration Tests', () => {
     it('should return the standard error format for validation errors', async () => {
       const response = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=archived`,
+        url: getWithQueryParamsUrl(
+          'archived' as unknown as AccountStatusFilterValue,
+        ),
       });
 
       const errorResponse = JSON.parse(response.body) as ApiErrorResponse;

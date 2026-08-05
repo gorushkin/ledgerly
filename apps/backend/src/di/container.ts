@@ -16,7 +16,7 @@ import {
   UpdateTransactionUseCase,
   CreateTransactionUseCase,
   UpdateCommodityUseCase,
-  ArchiveCommodityUseCase,
+  DeleteCommodityUseCase,
   CreateCommodityUseCase,
 } from 'src/application';
 import {
@@ -160,9 +160,10 @@ export const createContainer = (db: DataBase): AppContainer => {
     ensureOwnedSnapshot,
   );
 
-  const archiveCommodityUseCase = new ArchiveCommodityUseCase(
+  const archiveCommodityUseCase = new DeleteCommodityUseCase(
     commodityRepository,
     ensureOwnedSnapshot,
+    transactionManager,
   );
 
   const createCommodityUseCase = new CreateCommodityUseCase(

@@ -25,7 +25,7 @@ export const commodityRoutes = (app: FastifyInstance) => {
   app.delete('/:id', async (request, reply) => {
     const user = request.user;
 
-    await commodityController.archiveCommodity(user, request.params);
+    await commodityController.delete(user, request.params);
 
     reply.status(204).send();
   });

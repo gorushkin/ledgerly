@@ -890,16 +890,9 @@ describe('AccountRepository', () => {
     });
 
     it('throws RepositoryNotFoundError when account does not exist', async () => {
-      const closedData = {
-        action: 'close' as const,
+      const promise = accountRepository.close(user.id, Id.create().valueOf(), {
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
-      };
-
-      const promise = accountRepository.close(
-        user.id,
-        Id.create().valueOf(),
-        closedData,
-      );
+      });
 
       await expect(promise).rejects.toThrowError(RepositoryNotFoundError);
     });
@@ -910,7 +903,6 @@ describe('AccountRepository', () => {
       });
 
       const promise = accountRepository.close(secondUser.id, account.id, {
-        action: 'close',
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       });
 
@@ -918,19 +910,25 @@ describe('AccountRepository', () => {
     });
 
     it('is idempotent for an already closed account', async () => {
-      const closedData = {
-        action: 'close' as const,
-        updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
-      };
+      const initialUpdatedAt = Timestamp.restore(
+        '2030-01-01T00:00:00.000Z',
+      ).valueOf();
+      const ignoredUpdatedAt = Timestamp.restore(
+        '2031-01-01T00:00:00.000Z',
+      ).valueOf();
 
-      await accountRepository.close(user.id, account.id, closedData);
+      await accountRepository.close(user.id, account.id, {
+        updatedAt: initialUpdatedAt,
+      });
 
       const initialClosedAccount = await accountRepository.getById(
         user.id,
         account.id,
       );
 
-      await accountRepository.close(user.id, account.id, closedData);
+      await accountRepository.close(user.id, account.id, {
+        updatedAt: ignoredUpdatedAt,
+      });
 
       const retrievedCloseAccount = await accountRepository.getById(
         user.id,
@@ -947,7 +945,6 @@ describe('AccountRepository', () => {
 
       await expect(
         accountRepository.close(user.id, account.id, {
-          action: 'close',
           updatedAt: Timestamp.create().valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
@@ -963,7 +960,6 @@ describe('AccountRepository', () => {
       const updatedAt = Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf();
 
       await accountRepository.open(user.id, account.id, {
-        action: 'open',
         updatedAt,
       });
 
@@ -982,11 +978,15 @@ describe('AccountRepository', () => {
         isClosed: false,
       });
 
-      const updatedAt = Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf();
+      const initialUpdatedAt = Timestamp.restore(
+        '2030-01-01T00:00:00.000Z',
+      ).valueOf();
+      const ignoredUpdatedAt = Timestamp.restore(
+        '2031-01-01T00:00:00.000Z',
+      ).valueOf();
 
       await accountRepository.open(user.id, account.id, {
-        action: 'open',
-        updatedAt,
+        updatedAt: initialUpdatedAt,
       });
 
       const initialOpenAccount = await accountRepository.getById(
@@ -995,8 +995,7 @@ describe('AccountRepository', () => {
       );
 
       await accountRepository.open(user.id, account.id, {
-        action: 'open',
-        updatedAt,
+        updatedAt: ignoredUpdatedAt,
       });
 
       const retrievedOpenAccount = await accountRepository.getById(
@@ -1007,6 +1006,14 @@ describe('AccountRepository', () => {
       compareEntities(initialOpenAccount, retrievedOpenAccount);
     });
 
+    it('should throw RepositoryNotFoundError when account does not exist', async () => {
+      const promise = accountRepository.open(user.id, Id.create().valueOf(), {
+        updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
+      });
+
+      await expect(promise).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
     it('should throw RepositoryNotFoundError when account is tombstoned', async () => {
       const account = await testDB.createAccount(user.id, usdCommodity.id, {
         isTombstone: true,
@@ -1014,7 +1021,6 @@ describe('AccountRepository', () => {
 
       await expect(
         accountRepository.open(user.id, account.id, {
-          action: 'open',
           updatedAt: Timestamp.create().valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
@@ -1028,7 +1034,6 @@ describe('AccountRepository', () => {
       const account = await testDB.createAccount(user.id, usdCommodity.id);
 
       const promise = accountRepository.open(secondUser.id, account.id, {
-        action: 'open',
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       });
 

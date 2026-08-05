@@ -20,7 +20,10 @@ export type {
 } from './TransactionManager.interface';
 export type { OperationRepositoryInterface } from './OperationRepository.interface';
 export type {
+  CommodityLifecycleAction,
+  CommodityLifecycleUpdateInput,
   CommodityRepositoryInterface,
+  CommodityRepositoryLifecycleInput,
   CommodityRepositoryUpdateInput,
   CommodityRepositorySoftDeleteInput,
 } from './CommodityRepository.interface';

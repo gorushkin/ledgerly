@@ -103,6 +103,18 @@ POST /accounts/:id/open
 `PATCH /accounts/:id` remains for editable account attributes, not lifecycle
 commands.
 
+Account terminal delete should be idempotent at the HTTP and use case level.
+Repeating `DELETE /accounts/:id` for an account that already belongs to the user
+and already has `isTombstone = true` should keep the tombstone state and return
+the delete success response without changing `updatedAt` again. Normal account
+reads, list filters, update, close and open still exclude tombstoned accounts.
+
+The current `AccountRepository.getByIdForLifecycle(...)` method is an unfinished
+implementation hook for that delete-specific lookup. It intentionally reads
+tombstoned accounts, but at the moment it is not wired into the account delete
+use case, so it is redundant outside tests until the follow-up work is applied.
+It must not become the general account read path.
+
 ### Commodity
 
 An archived commodity:

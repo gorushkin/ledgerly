@@ -11,19 +11,24 @@ import { User } from 'src/domain/users/user.entity';
 import { createUser } from 'src/testing/helpers';
 import { describe, vi, beforeAll, beforeEach, expect, it } from 'vitest';
 
-import { ArchiveCommodityUseCase } from '../archiveCommodity';
+import { DeleteCommodityUseCase } from '../deleteCommodity';
 
-describe('ArchiveCommodityUseCase', () => {
+describe('DeleteCommodityUseCase', () => {
   let user: User;
 
   const commodityRepository = {
+    delete: vi.fn(),
     getById: vi.fn(),
-    softDelete: vi.fn(),
   };
 
-  const archiveCommodityUseCase = new ArchiveCommodityUseCase(
+  const mockTransactionManager = {
+    run: vi.fn(),
+  };
+
+  const deleteCommodityUseCase = new DeleteCommodityUseCase(
     commodityRepository as unknown as CommodityRepositoryInterface,
     ensureOwnedSnapshot,
+    mockTransactionManager,
   );
 
   beforeAll(async () => {
@@ -32,12 +37,12 @@ describe('ArchiveCommodityUseCase', () => {
 
   beforeEach(() => {
     vi.useRealTimers();
-    commodityRepository.softDelete.mockClear();
+    commodityRepository.delete.mockClear();
     commodityRepository.getById.mockClear();
   });
 
   describe('execute', () => {
-    it('should archive a commodity successfully', async () => {
+    it('should delete a commodity successfully', async () => {
       vi.useFakeTimers();
 
       const timestampBeforeUpdatingValue = '2024-01-01T00:00:00.000Z';
@@ -66,7 +71,7 @@ describe('ArchiveCommodityUseCase', () => {
       };
 
       commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
-      commodityRepository.softDelete.mockResolvedValue(archivedCommodityData);
+      commodityRepository.delete.mockResolvedValue(archivedCommodityData);
 
       vi.setSystemTime(new Date(timestampDuringUpdatingValue));
 
@@ -75,7 +80,7 @@ describe('ArchiveCommodityUseCase', () => {
       );
 
       // Act
-      const result = await archiveCommodityUseCase.execute(user, commodityId);
+      const result = await deleteCommodityUseCase.execute(user, commodityId);
 
       // Assert
       expect(commodityRepository.getById).toHaveBeenCalledWith(
@@ -83,7 +88,7 @@ describe('ArchiveCommodityUseCase', () => {
         commodityId,
       );
 
-      expect(commodityRepository.softDelete).toHaveBeenCalledWith(
+      expect(commodityRepository.delete).toHaveBeenCalledWith(
         userid,
         commodityId,
         { updatedAt: archivedCommodityData.timestamps.updatedAt },
@@ -100,7 +105,7 @@ describe('ArchiveCommodityUseCase', () => {
 
       // Act & Assert
       await expect(
-        archiveCommodityUseCase.execute(user, nonExistentCommodityId),
+        deleteCommodityUseCase.execute(user, nonExistentCommodityId),
       ).rejects.toThrowError(
         new EntityNotFoundError({
           entityId: nonExistentCommodityId,
@@ -125,7 +130,7 @@ describe('ArchiveCommodityUseCase', () => {
 
       // Act & Assert
       await expect(
-        archiveCommodityUseCase.execute(user, commodityId),
+        deleteCommodityUseCase.execute(user, commodityId),
       ).rejects.toThrowError(
         new UnauthorizedAccessError({
           entityId: commodityId,
