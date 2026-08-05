@@ -7,8 +7,8 @@ import type {
   AccountRepositoryInterface,
   TransactionManagerInterface,
 } from 'src/application/interfaces';
-import { AccountMapper } from 'src/application/mappers';
 import { AccountOperationPolicy } from 'src/application/services';
+import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { createUser } from 'src/db/createTestUser';
 import { AccountSnapshot } from 'src/domain/accounts';
 import { Amount, Timestamp } from 'src/domain/domain-core';
@@ -24,7 +24,7 @@ describe('DeleteAccountUseCase', async () => {
 
   const mockAccountRepository = {
     delete: vi.fn(),
-    getById: vi.fn(),
+    getByIdForLifecycle: vi.fn(),
   };
 
   const mockAccountOperationPolicy = {
@@ -76,6 +76,7 @@ describe('DeleteAccountUseCase', async () => {
       mockAccountRepository as unknown as AccountRepositoryInterface,
       mockAccountOperationPolicy as unknown as AccountOperationPolicy,
       mockTransactionManager as unknown as TransactionManagerInterface,
+      ensureOwnedSnapshot,
     );
   });
 
@@ -84,7 +85,7 @@ describe('DeleteAccountUseCase', async () => {
     vi.useRealTimers();
 
     mockAccountOperationPolicy.assertNoActiveOperations.mockReset();
-    mockAccountRepository.getById.mockReset();
+    mockAccountRepository.getByIdForLifecycle.mockReset();
     mockAccountRepository.delete.mockReset();
     mockTransactionManager.run.mockReset();
   });
@@ -97,7 +98,9 @@ describe('DeleteAccountUseCase', async () => {
       mockAccountOperationPolicy.assertNoActiveOperations.mockResolvedValue(
         false,
       );
-      mockAccountRepository.getById.mockResolvedValue(mockAccountData);
+      mockAccountRepository.getByIdForLifecycle.mockResolvedValue(
+        mockAccountData,
+      );
       mockAccountRepository.delete.mockResolvedValue(mockSavedAccountData);
 
       vi.setSystemTime(new Date(updatedAt));
@@ -113,18 +116,24 @@ describe('DeleteAccountUseCase', async () => {
           isTombstone: true,
         }),
       );
+
+      expect(mockAccountRepository.getByIdForLifecycle).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        accountId,
+      );
+      expect(
+        mockAccountOperationPolicy.assertNoActiveOperations,
+      ).toHaveBeenCalledWith(user.getId().valueOf(), accountId);
+
       expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
 
-      expect(result).toEqual(
-        AccountMapper.toResponseDTOFromSnapshot({
-          ...mockSavedAccountData,
-          updatedAt,
-        }),
-      );
+      expect(result).toBeUndefined();
     });
 
     it('should throw when account has active operations', async () => {
-      mockAccountRepository.getById.mockResolvedValue(mockAccountData);
+      mockAccountRepository.getByIdForLifecycle.mockResolvedValue(
+        mockAccountData,
+      );
       mockAccountOperationPolicy.assertNoActiveOperations.mockRejectedValue(
         new AccountHasActiveOperationsError(accountId),
       );
@@ -142,13 +151,13 @@ describe('DeleteAccountUseCase', async () => {
     });
 
     it('should throw when account does not exist', async () => {
-      mockAccountRepository.getById.mockResolvedValue(null);
+      mockAccountRepository.getByIdForLifecycle.mockResolvedValue(null);
 
       await expect(
         deleteAccountUseCase.execute(user, accountId),
       ).rejects.toThrowError(EntityNotFoundError);
 
-      expect(mockAccountRepository.getById).toHaveBeenCalledWith(
+      expect(mockAccountRepository.getByIdForLifecycle).toHaveBeenCalledWith(
         user.getId().valueOf(),
         accountId,
       );
@@ -162,13 +171,15 @@ describe('DeleteAccountUseCase', async () => {
     it('should throw when account does not belong to user', async () => {
       const anotherUser = await createUser();
 
-      mockAccountRepository.getById.mockResolvedValue(mockAccountData);
+      mockAccountRepository.getByIdForLifecycle.mockResolvedValue(
+        mockAccountData,
+      );
 
       await expect(
         deleteAccountUseCase.execute(anotherUser, accountId),
       ).rejects.toThrowError(UnauthorizedAccessError);
 
-      expect(mockAccountRepository.getById).toHaveBeenCalledWith(
+      expect(mockAccountRepository.getByIdForLifecycle).toHaveBeenCalledWith(
         anotherUser.getId().valueOf(),
         accountId,
       );
@@ -176,27 +187,51 @@ describe('DeleteAccountUseCase', async () => {
       expect(mockAccountRepository.delete).not.toHaveBeenCalled();
     });
 
-    it('should not call repo saving when account is already deleted', async () => {
-      mockAccountRepository.getById.mockResolvedValue({
+    it('should not call repo saving and assertNoActiveOperations when account is already deleted', async () => {
+      mockAccountRepository.getByIdForLifecycle.mockResolvedValue({
         ...mockAccountData,
         isTombstone: true,
       });
 
       const result = await deleteAccountUseCase.execute(user, accountId);
 
-      expect(mockAccountRepository.getById).toHaveBeenCalledWith(
+      expect(mockAccountRepository.getByIdForLifecycle).toHaveBeenCalledWith(
         user.getId().valueOf(),
         accountId,
       );
 
       expect(mockAccountRepository.delete).not.toHaveBeenCalled();
 
-      expect(result).toEqual(
-        AccountMapper.toResponseDTOFromSnapshot({
-          ...mockAccountData,
-          isTombstone: true,
-        }),
+      expect(
+        mockAccountOperationPolicy.assertNoActiveOperations,
+      ).not.toHaveBeenCalled();
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should keep delete idempotent when tombstoned account has stale active operations', async () => {
+      mockAccountRepository.getByIdForLifecycle.mockResolvedValue({
+        ...mockAccountData,
+        isTombstone: true,
+      });
+
+      mockAccountOperationPolicy.assertNoActiveOperations.mockRejectedValue(
+        new AccountHasActiveOperationsError(accountId),
       );
+
+      const result = await deleteAccountUseCase.execute(user, accountId);
+
+      expect(mockAccountRepository.getByIdForLifecycle).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        accountId,
+      );
+
+      expect(mockAccountRepository.delete).not.toHaveBeenCalled();
+      expect(
+        mockAccountOperationPolicy.assertNoActiveOperations,
+      ).not.toHaveBeenCalled();
+
+      expect(result).toBeUndefined();
     });
   });
 });

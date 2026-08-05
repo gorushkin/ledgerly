@@ -115,6 +115,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     accountRepository,
     accountOperationPolicy,
     transactionManager,
+    ensureOwnedSnapshot,
   );
   const closeAccountUseCase = new CloseAccountUseCase(
     accountRepository,
