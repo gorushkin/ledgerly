@@ -134,9 +134,36 @@ describe('DeleteCommodityUseCase', () => {
       );
       expect(
         commodityReferencePolicy.assertNoActiveReferences,
-      ).toHaveBeenCalledWith(user.getId().valueOf(), commodityId);
+      ).not.toHaveBeenCalled();
       expect(commodityRepository.delete).not.toHaveBeenCalled();
       expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
+      expect(result).toBeUndefined();
+    });
+
+    it('should keep delete idempotent when tombstoned commodity has stale active references', async () => {
+      const commodity = createCommodity(user, {
+        code: 'TEST',
+        name: 'Test Commodity',
+        precision: 2,
+        symbol: 'T',
+      });
+      commodity.delete();
+
+      const commodityId = commodity.getId().valueOf();
+
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(
+        commodity.toSnapshot(),
+      );
+      commodityReferencePolicy.assertNoActiveReferences.mockRejectedValue(
+        new CommodityHasActiveReferencesError(commodityId),
+      );
+
+      const result = await deleteCommodityUseCase.execute(user, commodityId);
+
+      expect(
+        commodityReferencePolicy.assertNoActiveReferences,
+      ).not.toHaveBeenCalled();
+      expect(commodityRepository.delete).not.toHaveBeenCalled();
       expect(result).toBeUndefined();
     });
 

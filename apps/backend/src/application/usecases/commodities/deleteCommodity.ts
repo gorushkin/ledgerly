@@ -30,6 +30,10 @@ export class DeleteCommodityUseCase {
 
       const commodity = Commodity.restore(commodityData);
 
+      if (commodity.isDeleted()) {
+        return;
+      }
+
       await this.commodityReferencePolicy.assertNoActiveReferences(
         user.getId().valueOf(),
         commodityId,
