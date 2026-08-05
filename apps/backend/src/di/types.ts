@@ -16,8 +16,10 @@ import {
   UpdateTransactionUseCase,
   CreateTransactionUseCase,
   UpdateCommodityUseCase,
-  ArchiveCommodityUseCase,
+  DeleteCommodityUseCase,
   CreateCommodityUseCase,
+  CloseCommodityUseCase,
+  OpenCommodityUseCase,
 } from 'src/application';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
@@ -74,11 +76,13 @@ type TransactionUseCases = {
 };
 
 type CommodityUseCases = {
+  closeCommodity: CloseCommodityUseCase;
+  createCommodity: CreateCommodityUseCase;
+  deleteCommodity: DeleteCommodityUseCase;
   getCommodityById: GetCommodityByIdUseCase;
   getAllCommodities: GetAllCommoditiesUseCase;
+  openCommodity: OpenCommodityUseCase;
   updateCommodity: UpdateCommodityUseCase;
-  archiveCommodity: ArchiveCommodityUseCase;
-  createCommodity: CreateCommodityUseCase;
 };
 
 type Controllers = {

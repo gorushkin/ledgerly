@@ -16,11 +16,14 @@ import {
   UpdateTransactionUseCase,
   CreateTransactionUseCase,
   UpdateCommodityUseCase,
-  ArchiveCommodityUseCase,
+  DeleteCommodityUseCase,
   CreateCommodityUseCase,
+  CloseCommodityUseCase,
+  OpenCommodityUseCase,
 } from 'src/application';
 import {
   AccountOperationPolicy,
+  CommodityReferencePolicy,
   TransactionContextLoader,
 } from 'src/application/services';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
@@ -83,6 +86,12 @@ export const createContainer = (db: DataBase): AppContainer => {
     operationRepository,
   );
 
+  const commodityReferencePolicy = new CommodityReferencePolicy(
+    commodityRepository,
+    accountRepository,
+    transactionRepository,
+  );
+
   const passwordManager = new PasswordManager();
 
   const services: AppContainer['services'] = {
@@ -93,6 +102,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const createAccountUseCase = new CreateAccountUseCase(
     accountRepository,
     transactionManager,
+    commodityReferencePolicy,
   );
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
@@ -158,15 +168,30 @@ export const createContainer = (db: DataBase): AppContainer => {
   const updateCommodityUseCase = new UpdateCommodityUseCase(
     commodityRepository,
     ensureOwnedSnapshot,
+    transactionManager,
   );
 
-  const archiveCommodityUseCase = new ArchiveCommodityUseCase(
+  const deleteCommodityUseCase = new DeleteCommodityUseCase(
     commodityRepository,
     ensureOwnedSnapshot,
+    commodityReferencePolicy,
+    transactionManager,
   );
 
   const createCommodityUseCase = new CreateCommodityUseCase(
     commodityRepository,
+  );
+
+  const closeCommodityUseCase = new CloseCommodityUseCase(
+    commodityRepository,
+    ensureOwnedSnapshot,
+    transactionManager,
+  );
+
+  const openCommodityUseCase = new OpenCommodityUseCase(
+    commodityRepository,
+    ensureOwnedSnapshot,
+    transactionManager,
   );
 
   const commodityController = new CommodityController(
@@ -174,7 +199,9 @@ export const createContainer = (db: DataBase): AppContainer => {
     getAllCommoditiesUseCase,
     createCommodityUseCase,
     updateCommodityUseCase,
-    archiveCommodityUseCase,
+    deleteCommodityUseCase,
+    closeCommodityUseCase,
+    openCommodityUseCase,
   );
 
   const useCases: AppContainer['useCases'] = {
@@ -192,10 +219,12 @@ export const createContainer = (db: DataBase): AppContainer => {
       registerUser: registerUserUseCase,
     },
     commodity: {
-      archiveCommodity: archiveCommodityUseCase,
+      closeCommodity: closeCommodityUseCase,
       createCommodity: createCommodityUseCase,
+      deleteCommodity: deleteCommodityUseCase,
       getAllCommodities: getAllCommoditiesUseCase,
       getCommodityById: getCommodityByIdUseCase,
+      openCommodity: openCommodityUseCase,
       updateCommodity: updateCommodityUseCase,
     },
     transaction: {

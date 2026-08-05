@@ -72,6 +72,11 @@ Represents different financial accounts with unified structure for all account t
 - Account `type` can be changed only while the account has no active operations
 - `DELETE /accounts/:id` means terminal tombstone delete and is rejected while
   active operations still reference the account
+- `DELETE /accounts/:id` should be idempotent for an account that already
+  belongs to the user and already has `isTombstone = true`; current code has a
+  repository hook named `getByIdForLifecycle(...)` for that delete-specific
+  lookup, but it is not wired into the delete use case yet and should not be
+  used for normal reads, update, close or open flows
 
 ### Commodity
 
@@ -89,12 +94,18 @@ metadata owned by each user. See
 - Operations always store `amount` in the account's Commodity
 - Commodity `code`, `name`, and `symbol` are display metadata, not identity
 - Commodity `precision` defines integer minor-unit interpretation
-- Commodity archiving is represented by technical `isTombstone` state
-- `GET /commodities` returns active Commodities by default and supports
-  `status=active|archived|all`
-- `GET /commodities/:id` returns active and archived Commodities owned by the
+- Reversible Commodity close state is represented by `isClosed`
+- Terminal Commodity deletion is represented by `isTombstone`
+- `GET /commodities` returns open Commodities by default and supports
+  `status=open|closed|all`; all normal list filters exclude tombstoned
+  commodities
+- `GET /commodities/:id` returns non-tombstoned Commodities owned by the
   authenticated user
-- Archived Commodities remain readable but cannot be updated or archived again
+- Closed Commodities remain readable and editable, but cannot be selected for
+  new account references until opened again
+- `DELETE /commodities/:id` means terminal tombstone delete and is idempotent
+  for a Commodity that already belongs to the user and already has
+  `isTombstone = true`
 
 ## Entity API Conventions
 
@@ -131,9 +142,10 @@ Soft-delete is a domain state transition, not an idempotent repository command.
 Calling `markAsDeleted()` on an already deleted entity must fail with
 `DELETED_ENTITY_OPERATION` and must not mutate `updatedAt` again.
 Repository APIs that persist this transition must use `softDelete(...)`.
-Application/use case APIs may use business-facing `archive...` names, and HTTP
-routes may still expose `DELETE /resource/:id` commands. Repository
-`delete(...)` is reserved for physical row deletion.
+Application/use case APIs may use business-facing lifecycle names such as
+`close...` and `open...`, and HTTP routes may still expose
+`DELETE /resource/:id` commands. Repository `delete(...)` is reserved for
+physical row deletion.
 
 Snapshot types live next to the entity in `domain/<module>/types.ts`. They use
 primitive/domain-safe fields and must not be aliases for DB rows or response
@@ -225,10 +237,10 @@ repository interfaces and transaction boundaries. Mappers own conversion
 between domain snapshots, read models, response DTOs and persistence shapes.
 Repositories own persistence access.
 
-Commodity-backed account and transaction writes are a documented boundary
-exception: repositories enforce Commodity existence, ownership and tombstone
-state immediately before persistence. See
-[ADR 0019](./architecture/adr/0019-repository-enforced-commodity-reference-validation.md).
+Commodity-backed account and transaction writes split validation by concern:
+application policies enforce business lifecycle rules, while repositories and
+database constraints protect persistence integrity. See
+[ADR 0021](./architecture/adr/0021-split-commodity-reference-business-policy-from-persistence-integrity.md).
 
 New endpoint operations should be implemented as application use cases.
 `apps/backend/src/application/services/*` is reserved for helper orchestration
@@ -310,7 +322,7 @@ tasks.
 4. Results are sorted by `transactionDate DESC` by default
 5. Clients may sort by `transactionDate` or `postingDate` in ascending or descending order
 6. `createdAt` and `id` are deterministic tie-breakers for pagination
-7. Tombstone transactions and operations are always excluded; the list API does not support `includeArchived`
+7. Tombstone transactions and operations are always excluded; the list API does not support `includeTombstone`
 
 ## Examples
 

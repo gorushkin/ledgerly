@@ -1,5 +1,8 @@
 export const COMMODITY_STATUS_FILTER_VALUES = [
-  "active",
-  "archived",
+  "open",
+  "closed",
   "all",
 ] as const;
+
+export type CommodityStatusFilterValue =
+  (typeof COMMODITY_STATUS_FILTER_VALUES)[number];

@@ -2,13 +2,19 @@ import { UUID } from '@ledgerly/shared/types';
 import { CommodityQuery } from '@ledgerly/shared/validation';
 import { and, eq } from 'drizzle-orm';
 import {
+  type CommodityLifecycleAction,
+  type CommodityLifecycleUpdateInput,
   type CommodityRepositoryInterface,
+  type CommodityRepositoryLifecycleInput,
   type CommodityRepositoryUpdateInput,
-  type CommodityRepositorySoftDeleteInput,
+  type CommodityRepositoryDeleteInput,
 } from 'src/application';
 import { commoditiesTable } from 'src/db/schemas/commodities';
 import { CommoditySnapshot } from 'src/domain/commodities/types';
-import { RepositoryInvariantError } from 'src/infrastructure/errors';
+import {
+  RepositoryInvariantError,
+  RepositoryNotFoundError,
+} from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -18,27 +24,69 @@ const getWhereClauseForGetAll = (userId: UUID, query: CommodityQuery) => {
   const { status } = query;
 
   if (status === 'all') {
-    return eq(commoditiesTable.userId, userId);
+    return and(
+      eq(commoditiesTable.userId, userId),
+      eq(commoditiesTable.isTombstone, false),
+    );
   }
 
   return and(
     eq(commoditiesTable.userId, userId),
-    eq(commoditiesTable.isTombstone, status === 'archived'),
+    eq(commoditiesTable.isClosed, status !== 'open'),
+    eq(commoditiesTable.isTombstone, false),
   );
+};
+
+const getWhereClauseForGetByIdInternal = (
+  userId: UUID,
+  id: UUID,
+  options: { includeTombstone: boolean },
+) => {
+  if (options.includeTombstone) {
+    return and(
+      eq(commoditiesTable.userId, userId),
+      eq(commoditiesTable.id, id),
+    );
+  }
+
+  return and(
+    eq(commoditiesTable.userId, userId),
+    eq(commoditiesTable.id, id),
+    eq(commoditiesTable.isTombstone, false),
+  );
+};
+
+const lifecycleMapper: Record<
+  CommodityLifecycleAction,
+  { name: string; params: Record<string, boolean> }
+> = {
+  close: { name: 'close', params: { isClosed: true } },
+  open: { name: 'open', params: { isClosed: false } },
 };
 
 export class CommodityRepository
   extends BaseRepository
   implements CommodityRepositoryInterface
 {
-  getById(userId: UUID, id: UUID): Promise<CommoditySnapshot> {
+  private commodityNotFoundError(id: UUID): RepositoryNotFoundError {
+    return new RepositoryNotFoundError(
+      `Commodity with ID ${id} not found`,
+      this.entityNotFoundContext('commodity', id),
+    );
+  }
+
+  private getByIdInternal(
+    userId: UUID,
+    id: UUID,
+    options: { includeTombstone: boolean },
+  ): Promise<CommoditySnapshot> {
     return this.executeDatabaseOperation(async () => {
+      const whereClause = getWhereClauseForGetByIdInternal(userId, id, options);
+
       const commodity = await this.db
         .select()
         .from(commoditiesTable)
-        .where(
-          and(eq(commoditiesTable.userId, userId), eq(commoditiesTable.id, id)),
-        )
+        .where(whereClause)
         .get();
 
       const existingCommodity = this.ensureEntityExists(
@@ -49,6 +97,14 @@ export class CommodityRepository
 
       return CommodityPersistenceMapper.toSnapshot(existingCommodity);
     }, 'Failed to fetch commodity');
+  }
+
+  getByIdForLifecycle(userId: UUID, id: UUID): Promise<CommoditySnapshot> {
+    return this.getByIdInternal(userId, id, { includeTombstone: true });
+  }
+
+  getById(userId: UUID, id: UUID): Promise<CommoditySnapshot> {
+    return this.getByIdInternal(userId, id, { includeTombstone: false });
   }
 
   getAll(userId: UUID, query: CommodityQuery): Promise<CommoditySnapshot[]> {
@@ -67,10 +123,7 @@ export class CommodityRepository
     }, 'Failed to fetch commodities');
   }
 
-  create(
-    userId: UUID,
-    commodity: CommoditySnapshot,
-  ): Promise<CommoditySnapshot> {
+  create(userId: UUID, commodity: CommoditySnapshot): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
         if (commodity.userId !== userId) {
@@ -82,13 +135,11 @@ export class CommodityRepository
         const commodityRow =
           CommodityPersistenceMapper.toDBRowFromSnapshot(commodity);
 
-        const createdCommodity = await this.db
+        await this.db
           .insert(commoditiesTable)
           .values(commodityRow)
           .returning()
           .get();
-
-        return CommodityPersistenceMapper.toSnapshot(createdCommodity);
       },
       'Failed to create commodity',
       {
@@ -105,7 +156,7 @@ export class CommodityRepository
     userId: UUID,
     commodityId: UUID,
     commodity: CommodityRepositoryUpdateInput,
-  ): Promise<CommoditySnapshot> {
+  ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
         const safeData = this.getSafeUpdate(commodity, [
@@ -115,7 +166,7 @@ export class CommodityRepository
           'updatedAt',
         ]);
 
-        const updatedCommodity = await this.db
+        const result = await this.db
           .update(commoditiesTable)
           .set(safeData)
           .where(
@@ -124,17 +175,12 @@ export class CommodityRepository
               eq(commoditiesTable.id, commodityId),
               eq(commoditiesTable.isTombstone, false),
             ),
-          )
-          .returning()
-          .get();
+          );
 
-        const existingCommodity = this.ensureEntityExists(
-          updatedCommodity,
-          `Commodity with ID ${commodityId} not found`,
-          this.entityNotFoundContext('commodity', commodityId),
+        this.ensureRowsAffected(
+          result.rowsAffected,
+          this.commodityNotFoundError(commodityId),
         );
-
-        return CommodityPersistenceMapper.toSnapshot(existingCommodity);
       },
       'Failed to update commodity',
       {
@@ -147,13 +193,13 @@ export class CommodityRepository
     );
   }
 
-  softDelete(
+  delete(
     userId: UUID,
     commodityId: UUID,
-    data: CommodityRepositorySoftDeleteInput,
-  ): Promise<CommoditySnapshot> {
+    data: CommodityRepositoryDeleteInput,
+  ): Promise<void> {
     return this.executeDatabaseOperation(async () => {
-      const deletedCommodity = await this.db
+      const result = await this.db
         .update(commoditiesTable)
         .set({ isTombstone: true, updatedAt: data.updatedAt })
         .where(
@@ -162,17 +208,84 @@ export class CommodityRepository
             eq(commoditiesTable.id, commodityId),
             eq(commoditiesTable.isTombstone, false),
           ),
+        );
+
+      this.ensureRowsAffected(
+        result.rowsAffected,
+        this.commodityNotFoundError(commodityId),
+      );
+    }, `Failed to delete commodity with ID ${commodityId}`);
+  }
+
+  private updateLifecycle(
+    userId: UUID,
+    commodityId: UUID,
+    data: CommodityLifecycleUpdateInput,
+  ): Promise<void> {
+    const { action, updatedAt } = data;
+    const { name, params } = lifecycleMapper[action];
+    const targetIsClosed = params.isClosed;
+
+    return this.executeDatabaseOperation<void>(async () => {
+      const commodity = await this.db
+        .select()
+        .from(commoditiesTable)
+        .where(
+          and(
+            eq(commoditiesTable.userId, userId),
+            eq(commoditiesTable.id, commodityId),
+            eq(commoditiesTable.isTombstone, false),
+          ),
         )
-        .returning()
         .get();
 
       const existingCommodity = this.ensureEntityExists(
-        deletedCommodity,
-        `Commodity with ID ${commodityId} not found after deletion`,
+        commodity,
+        `Commodity with ID ${commodityId} not found`,
         this.entityNotFoundContext('commodity', commodityId),
       );
 
-      return CommodityPersistenceMapper.toSnapshot(existingCommodity);
-    }, `Failed to soft delete commodity with ID ${commodityId}`);
+      if (existingCommodity.isClosed === targetIsClosed) {
+        return;
+      }
+
+      const result = await this.db
+        .update(commoditiesTable)
+        .set({ ...params, updatedAt })
+        .where(
+          and(
+            eq(commoditiesTable.userId, userId),
+            eq(commoditiesTable.id, commodityId),
+            eq(commoditiesTable.isTombstone, false),
+          ),
+        );
+
+      this.ensureRowsAffected(
+        result.rowsAffected,
+        this.commodityNotFoundError(commodityId),
+      );
+    }, `Failed to ${name} commodity with ID ${commodityId}`);
+  }
+
+  open(
+    userId: UUID,
+    commodityId: UUID,
+    data: CommodityRepositoryLifecycleInput,
+  ): Promise<void> {
+    return this.updateLifecycle(userId, commodityId, {
+      action: 'open',
+      updatedAt: data.updatedAt,
+    });
+  }
+
+  close(
+    userId: UUID,
+    commodityId: UUID,
+    data: CommodityRepositoryLifecycleInput,
+  ): Promise<void> {
+    return this.updateLifecycle(userId, commodityId, {
+      action: 'close',
+      updatedAt: data.updatedAt,
+    });
   }
 }

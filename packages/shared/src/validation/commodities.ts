@@ -45,7 +45,7 @@ export const commodityUpdateSchema = commodityCreateSchema
 
 export const commodityStatusFilter = z
   .enum(COMMODITY_STATUS_FILTER_VALUES)
-  .default("active");
+  .default("open");
 
 export const commodityQuerySchema = z.object({
   status: commodityStatusFilter,

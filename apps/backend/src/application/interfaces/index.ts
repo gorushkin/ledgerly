@@ -1,9 +1,9 @@
 export type {
+  AccountLifecycleAction,
   AccountLifecycleUpdateInput,
   AccountRepositoryInterface,
   AccountRepositoryLifecycleInput,
   AccountRepositoryUpdateInput,
-  LifecycleAction,
 } from './AccountRepository.interface';
 export type { UserRepositoryInterface } from './userRepository.interface';
 export type {
@@ -20,7 +20,10 @@ export type {
 } from './TransactionManager.interface';
 export type { OperationRepositoryInterface } from './OperationRepository.interface';
 export type {
+  CommodityLifecycleAction,
+  CommodityLifecycleUpdateInput,
   CommodityRepositoryInterface,
+  CommodityRepositoryLifecycleInput,
   CommodityRepositoryUpdateInput,
-  CommodityRepositorySoftDeleteInput,
+  CommodityRepositoryDeleteInput,
 } from './CommodityRepository.interface';

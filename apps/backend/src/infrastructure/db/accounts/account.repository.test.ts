@@ -19,6 +19,7 @@ import { AccountRepository } from 'src/infrastructure/db/';
 import {
   AccountPersistenceConflictError,
   ForbiddenAccessError,
+  ForeignKeyConstraintError,
   RecordAlreadyExistsError,
   RepositoryInvariantError,
   RepositoryNotFoundError,
@@ -118,7 +119,7 @@ describe('AccountRepository', () => {
       expect(retrievedAccount.userId).toBe(newAccount.userId);
     });
 
-    it("throws RepositoryNotFoundError when commodity belongs to a different user than the account's user", async () => {
+    it("throws ForeignKeyConstraintError when commodity belongs to a different user than the account's user", async () => {
       const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
@@ -133,7 +134,7 @@ describe('AccountRepository', () => {
 
       await expect(
         accountRepository.create(secondUser.id, newAccount),
-      ).rejects.toThrowError(RepositoryNotFoundError);
+      ).rejects.toThrowError(ForeignKeyConstraintError);
     });
 
     it('throws RepositoryInvariantError when create userId differs from account snapshot userId', async () => {
@@ -184,6 +185,9 @@ describe('AccountRepository', () => {
         email: 'second-user@example.com',
         name: 'Second User',
       });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
 
       const firstUserAccount = getAccountData({
         commodityId: usdCommodity.id,
@@ -193,7 +197,7 @@ describe('AccountRepository', () => {
       });
 
       const secondUserAccount = getAccountData({
-        commodityId: usdCommodity.id,
+        commodityId: secondUserCommodity.id,
         name: accountName,
         type: 'asset',
         userId: secondUser.id,
@@ -209,7 +213,7 @@ describe('AccountRepository', () => {
 
       const retrievedAccount2 = await testDB.createAccount(
         secondUser.id,
-        usdCommodity.id,
+        secondUserCommodity.id,
         {
           ...secondUserAccount,
         },
@@ -227,7 +231,7 @@ describe('AccountRepository', () => {
       expect(retrievedAccount1.userId).not.toBe(retrievedAccount2.userId);
     });
 
-    it('throws RepositoryNotFoundError when commodity is tombstoned', async () => {
+    it('allows creating an account with a tombstoned commodity at persistence boundary', async () => {
       const tombstonedCommodity = await testDB.createCommodity(user.id, {
         code: CommodityCode.create('TOMBSTONED').valueOf(),
         isTombstone: true,
@@ -243,9 +247,46 @@ describe('AccountRepository', () => {
         userId: user.id,
       });
 
-      await expect(
-        accountRepository.create(user.id, newAccount),
-      ).rejects.toThrowError(RepositoryNotFoundError);
+      await accountRepository.create(user.id, newAccount);
+
+      const createdAccount = await accountRepository.getById(
+        user.id,
+        newAccount.id,
+      );
+
+      expect(createdAccount).toMatchObject({
+        commodityId: tombstonedCommodity.id,
+        id: newAccount.id,
+      });
+    });
+
+    it('allows creating an account with a closed commodity at persistence boundary', async () => {
+      const closedCommodity = await testDB.createCommodity(user.id, {
+        code: CommodityCode.create('CLOSED').valueOf(),
+        isClosed: true,
+        name: 'Closed Commodity',
+        precision: 2,
+        symbol: 'C',
+      });
+
+      const newAccount = getAccountData({
+        commodityId: closedCommodity.id,
+        name: 'New Account with Closed Commodity',
+        type: 'asset',
+        userId: user.id,
+      });
+
+      await accountRepository.create(user.id, newAccount);
+
+      const createdAccount = await accountRepository.getById(
+        user.id,
+        newAccount.id,
+      );
+
+      expect(createdAccount).toMatchObject({
+        commodityId: closedCommodity.id,
+        id: newAccount.id,
+      });
     });
 
     it('throws AccountPersistenceConflictError when insert affects no rows', async () => {
@@ -296,7 +337,7 @@ describe('AccountRepository', () => {
       (account) => !account.isClosed && !account.isTombstone,
     );
 
-    const archivedAccounts = accountsDataList.filter(
+    const closedAccounts = accountsDataList.filter(
       (account) => account.isClosed && !account.isTombstone,
     );
 
@@ -309,7 +350,7 @@ describe('AccountRepository', () => {
     const testData: [AccountQuery, TestData[]][] = [
       [{ status: 'all' }, allAccounts],
       [{ status: 'open' }, activeAccounts],
-      [{ status: 'closed' }, archivedAccounts],
+      [{ status: 'closed' }, closedAccounts],
     ];
 
     beforeEach(async () => {
@@ -363,6 +404,9 @@ describe('AccountRepository', () => {
         email: 'second-user@example.com',
         name: 'Second User',
       });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
 
       const accountsForSecondUser = [
         { isClosed: false, isTombstone: false, name: 'secondUserAccount1' },
@@ -372,7 +416,7 @@ describe('AccountRepository', () => {
 
       await Promise.all(
         accountsForSecondUser.map((account) =>
-          testDB.createAccount(secondUser.id, usdCommodity.id, {
+          testDB.createAccount(secondUser.id, secondUserCommodity.id, {
             isClosed: account.isClosed,
             isTombstone: account.isTombstone,
             name: account.name,
@@ -600,10 +644,13 @@ describe('AccountRepository', () => {
         email: 'second-user@example.com',
         name: 'Second User',
       });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
 
       const secondUserAccount = await testDB.createAccount(
         secondUser.id,
-        usdCommodity.id,
+        secondUserCommodity.id,
         {
           initialBalance: Amount.create('200').valueOf(),
           name: 'Shared Account Name',
@@ -743,10 +790,13 @@ describe('AccountRepository', () => {
         email: 'second-user@example.com',
         name: 'Second User',
       });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
 
       const createdAccount = await testDB.createAccount(
         secondUser.id,
-        usdCommodity.id,
+        secondUserCommodity.id,
         {
           initialBalance: Amount.create('2000').valueOf(),
           name: 'Shared Account Name',
@@ -890,16 +940,9 @@ describe('AccountRepository', () => {
     });
 
     it('throws RepositoryNotFoundError when account does not exist', async () => {
-      const closedData = {
-        action: 'close' as const,
+      const promise = accountRepository.close(user.id, Id.create().valueOf(), {
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
-      };
-
-      const promise = accountRepository.close(
-        user.id,
-        Id.create().valueOf(),
-        closedData,
-      );
+      });
 
       await expect(promise).rejects.toThrowError(RepositoryNotFoundError);
     });
@@ -910,7 +953,6 @@ describe('AccountRepository', () => {
       });
 
       const promise = accountRepository.close(secondUser.id, account.id, {
-        action: 'close',
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       });
 
@@ -918,19 +960,25 @@ describe('AccountRepository', () => {
     });
 
     it('is idempotent for an already closed account', async () => {
-      const closedData = {
-        action: 'close' as const,
-        updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
-      };
+      const initialUpdatedAt = Timestamp.restore(
+        '2030-01-01T00:00:00.000Z',
+      ).valueOf();
+      const ignoredUpdatedAt = Timestamp.restore(
+        '2031-01-01T00:00:00.000Z',
+      ).valueOf();
 
-      await accountRepository.close(user.id, account.id, closedData);
+      await accountRepository.close(user.id, account.id, {
+        updatedAt: initialUpdatedAt,
+      });
 
       const initialClosedAccount = await accountRepository.getById(
         user.id,
         account.id,
       );
 
-      await accountRepository.close(user.id, account.id, closedData);
+      await accountRepository.close(user.id, account.id, {
+        updatedAt: ignoredUpdatedAt,
+      });
 
       const retrievedCloseAccount = await accountRepository.getById(
         user.id,
@@ -947,7 +995,6 @@ describe('AccountRepository', () => {
 
       await expect(
         accountRepository.close(user.id, account.id, {
-          action: 'close',
           updatedAt: Timestamp.create().valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
@@ -963,7 +1010,6 @@ describe('AccountRepository', () => {
       const updatedAt = Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf();
 
       await accountRepository.open(user.id, account.id, {
-        action: 'open',
         updatedAt,
       });
 
@@ -982,11 +1028,15 @@ describe('AccountRepository', () => {
         isClosed: false,
       });
 
-      const updatedAt = Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf();
+      const initialUpdatedAt = Timestamp.restore(
+        '2030-01-01T00:00:00.000Z',
+      ).valueOf();
+      const ignoredUpdatedAt = Timestamp.restore(
+        '2031-01-01T00:00:00.000Z',
+      ).valueOf();
 
       await accountRepository.open(user.id, account.id, {
-        action: 'open',
-        updatedAt,
+        updatedAt: initialUpdatedAt,
       });
 
       const initialOpenAccount = await accountRepository.getById(
@@ -995,8 +1045,7 @@ describe('AccountRepository', () => {
       );
 
       await accountRepository.open(user.id, account.id, {
-        action: 'open',
-        updatedAt,
+        updatedAt: ignoredUpdatedAt,
       });
 
       const retrievedOpenAccount = await accountRepository.getById(
@@ -1007,6 +1056,14 @@ describe('AccountRepository', () => {
       compareEntities(initialOpenAccount, retrievedOpenAccount);
     });
 
+    it('should throw RepositoryNotFoundError when account does not exist', async () => {
+      const promise = accountRepository.open(user.id, Id.create().valueOf(), {
+        updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
+      });
+
+      await expect(promise).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
     it('should throw RepositoryNotFoundError when account is tombstoned', async () => {
       const account = await testDB.createAccount(user.id, usdCommodity.id, {
         isTombstone: true,
@@ -1014,7 +1071,6 @@ describe('AccountRepository', () => {
 
       await expect(
         accountRepository.open(user.id, account.id, {
-          action: 'open',
           updatedAt: Timestamp.create().valueOf(),
         }),
       ).rejects.toThrowError(RepositoryNotFoundError);
@@ -1028,7 +1084,6 @@ describe('AccountRepository', () => {
       const account = await testDB.createAccount(user.id, usdCommodity.id);
 
       const promise = accountRepository.open(secondUser.id, account.id, {
-        action: 'open',
         updatedAt: Timestamp.restore('2030-01-01T00:00:00.000Z').valueOf(),
       });
 
@@ -1068,15 +1123,56 @@ describe('AccountRepository', () => {
       const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
       });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
 
       const account = await testDB.createAccount(
         secondUser.id,
-        usdCommodity.id,
+        secondUserCommodity.id,
       );
 
       await expect(
         accountRepository.ensureUserOwnsAccount(user.id, account.id),
       ).rejects.toThrowError(ForbiddenAccessError);
+    });
+  });
+
+  describe('existsActiveByCommodityId', () => {
+    it('returns true when a non-tombstoned account references the commodity', async () => {
+      await testDB.createAccount(user.id, usdCommodity.id);
+
+      await expect(
+        accountRepository.existsActiveByCommodityId(user.id, usdCommodity.id),
+      ).resolves.toBe(true);
+    });
+
+    it('returns false when only tombstoned accounts reference the commodity', async () => {
+      await testDB.createAccount(user.id, usdCommodity.id, {
+        isTombstone: true,
+      });
+
+      await expect(
+        accountRepository.existsActiveByCommodityId(user.id, usdCommodity.id),
+      ).resolves.toBe(false);
+    });
+
+    it('returns false for accounts owned by another user', async () => {
+      const secondUser = await testDB.createUser({
+        email: 'second-user@example.com',
+      });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
+
+      await testDB.createAccount(secondUser.id, secondUserCommodity.id);
+
+      await expect(
+        accountRepository.existsActiveByCommodityId(
+          user.id,
+          secondUserCommodity.id,
+        ),
+      ).resolves.toBe(false);
     });
   });
 

@@ -21,6 +21,8 @@ const statusByErrorCode = {
   [apiErrorCodes.authenticationFailed]: 401,
   [apiErrorCodes.badRequest]: 400,
   [apiErrorCodes.closedAccountOperation]: 409,
+  [apiErrorCodes.closedCommodityReference]: 409,
+  [apiErrorCodes.commodityHasActiveReferences]: 409,
   [apiErrorCodes.conflict]: 409,
   [apiErrorCodes.conflictingOperationIds]: 400,
   [apiErrorCodes.deletedEntityOperation]: 400,

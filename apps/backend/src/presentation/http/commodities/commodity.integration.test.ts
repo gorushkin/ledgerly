@@ -1,5 +1,11 @@
+import { CommodityStatusFilterValue } from '@ledgerly/shared/constants';
 import { ROUTES } from '@ledgerly/shared/routes';
-import { CommodityResponseDTO, UUID } from '@ledgerly/shared/types';
+import {
+  apiErrorCodes,
+  ApiErrorResponse,
+  CommodityResponseDTO,
+  UUID,
+} from '@ledgerly/shared/types';
 import { CommodityDbRow } from 'src/db/schemas';
 import { TestDB } from 'src/db/test-db';
 import { compareEntityArrays, parseResponse } from 'src/db/test-utils';
@@ -39,7 +45,7 @@ describe('Commodities Integration Tests', () => {
     symbol: '€',
   };
 
-  const archivedCommodityData1 = {
+  const deletedCommodityData1 = {
     code: CommodityCode.create('GBP').valueOf(),
     isTombstone: true,
     name: 'British Pound',
@@ -48,10 +54,10 @@ describe('Commodities Integration Tests', () => {
   };
 
   const activeCommoditiesData = [activeCommodityData1, activeCommodityData2];
-  const archivedCommoditiesData = [archivedCommodityData1];
+  const deletedCommoditiesData = [deletedCommodityData1];
   const allCommoditiesData = [
     ...activeCommoditiesData,
-    ...archivedCommoditiesData,
+    ...deletedCommoditiesData,
   ];
 
   let commoditiesDbRows: CommodityDbRow[];
@@ -119,69 +125,87 @@ describe('Commodities Integration Tests', () => {
   });
 
   describe('GET /api/commodities', () => {
-    it('should return all active commodities for the authenticated user when no status is provided', async () => {
-      const response = await injectAuthorized({
-        method: 'GET',
-        url,
+    let listCommodities: CommodityDbRow[];
+
+    const getWithQueryParamsUrl = (status: CommodityStatusFilterValue) =>
+      `${url}?status=${status}`;
+
+    const testCases = [
+      {
+        description:
+          'should return all open commodities by default for the user',
+        expectedCommodities: (commodities: CommodityDbRow[]) =>
+          commodities.filter(
+            (commodity) => !commodity.isClosed && !commodity.isTombstone,
+          ),
+        query: {},
+      },
+      {
+        description:
+          'should return all open commodities when query param status=open',
+        expectedCommodities: (commodities: CommodityDbRow[]) =>
+          commodities.filter(
+            (commodity) => !commodity.isClosed && !commodity.isTombstone,
+          ),
+        query: { status: 'open' },
+      },
+      {
+        description:
+          'should return all commodities including closed when query param status=all',
+        expectedCommodities: (commodities: CommodityDbRow[]) =>
+          commodities.filter((commodity) => !commodity.isTombstone),
+        query: { status: 'all' },
+      },
+      {
+        description:
+          'should return all closed commodities when query param status=closed',
+        expectedCommodities: (commodities: CommodityDbRow[]) =>
+          commodities.filter(
+            (commodity) => commodity.isClosed && !commodity.isTombstone,
+          ),
+        query: { status: 'closed' },
+      },
+    ] satisfies {
+      description: string;
+      expectedCommodities: (commodities: CommodityDbRow[]) => CommodityDbRow[];
+      query: Partial<{ status: CommodityStatusFilterValue }>;
+    }[];
+
+    beforeEach(async () => {
+      const closedCommodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        isClosed: true,
+        isTombstone: false,
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
       });
 
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO[]>(response);
-
-      expect(parsedResponse).toHaveLength(activeCommoditiesData.length);
-
-      compareEntityArrays(activeCommoditiesData, parsedResponse);
+      listCommodities = [...commoditiesDbRows, closedCommodity];
     });
 
-    it('should return active commodities when status=active is provided', async () => {
-      const response = await injectAuthorized({
-        method: 'GET',
-        url: `${url}?status=active`,
+    testCases.forEach(({ description, expectedCommodities, query }) => {
+      it(description, async () => {
+        const queryString = query.status
+          ? new URLSearchParams({ status: query.status }).toString()
+          : '';
+        const requestUrl = queryString ? `${url}?${queryString}` : url;
+
+        const response = await injectAuthorized({
+          method: 'GET',
+          url: requestUrl,
+        });
+
+        expect(response.statusCode).toBe(200);
+
+        const responseCommodities =
+          parseResponse<CommodityResponseDTO[]>(response);
+
+        compareEntityArrays(
+          expectedCommodities(listCommodities),
+          responseCommodities,
+        );
       });
-
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO[]>(response);
-
-      expect(parsedResponse).toHaveLength(activeCommoditiesData.length);
-
-      compareEntityArrays(activeCommoditiesData, parsedResponse);
-    });
-
-    it('should return archived commodities when status=archived is provided', async () => {
-      const response = await injectAuthorized({
-        method: 'GET',
-        url: `${url}?status=archived`,
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO[]>(response);
-
-      expect(parsedResponse).toHaveLength(1);
-
-      compareEntityArrays([archivedCommodityData1], parsedResponse);
-    });
-
-    it('should return all commodities when status=all is provided', async () => {
-      const response = await injectAuthorized({
-        method: 'GET',
-        url: `${url}?status=all`,
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO[]>(response);
-
-      expect(parsedResponse).toHaveLength(
-        activeCommoditiesData.length + 1, // +1 for the archived commodity
-      );
-
-      compareEntityArrays(
-        [...activeCommoditiesData, archivedCommodityData1],
-        parsedResponse,
-      );
     });
 
     it('should return 400 for invalid status query parameter', async () => {
@@ -204,7 +228,7 @@ describe('Commodities Integration Tests', () => {
 
       const response = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=all`,
+        url: getWithQueryParamsUrl('all'),
       });
 
       expect(response.statusCode).toBe(200);
@@ -215,15 +239,16 @@ describe('Commodities Integration Tests', () => {
         expect(commodity.code).not.toBe(otherUserCommodity.code);
       });
 
-      expect(parsedResponse).toHaveLength(allCommoditiesData.length);
-
-      compareEntityArrays(allCommoditiesData, parsedResponse);
+      compareEntityArrays(
+        listCommodities.filter((commodity) => !commodity.isTombstone),
+        parsedResponse,
+      );
     });
 
     it('should return 401 without authorization', async () => {
       const response = await server.inject({
         method: 'GET',
-        url: `${url}?status=all`,
+        url: getWithQueryParamsUrl('all'),
       });
 
       expect(response.statusCode).toBe(401);
@@ -254,33 +279,21 @@ describe('Commodities Integration Tests', () => {
       );
     });
 
-    it('should return an archived commodity by id marked as archived', async () => {
-      const testArchivedCommodityDbRow = commoditiesDbRows.find(
+    it('should return 404 when the commodity is deleted', async () => {
+      const tombstoneCommodityRecord = commoditiesDbRows.find(
         (commodity) => commodity.isTombstone,
       );
 
-      if (!testArchivedCommodityDbRow) {
-        throw new Error('No archived commodity found in the test data.');
+      if (!tombstoneCommodityRecord) {
+        throw new Error('No deleted commodity found in the test data.');
       }
 
       const response = await injectAuthorized({
         method: 'GET',
-        url: `${url}/${testArchivedCommodityDbRow.id}`,
+        url: `${url}/${tombstoneCommodityRecord.id}`,
       });
 
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO>(response);
-
-      expect(parsedResponse).toEqual(
-        expect.objectContaining({
-          code: testArchivedCommodityDbRow.code,
-          isTombstone: testArchivedCommodityDbRow.isTombstone,
-          name: testArchivedCommodityDbRow.name,
-          precision: testArchivedCommodityDbRow.precision,
-          symbol: testArchivedCommodityDbRow.symbol,
-        }),
-      );
+      expect(response.statusCode).toBe(404);
     });
 
     it('should return 404 when the commodity does not exist', async () => {
@@ -555,13 +568,13 @@ describe('Commodities Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
-    it('should return 404 when updating an archived commodity', async () => {
-      const archivedCommodity = commoditiesDbRows.find(
+    it('should return 404 when updating a deleted commodity', async () => {
+      const deletedCommodity = commoditiesDbRows.find(
         (commodity) => commodity.isTombstone,
       );
 
-      if (!archivedCommodity) {
-        throw new Error('No archived commodity found in the test data.');
+      if (!deletedCommodity) {
+        throw new Error('No deleted commodity found in the test data.');
       }
 
       const response = await injectAuthorized({
@@ -569,7 +582,7 @@ describe('Commodities Integration Tests', () => {
           name: 'Updated British Pound',
         },
         method: 'PATCH',
-        url: `${url}/${archivedCommodity.id}`,
+        url: `${url}/${deletedCommodity.id}`,
       });
 
       expect(response.statusCode).toBe(404);
@@ -635,37 +648,256 @@ describe('Commodities Integration Tests', () => {
     });
   });
 
+  describe('POST /api/commodities/:id/close', () => {
+    it('should return 200 and close an open commodity by id', async () => {
+      const commodityToClose = commoditiesDbRows.find(
+        (commodity) => !commodity.isClosed && !commodity.isTombstone,
+      );
+
+      if (!commodityToClose) {
+        throw new Error('No open commodity found in the test data.');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${commodityToClose.id}/close`,
+      });
+
+      const responseBody = parseResponse<CommodityResponseDTO>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(responseBody).toMatchObject({
+        id: commodityToClose.id,
+        isClosed: true,
+      });
+
+      const closedCommodity = await testDB.getCommodityById(
+        commodityToClose.id,
+      );
+
+      expect(closedCommodity?.isClosed).toBe(true);
+    });
+
+    it('should be idempotent for an already closed commodity', async () => {
+      const closedCommodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        isClosed: true,
+        isTombstone: false,
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
+      });
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${closedCommodity.id}/close`,
+      });
+
+      const responseBody = parseResponse<CommodityResponseDTO>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(responseBody).toMatchObject({
+        id: closedCommodity.id,
+        isClosed: true,
+      });
+
+      const retrievedCommodity = await testDB.getCommodityById(
+        closedCommodity.id,
+      );
+
+      expect(retrievedCommodity?.isClosed).toBe(true);
+      expect(retrievedCommodity?.updatedAt).toBe(closedCommodity.updatedAt);
+    });
+
+    it('should return 404 when closing another user commodity', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId, {
+        code: CommodityCode.create('JPY').valueOf(),
+        name: 'Japanese Yen',
+        precision: 2,
+        symbol: '¥',
+      });
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${otherUserCommodity.id}/close`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when closing a deleted commodity', async () => {
+      const deletedCommodity = commoditiesDbRows.find(
+        (commodity) => commodity.isTombstone,
+      );
+
+      if (!deletedCommodity) {
+        throw new Error('No deleted commodity found in the test data.');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${deletedCommodity.id}/close`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 when the commodity id is invalid', async () => {
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/invalid-id/close`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 401 without authorization', async () => {
+      const commodityToClose = commoditiesDbRows[0];
+
+      const response = await server.inject({
+        method: 'POST',
+        url: `${url}/${commodityToClose.id}/close`,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+  });
+
+  describe('POST /api/commodities/:id/open', () => {
+    it('should return 200 and open a closed commodity by id', async () => {
+      const commodityToOpen = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        isClosed: true,
+        isTombstone: false,
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
+      });
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${commodityToOpen.id}/open`,
+      });
+
+      const responseBody = parseResponse<CommodityResponseDTO>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(responseBody).toMatchObject({
+        id: commodityToOpen.id,
+        isClosed: false,
+      });
+
+      const openedCommodity = await testDB.getCommodityById(commodityToOpen.id);
+
+      expect(openedCommodity?.isClosed).toBe(false);
+    });
+
+    it('should be idempotent for an already open commodity', async () => {
+      const openCommodity = commoditiesDbRows.find(
+        (commodity) => !commodity.isClosed && !commodity.isTombstone,
+      );
+
+      if (!openCommodity) {
+        throw new Error('No open commodity found in the test data.');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${openCommodity.id}/open`,
+      });
+
+      const responseBody = parseResponse<CommodityResponseDTO>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(responseBody).toMatchObject({
+        id: openCommodity.id,
+        isClosed: false,
+      });
+
+      const retrievedCommodity = await testDB.getCommodityById(
+        openCommodity.id,
+      );
+
+      expect(retrievedCommodity?.isClosed).toBe(false);
+      expect(retrievedCommodity?.updatedAt).toBe(openCommodity.updatedAt);
+    });
+
+    it('should return 404 when opening another user commodity', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId, {
+        code: CommodityCode.create('JPY').valueOf(),
+        isClosed: true,
+        name: 'Japanese Yen',
+        precision: 2,
+        symbol: '¥',
+      });
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${otherUserCommodity.id}/open`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when opening a deleted commodity', async () => {
+      const deletedCommodity = commoditiesDbRows.find(
+        (commodity) => commodity.isTombstone,
+      );
+
+      if (!deletedCommodity) {
+        throw new Error('No deleted commodity found in the test data.');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${deletedCommodity.id}/open`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 when the commodity id is invalid', async () => {
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/invalid-id/open`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 401 without authorization', async () => {
+      const commodityToOpen = commoditiesDbRows[0];
+
+      const response = await server.inject({
+        method: 'POST',
+        url: `${url}/${commodityToOpen.id}/open`,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+  });
+
   describe('DELETE /api/commodities/:id', () => {
-    it('should archive a commodity by id', async () => {
-      const commodityToArchive = commoditiesDbRows[0];
+    it('should delete a commodity by id', async () => {
+      const commodityToDelete = commoditiesDbRows[0];
 
       const response = await injectAuthorized({
         method: 'DELETE',
-        url: `${url}/${commodityToArchive.id}`,
+        url: `${url}/${commodityToDelete.id}`,
       });
 
       expect(response.statusCode).toBe(204);
 
       const getResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}/${commodityToArchive.id}`,
+        url: `${url}/${commodityToDelete.id}`,
       });
 
-      expect(getResponse.statusCode).toBe(200);
-
-      const parsedGetResponse =
-        parseResponse<CommodityResponseDTO>(getResponse);
-
-      expect(parsedGetResponse).toEqual(
-        expect.objectContaining({
-          id: commodityToArchive.id,
-          isTombstone: true,
-        }),
-      );
+      expect(getResponse.statusCode).toBe(404);
 
       const allCommodities = await testDB.getAllCommoditiesByUserId(userId);
 
-      const archivedCommoditiesDbRows = allCommodities.filter(
+      const deletedCommoditiesDbRows = allCommodities.filter(
         (commodity) => commodity.isTombstone,
       );
 
@@ -677,50 +909,41 @@ describe('Commodities Integration Tests', () => {
         activeCommoditiesData.length - 1,
       );
 
-      expect(archivedCommoditiesDbRows).toHaveLength(
-        archivedCommoditiesData.length + 1,
+      expect(deletedCommoditiesDbRows).toHaveLength(
+        deletedCommoditiesData.length + 1,
       );
     });
 
-    it('should leave the archived commodity readable by id', async () => {
-      const archivedCommodity = commoditiesDbRows.find(
+    it('should return 404 when reading a deleted commodity by id', async () => {
+      const deletedCommodity = commoditiesDbRows.find(
         (commodity) => commodity.isTombstone,
       );
 
-      if (!archivedCommodity) {
-        throw new Error('No archived commodity found in the test data.');
+      if (!deletedCommodity) {
+        throw new Error('No deleted commodity found in the test data.');
       }
 
       const response = await injectAuthorized({
         method: 'GET',
-        url: `${url}/${archivedCommodity.id}`,
+        url: `${url}/${deletedCommodity.id}`,
       });
 
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO>(response);
-
-      expect(parsedResponse).toEqual(
-        expect.objectContaining({
-          id: archivedCommodity.id,
-          isTombstone: true,
-        }),
-      );
+      expect(response.statusCode).toBe(404);
     });
 
-    it('should return the archived commodity in the list marked as archived', async () => {
-      const commodityToArchive = commoditiesDbRows[0];
+    it('should not return the deleted commodity in the list', async () => {
+      const commodityToDelete = commoditiesDbRows[0];
 
       const deleteResponse = await injectAuthorized({
         method: 'DELETE',
-        url: `${url}/${commodityToArchive.id}`,
+        url: `${url}/${commodityToDelete.id}`,
       });
 
       expect(deleteResponse.statusCode).toBe(204);
 
       const listResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=archived`,
+        url: `${url}?status=all`,
       });
 
       expect(listResponse.statusCode).toBe(200);
@@ -728,26 +951,15 @@ describe('Commodities Integration Tests', () => {
       const parsedListResponse =
         parseResponse<CommodityResponseDTO[]>(listResponse);
 
-      expect(parsedListResponse).toHaveLength(
-        archivedCommoditiesData.length + 1,
-      );
+      expect(parsedListResponse).toHaveLength(activeCommoditiesData.length - 1);
 
-      compareEntityArrays(
-        [
-          archivedCommodityData1,
-          {
-            code: commodityToArchive.code,
-            isTombstone: true,
-            name: commodityToArchive.name,
-            precision: commodityToArchive.precision,
-            symbol: commodityToArchive.symbol,
-          },
-        ],
-        parsedListResponse,
-      );
+      parsedListResponse.forEach((commodity) => {
+        expect(commodity.id).not.toBe(commodityToDelete.id);
+        expect(commodity.isTombstone).toBe(false);
+      });
     });
 
-    it('should return 404 when archiving another user commodity', async () => {
+    it('should return 404 when deleting another user commodity', async () => {
       const otherUserCommodity = await testDB.createCommodity(otherUserId, {
         code: CommodityCode.create('JPY').valueOf(),
         name: 'Japanese Yen',
@@ -763,21 +975,82 @@ describe('Commodities Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
-    it('should return 404 when archiving an already archived commodity', async () => {
-      const archivedCommodity = commoditiesDbRows.find(
+    it('should return 409 when deleting a commodity with active account references', async () => {
+      const referencedCommodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
+      });
+      await testDB.createAccount(userId, referencedCommodity.id);
+
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `${url}/${referencedCommodity.id}`,
+      });
+
+      const parsedResponse = parseResponse<ApiErrorResponse>(response);
+
+      expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.commodityHasActiveReferences,
+        context: { commodityId: referencedCommodity.id },
+        error: true,
+      });
+
+      const retrievedCommodity = await testDB.getCommodityById(
+        referencedCommodity.id,
+      );
+
+      expect(retrievedCommodity?.isTombstone).toBe(false);
+    });
+
+    it('should return 409 when deleting a commodity with active transaction references', async () => {
+      const referencedCommodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
+      });
+
+      await testDB.createTransaction(userId, referencedCommodity.id);
+
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `${url}/${referencedCommodity.id}`,
+      });
+
+      const parsedResponse = parseResponse<ApiErrorResponse>(response);
+
+      expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.commodityHasActiveReferences,
+        context: { commodityId: referencedCommodity.id },
+        error: true,
+      });
+
+      const retrievedCommodity = await testDB.getCommodityById(
+        referencedCommodity.id,
+      );
+
+      expect(retrievedCommodity?.isTombstone).toBe(false);
+    });
+
+    it('should return 204 when deleting an already deleted commodity', async () => {
+      const deletedCommodity = commoditiesDbRows.find(
         (commodity) => commodity.isTombstone,
       );
 
-      if (!archivedCommodity) {
-        throw new Error('No archived commodity found in the test data.');
+      if (!deletedCommodity) {
+        throw new Error('No deleted commodity found in the test data.');
       }
 
       const response = await injectAuthorized({
         method: 'DELETE',
-        url: `${url}/${archivedCommodity.id}`,
+        url: `${url}/${deletedCommodity.id}`,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(204);
     });
 
     it('should return 400 when the commodity id is invalid', async () => {
@@ -790,11 +1063,11 @@ describe('Commodities Integration Tests', () => {
     });
 
     it('should return 401 without authorization', async () => {
-      const commodityToArchive = commoditiesDbRows[0];
+      const commodityToDelete = commoditiesDbRows[0];
 
       const response = await server.inject({
         method: 'DELETE',
-        url: `${url}/${commodityToArchive.id}`,
+        url: `${url}/${commodityToDelete.id}`,
       });
 
       expect(response.statusCode).toBe(401);

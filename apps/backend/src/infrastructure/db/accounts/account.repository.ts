@@ -1,15 +1,14 @@
 import { UUID } from '@ledgerly/shared/types';
 import { AccountQuery } from '@ledgerly/shared/validation';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   type AccountLifecycleUpdateInput,
   type AccountRepositoryInterface,
   type AccountRepositoryLifecycleInput,
   type AccountRepositoryUpdateInput,
-  type LifecycleAction,
+  type AccountLifecycleAction,
 } from 'src/application';
 import { accountsTable } from 'src/db/schemas/accounts';
-import { commoditiesTable } from 'src/db/schemas/commodities';
 import { AccountSnapshot } from 'src/domain/accounts';
 import {
   AccountPersistenceConflictError,
@@ -31,23 +30,31 @@ const getWhereClauseForGetAll = (userId: UUID, query: AccountQuery) => {
     );
   }
 
-  if (status === 'open') {
-    return and(
-      eq(accountsTable.userId, userId),
-      eq(accountsTable.isClosed, false),
-      eq(accountsTable.isTombstone, false),
-    );
+  return and(
+    eq(accountsTable.userId, userId),
+    eq(accountsTable.isClosed, status !== 'open'),
+    eq(accountsTable.isTombstone, false),
+  );
+};
+
+const getWhereClauseForGetByIdInternal = (
+  userId: UUID,
+  id: UUID,
+  options: { includeTombstone: boolean },
+) => {
+  if (options.includeTombstone) {
+    return and(eq(accountsTable.id, id), eq(accountsTable.userId, userId));
   }
 
   return and(
+    eq(accountsTable.id, id),
     eq(accountsTable.userId, userId),
-    eq(accountsTable.isClosed, true),
     eq(accountsTable.isTombstone, false),
   );
 };
 
 const lifecycleMapper: Record<
-  LifecycleAction,
+  AccountLifecycleAction,
   { name: string; params: Record<string, boolean> }
 > = {
   close: { name: 'close', params: { isClosed: true } },
@@ -84,30 +91,11 @@ export class AccountRepository
   create(userId: UUID, data: AccountSnapshot): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        // TODO: consider moving to the base repository or a utility function to avoid duplication
         if (data.userId !== userId) {
           throw new RepositoryInvariantError(
             'Account snapshot userId must match repository create userId',
           );
         }
-
-        const existingCommodity = await this.db
-          .select()
-          .from(commoditiesTable)
-          .where(
-            and(
-              eq(commoditiesTable.id, data.commodityId),
-              eq(commoditiesTable.userId, data.userId),
-              eq(commoditiesTable.isTombstone, false),
-            ),
-          )
-          .get();
-
-        this.ensureEntityExists(
-          existingCommodity,
-          `Commodity with ID ${data.commodityId} not found`,
-          this.entityNotFoundContext('commodity', data.commodityId),
-        );
 
         const result = await this.db.insert(accountsTable).values({
           ...AccountPersistenceMapper.toDBRowFromSnapshot(data),
@@ -143,13 +131,7 @@ export class AccountRepository
     options: { includeTombstone: boolean },
   ): Promise<AccountSnapshot> {
     return this.executeDatabaseOperation<AccountSnapshot>(async () => {
-      const whereClause = options.includeTombstone
-        ? and(eq(accountsTable.id, id), eq(accountsTable.userId, userId))
-        : and(
-            eq(accountsTable.id, id),
-            eq(accountsTable.userId, userId),
-            eq(accountsTable.isTombstone, false),
-          );
+      const whereClause = getWhereClauseForGetByIdInternal(userId, id, options);
 
       const account = await this.db
         .select()
@@ -167,6 +149,7 @@ export class AccountRepository
     }, 'Failed to fetch account by ID');
   }
 
+  // TODO: it should be used for idempotent deleting
   getByIdForLifecycle(userId: UUID, id: UUID): Promise<AccountSnapshot> {
     return this.getByIdInternal(userId, id, { includeTombstone: true });
   }
@@ -215,14 +198,38 @@ export class AccountRepository
     );
   }
 
-  async updateLifecycle(
+  private async updateLifecycle(
     userId: UUID,
     id: UUID,
     data: AccountLifecycleUpdateInput,
   ): Promise<void> {
     const { action, updatedAt } = data;
     const { name, params } = lifecycleMapper[action];
+    const targetIsClosed = params.isClosed;
+
     return this.executeDatabaseOperation<void>(async () => {
+      const account = await this.db
+        .select()
+        .from(accountsTable)
+        .where(
+          and(
+            eq(accountsTable.id, id),
+            eq(accountsTable.userId, userId),
+            eq(accountsTable.isTombstone, false),
+          ),
+        )
+        .get();
+
+      const existingAccount = this.ensureEntityExists(
+        account,
+        `Account with ID ${id} not found`,
+        this.entityNotFoundContext('account', id),
+      );
+
+      if (existingAccount.isClosed === targetIsClosed) {
+        return;
+      }
+
       const result = await this.db
         .update(accountsTable)
         .set({ ...params, updatedAt })
@@ -246,7 +253,7 @@ export class AccountRepository
   async open(
     userId: UUID,
     id: UUID,
-    data: AccountLifecycleUpdateInput,
+    data: AccountRepositoryLifecycleInput,
   ): Promise<void> {
     await this.updateLifecycle(userId, id, {
       action: 'open',
@@ -257,7 +264,7 @@ export class AccountRepository
   async close(
     userId: UUID,
     id: UUID,
-    data: AccountLifecycleUpdateInput,
+    data: AccountRepositoryLifecycleInput,
   ): Promise<void> {
     await this.updateLifecycle(userId, id, {
       action: 'close',
@@ -316,6 +323,35 @@ export class AccountRepository
 
       return AccountPersistenceMapper.toSnapshot(existingAccount);
     }, 'Failed to verify account ownership');
+  }
+
+  async existsActiveByCommodityId(
+    userId: UUID,
+    commodityId: UUID,
+  ): Promise<boolean> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const count = await this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(accountsTable)
+          .where(
+            and(
+              eq(accountsTable.userId, userId),
+              eq(accountsTable.commodityId, commodityId),
+              eq(accountsTable.isTombstone, false),
+            ),
+          )
+          .get();
+
+        return !!count && count.count > 0;
+      },
+      'AccountRepository.existsActiveByCommodityId',
+      {
+        field: 'commodityId',
+        tableName: 'accounts',
+        value: commodityId,
+      },
+    );
   }
 
   async getByIds(userId: UUID, accountIds: UUID[]): Promise<AccountSnapshot[]> {

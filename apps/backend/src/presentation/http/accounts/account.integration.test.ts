@@ -1,3 +1,4 @@
+import { AccountStatusFilterValue } from '@ledgerly/shared/constants';
 import { ROUTES } from '@ledgerly/shared/routes';
 import {
   AccountCreateDTO,
@@ -18,6 +19,9 @@ import { createHttpTestClient } from 'src/presentation/http/test-utils';
 import { describe, beforeEach, it, expect } from 'vitest';
 
 const url = `/api${ROUTES.accounts}`;
+
+const getWithQueryParamsUrl = (status: AccountStatusFilterValue) =>
+  `${url}?status=${status}`;
 
 const closedAccountsData = [
   {
@@ -252,7 +256,7 @@ describe('Accounts Integration Tests', () => {
 
       const finalResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=all`,
+        url: getWithQueryParamsUrl('all'),
       });
 
       const accountsAfterCreation = JSON.parse(
@@ -281,7 +285,7 @@ describe('Accounts Integration Tests', () => {
 
       const finalResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=all`,
+        url: getWithQueryParamsUrl('all'),
       });
 
       const accountsAfterDeletion = JSON.parse(
@@ -511,7 +515,7 @@ describe('Accounts Integration Tests', () => {
 
       const finalResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=all`,
+        url: getWithQueryParamsUrl('all'),
       });
 
       const accountsAfterUpdate = JSON.parse(
@@ -610,7 +614,9 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when status is an invalid enum value', async () => {
       const response = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=archived`,
+        url: getWithQueryParamsUrl(
+          'inactive' as unknown as AccountStatusFilterValue,
+        ),
       });
 
       expect(response.statusCode).toBe(400);
@@ -780,6 +786,44 @@ describe('Accounts Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 409 when commodityId points to a closed commodity', async () => {
+      const closedCommodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        isClosed: true,
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
+      });
+
+      const payload: AccountCreateDTO = {
+        commodityId: closedCommodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      const parsedResponse = JSON.parse(response.body) as ApiErrorResponse & {
+        code: typeof apiErrorCodes.closedCommodityReference;
+      };
+
+      expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.closedCommodityReference,
+        context: {
+          commodityId: closedCommodity.id,
+          operation: 'create_account',
+        },
+        error: true,
+      });
     });
 
     it('should return 400 when type is empty', async () => {
@@ -1162,9 +1206,10 @@ describe('Accounts Integration Tests', () => {
     });
 
     it('should return 404 when account belongs to a different user', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId);
       const otherUserAccount = await testDB.createAccount(
         otherUserId,
-        commodity.id,
+        otherUserCommodity.id,
       );
 
       const response = await injectAuthorized({
@@ -1279,7 +1324,9 @@ describe('Accounts Integration Tests', () => {
     it('should return the standard error format for validation errors', async () => {
       const response = await injectAuthorized({
         method: 'GET',
-        url: `${url}?status=archived`,
+        url: getWithQueryParamsUrl(
+          'inactive' as unknown as AccountStatusFilterValue,
+        ),
       });
 
       const errorResponse = JSON.parse(response.body) as ApiErrorResponse;

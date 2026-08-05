@@ -37,6 +37,7 @@ export const commoditiesTable = sqliteTable(
       table.userId,
       table.code,
     ),
+    uniqueIndex('commodities_user_id_id_unique_idx').on(table.userId, table.id),
   ],
 );
 

@@ -41,7 +41,7 @@ describe('AccountController', () => {
     execute: vi.fn(),
   };
 
-  const mockArchiveAccountUseCase = {
+  const mockDeleteAccountUseCase = {
     execute: vi.fn(),
   };
 
@@ -58,7 +58,7 @@ describe('AccountController', () => {
     mockGetAllAccountsUseCase as unknown as GetAllAccountsUseCase,
     mockCreateAccountUseCase as unknown as CreateAccountUseCase,
     mockUpdateAccountUseCase as unknown as UpdateAccountUseCase,
-    mockArchiveAccountUseCase as unknown as DeleteAccountUseCase,
+    mockDeleteAccountUseCase as unknown as DeleteAccountUseCase,
     mockCloseAccountUseCase as unknown as CloseAccountUseCase,
     mockOpenAccountUseCase as unknown as OpenAccountUseCase,
   );
@@ -199,15 +199,15 @@ describe('AccountController', () => {
 
   describe('deleteAccount', () => {
     it('should call accountController.deleteAccount with correct account id and user', async () => {
-      mockArchiveAccountUseCase.execute.mockResolvedValue(undefined);
+      mockDeleteAccountUseCase.execute.mockResolvedValue(undefined);
 
       await accountController.deleteAccount(user, { id: accountId });
 
-      expect(mockArchiveAccountUseCase.execute).toHaveBeenCalledWith(
+      expect(mockDeleteAccountUseCase.execute).toHaveBeenCalledWith(
         user,
         accountId,
       );
-      expect(mockArchiveAccountUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(mockDeleteAccountUseCase.execute).toHaveBeenCalledTimes(1);
     });
 
     it('should throw ZodError for invalid request params', async () => {
@@ -215,7 +215,7 @@ describe('AccountController', () => {
         accountController.deleteAccount(user, { id: 'not-a-uuid' }),
       ).rejects.toThrow(ZodError);
 
-      expect(mockArchiveAccountUseCase.execute).not.toHaveBeenCalled();
+      expect(mockDeleteAccountUseCase.execute).not.toHaveBeenCalled();
     });
   });
 
