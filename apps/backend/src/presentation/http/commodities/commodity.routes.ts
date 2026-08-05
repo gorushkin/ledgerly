@@ -30,6 +30,22 @@ export const commodityRoutes = (app: FastifyInstance) => {
     reply.status(204).send();
   });
 
+  app.post('/:id/close', async (request, reply) => {
+    const user = request.user;
+
+    await commodityController.close(user, request.params);
+
+    reply.status(204).send();
+  });
+
+  app.post('/:id/open', async (request, reply) => {
+    const user = request.user;
+
+    await commodityController.open(user, request.params);
+
+    reply.status(204).send();
+  });
+
   app.patch('/:id', async (request, reply) => {
     const user = request.user;
 
