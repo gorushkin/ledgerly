@@ -61,12 +61,9 @@ export class CommodityController {
     return this.updateCommodityUseCase.execute(user, id, commodityUpdateDto);
   }
 
-  async delete(
-    user: User,
-    requestParams: unknown,
-  ): Promise<CommodityResponseDTO> {
+  async delete(user: User, requestParams: unknown): Promise<void> {
     const { id } = uniqueIdSchema.parse(requestParams);
 
-    return this.deleteCommodityUseCase.execute(user, id);
+    await this.deleteCommodityUseCase.execute(user, id);
   }
 }

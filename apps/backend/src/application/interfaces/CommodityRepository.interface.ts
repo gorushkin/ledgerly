@@ -26,29 +26,30 @@ export type CommodityLifecycleUpdateInput =
 
 export type CommodityRepositoryInterface = {
   getById(userId: UUID, commodityId: UUID): Promise<CommoditySnapshot>;
-  getAll(userId: UUID, status: CommodityQuery): Promise<CommoditySnapshot[]>;
-  create(
+  getByIdForLifecycle(
     userId: UUID,
-    commodity: CommoditySnapshot,
+    commodityId: UUID,
   ): Promise<CommoditySnapshot>;
+  getAll(userId: UUID, status: CommodityQuery): Promise<CommoditySnapshot[]>;
+  create(userId: UUID, commodity: CommoditySnapshot): Promise<void>;
   update(
     userId: UUID,
     commodityId: UUID,
     commodity: CommodityRepositoryUpdateInput,
-  ): Promise<CommoditySnapshot>;
+  ): Promise<void>;
   delete(
     userId: UUID,
     commodityId: UUID,
     data: CommodityRepositorySoftDeleteInput,
-  ): Promise<CommoditySnapshot>;
+  ): Promise<void>;
   open(
     userId: UUID,
     commodityId: UUID,
     data: CommodityRepositoryLifecycleInput,
-  ): Promise<CommoditySnapshot>;
+  ): Promise<void>;
   close(
     userId: UUID,
     commodityId: UUID,
     data: CommodityRepositoryLifecycleInput,
-  ): Promise<CommoditySnapshot>;
+  ): Promise<void>;
 };

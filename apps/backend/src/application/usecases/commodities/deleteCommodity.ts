@@ -1,6 +1,4 @@
-import { CommodityResponseDTO, UUID } from '@ledgerly/shared/types';
-import { CommodityMapper } from 'src/application';
-import { EntityNotFoundError } from 'src/application/application.errors';
+import { UUID } from '@ledgerly/shared/types';
 import {
   CommodityRepositoryInterface,
   TransactionManagerInterface,
@@ -16,32 +14,31 @@ export class DeleteCommodityUseCase {
     private readonly transactionManager: TransactionManagerInterface,
   ) {}
 
-  async execute(user: User, commodityId: UUID): Promise<CommodityResponseDTO> {
-    const commodityData = await this.ensureOwnedSnapshot<CommoditySnapshot>({
-      entityId: commodityId,
-      entityType: Commodity.entityType,
-      getOwnerId: (commodity) => commodity.userId,
-      load: this.commodityRepository.getById.bind(this.commodityRepository),
-      user,
-    });
-
-    if (commodityData.isTombstone) {
-      throw new EntityNotFoundError({
+  async execute(user: User, commodityId: UUID): Promise<void> {
+    await this.transactionManager.run(async () => {
+      const commodityData = await this.ensureOwnedSnapshot<CommoditySnapshot>({
         entityId: commodityId,
         entityType: Commodity.entityType,
+        getOwnerId: (commodity) => commodity.userId,
+        load: this.commodityRepository.getByIdForLifecycle.bind(
+          this.commodityRepository,
+        ),
+        user,
       });
-    }
 
-    const commodity = Commodity.restore(commodityData);
+      const commodity = Commodity.restore(commodityData);
 
-    commodity.delete();
+      const result = commodity.delete();
 
-    const updatedCommodity = await this.commodityRepository.delete(
-      user.getId().valueOf(),
-      commodityId,
-      { updatedAt: commodity.getUpdatedAt().valueOf() },
-    );
-
-    return CommodityMapper.toResponseDTOFromSnapshot(updatedCommodity);
+      if (result === 'changed') {
+        await this.commodityRepository.delete(
+          user.getId().valueOf(),
+          commodityId,
+          {
+            updatedAt: commodity.getUpdatedAt().valueOf(),
+          },
+        );
+      }
+    });
   }
 }

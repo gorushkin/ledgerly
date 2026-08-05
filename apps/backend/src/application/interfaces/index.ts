@@ -1,9 +1,9 @@
 export type {
+  AccountLifecycleAction,
   AccountLifecycleUpdateInput,
   AccountRepositoryInterface,
   AccountRepositoryLifecycleInput,
   AccountRepositoryUpdateInput,
-  LifecycleAction,
 } from './AccountRepository.interface';
 export type { UserRepositoryInterface } from './userRepository.interface';
 export type {

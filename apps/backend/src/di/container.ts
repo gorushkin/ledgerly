@@ -158,6 +158,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const updateCommodityUseCase = new UpdateCommodityUseCase(
     commodityRepository,
     ensureOwnedSnapshot,
+    transactionManager,
   );
 
   const archiveCommodityUseCase = new DeleteCommodityUseCase(

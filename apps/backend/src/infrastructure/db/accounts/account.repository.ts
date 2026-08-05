@@ -6,7 +6,7 @@ import {
   type AccountRepositoryInterface,
   type AccountRepositoryLifecycleInput,
   type AccountRepositoryUpdateInput,
-  type LifecycleAction,
+  type AccountLifecycleAction,
 } from 'src/application';
 import { accountsTable } from 'src/db/schemas/accounts';
 import { commoditiesTable } from 'src/db/schemas/commodities';
@@ -38,8 +38,24 @@ const getWhereClauseForGetAll = (userId: UUID, query: AccountQuery) => {
   );
 };
 
+const getWhereClauseForGetByIdInternal = (
+  userId: UUID,
+  id: UUID,
+  options: { includeTombstone: boolean },
+) => {
+  if (options.includeTombstone) {
+    return and(eq(accountsTable.id, id), eq(accountsTable.userId, userId));
+  }
+
+  return and(
+    eq(accountsTable.id, id),
+    eq(accountsTable.userId, userId),
+    eq(accountsTable.isTombstone, false),
+  );
+};
+
 const lifecycleMapper: Record<
-  LifecycleAction,
+  AccountLifecycleAction,
   { name: string; params: Record<string, boolean> }
 > = {
   close: { name: 'close', params: { isClosed: true } },
@@ -135,13 +151,7 @@ export class AccountRepository
     options: { includeTombstone: boolean },
   ): Promise<AccountSnapshot> {
     return this.executeDatabaseOperation<AccountSnapshot>(async () => {
-      const whereClause = options.includeTombstone
-        ? and(eq(accountsTable.id, id), eq(accountsTable.userId, userId))
-        : and(
-            eq(accountsTable.id, id),
-            eq(accountsTable.userId, userId),
-            eq(accountsTable.isTombstone, false),
-          );
+      const whereClause = getWhereClauseForGetByIdInternal(userId, id, options);
 
       const account = await this.db
         .select()

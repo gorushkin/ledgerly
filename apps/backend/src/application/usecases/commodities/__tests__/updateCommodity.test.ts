@@ -1,5 +1,8 @@
 import { CommodityResponseDTO } from '@ledgerly/shared/types';
-import { CommodityRepositoryInterface } from 'src/application';
+import {
+  CommodityRepositoryInterface,
+  TransactionManagerInterface,
+} from 'src/application';
 import {
   EntityNotFoundError,
   UnauthorizedAccessError,
@@ -22,9 +25,16 @@ describe('UpdateCommodityUseCase', () => {
     update: vi.fn(),
   };
 
+  const mockTransactionManager = {
+    run: vi.fn(),
+  };
+  const runTransaction: TransactionManagerInterface['run'] = async (callback) =>
+    callback();
+
   const updateCommodityUseCase = new UpdateCommodityUseCase(
     commodityRepository as unknown as CommodityRepositoryInterface,
     ensureOwnedSnapshot,
+    mockTransactionManager as unknown as TransactionManagerInterface,
   );
 
   beforeAll(async () => {
@@ -33,8 +43,10 @@ describe('UpdateCommodityUseCase', () => {
 
   beforeEach(() => {
     vi.useRealTimers();
+    mockTransactionManager.run.mockImplementation(runTransaction);
     commodityRepository.update.mockClear();
     commodityRepository.getById.mockClear();
+    mockTransactionManager.run.mockClear();
   });
 
   describe('execute', () => {
@@ -70,7 +82,7 @@ describe('UpdateCommodityUseCase', () => {
 
       commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
 
-      commodityRepository.update.mockResolvedValue(updatedCommodityData);
+      commodityRepository.update.mockResolvedValue(undefined);
 
       vi.setSystemTime(new Date(timestampDuringUpdatingValue));
 
@@ -101,6 +113,7 @@ describe('UpdateCommodityUseCase', () => {
         },
       );
 
+      expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
       expect(result).toEqual(updatedCommoditySnapshot);
     });
 
@@ -122,6 +135,34 @@ describe('UpdateCommodityUseCase', () => {
           entityType: Commodity.entityType,
         }),
       );
+    });
+
+    it('should throw an error if the commodity is deleted', async () => {
+      const commodity = createCommodity(user, {
+        code: 'TEST',
+        name: 'Test Commodity',
+        precision: 2,
+        symbol: 'T',
+      });
+      commodity.delete();
+
+      const commodityId = commodity.getId().valueOf();
+
+      commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
+
+      await expect(
+        updateCommodityUseCase.execute(user, commodityId, {
+          name: 'Updated Commodity',
+          symbol: 'U',
+        }),
+      ).rejects.toThrowError(
+        new EntityNotFoundError({
+          entityId: commodityId,
+          entityType: Commodity.entityType,
+        }),
+      );
+
+      expect(commodityRepository.update).not.toHaveBeenCalled();
     });
 
     it('should throw an error if the commodity does not belong to the user', async () => {

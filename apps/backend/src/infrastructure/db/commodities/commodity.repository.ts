@@ -11,7 +11,10 @@ import {
 } from 'src/application';
 import { commoditiesTable } from 'src/db/schemas/commodities';
 import { CommoditySnapshot } from 'src/domain/commodities/types';
-import { RepositoryInvariantError } from 'src/infrastructure/errors';
+import {
+  RepositoryInvariantError,
+  RepositoryNotFoundError,
+} from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
 
@@ -34,6 +37,25 @@ const getWhereClauseForGetAll = (userId: UUID, query: CommodityQuery) => {
   );
 };
 
+const getWhereClauseForGetByIdInternal = (
+  userId: UUID,
+  id: UUID,
+  options: { includeTombstone: boolean },
+) => {
+  if (options.includeTombstone) {
+    return and(
+      eq(commoditiesTable.userId, userId),
+      eq(commoditiesTable.id, id),
+    );
+  }
+
+  return and(
+    eq(commoditiesTable.userId, userId),
+    eq(commoditiesTable.id, id),
+    eq(commoditiesTable.isTombstone, false),
+  );
+};
+
 const lifecycleMapper: Record<
   CommodityLifecycleAction,
   { name: string; params: Record<string, boolean> }
@@ -46,14 +68,25 @@ export class CommodityRepository
   extends BaseRepository
   implements CommodityRepositoryInterface
 {
-  getById(userId: UUID, id: UUID): Promise<CommoditySnapshot> {
+  private commodityNotFoundError(id: UUID): RepositoryNotFoundError {
+    return new RepositoryNotFoundError(
+      `Commodity with ID ${id} not found`,
+      this.entityNotFoundContext('commodity', id),
+    );
+  }
+
+  private getByIdInternal(
+    userId: UUID,
+    id: UUID,
+    options: { includeTombstone: boolean },
+  ): Promise<CommoditySnapshot> {
     return this.executeDatabaseOperation(async () => {
+      const whereClause = getWhereClauseForGetByIdInternal(userId, id, options);
+
       const commodity = await this.db
         .select()
         .from(commoditiesTable)
-        .where(
-          and(eq(commoditiesTable.userId, userId), eq(commoditiesTable.id, id)),
-        )
+        .where(whereClause)
         .get();
 
       const existingCommodity = this.ensureEntityExists(
@@ -64,6 +97,14 @@ export class CommodityRepository
 
       return CommodityPersistenceMapper.toSnapshot(existingCommodity);
     }, 'Failed to fetch commodity');
+  }
+
+  getByIdForLifecycle(userId: UUID, id: UUID): Promise<CommoditySnapshot> {
+    return this.getByIdInternal(userId, id, { includeTombstone: true });
+  }
+
+  getById(userId: UUID, id: UUID): Promise<CommoditySnapshot> {
+    return this.getByIdInternal(userId, id, { includeTombstone: false });
   }
 
   getAll(userId: UUID, query: CommodityQuery): Promise<CommoditySnapshot[]> {
@@ -82,10 +123,7 @@ export class CommodityRepository
     }, 'Failed to fetch commodities');
   }
 
-  create(
-    userId: UUID,
-    commodity: CommoditySnapshot,
-  ): Promise<CommoditySnapshot> {
+  create(userId: UUID, commodity: CommoditySnapshot): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
         if (commodity.userId !== userId) {
@@ -97,13 +135,11 @@ export class CommodityRepository
         const commodityRow =
           CommodityPersistenceMapper.toDBRowFromSnapshot(commodity);
 
-        const createdCommodity = await this.db
+        await this.db
           .insert(commoditiesTable)
           .values(commodityRow)
           .returning()
           .get();
-
-        return CommodityPersistenceMapper.toSnapshot(createdCommodity);
       },
       'Failed to create commodity',
       {
@@ -120,7 +156,7 @@ export class CommodityRepository
     userId: UUID,
     commodityId: UUID,
     commodity: CommodityRepositoryUpdateInput,
-  ): Promise<CommoditySnapshot> {
+  ): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
         const safeData = this.getSafeUpdate(commodity, [
@@ -130,7 +166,7 @@ export class CommodityRepository
           'updatedAt',
         ]);
 
-        const updatedCommodity = await this.db
+        const result = await this.db
           .update(commoditiesTable)
           .set(safeData)
           .where(
@@ -139,17 +175,12 @@ export class CommodityRepository
               eq(commoditiesTable.id, commodityId),
               eq(commoditiesTable.isTombstone, false),
             ),
-          )
-          .returning()
-          .get();
+          );
 
-        const existingCommodity = this.ensureEntityExists(
-          updatedCommodity,
-          `Commodity with ID ${commodityId} not found`,
-          this.entityNotFoundContext('commodity', commodityId),
+        this.ensureRowsAffected(
+          result.rowsAffected,
+          this.commodityNotFoundError(commodityId),
         );
-
-        return CommodityPersistenceMapper.toSnapshot(existingCommodity);
       },
       'Failed to update commodity',
       {
@@ -166,9 +197,9 @@ export class CommodityRepository
     userId: UUID,
     commodityId: UUID,
     data: CommodityRepositorySoftDeleteInput,
-  ): Promise<CommoditySnapshot> {
+  ): Promise<void> {
     return this.executeDatabaseOperation(async () => {
-      const deletedCommodity = await this.db
+      const result = await this.db
         .update(commoditiesTable)
         .set({ isTombstone: true, updatedAt: data.updatedAt })
         .where(
@@ -177,17 +208,12 @@ export class CommodityRepository
             eq(commoditiesTable.id, commodityId),
             eq(commoditiesTable.isTombstone, false),
           ),
-        )
-        .returning()
-        .get();
+        );
 
-      const existingCommodity = this.ensureEntityExists(
-        deletedCommodity,
-        `Commodity with ID ${commodityId} not found after deletion`,
-        this.entityNotFoundContext('commodity', commodityId),
+      this.ensureRowsAffected(
+        result.rowsAffected,
+        this.commodityNotFoundError(commodityId),
       );
-
-      return CommodityPersistenceMapper.toSnapshot(existingCommodity);
     }, `Failed to soft delete commodity with ID ${commodityId}`);
   }
 
@@ -195,12 +221,12 @@ export class CommodityRepository
     userId: UUID,
     commodityId: UUID,
     data: CommodityLifecycleUpdateInput,
-  ): Promise<CommoditySnapshot> {
+  ): Promise<void> {
     const { action, updatedAt } = data;
     const { name, params } = lifecycleMapper[action];
     const targetIsClosed = params.isClosed;
 
-    return this.executeDatabaseOperation(async () => {
+    return this.executeDatabaseOperation<void>(async () => {
       const commodity = await this.db
         .select()
         .from(commoditiesTable)
@@ -220,10 +246,10 @@ export class CommodityRepository
       );
 
       if (existingCommodity.isClosed === targetIsClosed) {
-        return CommodityPersistenceMapper.toSnapshot(existingCommodity);
+        return;
       }
 
-      const updatedCommodity = await this.db
+      const result = await this.db
         .update(commoditiesTable)
         .set({ ...params, updatedAt })
         .where(
@@ -232,17 +258,12 @@ export class CommodityRepository
             eq(commoditiesTable.id, commodityId),
             eq(commoditiesTable.isTombstone, false),
           ),
-        )
-        .returning()
-        .get();
+        );
 
-      const updatedExistingCommodity = this.ensureEntityExists(
-        updatedCommodity,
-        `Commodity with ID ${commodityId} not found`,
-        this.entityNotFoundContext('commodity', commodityId),
+      this.ensureRowsAffected(
+        result.rowsAffected,
+        this.commodityNotFoundError(commodityId),
       );
-
-      return CommodityPersistenceMapper.toSnapshot(updatedExistingCommodity);
     }, `Failed to ${name} commodity with ID ${commodityId}`);
   }
 
@@ -250,7 +271,7 @@ export class CommodityRepository
     userId: UUID,
     commodityId: UUID,
     data: CommodityRepositoryLifecycleInput,
-  ): Promise<CommoditySnapshot> {
+  ): Promise<void> {
     return this.updateLifecycle(userId, commodityId, {
       action: 'open',
       updatedAt: data.updatedAt,
@@ -261,7 +282,7 @@ export class CommodityRepository
     userId: UUID,
     commodityId: UUID,
     data: CommodityRepositoryLifecycleInput,
-  ): Promise<CommoditySnapshot> {
+  ): Promise<void> {
     return this.updateLifecycle(userId, commodityId, {
       action: 'close',
       updatedAt: data.updatedAt,

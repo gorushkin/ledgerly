@@ -9,10 +9,10 @@ export type AccountRepositoryUpdateInput = Pick<AccountSnapshot, 'updatedAt'> &
 
 export type AccountRepositoryLifecycleInput = { updatedAt: IsoDatetimeString };
 
-export type LifecycleAction = 'close' | 'open';
+export type AccountLifecycleAction = 'close' | 'open';
 
 export type AccountLifecycleUpdateInput = AccountRepositoryLifecycleInput & {
-  action: LifecycleAction;
+  action: AccountLifecycleAction;
 };
 
 export type AccountRepositoryInterface = {

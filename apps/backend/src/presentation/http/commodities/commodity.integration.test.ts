@@ -274,33 +274,21 @@ describe('Commodities Integration Tests', () => {
       );
     });
 
-    it('should return an archived commodity by id marked as archived', async () => {
-      const testArchivedCommodityDbRow = commoditiesDbRows.find(
+    it('should return 404 when the commodity is deleted', async () => {
+      const tombstoneCommodityRecord = commoditiesDbRows.find(
         (commodity) => commodity.isTombstone,
       );
 
-      if (!testArchivedCommodityDbRow) {
-        throw new Error('No archived commodity found in the test data.');
+      if (!tombstoneCommodityRecord) {
+        throw new Error('No deleted commodity found in the test data.');
       }
 
       const response = await injectAuthorized({
         method: 'GET',
-        url: `${url}/${testArchivedCommodityDbRow.id}`,
+        url: `${url}/${tombstoneCommodityRecord.id}`,
       });
 
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO>(response);
-
-      expect(parsedResponse).toEqual(
-        expect.objectContaining({
-          code: testArchivedCommodityDbRow.code,
-          isTombstone: testArchivedCommodityDbRow.isTombstone,
-          name: testArchivedCommodityDbRow.name,
-          precision: testArchivedCommodityDbRow.precision,
-          symbol: testArchivedCommodityDbRow.symbol,
-        }),
-      );
+      expect(response.statusCode).toBe(404);
     });
 
     it('should return 404 when the commodity does not exist', async () => {
@@ -656,7 +644,7 @@ describe('Commodities Integration Tests', () => {
   });
 
   describe('DELETE /api/commodities/:id', () => {
-    it('should archive a commodity by id', async () => {
+    it('should delete a commodity by id', async () => {
       const commodityToArchive = commoditiesDbRows[0];
 
       const response = await injectAuthorized({
@@ -671,17 +659,7 @@ describe('Commodities Integration Tests', () => {
         url: `${url}/${commodityToArchive.id}`,
       });
 
-      expect(getResponse.statusCode).toBe(200);
-
-      const parsedGetResponse =
-        parseResponse<CommodityResponseDTO>(getResponse);
-
-      expect(parsedGetResponse).toEqual(
-        expect.objectContaining({
-          id: commodityToArchive.id,
-          isTombstone: true,
-        }),
-      );
+      expect(getResponse.statusCode).toBe(404);
 
       const allCommodities = await testDB.getAllCommoditiesByUserId(userId);
 
@@ -702,7 +680,7 @@ describe('Commodities Integration Tests', () => {
       );
     });
 
-    it('should leave the archived commodity readable by id', async () => {
+    it('should return 404 when reading an deleted commodity by id', async () => {
       const archivedCommodity = commoditiesDbRows.find(
         (commodity) => commodity.isTombstone,
       );
@@ -716,16 +694,7 @@ describe('Commodities Integration Tests', () => {
         url: `${url}/${archivedCommodity.id}`,
       });
 
-      expect(response.statusCode).toBe(200);
-
-      const parsedResponse = parseResponse<CommodityResponseDTO>(response);
-
-      expect(parsedResponse).toEqual(
-        expect.objectContaining({
-          id: archivedCommodity.id,
-          isTombstone: true,
-        }),
-      );
+      expect(response.statusCode).toBe(404);
     });
 
     it('should not return the deleted commodity in the list', async () => {
@@ -756,7 +725,7 @@ describe('Commodities Integration Tests', () => {
       });
     });
 
-    it('should return 404 when archiving another user commodity', async () => {
+    it('should return 404 when deleting another user commodity', async () => {
       const otherUserCommodity = await testDB.createCommodity(otherUserId, {
         code: CommodityCode.create('JPY').valueOf(),
         name: 'Japanese Yen',
@@ -772,7 +741,7 @@ describe('Commodities Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
-    it('should return 404 when archiving an already archived commodity', async () => {
+    it('should return 204 when deleting an already deleted commodity', async () => {
       const archivedCommodity = commoditiesDbRows.find(
         (commodity) => commodity.isTombstone,
       );
@@ -786,7 +755,7 @@ describe('Commodities Integration Tests', () => {
         url: `${url}/${archivedCommodity.id}`,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(204);
     });
 
     it('should return 400 when the commodity id is invalid', async () => {

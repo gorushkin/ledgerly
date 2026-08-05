@@ -1,4 +1,7 @@
-import { CommodityRepositoryInterface, CommodityMapper } from 'src/application';
+import {
+  CommodityRepositoryInterface,
+  TransactionManagerInterface,
+} from 'src/application';
 import {
   EntityNotFoundError,
   UnauthorizedAccessError,
@@ -18,17 +21,19 @@ describe('DeleteCommodityUseCase', () => {
 
   const commodityRepository = {
     delete: vi.fn(),
-    getById: vi.fn(),
+    getByIdForLifecycle: vi.fn(),
   };
 
   const mockTransactionManager = {
     run: vi.fn(),
   };
+  const runTransaction: TransactionManagerInterface['run'] = async (callback) =>
+    callback();
 
   const deleteCommodityUseCase = new DeleteCommodityUseCase(
     commodityRepository as unknown as CommodityRepositoryInterface,
     ensureOwnedSnapshot,
-    mockTransactionManager,
+    mockTransactionManager as unknown as TransactionManagerInterface,
   );
 
   beforeAll(async () => {
@@ -37,8 +42,10 @@ describe('DeleteCommodityUseCase', () => {
 
   beforeEach(() => {
     vi.useRealTimers();
+    mockTransactionManager.run.mockImplementation(runTransaction);
     commodityRepository.delete.mockClear();
-    commodityRepository.getById.mockClear();
+    commodityRepository.getByIdForLifecycle.mockClear();
+    mockTransactionManager.run.mockClear();
   });
 
   describe('execute', () => {
@@ -61,29 +68,22 @@ describe('DeleteCommodityUseCase', () => {
       const commodityId = commodity.getId().valueOf();
       const userid = user.getId().valueOf();
 
-      const archivedCommodityData = {
-        ...commodity.toSnapshot(),
-        isTombstone: true,
-        timestamps: {
-          createdAt: commodity.getCreatedAt().valueOf(),
-          updatedAt: Timestamp.restore(timestampDuringUpdatingValue).valueOf(),
-        },
-      };
+      const updatedAt = Timestamp.restore(
+        timestampDuringUpdatingValue,
+      ).valueOf();
 
-      commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
-      commodityRepository.delete.mockResolvedValue(archivedCommodityData);
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(
+        commodity.toSnapshot(),
+      );
+      commodityRepository.delete.mockResolvedValue(undefined);
 
       vi.setSystemTime(new Date(timestampDuringUpdatingValue));
-
-      const expectedResult = CommodityMapper.toResponseDTOFromSnapshot(
-        archivedCommodityData,
-      );
 
       // Act
       const result = await deleteCommodityUseCase.execute(user, commodityId);
 
       // Assert
-      expect(commodityRepository.getById).toHaveBeenCalledWith(
+      expect(commodityRepository.getByIdForLifecycle).toHaveBeenCalledWith(
         userid,
         commodityId,
       );
@@ -91,17 +91,44 @@ describe('DeleteCommodityUseCase', () => {
       expect(commodityRepository.delete).toHaveBeenCalledWith(
         userid,
         commodityId,
-        { updatedAt: archivedCommodityData.timestamps.updatedAt },
+        { updatedAt },
       );
 
-      expect(result).toMatchObject(expectedResult);
+      expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
+      expect(result).toBeUndefined();
+    });
+
+    it('should not call delete when commodity is already deleted', async () => {
+      const commodity = createCommodity(user, {
+        code: 'TEST',
+        name: 'Test Commodity',
+        precision: 2,
+        symbol: 'T',
+      });
+      commodity.delete();
+
+      const commodityId = commodity.getId().valueOf();
+
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(
+        commodity.toSnapshot(),
+      );
+
+      const result = await deleteCommodityUseCase.execute(user, commodityId);
+
+      expect(commodityRepository.getByIdForLifecycle).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        commodityId,
+      );
+      expect(commodityRepository.delete).not.toHaveBeenCalled();
+      expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
+      expect(result).toBeUndefined();
     });
 
     it('should throw an error if the commodity does not exist', async () => {
       // Arrange
       const nonExistentCommodityId = Id.create().valueOf();
 
-      commodityRepository.getById.mockResolvedValue(null);
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(null);
 
       // Act & Assert
       await expect(
@@ -126,7 +153,9 @@ describe('DeleteCommodityUseCase', () => {
 
       const commodityId = commodity.getId().valueOf();
 
-      commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(
+        commodity.toSnapshot(),
+      );
 
       // Act & Assert
       await expect(
