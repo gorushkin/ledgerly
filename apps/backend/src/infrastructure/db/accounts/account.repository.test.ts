@@ -118,7 +118,7 @@ describe('AccountRepository', () => {
       expect(retrievedAccount.userId).toBe(newAccount.userId);
     });
 
-    it("throws RepositoryNotFoundError when commodity belongs to a different user than the account's user", async () => {
+    it('allows creating an account when commodity ownership was already validated by the application layer', async () => {
       const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
@@ -131,9 +131,18 @@ describe('AccountRepository', () => {
         userId: secondUser.id,
       });
 
-      await expect(
-        accountRepository.create(secondUser.id, newAccount),
-      ).rejects.toThrowError(RepositoryNotFoundError);
+      await accountRepository.create(secondUser.id, newAccount);
+
+      const createdAccount = await accountRepository.getById(
+        secondUser.id,
+        newAccount.id,
+      );
+
+      expect(createdAccount).toMatchObject({
+        commodityId: usdCommodity.id,
+        id: newAccount.id,
+        userId: secondUser.id,
+      });
     });
 
     it('throws RepositoryInvariantError when create userId differs from account snapshot userId', async () => {
@@ -227,7 +236,7 @@ describe('AccountRepository', () => {
       expect(retrievedAccount1.userId).not.toBe(retrievedAccount2.userId);
     });
 
-    it('throws RepositoryNotFoundError when commodity is tombstoned', async () => {
+    it('allows creating an account with a tombstoned commodity at persistence boundary', async () => {
       const tombstonedCommodity = await testDB.createCommodity(user.id, {
         code: CommodityCode.create('TOMBSTONED').valueOf(),
         isTombstone: true,
@@ -243,9 +252,46 @@ describe('AccountRepository', () => {
         userId: user.id,
       });
 
-      await expect(
-        accountRepository.create(user.id, newAccount),
-      ).rejects.toThrowError(RepositoryNotFoundError);
+      await accountRepository.create(user.id, newAccount);
+
+      const createdAccount = await accountRepository.getById(
+        user.id,
+        newAccount.id,
+      );
+
+      expect(createdAccount).toMatchObject({
+        commodityId: tombstonedCommodity.id,
+        id: newAccount.id,
+      });
+    });
+
+    it('allows creating an account with a closed commodity at persistence boundary', async () => {
+      const closedCommodity = await testDB.createCommodity(user.id, {
+        code: CommodityCode.create('CLOSED').valueOf(),
+        isClosed: true,
+        name: 'Closed Commodity',
+        precision: 2,
+        symbol: 'C',
+      });
+
+      const newAccount = getAccountData({
+        commodityId: closedCommodity.id,
+        name: 'New Account with Closed Commodity',
+        type: 'asset',
+        userId: user.id,
+      });
+
+      await accountRepository.create(user.id, newAccount);
+
+      const createdAccount = await accountRepository.getById(
+        user.id,
+        newAccount.id,
+      );
+
+      expect(createdAccount).toMatchObject({
+        commodityId: closedCommodity.id,
+        id: newAccount.id,
+      });
     });
 
     it('throws AccountPersistenceConflictError when insert affects no rows', async () => {

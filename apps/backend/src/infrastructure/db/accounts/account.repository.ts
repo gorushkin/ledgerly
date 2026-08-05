@@ -9,7 +9,6 @@ import {
   type AccountLifecycleAction,
 } from 'src/application';
 import { accountsTable } from 'src/db/schemas/accounts';
-import { commoditiesTable } from 'src/db/schemas/commodities';
 import { AccountSnapshot } from 'src/domain/accounts';
 import {
   AccountPersistenceConflictError,
@@ -92,30 +91,11 @@ export class AccountRepository
   create(userId: UUID, data: AccountSnapshot): Promise<void> {
     return this.executeDatabaseOperation(
       async () => {
-        // TODO: consider moving to the base repository or a utility function to avoid duplication
         if (data.userId !== userId) {
           throw new RepositoryInvariantError(
             'Account snapshot userId must match repository create userId',
           );
         }
-
-        const existingCommodity = await this.db
-          .select()
-          .from(commoditiesTable)
-          .where(
-            and(
-              eq(commoditiesTable.id, data.commodityId),
-              eq(commoditiesTable.userId, data.userId),
-              eq(commoditiesTable.isTombstone, false),
-            ),
-          )
-          .get();
-
-        this.ensureEntityExists(
-          existingCommodity,
-          `Commodity with ID ${data.commodityId} not found`,
-          this.entityNotFoundContext('commodity', data.commodityId),
-        );
 
         const result = await this.db.insert(accountsTable).values({
           ...AccountPersistenceMapper.toDBRowFromSnapshot(data),

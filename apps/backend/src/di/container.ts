@@ -23,6 +23,7 @@ import {
 } from 'src/application';
 import {
   AccountOperationPolicy,
+  CommodityReferencePolicy,
   TransactionContextLoader,
 } from 'src/application/services';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
@@ -85,6 +86,10 @@ export const createContainer = (db: DataBase): AppContainer => {
     operationRepository,
   );
 
+  const commodityReferencePolicy = new CommodityReferencePolicy(
+    commodityRepository,
+  );
+
   const passwordManager = new PasswordManager();
 
   const services: AppContainer['services'] = {
@@ -95,6 +100,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const createAccountUseCase = new CreateAccountUseCase(
     accountRepository,
     transactionManager,
+    commodityReferencePolicy,
   );
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);

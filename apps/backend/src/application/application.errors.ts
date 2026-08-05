@@ -69,6 +69,22 @@ export class AccountHasActiveOperationsError extends CodedApplicationError<'ACCO
 }
 
 /**
+ * Thrown when a closed commodity is used for a new active reference.
+ */
+export class CommodityClosedError extends CodedApplicationError<'CLOSED_COMMODITY_REFERENCE'> {
+  constructor(
+    commodityId: ErrorContextByCode['CLOSED_COMMODITY_REFERENCE']['commodityId'],
+    operation: ErrorContextByCode['CLOSED_COMMODITY_REFERENCE']['operation'],
+  ) {
+    super(
+      `Cannot ${operation} with closed commodity ${commodityId}.`,
+      apiErrorCodes.closedCommodityReference,
+      { commodityId, operation },
+    );
+  }
+}
+
+/**
  * A deliberately non-specific authentication failure.
  *
  * The diagnostic message may distinguish internal causes, but the public

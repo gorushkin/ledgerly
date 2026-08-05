@@ -2,6 +2,7 @@ import type {
   TransactionManagerInterface,
   AccountRepositoryInterface,
 } from 'src/application';
+import { CommodityReferencePolicy } from 'src/application/services';
 import { createUser } from 'src/db/createTestUser';
 import { Commodity } from 'src/domain';
 import { Amount, CommodityCode } from 'src/domain/domain-core';
@@ -16,6 +17,10 @@ describe('CreateAccountUseCase', async () => {
 
   const accountRepository = {
     create: vi.fn(),
+  };
+
+  const commodityReferencePolicy = {
+    assertUsableForNewAccount: vi.fn(),
   };
 
   const transactionManager = {
@@ -36,9 +41,13 @@ describe('CreateAccountUseCase', async () => {
   const type = 'asset';
 
   beforeEach(() => {
+    accountRepository.create.mockReset();
+    commodityReferencePolicy.assertUsableForNewAccount.mockReset();
+
     createAccountUseCase = new CreateAccountUseCase(
       accountRepository as unknown as AccountRepositoryInterface,
       transactionManager as unknown as TransactionManagerInterface,
+      commodityReferencePolicy as unknown as CommodityReferencePolicy,
     );
   });
 
@@ -56,6 +65,13 @@ describe('CreateAccountUseCase', async () => {
         name,
         type,
       });
+
+      expect(
+        commodityReferencePolicy.assertUsableForNewAccount,
+      ).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        mockedCommoditySnapshot.id,
+      );
 
       expect(accountRepository.create).toHaveBeenCalledWith(
         user.getId().valueOf(),
@@ -84,6 +100,27 @@ describe('CreateAccountUseCase', async () => {
         type,
         userId: user.getId().valueOf(),
       });
+    });
+
+    it('should not create an account when commodity reference policy rejects', async () => {
+      const error = new Error('closed commodity');
+      const mockedCommoditySnapshot = commodity.toSnapshot();
+
+      commodityReferencePolicy.assertUsableForNewAccount.mockRejectedValueOnce(
+        error,
+      );
+
+      await expect(
+        createAccountUseCase.execute(user, {
+          commodityId: mockedCommoditySnapshot.id,
+          description,
+          initialBalance,
+          name,
+          type,
+        }),
+      ).rejects.toBe(error);
+
+      expect(accountRepository.create).not.toHaveBeenCalled();
     });
   });
 });

@@ -788,6 +788,44 @@ describe('Accounts Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
+    it('should return 409 when commodityId points to a closed commodity', async () => {
+      const closedCommodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        isClosed: true,
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
+      });
+
+      const payload: AccountCreateDTO = {
+        commodityId: closedCommodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      const parsedResponse = JSON.parse(response.body) as ApiErrorResponse & {
+        code: typeof apiErrorCodes.closedCommodityReference;
+      };
+
+      expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.closedCommodityReference,
+        context: {
+          commodityId: closedCommodity.id,
+          operation: 'create_account',
+        },
+        error: true,
+      });
+    });
+
     it('should return 400 when type is empty', async () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
