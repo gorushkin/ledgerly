@@ -615,7 +615,7 @@ describe('Accounts Integration Tests', () => {
       const response = await injectAuthorized({
         method: 'GET',
         url: getWithQueryParamsUrl(
-          'archived' as unknown as AccountStatusFilterValue,
+          'inactive' as unknown as AccountStatusFilterValue,
         ),
       });
 
@@ -1325,7 +1325,7 @@ describe('Accounts Integration Tests', () => {
       const response = await injectAuthorized({
         method: 'GET',
         url: getWithQueryParamsUrl(
-          'archived' as unknown as AccountStatusFilterValue,
+          'inactive' as unknown as AccountStatusFilterValue,
         ),
       });
 

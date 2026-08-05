@@ -99,7 +99,7 @@ describe('CommodityController', () => {
       { status: 1 },
       { status: true },
       'active',
-      'archived',
+      'inactive',
       'deleted',
       '',
       undefined,

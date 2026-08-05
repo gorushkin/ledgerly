@@ -337,7 +337,7 @@ describe('AccountRepository', () => {
       (account) => !account.isClosed && !account.isTombstone,
     );
 
-    const archivedAccounts = accountsDataList.filter(
+    const closedAccounts = accountsDataList.filter(
       (account) => account.isClosed && !account.isTombstone,
     );
 
@@ -350,7 +350,7 @@ describe('AccountRepository', () => {
     const testData: [AccountQuery, TestData[]][] = [
       [{ status: 'all' }, allAccounts],
       [{ status: 'open' }, activeAccounts],
-      [{ status: 'closed' }, archivedAccounts],
+      [{ status: 'closed' }, closedAccounts],
     ];
 
     beforeEach(async () => {

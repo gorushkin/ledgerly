@@ -72,7 +72,7 @@ export type ErrorContextByCode = {
   };
   CLOSED_COMMODITY_REFERENCE: {
     commodityId: UUID;
-    operation: "create_account" | "update_account";
+    operation: "create_account";
   };
   CONFLICT: Record<string, never>;
   CONFLICTING_OPERATION_IDS: {
