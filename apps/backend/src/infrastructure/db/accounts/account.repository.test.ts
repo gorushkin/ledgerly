@@ -19,6 +19,7 @@ import { AccountRepository } from 'src/infrastructure/db/';
 import {
   AccountPersistenceConflictError,
   ForbiddenAccessError,
+  ForeignKeyConstraintError,
   RecordAlreadyExistsError,
   RepositoryInvariantError,
   RepositoryNotFoundError,
@@ -118,7 +119,7 @@ describe('AccountRepository', () => {
       expect(retrievedAccount.userId).toBe(newAccount.userId);
     });
 
-    it('allows creating an account when commodity ownership was already validated by the application layer', async () => {
+    it("throws ForeignKeyConstraintError when commodity belongs to a different user than the account's user", async () => {
       const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
         name: 'Second User',
@@ -131,18 +132,9 @@ describe('AccountRepository', () => {
         userId: secondUser.id,
       });
 
-      await accountRepository.create(secondUser.id, newAccount);
-
-      const createdAccount = await accountRepository.getById(
-        secondUser.id,
-        newAccount.id,
-      );
-
-      expect(createdAccount).toMatchObject({
-        commodityId: usdCommodity.id,
-        id: newAccount.id,
-        userId: secondUser.id,
-      });
+      await expect(
+        accountRepository.create(secondUser.id, newAccount),
+      ).rejects.toThrowError(ForeignKeyConstraintError);
     });
 
     it('throws RepositoryInvariantError when create userId differs from account snapshot userId', async () => {
@@ -193,6 +185,9 @@ describe('AccountRepository', () => {
         email: 'second-user@example.com',
         name: 'Second User',
       });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
 
       const firstUserAccount = getAccountData({
         commodityId: usdCommodity.id,
@@ -202,7 +197,7 @@ describe('AccountRepository', () => {
       });
 
       const secondUserAccount = getAccountData({
-        commodityId: usdCommodity.id,
+        commodityId: secondUserCommodity.id,
         name: accountName,
         type: 'asset',
         userId: secondUser.id,
@@ -218,7 +213,7 @@ describe('AccountRepository', () => {
 
       const retrievedAccount2 = await testDB.createAccount(
         secondUser.id,
-        usdCommodity.id,
+        secondUserCommodity.id,
         {
           ...secondUserAccount,
         },
@@ -409,6 +404,9 @@ describe('AccountRepository', () => {
         email: 'second-user@example.com',
         name: 'Second User',
       });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
 
       const accountsForSecondUser = [
         { isClosed: false, isTombstone: false, name: 'secondUserAccount1' },
@@ -418,7 +416,7 @@ describe('AccountRepository', () => {
 
       await Promise.all(
         accountsForSecondUser.map((account) =>
-          testDB.createAccount(secondUser.id, usdCommodity.id, {
+          testDB.createAccount(secondUser.id, secondUserCommodity.id, {
             isClosed: account.isClosed,
             isTombstone: account.isTombstone,
             name: account.name,
@@ -646,10 +644,13 @@ describe('AccountRepository', () => {
         email: 'second-user@example.com',
         name: 'Second User',
       });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
 
       const secondUserAccount = await testDB.createAccount(
         secondUser.id,
-        usdCommodity.id,
+        secondUserCommodity.id,
         {
           initialBalance: Amount.create('200').valueOf(),
           name: 'Shared Account Name',
@@ -789,10 +790,13 @@ describe('AccountRepository', () => {
         email: 'second-user@example.com',
         name: 'Second User',
       });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
 
       const createdAccount = await testDB.createAccount(
         secondUser.id,
-        usdCommodity.id,
+        secondUserCommodity.id,
         {
           initialBalance: Amount.create('2000').valueOf(),
           name: 'Shared Account Name',
@@ -1119,10 +1123,13 @@ describe('AccountRepository', () => {
       const secondUser = await testDB.createUser({
         email: 'second-user@example.com',
       });
+      const secondUserCommodity = await testDB.createCommodity(secondUser.id, {
+        code: CommodityCode.create('USD').valueOf(),
+      });
 
       const account = await testDB.createAccount(
         secondUser.id,
-        usdCommodity.id,
+        secondUserCommodity.id,
       );
 
       await expect(

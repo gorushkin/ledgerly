@@ -1206,9 +1206,10 @@ describe('Accounts Integration Tests', () => {
     });
 
     it('should return 404 when account belongs to a different user', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId);
       const otherUserAccount = await testDB.createAccount(
         otherUserId,
-        commodity.id,
+        otherUserCommodity.id,
       );
 
       const response = await injectAuthorized({

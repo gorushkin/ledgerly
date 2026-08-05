@@ -1,7 +1,12 @@
 import { ACCOUNT_TYPES } from '@ledgerly/shared/constants';
 import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
-import { sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  foreignKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 import { commoditiesTable } from './commodities';
 import {
@@ -44,6 +49,11 @@ export const accountsTable = sqliteTable(
       .$type<UUID>(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.userId, table.commodityId],
+      foreignColumns: [commoditiesTable.userId, commoditiesTable.id],
+      name: 'accounts_user_id_commodity_id_commodities_user_id_id_fk',
+    }),
     uniqueIndex('user_id_name_unique_idx').on(table.userId, table.name),
   ],
 );
