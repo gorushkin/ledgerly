@@ -238,7 +238,7 @@ describe('CommodityController', () => {
   });
 
   describe('deleteCommodity', () => {
-    it('should call archiveCommodityUseCase.execute with correct user and id', async () => {
+    it('should call deleteCommodityUseCase.execute with correct user and id', async () => {
       const requestParams = { id: commodityId };
 
       await commodityController.delete(user, requestParams);

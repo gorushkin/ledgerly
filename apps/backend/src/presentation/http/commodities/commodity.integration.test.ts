@@ -40,7 +40,7 @@ describe('Commodities Integration Tests', () => {
     symbol: '€',
   };
 
-  const archivedCommodityData1 = {
+  const deletedCommodityData1 = {
     code: CommodityCode.create('GBP').valueOf(),
     isTombstone: true,
     name: 'British Pound',
@@ -49,10 +49,10 @@ describe('Commodities Integration Tests', () => {
   };
 
   const activeCommoditiesData = [activeCommodityData1, activeCommodityData2];
-  const archivedCommoditiesData = [archivedCommodityData1];
+  const deletedCommoditiesData = [deletedCommodityData1];
   const allCommoditiesData = [
     ...activeCommoditiesData,
-    ...archivedCommoditiesData,
+    ...deletedCommoditiesData,
   ];
 
   let commoditiesDbRows: CommodityDbRow[];
@@ -563,13 +563,13 @@ describe('Commodities Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
-    it('should return 404 when updating an archived commodity', async () => {
-      const archivedCommodity = commoditiesDbRows.find(
+    it('should return 404 when updating a deleted commodity', async () => {
+      const deletedCommodity = commoditiesDbRows.find(
         (commodity) => commodity.isTombstone,
       );
 
-      if (!archivedCommodity) {
-        throw new Error('No archived commodity found in the test data.');
+      if (!deletedCommodity) {
+        throw new Error('No deleted commodity found in the test data.');
       }
 
       const response = await injectAuthorized({
@@ -577,7 +577,7 @@ describe('Commodities Integration Tests', () => {
           name: 'Updated British Pound',
         },
         method: 'PATCH',
-        url: `${url}/${archivedCommodity.id}`,
+        url: `${url}/${deletedCommodity.id}`,
       });
 
       expect(response.statusCode).toBe(404);
@@ -645,25 +645,25 @@ describe('Commodities Integration Tests', () => {
 
   describe('DELETE /api/commodities/:id', () => {
     it('should delete a commodity by id', async () => {
-      const commodityToArchive = commoditiesDbRows[0];
+      const commodityToDelete = commoditiesDbRows[0];
 
       const response = await injectAuthorized({
         method: 'DELETE',
-        url: `${url}/${commodityToArchive.id}`,
+        url: `${url}/${commodityToDelete.id}`,
       });
 
       expect(response.statusCode).toBe(204);
 
       const getResponse = await injectAuthorized({
         method: 'GET',
-        url: `${url}/${commodityToArchive.id}`,
+        url: `${url}/${commodityToDelete.id}`,
       });
 
       expect(getResponse.statusCode).toBe(404);
 
       const allCommodities = await testDB.getAllCommoditiesByUserId(userId);
 
-      const archivedCommoditiesDbRows = allCommodities.filter(
+      const deletedCommoditiesDbRows = allCommodities.filter(
         (commodity) => commodity.isTombstone,
       );
 
@@ -675,23 +675,23 @@ describe('Commodities Integration Tests', () => {
         activeCommoditiesData.length - 1,
       );
 
-      expect(archivedCommoditiesDbRows).toHaveLength(
-        archivedCommoditiesData.length + 1,
+      expect(deletedCommoditiesDbRows).toHaveLength(
+        deletedCommoditiesData.length + 1,
       );
     });
 
-    it('should return 404 when reading an deleted commodity by id', async () => {
-      const archivedCommodity = commoditiesDbRows.find(
+    it('should return 404 when reading a deleted commodity by id', async () => {
+      const deletedCommodity = commoditiesDbRows.find(
         (commodity) => commodity.isTombstone,
       );
 
-      if (!archivedCommodity) {
-        throw new Error('No archived commodity found in the test data.');
+      if (!deletedCommodity) {
+        throw new Error('No deleted commodity found in the test data.');
       }
 
       const response = await injectAuthorized({
         method: 'GET',
-        url: `${url}/${archivedCommodity.id}`,
+        url: `${url}/${deletedCommodity.id}`,
       });
 
       expect(response.statusCode).toBe(404);
@@ -742,17 +742,17 @@ describe('Commodities Integration Tests', () => {
     });
 
     it('should return 204 when deleting an already deleted commodity', async () => {
-      const archivedCommodity = commoditiesDbRows.find(
+      const deletedCommodity = commoditiesDbRows.find(
         (commodity) => commodity.isTombstone,
       );
 
-      if (!archivedCommodity) {
-        throw new Error('No archived commodity found in the test data.');
+      if (!deletedCommodity) {
+        throw new Error('No deleted commodity found in the test data.');
       }
 
       const response = await injectAuthorized({
         method: 'DELETE',
-        url: `${url}/${archivedCommodity.id}`,
+        url: `${url}/${deletedCommodity.id}`,
       });
 
       expect(response.statusCode).toBe(204);
@@ -768,11 +768,11 @@ describe('Commodities Integration Tests', () => {
     });
 
     it('should return 401 without authorization', async () => {
-      const commodityToArchive = commoditiesDbRows[0];
+      const commodityToDelete = commoditiesDbRows[0];
 
       const response = await server.inject({
         method: 'DELETE',
-        url: `${url}/${commodityToArchive.id}`,
+        url: `${url}/${commodityToDelete.id}`,
       });
 
       expect(response.statusCode).toBe(401);
