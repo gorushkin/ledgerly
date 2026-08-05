@@ -1,9 +1,11 @@
 import { CommodityQuery } from '@ledgerly/shared/validation';
 import {
+  CloseCommodityUseCase,
   DeleteCommodityUseCase,
   CreateCommodityUseCase,
   GetAllCommoditiesUseCase,
   GetCommodityByIdUseCase,
+  OpenCommodityUseCase,
   UpdateCommodityUseCase,
 } from 'src/application/usecases/commodities';
 import { CommodityCode } from 'src/domain/domain-core';
@@ -42,12 +44,22 @@ describe('CommodityController', () => {
     execute: vi.fn(),
   };
 
+  const mockCloseCommodityUseCase = {
+    execute: vi.fn(),
+  };
+
+  const mockOpenCommodityUseCase = {
+    execute: vi.fn(),
+  };
+
   const commodityController = new CommodityController(
     mockGetCommodityByIdUseCase as unknown as GetCommodityByIdUseCase,
     mockGetAllCommoditiesUseCase as unknown as GetAllCommoditiesUseCase,
     mockCreateCommodityUseCase as unknown as CreateCommodityUseCase,
     mockUpdateCommodityUseCase as unknown as UpdateCommodityUseCase,
     mockDeleteCommodityUseCase as unknown as DeleteCommodityUseCase,
+    mockCloseCommodityUseCase as unknown as CloseCommodityUseCase,
+    mockOpenCommodityUseCase as unknown as OpenCommodityUseCase,
   );
 
   beforeEach(async () => {
@@ -256,6 +268,52 @@ describe('CommodityController', () => {
 
       await expect(
         commodityController.delete(user, invalidRequestParams),
+      ).rejects.toThrow(ZodError);
+    });
+  });
+
+  describe('closeCommodity', () => {
+    it('should call closeCommodityUseCase.execute with correct user and id', async () => {
+      const requestParams = { id: commodityId };
+
+      await commodityController.close(user, requestParams);
+
+      expect(mockCloseCommodityUseCase.execute).toHaveBeenCalledWith(
+        user,
+        requestParams.id,
+      );
+
+      expect(mockCloseCommodityUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw ZodError if requestParams is invalid', async () => {
+      const invalidRequestParams = { invalidId: 'commodity-id' };
+
+      await expect(
+        commodityController.close(user, invalidRequestParams),
+      ).rejects.toThrow(ZodError);
+    });
+  });
+
+  describe('openCommodity', () => {
+    it('should call openCommodityUseCase.execute with correct user and id', async () => {
+      const requestParams = { id: commodityId };
+
+      await commodityController.open(user, requestParams);
+
+      expect(mockOpenCommodityUseCase.execute).toHaveBeenCalledWith(
+        user,
+        requestParams.id,
+      );
+
+      expect(mockOpenCommodityUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw ZodError if requestParams is invalid', async () => {
+      const invalidRequestParams = { invalidId: 'commodity-id' };
+
+      await expect(
+        commodityController.open(user, invalidRequestParams),
       ).rejects.toThrow(ZodError);
     });
   });

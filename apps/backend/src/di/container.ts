@@ -18,6 +18,8 @@ import {
   UpdateCommodityUseCase,
   DeleteCommodityUseCase,
   CreateCommodityUseCase,
+  CloseCommodityUseCase,
+  OpenCommodityUseCase,
 } from 'src/application';
 import {
   AccountOperationPolicy,
@@ -171,12 +173,26 @@ export const createContainer = (db: DataBase): AppContainer => {
     commodityRepository,
   );
 
+  const closeCommodityUseCase = new CloseCommodityUseCase(
+    commodityRepository,
+    ensureOwnedSnapshot,
+    transactionManager,
+  );
+
+  const openCommodityUseCase = new OpenCommodityUseCase(
+    commodityRepository,
+    ensureOwnedSnapshot,
+    transactionManager,
+  );
+
   const commodityController = new CommodityController(
     getCommodityByIdUseCase,
     getAllCommoditiesUseCase,
     createCommodityUseCase,
     updateCommodityUseCase,
     deleteCommodityUseCase,
+    closeCommodityUseCase,
+    openCommodityUseCase,
   );
 
   const useCases: AppContainer['useCases'] = {
@@ -194,10 +210,12 @@ export const createContainer = (db: DataBase): AppContainer => {
       registerUser: registerUserUseCase,
     },
     commodity: {
+      closeCommodity: closeCommodityUseCase,
       createCommodity: createCommodityUseCase,
       deleteCommodity: deleteCommodityUseCase,
       getAllCommodities: getAllCommoditiesUseCase,
       getCommodityById: getCommodityByIdUseCase,
+      openCommodity: openCommodityUseCase,
       updateCommodity: updateCommodityUseCase,
     },
     transaction: {

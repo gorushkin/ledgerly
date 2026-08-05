@@ -6,10 +6,12 @@ import {
   commodityQuerySchema,
 } from '@ledgerly/shared/validation';
 import {
+  CloseCommodityUseCase,
   GetCommodityByIdUseCase,
   DeleteCommodityUseCase,
   CreateCommodityUseCase,
   GetAllCommoditiesUseCase,
+  OpenCommodityUseCase,
   UpdateCommodityUseCase,
 } from 'src/application/usecases/commodities';
 import { User } from 'src/domain/users/user.entity';
@@ -21,6 +23,8 @@ export class CommodityController {
     private readonly createCommodityUseCase: CreateCommodityUseCase,
     private readonly updateCommodityUseCase: UpdateCommodityUseCase,
     private readonly deleteCommodityUseCase: DeleteCommodityUseCase,
+    private readonly closeCommodityUseCase: CloseCommodityUseCase,
+    private readonly openCommodityUseCase: OpenCommodityUseCase,
   ) {}
 
   async getAll(
@@ -65,5 +69,23 @@ export class CommodityController {
     const { id } = uniqueIdSchema.parse(requestParams);
 
     await this.deleteCommodityUseCase.execute(user, id);
+  }
+
+  async close(
+    user: User,
+    requestParams: unknown,
+  ): Promise<CommodityResponseDTO> {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.closeCommodityUseCase.execute(user, id);
+  }
+
+  async open(
+    user: User,
+    requestParams: unknown,
+  ): Promise<CommodityResponseDTO> {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.openCommodityUseCase.execute(user, id);
   }
 }
