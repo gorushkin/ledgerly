@@ -1,5 +1,6 @@
 import { CommodityResponseDTO, UUID } from '@ledgerly/shared/types';
 import { CommodityMapper } from 'src/application';
+import { EntityNotFoundError } from 'src/application/application.errors';
 import {
   CommodityRepositoryInterface,
   TransactionManagerInterface,
@@ -21,11 +22,20 @@ export class CloseCommodityUseCase {
         entityId: commodityId,
         entityType: Commodity.entityType,
         getOwnerId: (commodity) => commodity.userId,
-        load: this.commodityRepository.getById.bind(this.commodityRepository),
+        load: this.commodityRepository.getByIdForLifecycle.bind(
+          this.commodityRepository,
+        ),
         user,
       });
 
       const commodity = Commodity.restore(commodityData);
+
+      if (commodity.isDeleted()) {
+        throw new EntityNotFoundError({
+          entityId: commodityId,
+          entityType: Commodity.entityType,
+        });
+      }
 
       const result = commodity.close();
 

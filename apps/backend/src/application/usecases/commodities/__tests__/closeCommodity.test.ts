@@ -22,7 +22,7 @@ describe('CloseCommodityUseCase', () => {
 
   const commodityRepository = {
     close: vi.fn(),
-    getById: vi.fn(),
+    getByIdForLifecycle: vi.fn(),
   };
 
   const mockTransactionManager = {
@@ -45,7 +45,7 @@ describe('CloseCommodityUseCase', () => {
     vi.useRealTimers();
     mockTransactionManager.run.mockImplementation(runTransaction);
     commodityRepository.close.mockClear();
-    commodityRepository.getById.mockClear();
+    commodityRepository.getByIdForLifecycle.mockClear();
     mockTransactionManager.run.mockClear();
   });
 
@@ -62,14 +62,16 @@ describe('CloseCommodityUseCase', () => {
       });
       const commodityId = commodity.getId().valueOf();
 
-      commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(
+        commodity.toSnapshot(),
+      );
       commodityRepository.close.mockResolvedValue(undefined);
 
       vi.setSystemTime(new Date(updatedAt));
 
       const result = await closeCommodityUseCase.execute(user, commodityId);
 
-      expect(commodityRepository.getById).toHaveBeenCalledWith(
+      expect(commodityRepository.getByIdForLifecycle).toHaveBeenCalledWith(
         user.getId().valueOf(),
         commodityId,
       );
@@ -98,11 +100,13 @@ describe('CloseCommodityUseCase', () => {
       commodity.close();
       const commodityId = commodity.getId().valueOf();
 
-      commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(
+        commodity.toSnapshot(),
+      );
 
       const result = await closeCommodityUseCase.execute(user, commodityId);
 
-      expect(commodityRepository.getById).toHaveBeenCalledWith(
+      expect(commodityRepository.getByIdForLifecycle).toHaveBeenCalledWith(
         user.getId().valueOf(),
         commodityId,
       );
@@ -116,13 +120,38 @@ describe('CloseCommodityUseCase', () => {
     it('should throw an error if the commodity does not exist', async () => {
       const nonExistentCommodityId = Id.create().valueOf();
 
-      commodityRepository.getById.mockResolvedValue(null);
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(null);
 
       await expect(
         closeCommodityUseCase.execute(user, nonExistentCommodityId),
       ).rejects.toThrowError(
         new EntityNotFoundError({
           entityId: nonExistentCommodityId,
+          entityType: Commodity.entityType,
+        }),
+      );
+      expect(commodityRepository.close).not.toHaveBeenCalled();
+    });
+
+    it('should throw an error if the commodity is deleted', async () => {
+      const commodity = createCommodity(user, {
+        code: 'TEST',
+        name: 'Test Commodity',
+        precision: 2,
+        symbol: 'T',
+      });
+      commodity.delete();
+      const commodityId = commodity.getId().valueOf();
+
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(
+        commodity.toSnapshot(),
+      );
+
+      await expect(
+        closeCommodityUseCase.execute(user, commodityId),
+      ).rejects.toThrowError(
+        new EntityNotFoundError({
+          entityId: commodityId,
           entityType: Commodity.entityType,
         }),
       );
@@ -139,7 +168,9 @@ describe('CloseCommodityUseCase', () => {
       });
       const commodityId = commodity.getId().valueOf();
 
-      commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
+      commodityRepository.getByIdForLifecycle.mockResolvedValue(
+        commodity.toSnapshot(),
+      );
 
       await expect(
         closeCommodityUseCase.execute(user, commodityId),
