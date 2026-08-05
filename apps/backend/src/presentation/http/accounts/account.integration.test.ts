@@ -1220,14 +1220,25 @@ describe('Accounts Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
-    it('should return 404 when account is already deleted', async () => {
+    it('should return 204 when account is already deleted', async () => {
       const deletedAccount = accounts.find((account) => account.isTombstone);
+      expect(deletedAccount).toBeDefined();
+
+      const accountBeforeDelete = await testDB.getAccountById(
+        deletedAccount!.id,
+      );
       const response = await injectAuthorized({
         method: 'DELETE',
-        url: `/api/accounts/${deletedAccount?.id}`,
+        url: `/api/accounts/${deletedAccount!.id}`,
       });
+      const accountAfterDelete = await testDB.getAccountById(
+        deletedAccount!.id,
+      );
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(204);
+      expect(accountAfterDelete?.updatedAt).toBe(
+        accountBeforeDelete?.updatedAt,
+      );
     });
 
     it('should return 409 when account has active operations', async () => {

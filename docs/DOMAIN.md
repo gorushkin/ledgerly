@@ -72,11 +72,11 @@ Represents different financial accounts with unified structure for all account t
 - Account `type` can be changed only while the account has no active operations
 - `DELETE /accounts/:id` means terminal tombstone delete and is rejected while
   active operations still reference the account
-- `DELETE /accounts/:id` should be idempotent for an account that already
-  belongs to the user and already has `isTombstone = true`; current code has a
-  repository hook named `getByIdForLifecycle(...)` for that delete-specific
-  lookup, but it is not wired into the delete use case yet and should not be
-  used for normal reads, update, close or open flows
+- `DELETE /accounts/:id` is idempotent for an account that already belongs to
+  the user and already has `isTombstone = true`. Delete uses the
+  lifecycle-aware `getByIdForLifecycle(...)` lookup through `ensureOwnedSnapshot`
+  so repeated deletes can see tombstoned accounts. Normal reads, list filters,
+  update, close and open still exclude tombstoned accounts.
 
 ### Commodity
 
@@ -134,18 +134,21 @@ with application response mappers and infrastructure persistence mappers.
 
 Entity timestamps are domain state. Repositories must not generate entity
 `id`, `createdAt` or `updatedAt` values. `create(...)` creates identity and
-initial timestamps, and behavior methods such as `update(...)` or
-`markAsDeleted()` update `updatedAt` when they change entity state.
+initial timestamps, and behavior methods such as `update(...)` or `delete()`
+update `updatedAt` when they change entity state.
 Repositories persist timestamps received through snapshots/mappers.
 
-Soft-delete is a domain state transition, not an idempotent repository command.
-Calling `markAsDeleted()` on an already deleted entity must fail with
-`DELETED_ENTITY_OPERATION` and must not mutate `updatedAt` again.
-Repository APIs that persist this transition must use `softDelete(...)`.
+Soft-delete is a domain state transition, not an implicit repository command.
+The shared `SoftDelete.markAsDeleted()` behavior rejects repeated low-level
+deletion, while entity-level `delete()` methods may expose an idempotent
+business command by returning `unchanged` without mutating `updatedAt` again.
+Repository APIs that persist this transition must accept the domain timestamp
+produced by the entity.
 Application/use case APIs may use business-facing lifecycle names such as
 `close...` and `open...`, and HTTP routes may still expose
-`DELETE /resource/:id` commands. Repository `delete(...)` is reserved for
-physical row deletion.
+`DELETE /resource/:id` commands. Current account and commodity repositories use
+`delete(...)` as the terminal tombstone persistence hook; it must not be used as
+a normal read/update path and should not perform physical row deletion.
 
 Snapshot types live next to the entity in `domain/<module>/types.ts`. They use
 primitive/domain-safe fields and must not be aliases for DB rows or response

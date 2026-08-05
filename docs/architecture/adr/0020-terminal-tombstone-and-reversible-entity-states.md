@@ -110,11 +110,10 @@ and already has `isTombstone = true` should keep the tombstone state and return
 the delete success response without changing `updatedAt` again. Normal account
 reads, list filters, update, close and open still exclude tombstoned accounts.
 
-The current `AccountRepository.getByIdForLifecycle(...)` method is an unfinished
-implementation hook for that delete-specific lookup. It intentionally reads
-tombstoned accounts, but at the moment it is not wired into the account delete
-use case, so it is redundant outside tests until the follow-up work is applied.
-It must not become the general account read path.
+`AccountRepository.getByIdForLifecycle(...)` is the delete-specific lookup for
+this contract. It intentionally reads tombstoned accounts and is wired through
+`ensureOwnedSnapshot` in the account delete use case so ownership and not-found
+handling remain centralized. It must not become the general account read path.
 
 ### Commodity
 
@@ -288,6 +287,7 @@ The intended public domain methods are:
 - [LED-122: Define terminal tombstone and reversible archive/close states](https://gorushkin.atlassian.net/browse/LED-122)
 - [LED-124: Implement Account close open and terminal delete](https://gorushkin.atlassian.net/browse/LED-124)
 - [LED-125: Implement Commodity close open and terminal delete](https://gorushkin.atlassian.net/browse/LED-125)
+- [LED-130: Make account terminal delete idempotent](https://gorushkin.atlassian.net/browse/LED-130)
 - [ADR 0011: Domain Entity API Conventions](./0011-domain-entity-api-conventions.md)
 - [ADR 0015: Domain Restoration Factory Naming](./0015-domain-restoration-factory-naming.md)
 - [ADR 0019: Repository-Enforced Commodity Reference Validation](./0019-repository-enforced-commodity-reference-validation.md)
