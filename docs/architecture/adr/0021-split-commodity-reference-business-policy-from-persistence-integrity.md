@@ -79,8 +79,8 @@ inputs because they have user-facing error semantics.
 - Use case and integration tests should cover user-visible business error
   contracts.
 - ADR 0019 is superseded by this decision.
-- Additional same-user composite foreign keys for transactions and operations
-  are tracked separately by LED-132.
+- Same-user composite foreign keys for transaction and operation relations are
+  implemented by LED-132.
 
 ## Related
 
