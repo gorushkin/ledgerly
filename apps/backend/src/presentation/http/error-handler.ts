@@ -108,6 +108,18 @@ const isFastifyError = (error: unknown): error is FastifyError => {
   );
 };
 
+type FastifyErrorWithStatus = FastifyError & {
+  status?: number;
+};
+
+const getFastifyErrorStatus = (error: FastifyError): number => {
+  const status = error.statusCode ?? (error as FastifyErrorWithStatus).status;
+
+  return typeof status === 'number' && status >= 400 && status < 600
+    ? status
+    : statusByErrorCode[apiErrorCodes.internalServerError];
+};
+
 export function errorHandler(
   error: FastifyError | Error,
   _request: FastifyRequest,
@@ -123,12 +135,13 @@ export function errorHandler(
   }
 
   if (isFastifyError(error)) {
-    return sendCodedError(
-      reply,
-      statusByErrorCode[apiErrorCodes.badRequest],
-      apiErrorCodes.badRequest,
-      {},
-    );
+    const status = getFastifyErrorStatus(error);
+    const code =
+      status >= 500
+        ? apiErrorCodes.internalServerError
+        : apiErrorCodes.badRequest;
+
+    return sendCodedError(reply, status, code, {});
   }
 
   if (error instanceof ZodError) {
