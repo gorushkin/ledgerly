@@ -120,6 +120,56 @@ const getFastifyErrorStatus = (error: FastifyError): number => {
     : statusByErrorCode[apiErrorCodes.internalServerError];
 };
 
+type CodedErrorPayload = {
+  [Code in ApiErrorCode]: {
+    code: Code;
+    context: ErrorContextByCode[Code];
+    error: true;
+  };
+}[ApiErrorCode];
+
+const fastifyErrorPayloadByStatus: Partial<Record<number, CodedErrorPayload>> =
+  {
+    401: {
+      code: apiErrorCodes.unauthorized,
+      context: {},
+      error: true,
+    },
+    403: {
+      code: apiErrorCodes.unauthorizedAccess,
+      context: { entityType: 'request' },
+      error: true,
+    },
+    404: {
+      code: apiErrorCodes.entityNotFound,
+      context: { entityType: 'route' },
+      error: true,
+    },
+    409: {
+      code: apiErrorCodes.conflict,
+      context: {},
+      error: true,
+    },
+  } satisfies Partial<Record<number, CodedErrorPayload>>;
+
+const getFastifyErrorPayload = (status: number): CodedErrorPayload => {
+  if (status >= 500) {
+    return {
+      code: apiErrorCodes.internalServerError,
+      context: {},
+      error: true,
+    };
+  }
+
+  return (
+    fastifyErrorPayloadByStatus[status] ?? {
+      code: apiErrorCodes.badRequest,
+      context: {},
+      error: true,
+    }
+  );
+};
+
 export function errorHandler(
   error: FastifyError | Error,
   _request: FastifyRequest,
@@ -136,12 +186,8 @@ export function errorHandler(
 
   if (isFastifyError(error)) {
     const status = getFastifyErrorStatus(error);
-    const code =
-      status >= 500
-        ? apiErrorCodes.internalServerError
-        : apiErrorCodes.badRequest;
 
-    return sendCodedError(reply, status, code, {});
+    return reply.status(status).send(getFastifyErrorPayload(status));
   }
 
   if (error instanceof ZodError) {

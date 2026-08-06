@@ -272,21 +272,30 @@ describe('errorHandler', () => {
     });
   });
 
-  it('maps Fastify client errors to bad request while preserving status', () => {
-    const error = Object.assign(new Error('unsupported media type'), {
-      code: 'FST_ERR_CTP_INVALID_MEDIA_TYPE',
-      statusCode: 415,
-    });
+  it.each([
+    [401, apiErrorCodes.unauthorized, {}],
+    [403, apiErrorCodes.unauthorizedAccess, { entityType: 'request' }],
+    [404, apiErrorCodes.entityNotFound, { entityType: 'route' }],
+    [409, apiErrorCodes.conflict, {}],
+    [415, apiErrorCodes.badRequest, {}],
+  ])(
+    'maps Fastify status %i to the matching stable API error code',
+    (statusCode, expectedCode, expectedContext) => {
+      const error = Object.assign(new Error('fastify diagnostic'), {
+        code: 'FST_ERR_TEST',
+        statusCode,
+      });
 
-    expect(handle(error)).toEqual({
-      payload: {
-        code: apiErrorCodes.badRequest,
-        context: {},
-        error: true,
-      },
-      statusCode: 415,
-    });
-  });
+      expect(handle(error)).toEqual({
+        payload: {
+          code: expectedCode,
+          context: expectedContext,
+          error: true,
+        },
+        statusCode,
+      });
+    },
+  );
 
   it('does not classify Fastify server errors as bad request', () => {
     const error = Object.assign(new Error('server diagnostic'), {
