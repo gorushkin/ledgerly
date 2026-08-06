@@ -1,10 +1,10 @@
-import type { z } from "zod";
+import { z } from "zod";
 
 import {
   commodityCode,
   commodityPrecision,
   commoditySymbol,
-} from "../validation/commodities";
+} from "../validation";
 
 import { IsoDatetimeString, RequiredText, UUID } from "./types";
 
