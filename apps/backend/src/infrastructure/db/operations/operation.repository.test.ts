@@ -85,6 +85,71 @@ describe('OperationRepository', () => {
     });
   });
 
+  describe('existsActiveByAccountId', () => {
+    it('should return true when the account has an active operation', async () => {
+      const operation = OperationPersistenceMapper.toDBRow(data.operations[0]);
+
+      await testDB.insertOperation(operation);
+
+      await expect(
+        operationRepository.existsActiveByAccountId(
+          userSnapshot.id,
+          operation.accountId,
+        ),
+      ).resolves.toBe(true);
+    });
+
+    it('should return false when matching operations are tombstoned', async () => {
+      const operation = OperationPersistenceMapper.toDBRow(data.operations[0]);
+
+      await testDB.insertOperation({
+        ...operation,
+        isTombstone: true,
+      });
+
+      await expect(
+        operationRepository.existsActiveByAccountId(
+          userSnapshot.id,
+          operation.accountId,
+        ),
+      ).resolves.toBe(false);
+    });
+
+    it('should return false when only another user has an active operation', async () => {
+      const otherUser = await testDB.createUser({
+        email: `other-${Date.now()}@example.com`,
+      });
+      const otherCommodity = await testDB.createCommodity(otherUser.id);
+      const otherAccount = await testDB.createAccount(
+        otherUser.id,
+        otherCommodity.id,
+      );
+      const otherTransaction = await testDB.createTransaction(
+        otherUser.id,
+        otherCommodity.id,
+      );
+
+      await testDB.createOperation(otherUser.id, {
+        accountId: otherAccount.id,
+        transactionId: otherTransaction.id,
+      });
+
+      await expect(
+        operationRepository.existsActiveByAccountId(
+          userSnapshot.id,
+          otherAccount.id,
+        ),
+      ).resolves.toBe(false);
+
+      await expect(
+        operationRepository.existsActiveByAccountId(
+          otherUser.id,
+          otherAccount.id,
+        ),
+      ).resolves.toBe(true);
+    });
+  });
+
   describe('save', () => {
     it('should insert operations successfully if snapshot is empty', async () => {
       const fetchedTransactionRelationsBeforeSaving =
