@@ -1,1 +1,0 @@
-ALTER TABLE `commodities` ADD `is_closed` integer NOT NULL;

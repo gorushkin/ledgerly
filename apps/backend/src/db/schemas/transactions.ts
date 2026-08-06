@@ -1,6 +1,12 @@
 import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
-import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+  foreignKey,
+  index,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 import { commoditiesTable, OperationDbRow, operationsTable } from '../schema';
 
@@ -18,10 +24,7 @@ import { usersTable } from './users';
 export const transactionsTable = sqliteTable(
   'transactions',
   {
-    commodityId: text('commodity_id')
-      .notNull()
-      .references(() => commoditiesTable.id)
-      .$type<UUID>(),
+    commodityId: text('commodity_id').notNull().$type<UUID>(),
     createdAt,
     description,
     id,
@@ -36,10 +39,20 @@ export const transactionsTable = sqliteTable(
     version,
   },
 
-  (t) => [index('idx_transactions_user_date').on(t.userId, t.transactionDate)],
+  (table) => [
+    foreignKey({
+      columns: [table.userId, table.commodityId],
+      foreignColumns: [commoditiesTable.userId, commoditiesTable.id],
+      name: 'transactions_user_id_commodity_id_commodities_user_id_id_fk',
+    }),
+    index('idx_transactions_user_date').on(table.userId, table.transactionDate),
+    uniqueIndex('transactions_user_id_id_unique_idx').on(
+      table.userId,
+      table.id,
+    ),
+  ],
 );
 
-// TODO: check if relations are needed for operations, or if they can be accessed through entries and transactions instead
 export const transactionsRelations = relations(
   transactionsTable,
   ({ many }) => ({

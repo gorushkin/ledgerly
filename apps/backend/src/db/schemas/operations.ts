@@ -1,6 +1,6 @@
 import { UUID } from '@ledgerly/shared/types';
 import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
-import { sqliteTable, text, index } from 'drizzle-orm/sqlite-core';
+import { foreignKey, index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import { accountsTable } from './accounts';
 import {
@@ -18,20 +18,14 @@ import { usersTable } from './users';
 export const operationsTable = sqliteTable(
   'operations',
   {
-    accountId: text('account_id')
-      .notNull()
-      .references(() => accountsTable.id, { onDelete: 'restrict' })
-      .$type<UUID>(),
+    accountId: text('account_id').notNull().$type<UUID>(),
     amount: getAmountColumn('amount'),
     createdAt,
     description,
     id,
     isSystem,
     isTombstone,
-    transactionId: text('transaction_id')
-      .notNull()
-      .references(() => transactionsTable.id, { onDelete: 'cascade' })
-      .$type<UUID>(),
+    transactionId: text('transaction_id').notNull().$type<UUID>(),
     updatedAt,
     userId: text('user_id')
       .notNull()
@@ -39,18 +33,28 @@ export const operationsTable = sqliteTable(
       .$type<UUID>(),
     value: getAmountColumn('value'),
   },
-  (t) => [
-    index('idx_operations_transaction').on(t.transactionId),
-    index('idx_operations_account').on(t.accountId),
-    index('idx_operations_user').on(t.userId),
+  (table) => [
+    foreignKey({
+      columns: [table.userId, table.accountId],
+      foreignColumns: [accountsTable.userId, accountsTable.id],
+      name: 'operations_user_id_account_id_accounts_user_id_id_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.userId, table.transactionId],
+      foreignColumns: [transactionsTable.userId, transactionsTable.id],
+      name: 'operations_user_id_transaction_id_transactions_user_id_id_fk',
+    }).onDelete('cascade'),
+    index('idx_operations_transaction').on(table.transactionId),
+    index('idx_operations_account').on(table.accountId),
+    index('idx_operations_user').on(table.userId),
   ],
 );
 
 // TODO: check if relations are needed for operations, or if they can be accessed through entries and transactions instead
 export const operationsRelations = relations(operationsTable, ({ one }) => ({
   transaction: one(transactionsTable, {
-    fields: [operationsTable.transactionId],
-    references: [transactionsTable.id],
+    fields: [operationsTable.userId, operationsTable.transactionId],
+    references: [transactionsTable.userId, transactionsTable.id],
   }),
 }));
 

@@ -51,6 +51,7 @@ export const accountsTable = sqliteTable(
       foreignColumns: [commoditiesTable.userId, commoditiesTable.id],
       name: 'accounts_user_id_commodity_id_commodities_user_id_id_fk',
     }),
+    uniqueIndex('accounts_user_id_id_unique_idx').on(table.userId, table.id),
     uniqueIndex('user_id_name_unique_idx').on(table.userId, table.name),
   ],
 );

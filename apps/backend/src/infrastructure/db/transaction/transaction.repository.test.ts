@@ -7,7 +7,7 @@ import {
   TransactionBuilder,
   TransactionPersistenceBuilderResult,
 } from 'src/db/test-utils';
-import { Account } from 'src/domain';
+import { Account, Transaction } from 'src/domain';
 import {
   Amount,
   CommodityCode,
@@ -364,6 +364,28 @@ describe('TransactionRepository', () => {
 
       await expect(
         transactionRepository.create(otherUser.id, transaction),
+      ).rejects.toThrow(RepositoryNotFoundError);
+    });
+
+    it('should reject transaction create with RepositoryNotFoundError when commodity belongs to another user', async () => {
+      const otherUser = await testDB.createUser();
+      const otherCommodity = await testDB.createCommodity(otherUser.id);
+
+      const transaction = data.transaction;
+
+      const transactionSnapshot = transaction.toSnapshot();
+
+      const transactionSnapshotWithOtherCommodity = {
+        ...transactionSnapshot,
+        commodityId: otherCommodity.id,
+      };
+
+      const transactionWithOtherCommodity = Transaction.restore(
+        transactionSnapshotWithOtherCommodity,
+      );
+
+      await expect(
+        transactionRepository.create(user.id, transactionWithOtherCommodity),
       ).rejects.toThrow(RepositoryNotFoundError);
     });
 

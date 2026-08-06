@@ -613,10 +613,11 @@ describe('Transactions Integration Tests', () => {
 
     it("should return 404 when accessing another user's transaction", async () => {
       const otherUser = await testDB.createUser();
+      const otherUserCommodity = await testDB.createCommodity(otherUser.id);
 
       const otherUserTransaction = await testDB.createTransaction(
         otherUser.id,
-        commodityId,
+        otherUserCommodity.id,
       );
 
       const response = await server.inject({
@@ -1149,10 +1150,11 @@ describe('Transactions Integration Tests', () => {
         email: 'otheruser@example.com',
         password: 'password123',
       });
+      const otherUserCommodity = await testDB.createCommodity(otherUser.id);
 
       const otherUserTransaction = await testDB.createTransaction(
         otherUser.id,
-        commodityId,
+        otherUserCommodity.id,
       );
 
       const response = await server.inject({
@@ -1763,9 +1765,10 @@ describe('Transactions Integration Tests', () => {
 
     it("should return 404 when updating another user's transaction", async () => {
       const another = await testDB.createUser();
+      const anotherCommodity = await testDB.createCommodity(another.id);
       const transaction = await testDB.createTransaction(
         another.id,
-        commodityId,
+        anotherCommodity.id,
       );
 
       const updatedData = createUpdateRequest();
