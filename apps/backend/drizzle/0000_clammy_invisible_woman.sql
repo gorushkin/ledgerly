@@ -5,6 +5,7 @@ CREATE TABLE `accounts` (
 	`description` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
 	`initial_balance` text NOT NULL,
+	`is_closed` integer NOT NULL,
 	`is_system` integer NOT NULL,
 	`is_tombstone` integer NOT NULL,
 	`name` text NOT NULL,

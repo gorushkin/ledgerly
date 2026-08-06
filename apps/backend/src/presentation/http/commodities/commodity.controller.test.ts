@@ -1,9 +1,11 @@
-import { type QueryStatus } from '@ledgerly/shared/types';
+import { CommodityQuery } from '@ledgerly/shared/validation';
 import {
-  ArchiveCommodityUseCase,
+  CloseCommodityUseCase,
+  DeleteCommodityUseCase,
   CreateCommodityUseCase,
   GetAllCommoditiesUseCase,
   GetCommodityByIdUseCase,
+  OpenCommodityUseCase,
   UpdateCommodityUseCase,
 } from 'src/application/usecases/commodities';
 import { CommodityCode } from 'src/domain/domain-core';
@@ -38,7 +40,15 @@ describe('CommodityController', () => {
     execute: vi.fn(),
   };
 
-  const mockArchiveCommodityUseCase = {
+  const mockDeleteCommodityUseCase = {
+    execute: vi.fn(),
+  };
+
+  const mockCloseCommodityUseCase = {
+    execute: vi.fn(),
+  };
+
+  const mockOpenCommodityUseCase = {
     execute: vi.fn(),
   };
 
@@ -47,7 +57,9 @@ describe('CommodityController', () => {
     mockGetAllCommoditiesUseCase as unknown as GetAllCommoditiesUseCase,
     mockCreateCommodityUseCase as unknown as CreateCommodityUseCase,
     mockUpdateCommodityUseCase as unknown as UpdateCommodityUseCase,
-    mockArchiveCommodityUseCase as unknown as ArchiveCommodityUseCase,
+    mockDeleteCommodityUseCase as unknown as DeleteCommodityUseCase,
+    mockCloseCommodityUseCase as unknown as CloseCommodityUseCase,
+    mockOpenCommodityUseCase as unknown as OpenCommodityUseCase,
   );
 
   beforeEach(async () => {
@@ -58,23 +70,23 @@ describe('CommodityController', () => {
 
   describe('getAll', () => {
     const validQueryParams: {
-      expectedStatus: QueryStatus;
+      query: CommodityQuery;
       queryParams: unknown;
     }[] = [
-      { expectedStatus: 'active', queryParams: { status: 'active' } },
-      { expectedStatus: 'archived', queryParams: { status: 'archived' } },
-      { expectedStatus: 'all', queryParams: { status: 'all' } },
-      { expectedStatus: 'active', queryParams: {} },
+      { query: { status: 'open' }, queryParams: { status: 'open' } },
+      { query: { status: 'closed' }, queryParams: { status: 'closed' } },
+      { query: { status: 'all' }, queryParams: { status: 'all' } },
+      { query: { status: 'open' }, queryParams: {} },
     ];
 
     it.each(validQueryParams)(
-      'should call getAllCommoditiesUseCase.execute with $expectedStatus status',
-      async ({ expectedStatus, queryParams }) => {
+      'should call getAllCommoditiesUseCase.execute with $query.status status',
+      async ({ query, queryParams }) => {
         await commodityController.getAll(user, queryParams);
 
         expect(mockGetAllCommoditiesUseCase.execute).toHaveBeenCalledWith(
           user,
-          expectedStatus,
+          query,
         );
         expect(mockGetAllCommoditiesUseCase.execute).toHaveBeenCalledTimes(1);
       },
@@ -87,6 +99,7 @@ describe('CommodityController', () => {
       { status: 1 },
       { status: true },
       'active',
+      'inactive',
       'deleted',
       '',
       undefined,
@@ -236,25 +249,71 @@ describe('CommodityController', () => {
     });
   });
 
-  describe('archiveCommodity', () => {
-    it('should call archiveCommodityUseCase.execute with correct user and id', async () => {
+  describe('deleteCommodity', () => {
+    it('should call deleteCommodityUseCase.execute with correct user and id', async () => {
       const requestParams = { id: commodityId };
 
-      await commodityController.archiveCommodity(user, requestParams);
+      await commodityController.delete(user, requestParams);
 
-      expect(mockArchiveCommodityUseCase.execute).toHaveBeenCalledWith(
+      expect(mockDeleteCommodityUseCase.execute).toHaveBeenCalledWith(
         user,
         requestParams.id,
       );
 
-      expect(mockArchiveCommodityUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(mockDeleteCommodityUseCase.execute).toHaveBeenCalledTimes(1);
     });
 
     it('should throw ZodError if requestParams is invalid', async () => {
       const invalidRequestParams = { invalidId: 'commodity-id' };
 
       await expect(
-        commodityController.archiveCommodity(user, invalidRequestParams),
+        commodityController.delete(user, invalidRequestParams),
+      ).rejects.toThrow(ZodError);
+    });
+  });
+
+  describe('closeCommodity', () => {
+    it('should call closeCommodityUseCase.execute with correct user and id', async () => {
+      const requestParams = { id: commodityId };
+
+      await commodityController.close(user, requestParams);
+
+      expect(mockCloseCommodityUseCase.execute).toHaveBeenCalledWith(
+        user,
+        requestParams.id,
+      );
+
+      expect(mockCloseCommodityUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw ZodError if requestParams is invalid', async () => {
+      const invalidRequestParams = { invalidId: 'commodity-id' };
+
+      await expect(
+        commodityController.close(user, invalidRequestParams),
+      ).rejects.toThrow(ZodError);
+    });
+  });
+
+  describe('openCommodity', () => {
+    it('should call openCommodityUseCase.execute with correct user and id', async () => {
+      const requestParams = { id: commodityId };
+
+      await commodityController.open(user, requestParams);
+
+      expect(mockOpenCommodityUseCase.execute).toHaveBeenCalledWith(
+        user,
+        requestParams.id,
+      );
+
+      expect(mockOpenCommodityUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw ZodError if requestParams is invalid', async () => {
+      const invalidRequestParams = { invalidId: 'commodity-id' };
+
+      await expect(
+        commodityController.open(user, invalidRequestParams),
       ).rejects.toThrow(ZodError);
     });
   });

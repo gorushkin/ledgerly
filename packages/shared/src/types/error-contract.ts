@@ -1,9 +1,13 @@
 import type { UUID } from "./types";
 
 export const apiErrorCodes = {
+  accountHasActiveOperations: "ACCOUNT_HAS_ACTIVE_OPERATIONS",
   accountNotFoundInContext: "ACCOUNT_NOT_FOUND_IN_CONTEXT",
   authenticationFailed: "AUTHENTICATION_FAILED",
   badRequest: "BAD_REQUEST",
+  closedAccountOperation: "CLOSED_ACCOUNT_OPERATION",
+  closedCommodityReference: "CLOSED_COMMODITY_REFERENCE",
+  commodityHasActiveReferences: "COMMODITY_HAS_ACTIVE_REFERENCES",
   conflict: "CONFLICT",
   conflictingOperationIds: "CONFLICTING_OPERATION_IDS",
   deletedEntityOperation: "DELETED_ENTITY_OPERATION",
@@ -54,12 +58,26 @@ export type ValidationFieldError = {
 };
 
 export type ErrorContextByCode = {
+  ACCOUNT_HAS_ACTIVE_OPERATIONS: {
+    accountId: UUID;
+  };
   ACCOUNT_NOT_FOUND_IN_CONTEXT: {
     accountId: string;
     operationId: string;
   };
   AUTHENTICATION_FAILED: Record<string, never>;
   BAD_REQUEST: Record<string, never>;
+  CLOSED_ACCOUNT_OPERATION: {
+    accountId: UUID;
+    operation: "update" | "use";
+  };
+  CLOSED_COMMODITY_REFERENCE: {
+    commodityId: UUID;
+    operation: "create_account";
+  };
+  COMMODITY_HAS_ACTIVE_REFERENCES: {
+    commodityId: UUID;
+  };
   CONFLICT: Record<string, never>;
   CONFLICTING_OPERATION_IDS: {
     conflict:
@@ -70,7 +88,7 @@ export type ErrorContextByCode = {
   };
   DELETED_ENTITY_OPERATION: {
     entityType: string;
-    operation: "delete" | "update";
+    operation: "delete" | "update" | "use";
   };
   EMPTY_OPERATIONS: Record<string, never>;
   ENTITY_NOT_FOUND: {

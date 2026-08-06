@@ -8,6 +8,7 @@ import {
   EntityIdentity,
   EntityTimestamps,
   SoftDelete,
+  type TransitionResult,
 } from '../domain-core';
 import { DeletedEntityOperationError } from '../domain.errors';
 import { User } from '../users/user.entity';
@@ -21,7 +22,6 @@ import {
 
 export class Account {
   static readonly entityType = 'account';
-
   private constructor(
     private readonly identity: EntityIdentity,
     private timestamps: EntityTimestamps,
@@ -33,6 +33,7 @@ export class Account {
     private initialBalance: Amount,
     private currentClearedBalanceLocal: Amount,
     private type: AccountType,
+    private isClosed: boolean,
     public isSystem: boolean,
   ) {}
 
@@ -64,6 +65,7 @@ export class Account {
       props.initialBalance,
       Amount.create('0'),
       props.type,
+      false,
       isSystem,
     );
   }
@@ -76,6 +78,7 @@ export class Account {
       description,
       id,
       initialBalance,
+      isClosed,
       isSystem,
       isTombstone,
       name,
@@ -114,6 +117,7 @@ export class Account {
       Amount.restore(initialBalance),
       Amount.restore(currentClearedBalanceLocal),
       AccountType.restore(type),
+      isClosed,
       isSystem,
     );
   }
@@ -138,11 +142,17 @@ export class Account {
   }
 
   // Delegation methods for soft delete
-  markAsDeleted(): void {
+  delete(): TransitionResult {
+    if (this.isDeleted()) {
+      return 'unchanged';
+    }
+
     this.softDelete = this.softDelete.markAsDeleted(
       DeletedEntityOperationError.forDelete(Account.entityType),
     );
+
     this.touch();
+    return 'changed';
   }
 
   isDeleted(): boolean {
@@ -150,7 +160,9 @@ export class Account {
   }
 
   private validateUpdateIsAllowed(): void {
-    this.softDelete.validateUpdateIsAllowed();
+    this.softDelete.validateUpdateIsAllowed(
+      DeletedEntityOperationError.forUpdate(Account.entityType),
+    );
   }
 
   // Delegation methods for ownership
@@ -166,6 +178,7 @@ export class Account {
       description: this.description,
       id: this.getId().valueOf(),
       initialBalance: this.initialBalance.valueOf(),
+      isClosed: this.isClosed,
       isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
       name: this.name.valueOf(),
@@ -193,5 +206,33 @@ export class Account {
 
   isCommoditySame(commodity: Commodity): boolean {
     return this.commodityRelation.getParentId().equals(commodity.getId());
+  }
+
+  close(): TransitionResult {
+    this.validateUpdateIsAllowed();
+
+    if (this.isClosed) {
+      return 'unchanged';
+    }
+
+    this.isClosed = true;
+    this.touch();
+    return 'changed';
+  }
+
+  open(): TransitionResult {
+    this.validateUpdateIsAllowed();
+
+    if (!this.isClosed) {
+      return 'unchanged';
+    }
+
+    this.isClosed = false;
+    this.touch();
+    return 'changed';
+  }
+
+  get closed(): boolean {
+    return this.isClosed;
   }
 }

@@ -7,8 +7,8 @@ import {
   AccountSnapshot,
   AccountType,
   AccountUpdateProps,
+  CreateAccountProps,
 } from 'src/domain/accounts';
-import { CreateAccountProps } from 'src/domain/accounts/types';
 import { Amount, Id, Name } from 'src/domain/domain-core';
 
 export class AccountMapper {
@@ -22,6 +22,7 @@ export class AccountMapper {
       description: snapshot.description,
       id: snapshot.id,
       initialBalance: snapshot.initialBalance,
+      isClosed: snapshot.isClosed,
       isSystem: snapshot.isSystem,
       isTombstone: snapshot.isTombstone,
       name: snapshot.name,

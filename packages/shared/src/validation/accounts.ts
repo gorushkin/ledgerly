@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ACCOUNT_TYPE_VALUES } from "../constants";
+import { ACCOUNT_STATUS_FILTER_VALUES, ACCOUNT_TYPES } from "../constants";
 
 import {
   defaultText,
@@ -10,18 +10,32 @@ import {
   amountString,
 } from "./baseValidations";
 
-const accountType = z.enum(ACCOUNT_TYPE_VALUES);
+const accountType = z.enum(ACCOUNT_TYPES);
+const accountName = requiredText.max(255);
 
-export const accountCreateSchema = z.object({
-  commodityId: uuid,
-  description: defaultText,
-  initialBalance: amountString,
-  name: requiredText,
-  type: accountType,
+export const accountCreateSchema = z
+  .object({
+    commodityId: uuid,
+    description: defaultText,
+    initialBalance: amountString,
+    name: accountName,
+    type: accountType,
+  })
+  .strict();
+
+export const accountUpdateSchema = z
+  .object({
+    description: optionalText,
+    name: accountName.optional(),
+    type: accountType.optional(),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided for update",
+  });
+
+export const accountQuerySchema = z.object({
+  status: z.enum(ACCOUNT_STATUS_FILTER_VALUES).default("open"),
 });
 
-export const accountUpdateSchema = z.object({
-  description: optionalText,
-  name: requiredText.optional(),
-  type: accountType.optional(),
-});
+export type AccountQuery = z.infer<typeof accountQuerySchema>;

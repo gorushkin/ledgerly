@@ -3,13 +3,15 @@ import {
   commodityCreateSchema,
   commodityUpdateSchema,
   uniqueIdSchema,
-  queryStatusSchema,
+  commodityQuerySchema,
 } from '@ledgerly/shared/validation';
 import {
+  CloseCommodityUseCase,
   GetCommodityByIdUseCase,
-  ArchiveCommodityUseCase,
+  DeleteCommodityUseCase,
   CreateCommodityUseCase,
   GetAllCommoditiesUseCase,
+  OpenCommodityUseCase,
   UpdateCommodityUseCase,
 } from 'src/application/usecases/commodities';
 import { User } from 'src/domain/users/user.entity';
@@ -20,16 +22,18 @@ export class CommodityController {
     private readonly getAllCommoditiesUseCase: GetAllCommoditiesUseCase,
     private readonly createCommodityUseCase: CreateCommodityUseCase,
     private readonly updateCommodityUseCase: UpdateCommodityUseCase,
-    private readonly archiveCommodityUseCase: ArchiveCommodityUseCase,
+    private readonly deleteCommodityUseCase: DeleteCommodityUseCase,
+    private readonly closeCommodityUseCase: CloseCommodityUseCase,
+    private readonly openCommodityUseCase: OpenCommodityUseCase,
   ) {}
 
   async getAll(
     user: User,
     queryParams: unknown,
   ): Promise<CommodityResponseDTO[]> {
-    const { status } = queryStatusSchema.parse(queryParams);
+    const parsedQuery = commodityQuerySchema.parse(queryParams);
 
-    return this.getAllCommoditiesUseCase.execute(user, status);
+    return this.getAllCommoditiesUseCase.execute(user, parsedQuery);
   }
 
   async getById(
@@ -61,12 +65,27 @@ export class CommodityController {
     return this.updateCommodityUseCase.execute(user, id, commodityUpdateDto);
   }
 
-  async archiveCommodity(
+  async delete(user: User, requestParams: unknown): Promise<void> {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    await this.deleteCommodityUseCase.execute(user, id);
+  }
+
+  async close(
     user: User,
     requestParams: unknown,
   ): Promise<CommodityResponseDTO> {
     const { id } = uniqueIdSchema.parse(requestParams);
 
-    return this.archiveCommodityUseCase.execute(user, id);
+    return this.closeCommodityUseCase.execute(user, id);
+  }
+
+  async open(
+    user: User,
+    requestParams: unknown,
+  ): Promise<CommodityResponseDTO> {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.openCommodityUseCase.execute(user, id);
   }
 }

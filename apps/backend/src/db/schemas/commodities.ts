@@ -12,7 +12,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
-import { createdAt, updatedAt, id, isTombstone } from './common';
+import { createdAt, updatedAt, id, isClosed, isTombstone } from './common';
 import { usersTable } from './users';
 
 export const commoditiesTable = sqliteTable(
@@ -21,6 +21,7 @@ export const commoditiesTable = sqliteTable(
     code: text('code').notNull().$type<CommodityCodeString>(),
     createdAt,
     id,
+    isClosed,
     isTombstone,
     name: text('name').notNull(),
     precision: integer('precision').notNull().$type<CommodityPrecisionNumber>(),
@@ -36,6 +37,7 @@ export const commoditiesTable = sqliteTable(
       table.userId,
       table.code,
     ),
+    uniqueIndex('commodities_user_id_id_unique_idx').on(table.userId, table.id),
   ],
 );
 

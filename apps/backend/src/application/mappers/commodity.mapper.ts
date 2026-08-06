@@ -17,6 +17,7 @@ export class CommodityMapper {
       code: snapshot.code,
       createdAt: snapshot.createdAt,
       id: snapshot.id,
+      isClosed: snapshot.isClosed,
       isTombstone: snapshot.isTombstone,
       name: snapshot.name,
       precision: snapshot.precision,

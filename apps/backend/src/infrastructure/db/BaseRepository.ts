@@ -102,6 +102,23 @@ export class BaseRepository {
     return result;
   }
 
+  protected ensureWriteSucceeded<T>(
+    result: T | undefined | null,
+    error: Error,
+  ): T {
+    if (!result) {
+      throw error;
+    }
+
+    return result;
+  }
+
+  protected ensureRowsAffected(rowsAffected: number, error: Error): void {
+    if (rowsAffected < 1) {
+      throw error;
+    }
+  }
+
   /**
    * Builds the only public context allowed for repository not-found errors.
    * The result is serialized in the API response, so callers must not add

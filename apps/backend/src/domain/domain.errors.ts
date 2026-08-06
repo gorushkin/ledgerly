@@ -275,7 +275,7 @@ export class ExcessiveOperationsError extends CodedDomainError<'EXCESSIVE_OPERAT
 /**
  * Thrown when attempting to perform operations on a deleted entity.
  */
-type DeletedEntityOperation = 'delete' | 'update';
+type DeletedEntityOperation = 'delete' | 'update' | 'use';
 
 export class DeletedEntityOperationError extends CodedDomainError<'DELETED_ENTITY_OPERATION'> {
   constructor(entityType: string, operation: DeletedEntityOperation) {
@@ -292,6 +292,33 @@ export class DeletedEntityOperationError extends CodedDomainError<'DELETED_ENTIT
 
   static forDelete(entityType: string): DeletedEntityOperationError {
     return new DeletedEntityOperationError(entityType, 'delete');
+  }
+
+  static forUse(entityType: string): DeletedEntityOperationError {
+    return new DeletedEntityOperationError(entityType, 'use');
+  }
+}
+
+type ClosedAccountOperation = 'update' | 'use';
+
+export class ClosedAccountOperationError extends CodedDomainError<'CLOSED_ACCOUNT_OPERATION'> {
+  constructor(
+    public readonly accountId: UUID,
+    public readonly operation: ClosedAccountOperation,
+  ) {
+    super(
+      `cannot ${operation} closed account ${accountId}`,
+      apiErrorCodes.closedAccountOperation,
+      { accountId, operation },
+    );
+  }
+
+  static forUpdate(accountId: UUID): ClosedAccountOperationError {
+    return new ClosedAccountOperationError(accountId, 'update');
+  }
+
+  static forUse(accountId: UUID): ClosedAccountOperationError {
+    return new ClosedAccountOperationError(accountId, 'use');
   }
 }
 

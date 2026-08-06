@@ -1,8 +1,12 @@
 import { OperationRequestDTO } from 'src/application/dto';
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { createAccount } from 'src/db/createTestUser';
-import { User } from 'src/domain';
+import { Account, User } from 'src/domain';
 import { Amount } from 'src/domain/domain-core';
+import {
+  ClosedAccountOperationError,
+  DeletedEntityOperationError,
+} from 'src/domain/domain.errors';
 import { createUser } from 'src/testing';
 import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 
@@ -143,6 +147,68 @@ describe('TransactionContextLoader', () => {
     expect(mockAccountRepository.getByIds).toHaveBeenCalledWith(
       user.getId().valueOf(),
       [otherUserAccount.getId().valueOf()],
+    );
+  });
+
+  it('should throw a domain error when an account is tombstoned', async () => {
+    const account = createAccount(user);
+    const accountSnapshot = {
+      ...account.toSnapshot(),
+      isTombstone: true,
+    };
+
+    const rawOperations: OperationRequestDTO[] = [
+      {
+        accountId: account.getId().valueOf(),
+        amount: Amount.create('100').valueOf(),
+        description: 'Op 1',
+        value: Amount.create('100').valueOf(),
+      },
+      {
+        accountId: account.getId().valueOf(),
+        amount: Amount.create('-100').valueOf(),
+        description: 'Op 2',
+        value: Amount.create('-100').valueOf(),
+      },
+    ];
+
+    mockAccountRepository.getByIds.mockResolvedValueOnce([accountSnapshot]);
+
+    await expect(
+      transactionContextLoader.loadContext(user, rawOperations),
+    ).rejects.toThrowError(
+      new DeletedEntityOperationError(Account.entityType, 'use'),
+    );
+  });
+
+  it('should throw a domain error when an account is closed', async () => {
+    const account = createAccount(user);
+    const accountSnapshot = {
+      ...account.toSnapshot(),
+      isClosed: true,
+    };
+
+    const rawOperations: OperationRequestDTO[] = [
+      {
+        accountId: account.getId().valueOf(),
+        amount: Amount.create('100').valueOf(),
+        description: 'Op 1',
+        value: Amount.create('100').valueOf(),
+      },
+      {
+        accountId: account.getId().valueOf(),
+        amount: Amount.create('-100').valueOf(),
+        description: 'Op 2',
+        value: Amount.create('-100').valueOf(),
+      },
+    ];
+
+    mockAccountRepository.getByIds.mockResolvedValueOnce([accountSnapshot]);
+
+    await expect(
+      transactionContextLoader.loadContext(user, rawOperations),
+    ).rejects.toThrowError(
+      ClosedAccountOperationError.forUse(account.getId().valueOf()),
     );
   });
 

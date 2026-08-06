@@ -1,4 +1,8 @@
-import { AccountRepositoryInterface } from 'src/application';
+import type {
+  TransactionManagerInterface,
+  AccountRepositoryInterface,
+} from 'src/application';
+import { CommodityReferencePolicy } from 'src/application/services';
 import { createUser } from 'src/db/createTestUser';
 import { Commodity } from 'src/domain';
 import { Amount, CommodityCode } from 'src/domain/domain-core';
@@ -15,6 +19,14 @@ describe('CreateAccountUseCase', async () => {
     create: vi.fn(),
   };
 
+  const commodityReferencePolicy = {
+    assertUsableForNewAccount: vi.fn(),
+  };
+
+  const transactionManager = {
+    run: vi.fn((cb: () => unknown) => cb()),
+  };
+
   const name = 'Test Account';
   const description = 'Test account description';
   const initialBalance = Amount.create('1000').valueOf();
@@ -29,8 +41,13 @@ describe('CreateAccountUseCase', async () => {
   const type = 'asset';
 
   beforeEach(() => {
+    accountRepository.create.mockReset();
+    commodityReferencePolicy.assertUsableForNewAccount.mockReset();
+
     createAccountUseCase = new CreateAccountUseCase(
       accountRepository as unknown as AccountRepositoryInterface,
+      transactionManager as unknown as TransactionManagerInterface,
+      commodityReferencePolicy as unknown as CommodityReferencePolicy,
     );
   });
 
@@ -49,6 +66,13 @@ describe('CreateAccountUseCase', async () => {
         type,
       });
 
+      expect(
+        commodityReferencePolicy.assertUsableForNewAccount,
+      ).toHaveBeenCalledWith(
+        user.getId().valueOf(),
+        mockedCommoditySnapshot.id,
+      );
+
       expect(accountRepository.create).toHaveBeenCalledWith(
         user.getId().valueOf(),
         {
@@ -58,6 +82,7 @@ describe('CreateAccountUseCase', async () => {
           description,
           id: result.id,
           initialBalance,
+          isClosed: false,
           isSystem: false,
           isTombstone: false,
           name,
@@ -75,6 +100,27 @@ describe('CreateAccountUseCase', async () => {
         type,
         userId: user.getId().valueOf(),
       });
+    });
+
+    it('should not create an account when commodity reference policy rejects', async () => {
+      const error = new Error('closed commodity');
+      const mockedCommoditySnapshot = commodity.toSnapshot();
+
+      commodityReferencePolicy.assertUsableForNewAccount.mockRejectedValueOnce(
+        error,
+      );
+
+      await expect(
+        createAccountUseCase.execute(user, {
+          commodityId: mockedCommoditySnapshot.id,
+          description,
+          initialBalance,
+          name,
+          type,
+        }),
+      ).rejects.toBe(error);
+
+      expect(accountRepository.create).not.toHaveBeenCalled();
     });
   });
 });

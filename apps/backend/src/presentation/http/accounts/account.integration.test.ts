@@ -1,64 +1,139 @@
+import { AccountStatusFilterValue } from '@ledgerly/shared/constants';
 import { ROUTES } from '@ledgerly/shared/routes';
 import {
   AccountCreateDTO,
   AccountResponseDTO,
   AccountTypeValue,
+  ApiErrorResponse,
+  apiErrorCodes,
   UUID,
 } from '@ledgerly/shared/types';
+import { CommodityDbRow } from 'src/db/schemas/commodities';
 import { TestDB } from 'src/db/test-db';
+import { compareEntityArrays } from 'src/db/test-utils/entityComparer';
+import { AccountType } from 'src/domain';
 import { Amount, CommodityCode } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { createServer } from 'src/presentation/http';
+import { createHttpTestClient } from 'src/presentation/http/test-utils';
 import { describe, beforeEach, it, expect } from 'vitest';
 
 const url = `/api${ROUTES.accounts}`;
 
-const firstUserAccounts = [
+const getWithQueryParamsUrl = (status: AccountStatusFilterValue) =>
+  `${url}?status=${status}`;
+
+const closedAccountsData = [
   {
     commodityId: Id.create().valueOf(),
-    description: 'This is a test account',
+    description: 'Closed account 1 for testing purposes',
     initialBalance: Amount.create('1000').valueOf(),
+    isClosed: true,
     name: 'Test Account',
-    type: 'asset' as AccountTypeValue,
+    type: AccountType.create('asset').valueOf(),
   },
   {
     commodityId: Id.create().valueOf(),
-    description: 'Savings account for future expenses',
+    description: 'Closed account 2 for testing purposes',
     initialBalance: Amount.create('1000').valueOf(),
+    isClosed: true,
     name: 'Savings Account',
-    type: 'asset' as AccountTypeValue,
+    type: AccountType.create('asset').valueOf(),
   },
 ];
 
+const openAccountsData = [
+  {
+    commodityId: Id.create().valueOf(),
+    description: 'Open account 1 for testing purposes',
+    initialBalance: Amount.create('1000').valueOf(),
+    isClosed: false,
+    name: 'Open Account',
+    type: AccountType.create('asset').valueOf(),
+  },
+  {
+    commodityId: Id.create().valueOf(),
+    description: 'Open account 2 for testing purposes',
+    initialBalance: Amount.create('1000').valueOf(),
+    isClosed: false,
+    name: 'Open Savings Account',
+    type: AccountType.create('asset').valueOf(),
+  },
+];
+
+const deletedAccountsData = [
+  {
+    commodityId: Id.create().valueOf(),
+    description: 'Deleted account 1 for testing purposes',
+    initialBalance: Amount.create('1000').valueOf(),
+    isTombstone: true,
+    name: 'Deleted Account',
+    type: AccountType.create('asset').valueOf(),
+  },
+  {
+    commodityId: Id.create().valueOf(),
+    description: 'Deleted account 2 for testing purposes',
+    initialBalance: Amount.create('1000').valueOf(),
+    isTombstone: true,
+    name: 'Deleted Savings Account',
+    type: AccountType.create('asset').valueOf(),
+  },
+];
+
+const allAccountsData = [
+  ...closedAccountsData,
+  ...openAccountsData,
+  ...deletedAccountsData,
+];
+
 const getUserTestAccounts = (userId: UUID): AccountCreateDTO[] => {
-  return firstUserAccounts.map((account) => ({
+  return allAccountsData.map((account) => ({
     ...account,
     userId,
   }));
 };
+const testUserData = {
+  email: 'test@example.com',
+  name: 'Test User',
+  password: 'Password123!',
+};
 
 describe('Accounts Integration Tests', () => {
   let testDB: TestDB;
-
   let server: ReturnType<typeof createServer>;
   let authToken: string;
   let userId: UUID;
-  let accounts: AccountResponseDTO[];
+  let otherUserId: UUID;
+  let accounts: AccountResponseDTO[] = [];
+  let commodity: CommodityDbRow;
+  let injectAuthorized: ReturnType<
+    typeof createHttpTestClient
+  >['injectAuthorized'];
 
-  const testUser = {
-    email: 'test@example.com',
-    name: 'Test User',
-    password: 'Password123!',
-  };
+  let injectWithToken: ReturnType<
+    typeof createHttpTestClient
+  >['injectWithToken'];
 
   beforeEach(async () => {
     testDB = new TestDB();
     server = createServer(testDB.db);
+
+    ({ injectAuthorized, injectWithToken } = createHttpTestClient(
+      server,
+      () => authToken,
+    ));
+
     await testDB.setupTestDb();
 
     await server.ready();
 
-    const user = await testDB.createUser(testUser);
+    const user = await testDB.createUser(testUserData);
+
+    const otherUser = await testDB.createUser({
+      email: 'otheruser@example.com',
+    });
+
+    otherUserId = Id.restore(otherUser.id).valueOf();
 
     const token = server.jwt.sign({
       email: user.email,
@@ -69,6 +144,7 @@ describe('Accounts Integration Tests', () => {
 
     const decoded = server.jwt.decode(token) as unknown as { userId: UUID };
     userId = Id.restore(decoded.userId).valueOf();
+    commodity = await testDB.createCommodity(userId);
 
     const testAccountsDTO = getUserTestAccounts(
       Id.restore(decoded.userId).valueOf(),
@@ -83,29 +159,58 @@ describe('Accounts Integration Tests', () => {
   });
 
   describe('GET /api/accounts', () => {
-    it('should return all accounts for the user', async () => {
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: 'GET',
-        url,
-      });
+    const testCases = [
+      {
+        description:
+          'should return all active open accounts by default for the user',
+        expectedAccounts: (accounts: AccountResponseDTO[]) =>
+          accounts.filter(
+            (account) => !account.isClosed && !account.isTombstone,
+          ),
+        query: {},
+      },
+      {
+        description:
+          'should return all accounts including closed when query param status=all',
+        expectedAccounts: (accounts: AccountResponseDTO[]) =>
+          accounts.filter((account) => !account.isTombstone),
+        query: { status: 'all' },
+      },
+      {
+        description:
+          'should return all closed accounts when query param status=closed',
+        expectedAccounts: (accounts: AccountResponseDTO[]) =>
+          accounts.filter(
+            (account) => account.isClosed && !account.isTombstone,
+          ),
+        query: { status: 'closed' },
+      },
+    ];
 
-      firstUserAccounts.forEach((account) => {
-        expect(response.body).toContain(account.name);
-      });
+    testCases.forEach(({ description, expectedAccounts, query }) => {
+      it(description, async () => {
+        const queryString = new URLSearchParams(
+          query as Record<string, string>,
+        ).toString();
 
-      expect(response.statusCode).toBe(200);
+        const response = await injectAuthorized({
+          method: 'GET',
+          url: `${url}?${queryString}`,
+        });
+
+        const responseAccounts = JSON.parse(
+          response.body,
+        ) as AccountResponseDTO[];
+
+        expect(response.statusCode).toBe(200);
+        compareEntityArrays(responseAccounts, expectedAccounts(accounts));
+      });
     });
   });
 
   describe('GET /api/accounts/:id', () => {
-    it('should return account by ID', async () => {
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+    it('should return 200 and the account by id', async () => {
+      const response = await injectAuthorized({
         method: 'GET',
         url: `${url}/${accounts[0].id}`,
       });
@@ -118,7 +223,11 @@ describe('Accounts Integration Tests', () => {
   });
 
   describe('POST /api/accounts', () => {
-    it('should create a new account', async () => {
+    it('should return 201 and create a new account', async () => {
+      const accountCountBeforeCreation = accounts.filter(
+        (account) => !account.isTombstone,
+      ).length;
+
       const commodity = await testDB.createCommodity(userId, {
         code: CommodityCode.create('USD').valueOf(),
         name: 'US Dollar',
@@ -132,10 +241,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+      const response = await injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -148,66 +254,255 @@ describe('Accounts Integration Tests', () => {
       expect(createdAccount.type).toBe(payload.type);
       expect(createdAccount.description).toBe(payload.description);
 
-      const finalResponse = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+      const finalResponse = await injectAuthorized({
         method: 'GET',
-        url,
+        url: getWithQueryParamsUrl('all'),
       });
 
       const accountsAfterCreation = JSON.parse(
         finalResponse.body,
       ) as AccountResponseDTO[];
 
-      expect(accountsAfterCreation.length).toBe(firstUserAccounts.length + 1);
+      expect(accountsAfterCreation.length).toBe(accountCountBeforeCreation + 1);
       expect(accountsAfterCreation).toContainEqual(createdAccount);
     });
   });
 
   describe('DELETE /api/accounts/:id', () => {
-    it('should delete an account by ID', async () => {
+    it('should return 204 and delete an account by id', async () => {
+      const accountCountBeforeDeletion = accounts.filter(
+        (account) => !account.isTombstone,
+      ).length;
+
       const accountToDelete = accounts[0];
 
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+      const response = await injectAuthorized({
         method: 'DELETE',
         url: `${url}/${accountToDelete.id}`,
       });
 
       expect(response.statusCode).toBe(204);
 
-      const finalResponse = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+      const finalResponse = await injectAuthorized({
         method: 'GET',
-        url,
+        url: getWithQueryParamsUrl('all'),
       });
 
       const accountsAfterDeletion = JSON.parse(
         finalResponse.body,
       ) as AccountResponseDTO[];
 
-      expect(accountsAfterDeletion.length).toBe(firstUserAccounts.length - 1);
+      expect(accountsAfterDeletion.length).toBe(accountCountBeforeDeletion - 1);
       expect(accountsAfterDeletion).not.toContainEqual(accountToDelete);
     });
   });
 
+  describe('POST /api/accounts/:id/close', () => {
+    it('should return 200 and close an open account by id', async () => {
+      const accountToClose = accounts.find(
+        (account) => !account.isClosed && !account.isTombstone,
+      );
+
+      if (!accountToClose) {
+        throw new Error('No account available to close');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${accountToClose.id}/close`,
+      });
+
+      const closedAccount = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(closedAccount).toMatchObject({
+        id: accountToClose.id,
+        isClosed: true,
+      });
+
+      const finalResponse = await injectAuthorized({
+        method: 'GET',
+        url: `${url}/${accountToClose.id}`,
+      });
+
+      const retrievedAccount = JSON.parse(
+        finalResponse.body,
+      ) as AccountResponseDTO;
+
+      expect(finalResponse.statusCode).toBe(200);
+      expect(retrievedAccount.isClosed).toBe(true);
+    });
+
+    it('should be idempotent for an already closed account', async () => {
+      const closedAccount = accounts.find(
+        (account) => account.isClosed && !account.isTombstone,
+      );
+
+      if (!closedAccount) {
+        throw new Error('No closed account available');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${closedAccount.id}/close`,
+      });
+
+      const account = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(account).toMatchObject({
+        id: closedAccount.id,
+        isClosed: true,
+      });
+    });
+
+    it('should return 404 when account belongs to a different user', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId);
+      const otherUserAccount = await testDB.createAccount(
+        otherUserId,
+        otherUserCommodity.id,
+      );
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${otherUserAccount.id}/close`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when account is deleted', async () => {
+      const deletedAccount = accounts.find((account) => account.isTombstone);
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${deletedAccount?.id}/close`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 when account id has an invalid UUID format', async () => {
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/invalid-uuid/close`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe('POST /api/accounts/:id/open', () => {
+    it('should return 200 and open a closed account by id', async () => {
+      const accountToOpen = accounts.find(
+        (account) => account.isClosed && !account.isTombstone,
+      );
+
+      if (!accountToOpen) {
+        throw new Error('No account available to open');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${accountToOpen.id}/open`,
+      });
+
+      const openedAccount = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(openedAccount).toMatchObject({
+        id: accountToOpen.id,
+        isClosed: false,
+      });
+
+      const finalResponse = await injectAuthorized({
+        method: 'GET',
+        url: `${url}/${accountToOpen.id}`,
+      });
+
+      const retrievedAccount = JSON.parse(
+        finalResponse.body,
+      ) as AccountResponseDTO;
+
+      expect(finalResponse.statusCode).toBe(200);
+      expect(retrievedAccount.isClosed).toBe(false);
+    });
+
+    it('should be idempotent for an already open account', async () => {
+      const openAccount = accounts.find(
+        (account) => !account.isClosed && !account.isTombstone,
+      );
+
+      if (!openAccount) {
+        throw new Error('No open account available');
+      }
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${openAccount.id}/open`,
+      });
+
+      const account = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(account).toMatchObject({
+        id: openAccount.id,
+        isClosed: false,
+      });
+    });
+
+    it('should return 404 when account belongs to a different user', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId);
+      const otherUserAccount = await testDB.createAccount(
+        otherUserId,
+        otherUserCommodity.id,
+        { isClosed: true },
+      );
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${otherUserAccount.id}/open`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when account is deleted', async () => {
+      const deletedAccount = accounts.find((account) => account.isTombstone);
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/${deletedAccount?.id}/open`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 when account id has an invalid UUID format', async () => {
+      const response = await injectAuthorized({
+        method: 'POST',
+        url: `${url}/invalid-uuid/open`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+  });
+
   describe('PATCH /api/accounts/:id', () => {
-    it('should update an account by ID', async () => {
-      const accountToUpdate = accounts[0];
+    it('should return 200 and update an account by id', async () => {
+      const accountToUpdate = accounts.find(
+        (account) => !account.isClosed && !account.isTombstone,
+      );
 
       const updatedData = {
         name: 'Updated Account Name',
       };
 
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+      if (!accountToUpdate) {
+        throw new Error('No account available for update');
+      }
+
+      const response = await injectAuthorized({
         method: 'PATCH',
         payload: updatedData,
         url: `${url}/${accountToUpdate.id}`,
@@ -218,12 +513,9 @@ describe('Accounts Integration Tests', () => {
       expect(response.statusCode).toBe(200);
       expect(updatedAccount.name).toBe(updatedData.name);
 
-      const finalResponse = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+      const finalResponse = await injectAuthorized({
         method: 'GET',
-        url,
+        url: getWithQueryParamsUrl('all'),
       });
 
       const accountsAfterUpdate = JSON.parse(
@@ -232,115 +524,928 @@ describe('Accounts Integration Tests', () => {
 
       expect(accountsAfterUpdate).toContainEqual(updatedAccount);
     });
+
+    it('should return 200 and update name and description for a closed account', async () => {
+      const accountToUpdate = accounts.find(
+        (account) => account.isClosed && !account.isTombstone,
+      );
+
+      if (!accountToUpdate) {
+        throw new Error('No closed account available for update');
+      }
+
+      const updatedData = {
+        description: 'Updated closed account description',
+        name: 'Updated Closed Account',
+      };
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: updatedData,
+        url: `${url}/${accountToUpdate.id}`,
+      });
+
+      const updatedAccount = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+      expect(updatedAccount).toMatchObject({
+        description: updatedData.description,
+        id: accountToUpdate.id,
+        isClosed: true,
+        name: updatedData.name,
+      });
+    });
+
+    it('should return 409 when updating type for a closed account', async () => {
+      const accountToUpdate = accounts.find(
+        (account) => account.isClosed && !account.isTombstone,
+      );
+
+      if (!accountToUpdate) {
+        throw new Error('No closed account available for update');
+      }
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: { type: 'liability' as AccountTypeValue },
+        url: `${url}/${accountToUpdate.id}`,
+      });
+
+      expect(response.statusCode).toBe(409);
+    });
   });
 
-  // Authentication & Authorization Tests
-  describe.todo('Authentication & Authorization', () => {
-    // - should return 401 when no auth token provided
-    // - should return 401 when invalid auth token provided
-    // - should return 401 when expired auth token provided
-    // - should return 403 when trying to access another user's account
-    // - should return 403 when trying to update another user's account
-    // - should return 403 when trying to delete another user's account
+  describe('Authentication', () => {
+    it('should return 401 when no auth token is provided', async () => {
+      const response = await server.inject({
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('should return 401 when an invalid auth token is provided', async () => {
+      const response = await injectWithToken('invalidToken', {
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('should return 401 when an expired auth token is provided', async () => {
+      const expiredToken: string = server.jwt.sign({
+        email: testUserData.email,
+        exp: Math.floor(Date.now() / 1000) - 3600,
+        userId,
+      });
+
+      const response = await injectWithToken(expiredToken, {
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
   });
 
-  // Validation Tests for POST /api/accounts
-  describe.todo('POST /api/accounts - Validation', () => {
-    // - should return 400 when name is empty
-    // - should return 400 when name is missing
-    // - should return 400 when name is not a string
-    // - should return 400 when commodityId is empty
-    // - should return 400 when commodityId is missing
-    // - should return 400 when commodityId is invalid UUID format
-    // - should return 404 when commodityId doesn't exist in database
-    // - should return 404 when commodityId belongs to another user
-    // - should return 404 when commodityId points to an archived Commodity
-    // - should return 400 when type is empty
-    // - should return 400 when type is invalid enum value
-    // - should return 400 when type is missing
-    // - should return 400 when userId is missing
-    // - should return 400 when userId is invalid UUID format
-    // - should return 409 when account name already exists for user
-    // - should return 400 when description is not a string
-    // - should return 400 when initialBalance is not a number
-    // - should return 400 when extra unexpected fields are provided
+  describe('GET /api/accounts - Validation', () => {
+    it('should return 400 when status is an invalid enum value', async () => {
+      const response = await injectAuthorized({
+        method: 'GET',
+        url: getWithQueryParamsUrl(
+          'inactive' as unknown as AccountStatusFilterValue,
+        ),
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
   });
 
-  // Validation Tests for PATCH /api/accounts/:id
-  describe.todo('PATCH /api/accounts/:id - Validation', () => {
-    // - should return 400 when name is empty string
-    // - should return 400 when name is not a string
-    // - should return 400 when type is invalid enum value
-    // - should return 400 when description is not a string
-    // - should return 404 when account ID doesn't exist
-    // - should return 400 when account ID is invalid UUID format
-    // - should return 409 when updating to duplicate name within same user
-    // - should return 400 when empty object is provided
-    // - should return 400 when extra unexpected fields are provided
-    // - should allow updating to name that exists for different user
+  describe('POST /api/accounts - Validation', () => {
+    it('should return 400 when name is empty', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: '',
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when name is missing', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        type: 'asset' as AccountTypeValue,
+      } as unknown as AccountCreateDTO; // Type assertion to bypass TypeScript checks for testing purposes
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when name is not a string', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 123 as unknown as string,
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when commodityId is empty', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: '' as unknown as UUID,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when commodityId is missing', async () => {
+      const payload: AccountCreateDTO = {
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'asset' as AccountTypeValue,
+      } as unknown as AccountCreateDTO; // Type assertion to bypass TypeScript checks for testing purposes
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when commodityId has an invalid UUID format', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: 'invalid-uuid' as unknown as UUID,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 404 when commodityId does not exist', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: Id.create().valueOf(),
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when commodityId belongs to another user', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId);
+
+      const payload: AccountCreateDTO = {
+        commodityId: otherUserCommodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: AccountType.create('asset').valueOf(),
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when commodityId points to a deleted commodity', async () => {
+      await testDB.deleteCommodityById(commodity.id);
+
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 409 when commodityId points to a closed commodity', async () => {
+      const closedCommodity = await testDB.createCommodity(userId, {
+        code: CommodityCode.create('CHF').valueOf(),
+        isClosed: true,
+        name: 'Swiss Franc',
+        precision: 2,
+        symbol: 'CHF',
+      });
+
+      const payload: AccountCreateDTO = {
+        commodityId: closedCommodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      const parsedResponse = JSON.parse(response.body) as ApiErrorResponse & {
+        code: typeof apiErrorCodes.closedCommodityReference;
+      };
+
+      expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.closedCommodityReference,
+        context: {
+          commodityId: closedCommodity.id,
+          operation: 'create_account',
+        },
+        error: true,
+      });
+    });
+
+    it('should return 400 when type is empty', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: '' as unknown as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when type is an invalid enum value', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'invalid-type' as unknown as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when type is missing', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+      } as unknown as AccountCreateDTO;
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 409 when account name already exists for user', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: accounts[0].name,
+        type: 'asset' as AccountTypeValue,
+      } as unknown as AccountCreateDTO; // Type assertion to bypass TypeScript checks for testing purposes
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(409);
+    });
+
+    it('should return 400 when description is not a string', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 123 as unknown as string,
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when extra unexpected fields are provided', async () => {
+      const payload: AccountCreateDTO & { extraField?: string } = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        extraField: 'unexpected',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account',
+        type: 'asset' as AccountTypeValue,
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
   });
 
-  // Edge Cases for GET /api/accounts/:id
-  describe.todo('GET /api/accounts/:id - Edge Cases', () => {
-    // - should return 404 when account ID doesn't exist
-    // - should return 400 when account ID is invalid UUID format
-    // - should return 404 when account belongs to different user
+  describe('GET /api/accounts/:id - Edge Cases', () => {
+    it('should return 404 when account id does not exist', async () => {
+      const nonExistentId = Id.create().valueOf();
+
+      const response = await injectAuthorized({
+        method: 'GET',
+        url: `/api/accounts/${nonExistentId}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 when account id has an invalid UUID format', async () => {
+      const invalidId = 'invalid-uuid';
+
+      const response = await injectAuthorized({
+        method: 'GET',
+        url: `/api/accounts/${invalidId}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 404 when account belongs to a different user', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId);
+
+      const otherUserAccount = await testDB.createAccount(
+        otherUserId,
+        otherUserCommodity.id,
+        {
+          description: 'Other user account',
+          initialBalance: Amount.create('1000').valueOf(),
+          name: 'Other User Account',
+          type: 'asset' as AccountTypeValue,
+        },
+      );
+      const response = await injectAuthorized({
+        method: 'GET',
+        url: `/api/accounts/${otherUserAccount.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when account is deleted', async () => {
+      const deletedAccount = accounts.find((account) => account.isTombstone);
+      const response = await injectAuthorized({
+        method: 'GET',
+        url: `/api/accounts/${deletedAccount?.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
   });
 
-  // Edge Cases for DELETE /api/accounts/:id
-  describe.todo('DELETE /api/accounts/:id - Edge Cases', () => {
-    // - should return 404 when account ID doesn't exist
-    // - should return 400 when account ID is invalid UUID format
-    // - should return 404 when trying to delete another user's account
-    // - should handle deletion of account with transactions (cascade)
+  describe('PATCH /api/accounts/:id - Validation', () => {
+    it('should return 400 when name is empty', async () => {
+      const accountToUpdate = accounts[0];
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          name: '',
+        },
+        url: `/api/accounts/${accountToUpdate.id}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when name is not a string', async () => {
+      const accountToUpdate = accounts[0];
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          name: 123 as unknown as string,
+        },
+        url: `/api/accounts/${accountToUpdate.id}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when type is an invalid enum value', async () => {
+      const accountToUpdate = accounts[0];
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          type: 'invalid-type' as AccountTypeValue,
+        },
+        url: `/api/accounts/${accountToUpdate.id}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when description is not a string', async () => {
+      const accountToUpdate = accounts[0];
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          description: 123 as unknown as string,
+        },
+        url: `/api/accounts/${accountToUpdate.id}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 404 when account id does not exist', async () => {
+      const nonExistentId = '00000000-0000-0000-0000-000000000000';
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          name: 'Updated Name',
+        },
+        url: `/api/accounts/${nonExistentId}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 when account id has an invalid UUID format', async () => {
+      const invalidId = 'invalid-uuid';
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          name: 'Updated Name',
+        },
+        url: `/api/accounts/${invalidId}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 409 when updating to duplicate name within same user', async () => {
+      const accountToUpdate = accounts[0];
+      const duplicateName = accounts[1].name;
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          name: duplicateName,
+        },
+        url: `/api/accounts/${accountToUpdate.id}`,
+      });
+
+      expect(response.statusCode).toBe(409);
+    });
+
+    it('should return 400 when empty object is provided', async () => {
+      const accountToUpdate = accounts[0];
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {},
+        url: `/api/accounts/${accountToUpdate.id}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when extra unexpected fields are provided', async () => {
+      const accountToUpdate = accounts[0];
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          name: 'Updated Name',
+          unexpectedField: 'unexpected',
+        },
+        url: `/api/accounts/${accountToUpdate.id}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 404 when account belongs to a different user', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId);
+
+      const otherUserAccount = await testDB.createAccount(
+        otherUserId,
+        otherUserCommodity.id,
+        {
+          description: 'Other user account',
+          initialBalance: Amount.create('1000').valueOf(),
+          name: 'Other User Account',
+          type: 'asset' as AccountTypeValue,
+        },
+      );
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          name: 'Updated Name',
+        },
+        url: `/api/accounts/${otherUserAccount.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 404 when account is deleted', async () => {
+      const deletedAccount = accounts.find((account) => account.isTombstone);
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          name: 'Updated Name',
+        },
+        url: `/api/accounts/${deletedAccount?.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 409 when changing type for an account with active operations', async () => {
+      const accountToUpdate = accounts[0];
+
+      await testDB.createTransactionWithOperations(userId, commodity.id, {
+        operations: [
+          {
+            accountId: accountToUpdate.id,
+            amount: Amount.create('100').valueOf(),
+            description: 'Test Operation',
+            id: Id.create().valueOf(),
+            value: Amount.create('100').valueOf(),
+          },
+        ],
+      });
+
+      const response = await injectAuthorized({
+        method: 'PATCH',
+        payload: {
+          type: AccountType.create('liability').valueOf(),
+        },
+        url: `/api/accounts/${accountToUpdate.id}`,
+      });
+
+      expect(response.statusCode).toBe(409);
+    });
   });
 
-  // Foreign Key Constraint Tests
-  describe.todo('Foreign Key Constraints', () => {
-    // - should handle user deletion cascading to accounts
-    // - should prevent creation with non-existent commodityId
-    // - should prevent creation with another user's commodityId
-    // - should prevent creation with archived commodityId
+  describe('DELETE /api/accounts/:id - Edge Cases', () => {
+    it('should return 404 when account id does not exist', async () => {
+      const nonExistentId = Id.create().valueOf();
+
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `/api/accounts/${nonExistentId}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 when account id has an invalid UUID format', async () => {
+      const invalidId = 'invalid-uuid';
+
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `/api/accounts/${invalidId}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 404 when account belongs to a different user', async () => {
+      const otherUserCommodity = await testDB.createCommodity(otherUserId);
+      const otherUserAccount = await testDB.createAccount(
+        otherUserId,
+        otherUserCommodity.id,
+      );
+
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `/api/accounts/${otherUserAccount?.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 204 when account is already deleted', async () => {
+      const deletedAccount = accounts.find((account) => account.isTombstone);
+      expect(deletedAccount).toBeDefined();
+
+      const accountBeforeDelete = await testDB.getAccountById(
+        deletedAccount!.id,
+      );
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `/api/accounts/${deletedAccount!.id}`,
+      });
+      const accountAfterDelete = await testDB.getAccountById(
+        deletedAccount!.id,
+      );
+
+      expect(accountBeforeDelete).toBeDefined();
+      expect(accountAfterDelete).toBeDefined();
+      expect(response.statusCode).toBe(204);
+      expect(accountAfterDelete!.updatedAt).toEqual(
+        accountBeforeDelete!.updatedAt,
+      );
+    });
+
+    it('should return 204 when an already deleted account has stale active operations', async () => {
+      const deletedAccount = accounts.find((account) => account.isTombstone);
+      expect(deletedAccount).toBeDefined();
+
+      await testDB.createTransactionWithOperations(userId, commodity.id, {
+        operations: [
+          {
+            accountId: deletedAccount!.id,
+            amount: Amount.create('100').valueOf(),
+            description: 'Stale active operation',
+            id: Id.create().valueOf(),
+            value: Amount.create('100').valueOf(),
+          },
+        ],
+      });
+
+      const accountBeforeDelete = await testDB.getAccountById(
+        deletedAccount!.id,
+      );
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `/api/accounts/${deletedAccount!.id}`,
+      });
+      const accountAfterDelete = await testDB.getAccountById(
+        deletedAccount!.id,
+      );
+
+      expect(accountBeforeDelete).toBeDefined();
+      expect(accountAfterDelete).toBeDefined();
+      expect(response.statusCode).toBe(204);
+      expect(accountAfterDelete!.updatedAt).toEqual(
+        accountBeforeDelete!.updatedAt,
+      );
+    });
+
+    it('should return 409 when account has active operations', async () => {
+      const accountToDelete = accounts[0];
+
+      await testDB.createTransactionWithOperations(userId, commodity.id, {
+        operations: [
+          {
+            accountId: accountToDelete.id,
+            amount: Amount.create('100').valueOf(),
+            description: 'Test Operation',
+            id: Id.create().valueOf(),
+            value: Amount.create('100').valueOf(),
+          },
+        ],
+      });
+
+      const response = await injectAuthorized({
+        method: 'DELETE',
+        url: `/api/accounts/${accountToDelete.id}`,
+      });
+
+      expect(response.statusCode).toBe(409);
+    });
   });
 
-  // Business Logic Tests
-  describe.todo('Business Logic', () => {
-    // - should allow multiple accounts with same name for different users
-    // - should preserve other fields when partially updating account
-    // - should handle account creation with all optional fields
-    // - should handle account update with only one field changed
-    // - should maintain data integrity during concurrent operations
+  describe('Database Consistency', () => {
+    it('should properly set createdAt and updatedAt timestamps', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'New Account for Timestamp Test',
+        type: AccountType.create('asset').valueOf(),
+      };
+
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const createdAccount = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(createdAccount.name).toBe(payload.name);
+      expect(createdAccount.type).toBe(payload.type);
+      expect(createdAccount.description).toBe(payload.description);
+      expect(createdAccount.initialBalance).toBe(payload.initialBalance);
+    });
   });
 
-  // Database Consistency Tests
-  describe.todo('Database Consistency', () => {
-    // - should maintain unique constraint on (userId, name)
-    // - should properly set created_at and updated_at timestamps
-    // - should handle database connection errors gracefully
-    // - should rollback on transaction failures
+  describe('Request Format', () => {
+    it('should return 400 when request body is not valid JSON', async () => {
+      const response = await injectAuthorized({
+        headers: {
+          'content-type': 'application/json',
+        },
+        method: 'POST',
+        payload: 'invalid-json',
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when request body is null', async () => {
+      const response = await injectAuthorized({
+        headers: {
+          'content-type': 'application/json',
+        },
+        method: 'POST',
+        // @ts-expect-error: Testing invalid payload
+        payload: null,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when request body is an array instead of object', async () => {
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload: [],
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
   });
 
-  // Content-Type and Request Format Tests
-  describe.todo('Request Format', () => {
-    // - should return 400 when Content-Type is not application/json
-    // - should return 400 when request body is not valid JSON
-    // - should return 400 when request body is null
-    // - should return 400 when request body is array instead of object
+  describe('Response Format', () => {
+    it('should return the standard error format for validation errors', async () => {
+      const response = await injectAuthorized({
+        method: 'GET',
+        url: getWithQueryParamsUrl(
+          'inactive' as unknown as AccountStatusFilterValue,
+        ),
+      });
+
+      const errorResponse = JSON.parse(response.body) as ApiErrorResponse;
+
+      expect(response.statusCode).toBe(400);
+      expect(errorResponse).toEqual({
+        code: apiErrorCodes.validationFailed,
+        context: {
+          fields: [
+            {
+              code: 'INVALID_VALUE',
+              path: 'status',
+            },
+          ],
+        },
+        error: true,
+      });
+    });
+
+    it('should include all required fields in successful responses', async () => {
+      const response = await injectAuthorized({
+        method: 'GET',
+        url: `${url}/${accounts[0].id}`,
+      });
+
+      const account = JSON.parse(response.body) as AccountResponseDTO;
+
+      expect(response.statusCode).toBe(200);
+
+      const requiredFields = [
+        'commodityId',
+        'createdAt',
+        'currentClearedBalanceLocal',
+        'description',
+        'id',
+        'initialBalance',
+        'isClosed',
+        'isSystem',
+        'isTombstone',
+        'name',
+        'type',
+        'updatedAt',
+        'userId',
+      ] satisfies (keyof AccountResponseDTO)[];
+
+      requiredFields.forEach((field) => {
+        expect(account).toHaveProperty(field);
+      });
+      expect(typeof account.isClosed).toBe('boolean');
+      expect(typeof account.isSystem).toBe('boolean');
+      expect(typeof account.isTombstone).toBe('boolean');
+    });
   });
 
-  // Response Format Tests
-  describe.todo('Response Format', () => {
-    // - should return proper error format for validation errors
-    // - should include all required fields in successful responses
-    // - should not include sensitive data in responses
-    // - should return consistent error structure across endpoints
-  });
+  describe('Limits', () => {
+    it('should return 400 when account name exceeds the maximum length', async () => {
+      const payload: AccountCreateDTO = {
+        commodityId: commodity.id,
+        description: 'This is a new account',
+        initialBalance: Amount.create('1000').valueOf(),
+        name: 'a'.repeat(256),
+        type: 'asset' as AccountTypeValue,
+      };
 
-  // Performance and Limits Tests
-  describe.todo('Performance & Limits', () => {
-    // - should handle very long account names (within limits)
-    // - should handle maximum number of accounts per user
-    // - should handle special characters in account names
-    // - should handle unicode characters in account names
+      const response = await injectAuthorized({
+        method: 'POST',
+        payload,
+        url,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
   });
 });

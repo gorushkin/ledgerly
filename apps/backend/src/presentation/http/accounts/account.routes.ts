@@ -6,7 +6,7 @@ export const accountsRoutes = (app: FastifyInstance) => {
   app.get('/', async (request) => {
     const user = request.user;
 
-    return await accountController.getAll(user);
+    return await accountController.getAll(user, request.query);
   });
 
   app.get('/:id', async (request) => {
@@ -25,9 +25,25 @@ export const accountsRoutes = (app: FastifyInstance) => {
   app.delete('/:id', async (request, reply) => {
     const user = request.user;
 
-    await accountController.archiveAccount(user, request.params);
+    await accountController.deleteAccount(user, request.params);
 
     reply.status(204).send();
+  });
+
+  app.post('/:id/close', async (request, reply) => {
+    const user = request.user;
+
+    const account = await accountController.closeAccount(user, request.params);
+
+    reply.status(200).send(account);
+  });
+
+  app.post('/:id/open', async (request, reply) => {
+    const user = request.user;
+
+    const account = await accountController.openAccount(user, request.params);
+
+    reply.status(200).send(account);
   });
 
   app.patch('/:id', async (request, reply) => {

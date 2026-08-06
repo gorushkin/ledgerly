@@ -189,4 +189,33 @@ export class OperationRepository
       },
     );
   }
+
+  async existsActiveByAccountId(
+    userId: UUID,
+    accountId: UUID,
+  ): Promise<boolean> {
+    return this.executeDatabaseOperation(
+      async () => {
+        const count = await this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(operationsTable)
+          .where(
+            and(
+              eq(operationsTable.userId, userId),
+              eq(operationsTable.accountId, accountId),
+              eq(operationsTable.isTombstone, false),
+            ),
+          )
+          .get();
+
+        return !!count && count.count > 0;
+      },
+      'OperationRepository.existsActiveByAccountId',
+      {
+        field: 'accountId',
+        tableName: 'operations',
+        value: accountId,
+      },
+    );
+  }
 }

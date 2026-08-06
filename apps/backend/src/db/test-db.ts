@@ -103,6 +103,7 @@ export class TestDB {
   commodityCounter = new Counter('commodity');
   operationCounter = new Counter('operation');
   userCounter = new Counter('user');
+  accountCounter = new Counter('account');
   private testDbFile?: string;
   private client?: ReturnType<typeof createClient>;
 
@@ -393,12 +394,14 @@ export class TestDB {
       name?: string;
       precision?: CommodityPrecisionNumber;
       isTombstone?: boolean;
+      isClosed?: boolean;
     },
   ): Promise<CommodityDbRow> => {
     const nextName = this.commodityCounter.getNextName({ delimiter: '' });
 
     const commodityData = {
       code: params?.code ?? CommodityCode.create(`COM${nextName}`).valueOf(),
+      isClosed: params?.isClosed ?? false,
       isTombstone: params?.isTombstone ?? false,
       name: params?.name ?? `Commodity ${nextName}`,
       precision: params?.precision ?? 2,
@@ -416,6 +419,7 @@ export class TestDB {
         userId: commodityData.userId,
         ...TestDB.createTimestamps,
         ...TestDB.uuid,
+        isClosed: commodityData.isClosed,
         isTombstone: commodityData.isTombstone,
       })
       .returning()
@@ -433,13 +437,17 @@ export class TestDB {
       initialBalance?: AmountString;
       description?: string;
       isSystem?: boolean;
+      isTombstone?: boolean;
+      isClosed?: boolean;
     },
   ) => {
     const accountData = {
       description: '',
       initialBalance: Amount.create('0').valueOf(),
+      isClosed: false,
       isSystem: false,
-      name: 'Test Account',
+      isTombstone: false,
+      name: `Test Account ${this.accountCounter.getNextName()}`,
       type: ACCOUNT_TYPES[0],
       ...params,
       userId,
@@ -452,7 +460,8 @@ export class TestDB {
         currentClearedBalanceLocal: accountData.initialBalance ?? 0,
         description: accountData.description || '',
         initialBalance: accountData.initialBalance ?? 0,
-        isTombstone: false,
+        isClosed: accountData.isClosed ?? false,
+        isTombstone: accountData.isTombstone ?? false,
         name: accountData.name,
         type: accountData.type,
         userId: accountData.userId,
@@ -466,44 +475,16 @@ export class TestDB {
     return account;
   };
 
-  // createCommodity = async (
-  //   userId: UUID,
-  //   params?: {
-  //     code?: CommodityCodeString;
-  //     symbol?: CommoditySymbolString;
-  //     name?: string;
-  //     precision?: CommodityPrecisionNumber;
-  //     isTombstone?: boolean;
-  //   },
-  // ) => {
-  //   const nextName = this.commodityCounter.getNextName({ delimiter: '' });
+  getAccountById = async (accountId: UUID) => {
+    const account = await this.db
+      .select()
+      .from(accountsTable)
+      .where(sql`${accountsTable.id} = ${accountId}  `)
 
-  //   const commodityData = {
-  //     code: params?.code ?? CommodityCode.create(`COM${nextName}`).valueOf(),
-  //     isTombstone: params?.isTombstone ?? false,
-  //     name: params?.name ?? `Commodity ${nextName}`,
-  //     precision: params?.precision ?? 2,
-  //     symbol: params?.symbol ?? `${nextName}`,
-  //     userId,
-  //   };
+      .get();
 
-  //   const commodity = await this.db
-  //     .insert(schema.commoditiesTable)
-  //     .values({
-  //       code: commodityData.code,
-  //       name: commodityData.name,
-  //       precision: commodityData.precision,
-  //       symbol: commodityData.symbol,
-  //       userId: commodityData.userId,
-  //       ...TestDB.createTimestamps,
-  //       ...TestDB.uuid,
-  //       isTombstone: commodityData.isTombstone,
-  //     })
-  //     .returning()
-  //     .get();
-
-  //   return commodity;
-  // };
+    return account ?? null;
+  };
 
   insertCommodity = async (commodityData: CommodityDbInsert) => {
     const insertedCommodity = await this.db
@@ -753,5 +734,17 @@ export class TestDB {
     return await this.db.query.commoditiesTable.findMany({
       where: eq(commoditiesTable.userId, userId),
     });
+  };
+
+  deleteCommodityById = async (commodityId: UUID) => {
+    return await this.db
+      .delete(commoditiesTable)
+      .where(eq(commoditiesTable.id, commodityId));
+  };
+
+  deleteAccountById = async (accountId: UUID) => {
+    return await this.db
+      .delete(accountsTable)
+      .where(eq(accountsTable.id, accountId));
   };
 }

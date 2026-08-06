@@ -18,6 +18,7 @@ export type AccountSnapshot = {
   initialBalance: AmountString;
   isSystem: boolean;
   isTombstone: boolean;
+  isClosed: boolean;
   name: string;
   type: AccountTypeValue;
   updatedAt: IsoDatetimeString;

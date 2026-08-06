@@ -54,6 +54,52 @@ export class UnauthorizedAccessError extends CodedApplicationError<'UNAUTHORIZED
 }
 
 /**
+ * Thrown when an account cannot be deleted because it still has active operations.
+ */
+export class AccountHasActiveOperationsError extends CodedApplicationError<'ACCOUNT_HAS_ACTIVE_OPERATIONS'> {
+  constructor(
+    accountId: ErrorContextByCode['ACCOUNT_HAS_ACTIVE_OPERATIONS']['accountId'],
+  ) {
+    super(
+      `Cannot delete account ${accountId} because it has active operations.`,
+      apiErrorCodes.accountHasActiveOperations,
+      { accountId },
+    );
+  }
+}
+
+/**
+ * Thrown when a closed commodity is used for a new active reference.
+ */
+export class CommodityClosedError extends CodedApplicationError<'CLOSED_COMMODITY_REFERENCE'> {
+  constructor(
+    commodityId: ErrorContextByCode['CLOSED_COMMODITY_REFERENCE']['commodityId'],
+    operation: ErrorContextByCode['CLOSED_COMMODITY_REFERENCE']['operation'],
+  ) {
+    super(
+      `Cannot ${operation} with closed commodity ${commodityId}.`,
+      apiErrorCodes.closedCommodityReference,
+      { commodityId, operation },
+    );
+  }
+}
+
+/**
+ * Thrown when a commodity cannot be deleted because it is still referenced.
+ */
+export class CommodityHasActiveReferencesError extends CodedApplicationError<'COMMODITY_HAS_ACTIVE_REFERENCES'> {
+  constructor(
+    commodityId: ErrorContextByCode['COMMODITY_HAS_ACTIVE_REFERENCES']['commodityId'],
+  ) {
+    super(
+      `Cannot delete commodity ${commodityId} because it has active references.`,
+      apiErrorCodes.commodityHasActiveReferences,
+      { commodityId },
+    );
+  }
+}
+
+/**
  * A deliberately non-specific authentication failure.
  *
  * The diagnostic message may distinguish internal causes, but the public

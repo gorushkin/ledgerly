@@ -1,11 +1,16 @@
+import { z } from "zod";
+
 import {
-  CommodityCodeString,
-  CommodityPrecisionNumber,
-  CommoditySymbolString,
-  IsoDatetimeString,
-  RequiredText,
-  UUID,
-} from "./types";
+  commodityCode,
+  commodityPrecision,
+  commoditySymbol,
+} from "../validation";
+
+import { IsoDatetimeString, RequiredText, UUID } from "./types";
+
+export type CommodityCodeString = z.infer<typeof commodityCode>;
+export type CommodityPrecisionNumber = z.infer<typeof commodityPrecision>;
+export type CommoditySymbolString = z.infer<typeof commoditySymbol>;
 
 export type CommodityCreateDTO = {
   code: CommodityCodeString;
@@ -18,6 +23,7 @@ export type CommodityResponseDTO = {
   code: CommodityCodeString;
   createdAt: IsoDatetimeString;
   id: UUID;
+  isClosed: boolean;
   isTombstone: boolean;
   name: RequiredText;
   precision: CommodityPrecisionNumber;

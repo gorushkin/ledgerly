@@ -42,8 +42,8 @@ The Commodity model is:
 - `code` is unique only within one user's Commodity registry;
 - `precision` defines integer minor-unit interpretation and is immutable after
   Commodity creation in the MVP;
-- Commodity supports user-facing archiving through technical `isTombstone`
-  state.
+- Commodity supports reversible closing through `isClosed` and terminal
+  tombstone deletion through `isTombstone`.
 
 Domain references should move from currency strings to Commodity ids:
 
@@ -62,11 +62,11 @@ removed during the Commodity migration rather than implemented on top of the old
 model.
 
 The public HTTP API exposes Commodity terminology through `/commodities`.
-`GET /commodities` defaults to active Commodities and accepts
-`status=active|archived|all`. `GET /commodities/:id` returns both active and
-archived Commodities owned by the authenticated user. Archived Commodities remain
-readable, but `PATCH /commodities/:id` and `DELETE /commodities/:id` operate only
-on active Commodities.
+`GET /commodities` defaults to open Commodities and accepts
+`status=open|closed|all`. `GET /commodities/:id` returns non-tombstoned
+Commodities owned by the authenticated user. Closed Commodities remain readable
+and editable, but cannot be selected for new account references until opened
+again.
 
 The MVP explicitly excludes global reference assets, market data providers,
 exchange-rate history, automatic conversion, and network/contract metadata.
@@ -110,14 +110,14 @@ Those can be introduced by later ADRs if needed.
   allowed after creation.
 - Transaction creation must require `commodityId`, the transaction Commodity.
 - The validation boundary for Commodity-backed account and transaction writes is
-  defined separately in ADR 0019.
+  defined separately in ADR 0021.
 - Existing API and DTO surfaces may need compatibility fields while data and
   clients migrate from currency strings to Commodity ids.
 - Amount validation should use Commodity precision rather than assuming all
   amounts have two decimal places.
-- Commodity API clients can request active, archived, or all Commodities
-  explicitly. Archived Commodity records stay visible by id for audit and
-  reference continuity, but cannot be edited or archived again.
+- Commodity API clients can request open, closed, or all non-tombstoned
+  Commodities explicitly. Closed Commodity records stay visible by id for audit
+  and reference continuity, but cannot be selected for new account references.
 
 ## Related
 
@@ -130,10 +130,11 @@ Those can be introduced by later ADRs if needed.
 - [LED-68: Move Account to immutable Commodity reference](https://gorushkin.atlassian.net/browse/LED-68)
 - [LED-110: Add Commodity use cases and HTTP API](https://gorushkin.atlassian.net/browse/LED-110)
 - [LED-111: Move transaction valuation to Commodity reference](https://gorushkin.atlassian.net/browse/LED-111)
-- [LED-69: Validate Commodity existence, ownership, and archive state](https://gorushkin.atlassian.net/browse/LED-69)
+- [LED-69: Validate Commodity existence, ownership, and lifecycle state](https://gorushkin.atlassian.net/browse/LED-69)
 - [LED-105: Remove `/currencies` endpoint stub](https://gorushkin.atlassian.net/browse/LED-105)
 - [LED-70: Replace LED-47 validation with Commodity validation](https://gorushkin.atlassian.net/browse/LED-70)
 - [ADR 0019: Repository-Enforced Commodity Reference Validation](./0019-repository-enforced-commodity-reference-validation.md)
+- [ADR 0021: Split Commodity Reference Business Policy From Persistence Integrity](./0021-split-commodity-reference-business-policy-from-persistence-integrity.md)
 - [Multicurrency Design](../../MULTICURRENCY_DESIGN.md)
 - [Domain Model](../../DOMAIN.md)
 - [Database Schema](../../DATABASE_SCHEMA.md)

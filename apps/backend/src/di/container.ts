@@ -3,10 +3,12 @@ import {
   GetCommodityByIdUseCase,
   LoginUserUseCase,
   RegisterUserUseCase,
+  CloseAccountUseCase,
   CreateAccountUseCase,
-  ArchiveAccountUseCase,
+  DeleteAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
+  OpenAccountUseCase,
   UpdateAccountUseCase,
   DeleteTransactionUseCase,
   GetAllTransactionsUseCase,
@@ -14,10 +16,16 @@ import {
   UpdateTransactionUseCase,
   CreateTransactionUseCase,
   UpdateCommodityUseCase,
-  ArchiveCommodityUseCase,
+  DeleteCommodityUseCase,
   CreateCommodityUseCase,
+  CloseCommodityUseCase,
+  OpenCommodityUseCase,
 } from 'src/application';
-import { TransactionContextLoader } from 'src/application/services/TransactionService';
+import {
+  AccountOperationPolicy,
+  CommodityReferencePolicy,
+  TransactionContextLoader,
+} from 'src/application/services';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { DataBase } from 'src/db';
@@ -62,6 +70,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const repositories: AppContainer['repositories'] = {
     account: accountRepository,
     commodity: commodityRepository,
+    operation: operationRepository,
     transaction: transactionRepository,
     transactionQuery: transactionQueryRepository,
     user: userRepository,
@@ -73,6 +82,16 @@ export const createContainer = (db: DataBase): AppContainer => {
     accountRepository,
   );
 
+  const accountOperationPolicy = new AccountOperationPolicy(
+    operationRepository,
+  );
+
+  const commodityReferencePolicy = new CommodityReferencePolicy(
+    commodityRepository,
+    accountRepository,
+    transactionRepository,
+  );
+
   const passwordManager = new PasswordManager();
 
   const services: AppContainer['services'] = {
@@ -80,11 +99,32 @@ export const createContainer = (db: DataBase): AppContainer => {
   };
 
   // Create Account Use Cases
-  const createAccountUseCase = new CreateAccountUseCase(accountRepository);
+  const createAccountUseCase = new CreateAccountUseCase(
+    accountRepository,
+    transactionManager,
+    commodityReferencePolicy,
+  );
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
-  const updateAccountUseCase = new UpdateAccountUseCase(accountRepository);
-  const archiveAccountUseCase = new ArchiveAccountUseCase(accountRepository);
+  const updateAccountUseCase = new UpdateAccountUseCase(
+    accountRepository,
+    accountOperationPolicy,
+    transactionManager,
+  );
+  const deleteAccountUseCase = new DeleteAccountUseCase(
+    accountRepository,
+    accountOperationPolicy,
+    transactionManager,
+    ensureOwnedSnapshot,
+  );
+  const closeAccountUseCase = new CloseAccountUseCase(
+    accountRepository,
+    transactionManager,
+  );
+  const openAccountUseCase = new OpenAccountUseCase(
+    accountRepository,
+    transactionManager,
+  );
 
   const loginUserUseCase = new LoginUserUseCase(userRepository);
 
@@ -129,15 +169,30 @@ export const createContainer = (db: DataBase): AppContainer => {
   const updateCommodityUseCase = new UpdateCommodityUseCase(
     commodityRepository,
     ensureOwnedSnapshot,
+    transactionManager,
   );
 
-  const archiveCommodityUseCase = new ArchiveCommodityUseCase(
+  const deleteCommodityUseCase = new DeleteCommodityUseCase(
     commodityRepository,
     ensureOwnedSnapshot,
+    commodityReferencePolicy,
+    transactionManager,
   );
 
   const createCommodityUseCase = new CreateCommodityUseCase(
     commodityRepository,
+  );
+
+  const closeCommodityUseCase = new CloseCommodityUseCase(
+    commodityRepository,
+    ensureOwnedSnapshot,
+    transactionManager,
+  );
+
+  const openCommodityUseCase = new OpenCommodityUseCase(
+    commodityRepository,
+    ensureOwnedSnapshot,
+    transactionManager,
   );
 
   const commodityController = new CommodityController(
@@ -145,15 +200,19 @@ export const createContainer = (db: DataBase): AppContainer => {
     getAllCommoditiesUseCase,
     createCommodityUseCase,
     updateCommodityUseCase,
-    archiveCommodityUseCase,
+    deleteCommodityUseCase,
+    closeCommodityUseCase,
+    openCommodityUseCase,
   );
 
   const useCases: AppContainer['useCases'] = {
     account: {
-      archiveAccount: archiveAccountUseCase,
+      closeAccount: closeAccountUseCase,
       createAccount: createAccountUseCase,
+      deleteAccount: deleteAccountUseCase,
       getAccountById: getAccountByIdUseCase,
       getAllAccounts: getAllAccountsUseCase,
+      openAccount: openAccountUseCase,
       updateAccount: updateAccountUseCase,
     },
     auth: {
@@ -161,10 +220,12 @@ export const createContainer = (db: DataBase): AppContainer => {
       registerUser: registerUserUseCase,
     },
     commodity: {
-      archiveCommodity: archiveCommodityUseCase,
+      closeCommodity: closeCommodityUseCase,
       createCommodity: createCommodityUseCase,
+      deleteCommodity: deleteCommodityUseCase,
       getAllCommodities: getAllCommoditiesUseCase,
       getCommodityById: getCommodityByIdUseCase,
+      openCommodity: openCommodityUseCase,
       updateCommodity: updateCommodityUseCase,
     },
     transaction: {
@@ -181,7 +242,9 @@ export const createContainer = (db: DataBase): AppContainer => {
     useCases.account.getAllAccounts,
     useCases.account.createAccount,
     useCases.account.updateAccount,
-    useCases.account.archiveAccount,
+    useCases.account.deleteAccount,
+    useCases.account.closeAccount,
+    useCases.account.openAccount,
   );
 
   const userController = new UserController();

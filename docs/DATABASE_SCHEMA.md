@@ -36,6 +36,7 @@ erDiagram
         string name
         string symbol "nullable"
         integer precision
+        boolean isClosed
         boolean isTombstone
         timestamp createdAt
         timestamp updatedAt
@@ -49,6 +50,7 @@ erDiagram
         string description
         integer initialBalance
         integer currentClearedBalanceLocal
+        boolean isClosed
         boolean isSystem
         boolean isTombstone
         uuid userId FK
@@ -111,14 +113,14 @@ erDiagram
 
 Base entity for authentication and authorization.
 
-| Field | Type | Description | Constraints |
-|------|-----|----------|-------------|
-| `id` | UUID | Primary key | PK, NOT NULL |
-| `email` | String | User email | UNIQUE, NOT NULL |
-| `name` | String | User name | NOT NULL |
-| `password` | String | Hashed password | NOT NULL |
-| `createdAt` | Timestamp | Creation date | NOT NULL |
-| `updatedAt` | Timestamp | Last update date | NOT NULL |
+| Field       | Type      | Description      | Constraints      |
+| ----------- | --------- | ---------------- | ---------------- |
+| `id`        | UUID      | Primary key      | PK, NOT NULL     |
+| `email`     | String    | User email       | UNIQUE, NOT NULL |
+| `name`      | String    | User name        | NOT NULL         |
+| `password`  | String    | Hashed password  | NOT NULL         |
+| `createdAt` | Timestamp | Creation date    | NOT NULL         |
+| `updatedAt` | Timestamp | Last update date | NOT NULL         |
 
 **Relations:**
 
@@ -134,21 +136,24 @@ Base entity for authentication and authorization.
 
 User-owned monetary units used by accounts and transactions.
 
-| Field | Type | Description | Constraints |
-|------|-----|----------|-------------|
-| `id` | UUID | Stable Commodity identity | PK, NOT NULL |
-| `userId` | UUID | Commodity owner | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
-| `code` | String | User-visible display/search code | NOT NULL, unique per user |
-| `name` | String | Display name | NOT NULL |
-| `symbol` | String | Optional display symbol | NULLABLE |
-| `precision` | Integer | Minor-unit scale for integer amounts | NOT NULL, immutable after creation |
-| `isTombstone` | Boolean | Technical soft delete flag | NOT NULL, default: false |
-| `createdAt` | Timestamp | Creation date | NOT NULL |
-| `updatedAt` | Timestamp | Last update date | NOT NULL |
+| Field         | Type      | Description                          | Constraints                                   |
+| ------------- | --------- | ------------------------------------ | --------------------------------------------- |
+| `id`          | UUID      | Stable Commodity identity            | PK, NOT NULL                                  |
+| `userId`      | UUID      | Commodity owner                      | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
+| `code`        | String    | User-visible display/search code     | NOT NULL, unique per user                     |
+| `name`        | String    | Display name                         | NOT NULL                                      |
+| `symbol`      | String    | Optional display symbol              | NULLABLE                                      |
+| `precision`   | Integer   | Minor-unit scale for integer amounts | NOT NULL, immutable after creation            |
+| `isClosed`    | Boolean   | Reversible Commodity close state     | NOT NULL, default: false                      |
+| `isTombstone` | Boolean   | Terminal tombstone delete flag       | NOT NULL, default: false                      |
+| `createdAt`   | Timestamp | Creation date                        | NOT NULL                                      |
+| `updatedAt`   | Timestamp | Last update date                     | NOT NULL                                      |
 
 **Constraints:**
 
 - `UNIQUE(userId, code)` through `commodities_user_id_code_unique_idx`.
+- `UNIQUE(userId, id)` through `commodities_user_id_id_unique_idx`; used by
+  same-user composite foreign keys.
 
 **Relations:**
 
@@ -161,8 +166,15 @@ User-owned monetary units used by accounts and transactions.
 - Commodity identity is `id`, not `code`.
 - Predefined currencies such as `USD`, `EUR`, and `RUB` are ordinary per-user
   Commodity records when created.
+- `isClosed` and `isTombstone` are separate lifecycle axes. Closed Commodities
+  are historical, reversible records; tombstoned Commodities are hidden from
+  normal reads and cannot be restored.
+- `GET /commodities` filters use `status=open|closed|all` and always exclude
+  tombstoned Commodities.
+- Closed Commodities cannot be selected for new account references until opened
+  again.
 - The MVP does not include global Commodity records, `ReferenceAsset`, market
-  rates, provider metadata, automatic conversion, or Commodity archiving.
+  rates, provider metadata or automatic conversion.
 
 ---
 
@@ -170,24 +182,27 @@ User-owned monetary units used by accounts and transactions.
 
 User's financial accounts for tracking funds.
 
-| Field | Type | Description | Constraints |
-|------|-----|----------|-------------|
-| `id` | UUID | Primary key | PK, NOT NULL |
-| `commodityId` | UUID | Account Commodity | FK -> `commodities.id`, NOT NULL |
-| `name` | String | Account name | NOT NULL |
-| `type` | Enum | Account type | `Asset\|Liability\|Income\|Expense` |
-| `description` | String | Account description | NOT NULL |
-| `initialBalance` | Integer | Initial balance in minor units | NOT NULL, default: 0 |
-| `currentClearedBalanceLocal` | Integer | Current local balance in minor units | NOT NULL, default: 0 |
-| `isSystem` | Boolean | Reserved system account flag | NOT NULL, default: false |
-| `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
-| `userId` | UUID | Account owner | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
-| `createdAt` | Timestamp | Creation date | NOT NULL |
-| `updatedAt` | Timestamp | Last update date | NOT NULL |
+| Field                        | Type      | Description                          | Constraints                                                       |
+| ---------------------------- | --------- | ------------------------------------ | ----------------------------------------------------------------- |
+| `id`                         | UUID      | Primary key                          | PK, NOT NULL                                                      |
+| `commodityId`                | UUID      | Account Commodity                    | Composite FK with `userId` -> `commodities(userId, id)`, NOT NULL |
+| `name`                       | String    | Account name                         | NOT NULL                                                          |
+| `type`                       | Enum      | Account type                         | `Asset\|Liability\|Income\|Expense`                               |
+| `description`                | String    | Account description                  | NOT NULL                                                          |
+| `initialBalance`             | Integer   | Initial balance in minor units       | NOT NULL, default: 0                                              |
+| `currentClearedBalanceLocal` | Integer   | Current local balance in minor units | NOT NULL, default: 0                                              |
+| `isClosed`                   | Boolean   | Reversible account close state       | NOT NULL, default: false                                          |
+| `isSystem`                   | Boolean   | Reserved system account flag         | NOT NULL, default: false                                          |
+| `isTombstone`                | Boolean   | Terminal tombstone delete flag       | NOT NULL, default: false                                          |
+| `userId`                     | UUID      | Account owner                        | FK -> `users.id`, NOT NULL, ON DELETE CASCADE                     |
+| `createdAt`                  | Timestamp | Creation date                        | NOT NULL                                                          |
+| `updatedAt`                  | Timestamp | Last update date                     | NOT NULL                                                          |
 
 **Constraints:**
 
 - `UNIQUE(userId, name)` through `user_id_name_unique_idx`.
+- `FOREIGN KEY(userId, commodityId)` references `commodities(userId, id)` to
+  prevent cross-user Commodity references.
 
 **Relations:**
 
@@ -200,6 +215,13 @@ User's financial accounts for tracking funds.
 - Account Commodity is immutable after account creation.
 - Money amounts are stored as integer minor units to avoid floating-point
   issues.
+- `isClosed` and `isTombstone` are separate lifecycle axes. Closed accounts are
+  historical, reversible records; tombstoned accounts are hidden from normal
+  reads and cannot be restored.
+- `GET /accounts` filters use `status=open|closed|all` and always exclude
+  tombstoned accounts.
+- Terminal account delete is allowed only when no active operations reference the
+  account.
 - System accounts are reserved for future trading-account support.
 
 ---
@@ -208,18 +230,18 @@ User's financial accounts for tracking funds.
 
 Top-level grouping of related financial events.
 
-| Field | Type | Description | Constraints |
-|------|-----|----------|-------------|
-| `id` | UUID | Primary key | PK, NOT NULL |
-| `commodityId` | UUID | Transaction Commodity that denominates operation `value` fields | FK -> `commodities.id`, NOT NULL |
-| `description` | String | Transaction description | NOT NULL |
-| `transactionDate` | Date | Transaction date | NOT NULL |
-| `postingDate` | Date | Posting date | NOT NULL |
-| `version` | Integer | Optimistic concurrency version | NOT NULL, default: 0 |
-| `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
-| `userId` | UUID | Transaction owner | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
-| `createdAt` | Timestamp | Creation date | NOT NULL |
-| `updatedAt` | Timestamp | Last update date | NOT NULL |
+| Field             | Type      | Description                                                     | Constraints                                   |
+| ----------------- | --------- | --------------------------------------------------------------- | --------------------------------------------- |
+| `id`              | UUID      | Primary key                                                     | PK, NOT NULL                                  |
+| `commodityId`     | UUID      | Transaction Commodity that denominates operation `value` fields | FK -> `commodities.id`, NOT NULL              |
+| `description`     | String    | Transaction description                                         | NOT NULL                                      |
+| `transactionDate` | Date      | Transaction date                                                | NOT NULL                                      |
+| `postingDate`     | Date      | Posting date                                                    | NOT NULL                                      |
+| `version`         | Integer   | Optimistic concurrency version                                  | NOT NULL, default: 0                          |
+| `isTombstone`     | Boolean   | Soft delete flag                                                | NOT NULL, default: false                      |
+| `userId`          | UUID      | Transaction owner                                               | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
+| `createdAt`       | Timestamp | Creation date                                                   | NOT NULL                                      |
+| `updatedAt`       | Timestamp | Last update date                                                | NOT NULL                                      |
 
 **Relations:**
 
@@ -244,19 +266,19 @@ Top-level grouping of related financial events.
 
 Individual financial postings affecting accounts.
 
-| Field | Type | Description | Constraints |
-|------|-----|----------|-------------|
-| `id` | UUID | Primary key | PK, NOT NULL |
-| `transactionId` | UUID | Parent transaction | FK -> `transactions.id`, NOT NULL, ON DELETE CASCADE |
-| `accountId` | UUID | Affected account | FK -> `accounts.id`, NOT NULL, ON DELETE RESTRICT |
-| `amount` | Integer | Amount in the account's Commodity minor units | NOT NULL |
-| `value` | Integer | Amount in the transaction Commodity minor units | NOT NULL |
-| `description` | String | Operation description | NOT NULL |
-| `isSystem` | Boolean | Reserved system operation flag | NOT NULL, default: false |
-| `isTombstone` | Boolean | Soft delete flag | NOT NULL, default: false |
-| `userId` | UUID | Operation owner | FK -> `users.id`, NOT NULL, ON DELETE CASCADE |
-| `createdAt` | Timestamp | Creation date | NOT NULL |
-| `updatedAt` | Timestamp | Last update date | NOT NULL |
+| Field           | Type      | Description                                     | Constraints                                          |
+| --------------- | --------- | ----------------------------------------------- | ---------------------------------------------------- |
+| `id`            | UUID      | Primary key                                     | PK, NOT NULL                                         |
+| `transactionId` | UUID      | Parent transaction                              | FK -> `transactions.id`, NOT NULL, ON DELETE CASCADE |
+| `accountId`     | UUID      | Affected account                                | FK -> `accounts.id`, NOT NULL, ON DELETE RESTRICT    |
+| `amount`        | Integer   | Amount in the account's Commodity minor units   | NOT NULL                                             |
+| `value`         | Integer   | Amount in the transaction Commodity minor units | NOT NULL                                             |
+| `description`   | String    | Operation description                           | NOT NULL                                             |
+| `isSystem`      | Boolean   | Reserved system operation flag                  | NOT NULL, default: false                             |
+| `isTombstone`   | Boolean   | Soft delete flag                                | NOT NULL, default: false                             |
+| `userId`        | UUID      | Operation owner                                 | FK -> `users.id`, NOT NULL, ON DELETE CASCADE        |
+| `createdAt`     | Timestamp | Creation date                                   | NOT NULL                                             |
+| `updatedAt`     | Timestamp | Last update date                                | NOT NULL                                             |
 
 **Relations:**
 
@@ -284,11 +306,11 @@ Individual financial postings affecting accounts.
 
 User application settings.
 
-| Field | Type | Description | Constraints |
-|------|-----|----------|-------------|
-| `userId` | UUID | User | FK -> `users.id`, NOT NULL |
-| `createdAt` | Timestamp | Creation date | NOT NULL |
-| `updatedAt` | Timestamp | Last update date | NOT NULL |
+| Field       | Type      | Description      | Constraints                |
+| ----------- | --------- | ---------------- | -------------------------- |
+| `userId`    | UUID      | User             | FK -> `users.id`, NOT NULL |
+| `createdAt` | Timestamp | Creation date    | NOT NULL                   |
+| `updatedAt` | Timestamp | Last update date | NOT NULL                   |
 
 **Relations:**
 
@@ -337,9 +359,10 @@ USERS (root entity)
 
 ### Data Integrity
 
-1. **User ownership**: accounts and transactions may reference only active
-   Commodities owned by the same user. Write repositories enforce this check
-   immediately before persisting Commodity-backed references.
+1. **User ownership**: user-owned records must not reference entities owned by
+   another user. Account-to-Commodity ownership is enforced with a composite
+   foreign key. Additional same-user composite foreign keys for transaction and
+   operation relations are tracked by LED-132.
 2. **Required relations**: each operation must have a transaction and account.
 3. **Soft deletes**: entities use `isTombstone` where the deletion must be
    retained in storage.
@@ -371,4 +394,4 @@ All schemas are exported through `apps/backend/src/db/schema.ts`.
 
 ---
 
-*Last updated: July 23, 2026*
+_Last updated: July 23, 2026_

@@ -23,3 +23,6 @@ data/sqlite.db
 
 # TypeScript build info
 tsconfig.tsbuildinfo
+
+
+coverage

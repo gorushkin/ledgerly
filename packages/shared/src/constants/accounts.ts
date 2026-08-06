@@ -1,14 +1,15 @@
-import { AccountTypeValue } from "../types";
-export const ACCOUNT_TYPES: AccountTypeValue[] = [
+import type { AccountTypeValue } from "../types";
+
+export const ACCOUNT_TYPES = [
   "asset",
   "liability",
   "equity",
   "income",
   "expense",
   "currencyTrading",
-];
+] as const satisfies readonly AccountTypeValue[];
 
-export const ACCOUNT_TYPE_VALUES = ACCOUNT_TYPES.map((t) => t) as [
-  AccountTypeValue,
-  ...AccountTypeValue[],
-];
+export const ACCOUNT_STATUS_FILTER_VALUES = ["open", "closed", "all"] as const;
+
+export type AccountStatusFilterValue =
+  (typeof ACCOUNT_STATUS_FILTER_VALUES)[number];

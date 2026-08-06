@@ -4,9 +4,11 @@ import {
   LoginUserUseCase,
   RegisterUserUseCase,
   CreateAccountUseCase,
-  ArchiveAccountUseCase,
+  CloseAccountUseCase,
+  DeleteAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
+  OpenAccountUseCase,
   UpdateAccountUseCase,
   DeleteTransactionUseCase,
   GetAllTransactionsUseCase,
@@ -14,8 +16,10 @@ import {
   UpdateTransactionUseCase,
   CreateTransactionUseCase,
   UpdateCommodityUseCase,
-  ArchiveCommodityUseCase,
+  DeleteCommodityUseCase,
   CreateCommodityUseCase,
+  CloseCommodityUseCase,
+  OpenCommodityUseCase,
 } from 'src/application';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
@@ -25,6 +29,7 @@ import {
   TransactionRepository,
   CommodityRepository,
   UserRepository,
+  OperationRepository,
 } from 'src/infrastructure/db';
 import {
   AccountController,
@@ -40,6 +45,7 @@ type Repositories = {
   transactionQuery: TransactionQueryRepository;
   account: AccountRepository;
   user: UserRepository;
+  operation: OperationRepository;
 };
 
 type Services = {
@@ -47,11 +53,13 @@ type Services = {
 };
 
 type AccountUseCases = {
+  closeAccount: CloseAccountUseCase;
   createAccount: CreateAccountUseCase;
   getAllAccounts: GetAllAccountsUseCase;
   getAccountById: GetAccountByIdUseCase;
+  openAccount: OpenAccountUseCase;
   updateAccount: UpdateAccountUseCase;
-  archiveAccount: ArchiveAccountUseCase;
+  deleteAccount: DeleteAccountUseCase;
 };
 
 type AuthUseCases = {
@@ -68,11 +76,13 @@ type TransactionUseCases = {
 };
 
 type CommodityUseCases = {
+  closeCommodity: CloseCommodityUseCase;
+  createCommodity: CreateCommodityUseCase;
+  deleteCommodity: DeleteCommodityUseCase;
   getCommodityById: GetCommodityByIdUseCase;
   getAllCommodities: GetAllCommoditiesUseCase;
+  openCommodity: OpenCommodityUseCase;
   updateCommodity: UpdateCommodityUseCase;
-  archiveCommodity: ArchiveCommodityUseCase;
-  createCommodity: CreateCommodityUseCase;
 };
 
 type Controllers = {

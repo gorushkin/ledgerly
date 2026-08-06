@@ -4,11 +4,15 @@ import {
 } from '@ledgerly/shared/types';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
+  AccountHasActiveOperationsError,
+  CommodityHasActiveReferencesError,
   InvalidPasswordError,
   UserAlreadyExistsError,
   UserNotFoundError,
 } from 'src/application/application.errors';
+import { Id } from 'src/domain/domain-core';
 import {
+  AccountPersistenceConflictError,
   DatabaseError,
   DatabaseOperationError,
   ForbiddenAccessError,
@@ -87,6 +91,9 @@ describe('getValidationFieldErrorCode', () => {
 });
 
 describe('errorHandler', () => {
+  const accountId = Id.create().valueOf();
+  const commodityId = Id.create().valueOf();
+
   const handle = (error: Error) => {
     const { reply, response } = createReply();
 
@@ -114,26 +121,43 @@ describe('errorHandler', () => {
       new UserNotFoundError(),
       401,
       apiErrorCodes.authenticationFailed,
+      {},
     ],
     [
       'an invalid password',
       new InvalidPasswordError(),
       401,
       apiErrorCodes.authenticationFailed,
+      {},
     ],
     [
       'a duplicate registration',
       new UserAlreadyExistsError(),
       409,
       apiErrorCodes.registrationConflict,
+      {},
+    ],
+    [
+      'an account with active operations',
+      new AccountHasActiveOperationsError(accountId),
+      409,
+      apiErrorCodes.accountHasActiveOperations,
+      { accountId },
+    ],
+    [
+      'a commodity with active references',
+      new CommodityHasActiveReferencesError(commodityId),
+      409,
+      apiErrorCodes.commodityHasActiveReferences,
+      { commodityId },
     ],
   ])(
     'serializes %s through the generic coded-error path',
-    (_caseName, error, expectedStatus, expectedCode) => {
+    (_caseName, error, expectedStatus, expectedCode, expectedContext) => {
       expect(handle(error)).toEqual({
         payload: {
           code: expectedCode,
-          context: {},
+          context: expectedContext,
           error: true,
         },
         statusCode: expectedStatus,
@@ -221,6 +245,15 @@ describe('errorHandler', () => {
         error: true,
       },
       statusCode: 403,
+    });
+
+    expect(handle(new AccountPersistenceConflictError())).toEqual({
+      payload: {
+        code: apiErrorCodes.conflict,
+        context: {},
+        error: true,
+      },
+      statusCode: 409,
     });
   });
 

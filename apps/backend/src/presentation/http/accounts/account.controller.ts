@@ -1,13 +1,16 @@
 import {
   accountCreateSchema,
+  accountQuerySchema,
   accountUpdateSchema,
   uniqueIdSchema,
 } from '@ledgerly/shared/validation';
 import {
-  ArchiveAccountUseCase,
+  CloseAccountUseCase,
+  DeleteAccountUseCase,
   CreateAccountUseCase,
   GetAccountByIdUseCase,
   GetAllAccountsUseCase,
+  OpenAccountUseCase,
   UpdateAccountUseCase,
 } from 'src/application/usecases/accounts';
 import { User } from 'src/domain/users/user.entity';
@@ -18,11 +21,14 @@ export class AccountController {
     private readonly getAllAccountsUseCase: GetAllAccountsUseCase,
     private readonly createAccountUseCase: CreateAccountUseCase,
     private readonly updateAccountUseCase: UpdateAccountUseCase,
-    private readonly archiveAccountUseCase: ArchiveAccountUseCase,
+    private readonly deleteAccountUseCase: DeleteAccountUseCase,
+    private readonly closeAccountUseCase: CloseAccountUseCase,
+    private readonly openAccountUseCase: OpenAccountUseCase,
   ) {}
 
-  async getAll(user: User) {
-    return this.getAllAccountsUseCase.execute(user);
+  async getAll(user: User, query: unknown) {
+    const parsedQuery = accountQuerySchema.parse(query);
+    return this.getAllAccountsUseCase.execute(user, parsedQuery);
   }
 
   async getById(user: User, requestParams: unknown) {
@@ -44,9 +50,21 @@ export class AccountController {
     return this.updateAccountUseCase.execute(user, id, accountUpdateDto);
   }
 
-  async archiveAccount(user: User, requestParams: unknown) {
+  async deleteAccount(user: User, requestParams: unknown) {
     const { id } = uniqueIdSchema.parse(requestParams);
 
-    return this.archiveAccountUseCase.execute(user, id);
+    return this.deleteAccountUseCase.execute(user, id);
+  }
+
+  async closeAccount(user: User, requestParams: unknown) {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.closeAccountUseCase.execute(user, id);
+  }
+
+  async openAccount(user: User, requestParams: unknown) {
+    const { id } = uniqueIdSchema.parse(requestParams);
+
+    return this.openAccountUseCase.execute(user, id);
   }
 }
