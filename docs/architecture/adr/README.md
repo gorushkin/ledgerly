@@ -52,3 +52,4 @@
 - [ADR 0019: Repository-Enforced Commodity Reference Validation (Superseded)](./0019-repository-enforced-commodity-reference-validation.md)
 - [ADR 0020: Terminal Tombstone and Reversible Entity States](./0020-terminal-tombstone-and-reversible-entity-states.md)
 - [ADR 0021: Split Commodity Reference Business Policy From Persistence Integrity](./0021-split-commodity-reference-business-policy-from-persistence-integrity.md)
+- [ADR 0022: Remove system flags from account and operation contracts](./0022-remove-system-flags-from-account-and-operation-contracts.md)

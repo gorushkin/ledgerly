@@ -130,7 +130,6 @@ describe('TransactionRepository', () => {
             amount: operation.amount.valueOf(),
             description: operation.description,
             id: operation.getId().valueOf(),
-            isSystem: operation.isSystem,
             transactionId: operation.transactionId.valueOf(),
             value: operation.value.valueOf(),
           };
@@ -186,7 +185,6 @@ describe('TransactionRepository', () => {
         expect(operation.amount.valueOf()).toBe(
           matchingOperation?.amount.valueOf(),
         );
-        expect(operation.isSystem).toBe(matchingOperation?.isSystem);
         expect(operation.value.valueOf()).toBe(
           matchingOperation?.value.valueOf(),
         );

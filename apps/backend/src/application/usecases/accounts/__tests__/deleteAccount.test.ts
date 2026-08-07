@@ -11,7 +11,7 @@ import { AccountOperationPolicy } from 'src/application/services';
 import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { createUser } from 'src/db/createTestUser';
 import { AccountSnapshot } from 'src/domain/accounts';
-import { Amount, Timestamp } from 'src/domain/domain-core';
+import { Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -43,18 +43,14 @@ describe('DeleteAccountUseCase', async () => {
 
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = Amount.create('1000').valueOf();
   const accountType = 'asset';
 
   const mockAccountData: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currentClearedBalanceLocal: initialBalance,
     description,
     id: Id.create().valueOf(),
-    initialBalance,
     isClosed: false,
-    isSystem: false,
     isTombstone: false,
     name: accountName,
     type: accountType,

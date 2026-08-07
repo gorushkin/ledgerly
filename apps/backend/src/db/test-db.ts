@@ -257,7 +257,6 @@ export class TestDB {
         transactionId?: UUID;
         amount: AmountString;
         value: AmountString;
-        isSystem?: boolean;
         isTombstone?: boolean;
         id: UUID;
       }[];
@@ -302,7 +301,6 @@ export class TestDB {
         amount: Amount.create(operation.amount).valueOf(),
         description: operation.description,
         id: crypto.randomUUID() as UUID,
-        isSystem: false,
         isTombstone: operation.isTombstone ?? false,
         value: Amount.create(operation.value ?? operation.amount).valueOf(),
       })),
@@ -320,12 +318,10 @@ export class TestDB {
       id?: UUID;
       amount?: AmountString;
       value?: AmountString;
-      isSystem?: boolean;
       isTombstone?: boolean;
     },
   ) => {
     const operationData: OperationDbInsert = {
-      isSystem: params?.isSystem ?? false,
       ...TestDB.uuid,
       ...TestDB.createTimestamps,
       amount: params?.amount ?? Amount.create('1000').valueOf(),
@@ -434,18 +430,14 @@ export class TestDB {
     params?: {
       name?: string;
       type?: AccountTypeValue;
-      initialBalance?: AmountString;
       description?: string;
-      isSystem?: boolean;
       isTombstone?: boolean;
       isClosed?: boolean;
     },
   ) => {
     const accountData = {
       description: '',
-      initialBalance: Amount.create('0').valueOf(),
       isClosed: false,
-      isSystem: false,
       isTombstone: false,
       name: `Test Account ${this.accountCounter.getNextName()}`,
       type: ACCOUNT_TYPES[0],
@@ -457,9 +449,7 @@ export class TestDB {
       .insert(accountsTable)
       .values({
         commodityId,
-        currentClearedBalanceLocal: accountData.initialBalance ?? 0,
         description: accountData.description || '',
-        initialBalance: accountData.initialBalance ?? 0,
         isClosed: accountData.isClosed ?? false,
         isTombstone: accountData.isTombstone ?? false,
         name: accountData.name,
@@ -467,7 +457,6 @@ export class TestDB {
         userId: accountData.userId,
         ...TestDB.createTimestamps,
         ...TestDB.uuid,
-        isSystem: accountData.isSystem,
       })
       .returning()
       .get();

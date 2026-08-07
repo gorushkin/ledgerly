@@ -9,7 +9,7 @@ import {
   AccountUpdateProps,
   CreateAccountProps,
 } from 'src/domain/accounts';
-import { Amount, Id, Name } from 'src/domain/domain-core';
+import { Id, Name } from 'src/domain/domain-core';
 
 export class AccountMapper {
   static toResponseDTOFromSnapshot(
@@ -18,12 +18,9 @@ export class AccountMapper {
     return {
       commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
-      currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
       description: snapshot.description,
       id: snapshot.id,
-      initialBalance: snapshot.initialBalance,
       isClosed: snapshot.isClosed,
-      isSystem: snapshot.isSystem,
       isTombstone: snapshot.isTombstone,
       name: snapshot.name,
       type: snapshot.type,
@@ -35,7 +32,6 @@ export class AccountMapper {
     return {
       commodityId: Id.restore(dto.commodityId),
       description: dto.description,
-      initialBalance: Amount.create(dto.initialBalance),
       name: Name.create(dto.name),
       type: AccountType.create(dto.type),
     };

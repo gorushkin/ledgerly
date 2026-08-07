@@ -31,7 +31,6 @@ export class TransactionReadModelMapper {
       createdAt: operation.createdAt,
       description: operation.description,
       id: operation.id,
-      isSystem: operation.isSystem,
       transactionId: operation.transactionId,
       updatedAt: operation.updatedAt,
       userId: operation.userId,

@@ -9,7 +9,7 @@ import type {
 import { AccountMapper } from 'src/application/mappers';
 import { createUser } from 'src/db/createTestUser';
 import { AccountSnapshot } from 'src/domain/accounts';
-import { Amount, Timestamp } from 'src/domain/domain-core';
+import { Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,7 +41,6 @@ describe('OpenAccountUseCase', async () => {
 
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = Amount.create('1000').valueOf();
   const accountType = 'asset';
 
   const mockUser = {
@@ -54,12 +53,9 @@ describe('OpenAccountUseCase', async () => {
   const mockAccountData: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currentClearedBalanceLocal: initialBalance,
     description,
     id: Id.create().valueOf(),
-    initialBalance,
     isClosed: true,
-    isSystem: false,
     isTombstone: false,
     name: accountName,
     type: accountType,

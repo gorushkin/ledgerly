@@ -11,7 +11,6 @@ export type OperationReadModel = {
   createdAt: IsoDatetimeString;
   description: string;
   id: UUID;
-  isSystem: boolean;
   transactionId: UUID;
   updatedAt: IsoDatetimeString;
   userId: UUID;

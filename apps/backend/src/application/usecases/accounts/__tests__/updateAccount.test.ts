@@ -11,7 +11,7 @@ import { AccountMapper } from 'src/application/mappers';
 import { AccountOperationPolicy } from 'src/application/services';
 import { createUser } from 'src/db/createTestUser';
 import { Account, AccountSnapshot } from 'src/domain/accounts';
-import { Amount, Timestamp } from 'src/domain/domain-core';
+import { Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { ClosedAccountOperationError } from 'src/domain/domain.errors';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -45,18 +45,14 @@ describe('UpdateAccount', async () => {
 
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = Amount.create('1000').valueOf();
   const accountType = 'asset' as AccountTypeValue;
 
   const mockAccountData: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currentClearedBalanceLocal: initialBalance,
     description,
     id: accountId,
-    initialBalance,
     isClosed: false,
-    isSystem: false,
     isTombstone: false,
     name: accountName,
     type: accountType,

@@ -5,7 +5,7 @@ import type {
 import { CommodityReferencePolicy } from 'src/application/services';
 import { createUser } from 'src/db/createTestUser';
 import { Commodity } from 'src/domain';
-import { Amount, CommodityCode } from 'src/domain/domain-core';
+import { CommodityCode } from 'src/domain/domain-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateAccountUseCase } from '../createAccount';
@@ -29,8 +29,6 @@ describe('CreateAccountUseCase', async () => {
 
   const name = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = Amount.create('1000').valueOf();
-  const currentClearedBalanceLocal = Amount.create('0').valueOf();
 
   const commodity = Commodity.create(user, {
     code: CommodityCode.create('USD').valueOf(),
@@ -61,7 +59,6 @@ describe('CreateAccountUseCase', async () => {
       const result = await createAccountUseCase.execute(user, {
         commodityId: mockedCommoditySnapshot.id,
         description,
-        initialBalance,
         name,
         type,
       });
@@ -78,12 +75,9 @@ describe('CreateAccountUseCase', async () => {
         {
           commodityId: result.commodityId,
           createdAt: result.createdAt,
-          currentClearedBalanceLocal,
           description,
           id: result.id,
-          initialBalance,
           isClosed: false,
-          isSystem: false,
           isTombstone: false,
           name,
           type,
@@ -94,8 +88,6 @@ describe('CreateAccountUseCase', async () => {
 
       expect(result).toMatchObject({
         description,
-        initialBalance,
-        isSystem: false,
         name,
         type,
         userId: user.getId().valueOf(),
@@ -114,7 +106,6 @@ describe('CreateAccountUseCase', async () => {
         createAccountUseCase.execute(user, {
           commodityId: mockedCommoditySnapshot.id,
           description,
-          initialBalance,
           name,
           type,
         }),

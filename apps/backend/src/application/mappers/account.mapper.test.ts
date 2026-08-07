@@ -1,6 +1,6 @@
 import { AccountUpdateDTO } from '@ledgerly/shared/types';
 import { AccountSnapshot } from 'src/domain/accounts';
-import { Amount, Id, Timestamp } from 'src/domain/domain-core';
+import { Id, Timestamp } from 'src/domain/domain-core';
 import { describe, expect, it } from 'vitest';
 
 import { AccountMapper } from './account.mapper';
@@ -9,12 +9,9 @@ describe('AccountMapper', () => {
   const snapshot: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currentClearedBalanceLocal: Amount.create('2500').valueOf(),
     description: 'Operating account',
     id: Id.create().valueOf(),
-    initialBalance: Amount.create('1000').valueOf(),
     isClosed: false,
-    isSystem: true,
     isTombstone: false,
     name: 'Primary Checking',
     type: 'asset',
@@ -26,12 +23,9 @@ describe('AccountMapper', () => {
     expect(AccountMapper.toResponseDTOFromSnapshot(snapshot)).toEqual({
       commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
-      currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
       description: snapshot.description,
       id: snapshot.id,
-      initialBalance: snapshot.initialBalance,
       isClosed: snapshot.isClosed,
-      isSystem: snapshot.isSystem,
       isTombstone: snapshot.isTombstone,
       name: snapshot.name,
       type: snapshot.type,

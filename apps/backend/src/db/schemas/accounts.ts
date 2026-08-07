@@ -16,8 +16,6 @@ import {
   id,
   isTombstone,
   isClosed,
-  getAmountColumn,
-  isSystem,
 } from './common';
 import { usersTable } from './users';
 
@@ -26,14 +24,9 @@ export const accountsTable = sqliteTable(
   {
     commodityId: text('commodity_id').notNull().$type<UUID>(),
     createdAt,
-    currentClearedBalanceLocal: getAmountColumn(
-      'current_cleared_balance_local',
-    ),
     description,
     id,
-    initialBalance: getAmountColumn('initial_balance'),
     isClosed,
-    isSystem,
     isTombstone,
     name: text('name').notNull(),
     type: text('type', {

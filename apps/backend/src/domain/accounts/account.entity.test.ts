@@ -5,13 +5,7 @@ import {
   Commodity,
   DeletedEntityOperationError,
 } from 'src/domain/';
-import {
-  Amount,
-  Name,
-  Id,
-  Timestamp,
-  CommodityCode,
-} from 'src/domain/domain-core/';
+import { Name, Id, Timestamp, CommodityCode } from 'src/domain/domain-core/';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { User } from '../users/user.entity';
@@ -51,7 +45,6 @@ describe('Account Domain Entity', () => {
       const account = Account.create(user, {
         commodityId: commodity.getId(),
         description,
-        initialBalance: Amount.create('0'),
         name,
         type: accountType,
       });
@@ -61,7 +54,6 @@ describe('Account Domain Entity', () => {
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account).toHaveProperty('name', name);
       expect(account).toHaveProperty('description', description);
-      expect(account).toHaveProperty('initialBalance', Amount.create('0'));
       expect(account.getType().valueOf()).toBe(accountType.valueOf());
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account.getType().equals(accountType)).toBe(true);
@@ -86,12 +78,9 @@ describe('Account Domain Entity', () => {
       const account = Account.restore({
         commodityId: commodity.getId().valueOf(),
         createdAt: createdAt.valueOf(),
-        currentClearedBalanceLocal: Amount.create('500').valueOf(),
         description: 'restored-description',
         id: accountId.valueOf(),
-        initialBalance: Amount.create('500').valueOf(),
         isClosed: false,
-        isSystem: false,
         isTombstone: false,
         name: 'restored-account',
         type: userTypeValue,
@@ -104,7 +93,6 @@ describe('Account Domain Entity', () => {
       expect(account.belongsToUser(userId)).toBe(true);
       expect(account).toHaveProperty('name', Name.create('restored-account'));
       expect(account).toHaveProperty('description', 'restored-description');
-      expect(account).toHaveProperty('initialBalance', Amount.create('500'));
       expect(account).toHaveProperty(
         'commodityRelation',
         expect.objectContaining({ parentId: commodity.getId() }),
@@ -117,7 +105,6 @@ describe('Account Domain Entity', () => {
       const account = Account.create(user, {
         commodityId: commodity.getId(),
         description: 'description',
-        initialBalance: Amount.create('0'),
         name,
         type: accountType,
       });
@@ -131,7 +118,6 @@ describe('Account Domain Entity', () => {
       const account = Account.create(user, {
         commodityId: commodity.getId(),
         description: 'description',
-        initialBalance: Amount.create('0'),
         name,
         type: accountType,
       });
@@ -149,7 +135,6 @@ describe('Account Domain Entity', () => {
       const account = Account.create(user, {
         commodityId: commodity.getId(),
         description: 'account-description',
-        initialBalance: Amount.create('0'),
         name,
         type: accountType,
       });
@@ -165,7 +150,6 @@ describe('Account Domain Entity', () => {
       const account = Account.create(user, {
         commodityId: commodity.getId(),
         description: 'account-description',
-        initialBalance: Amount.create('0'),
         name,
         type: accountType,
       });
@@ -181,7 +165,6 @@ describe('Account Domain Entity', () => {
       const account = Account.create(user, {
         commodityId: commodity.getId(),
         description: 'account-description',
-        initialBalance: Amount.create('0'),
         name,
         type: accountType,
       });
@@ -209,7 +192,6 @@ describe('Account Domain Entity', () => {
       const account = Account.create(user, {
         commodityId: commodity.getId(),
         description: 'account-description',
-        initialBalance: Amount.create('0'),
         name,
         type: accountType,
       });
@@ -241,7 +223,6 @@ describe('Account Domain Entity', () => {
     const account = Account.create(user, {
       commodityId: commodity.getId(),
       description: 'account-description',
-      initialBalance: Amount.create('0'),
       name,
       type: accountType,
     });
@@ -263,7 +244,6 @@ describe('Account Domain Entity', () => {
     const account = Account.create(user, {
       commodityId: commodity.getId(),
       description: 'account-description',
-      initialBalance: Amount.create('0'),
       name,
       type: accountType,
     });
@@ -287,7 +267,6 @@ describe('Account Domain Entity', () => {
     const account = Account.create(user, {
       commodityId: commodity.getId(),
       description: 'account-description',
-      initialBalance: Amount.create('0'),
       name,
       type: accountType,
     });
@@ -296,6 +275,4 @@ describe('Account Domain Entity', () => {
 
     expect(() => account.close()).toThrowError(DeletedEntityOperationError);
   });
-
-  it.todo('add test to cover isSystem property');
 });
