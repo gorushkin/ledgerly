@@ -12,7 +12,6 @@ import { CommodityReferencePolicy } from 'src/application/services/CommodityRefe
 import { createUser } from 'src/db/createTestUser';
 import { Commodity } from 'src/domain/commodities';
 import { CommodityCode, Id } from 'src/domain/domain-core';
-import { DeletedEntityOperationError } from 'src/domain/domain.errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('CommodityReferencePolicy', async () => {
@@ -85,27 +84,6 @@ describe('CommodityReferencePolicy', async () => {
       context: {
         commodityId,
         operation: 'create_account',
-      },
-    });
-  });
-
-  it('rejects deleted commodities for new account references', async () => {
-    const commodity = createCommodity();
-    commodity.delete();
-
-    commodityRepository.getById.mockResolvedValueOnce({
-      ...commodity.toSnapshot(),
-      id: commodityId,
-    });
-
-    const assertion = policy.assertUsableForNewAccount(userId, commodityId);
-
-    await expect(assertion).rejects.toThrowError(DeletedEntityOperationError);
-    await expect(assertion).rejects.toMatchObject({
-      code: apiErrorCodes.deletedEntityOperation,
-      context: {
-        entityType: Commodity.entityType,
-        operation: 'use',
       },
     });
   });

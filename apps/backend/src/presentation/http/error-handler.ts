@@ -108,6 +108,68 @@ const isFastifyError = (error: unknown): error is FastifyError => {
   );
 };
 
+type FastifyErrorWithStatus = FastifyError & {
+  status?: number;
+};
+
+const getFastifyErrorStatus = (error: FastifyError): number => {
+  const status = error.statusCode ?? (error as FastifyErrorWithStatus).status;
+
+  return typeof status === 'number' && status >= 400 && status < 600
+    ? status
+    : statusByErrorCode[apiErrorCodes.internalServerError];
+};
+
+type CodedErrorPayload = {
+  [Code in ApiErrorCode]: {
+    code: Code;
+    context: ErrorContextByCode[Code];
+    error: true;
+  };
+}[ApiErrorCode];
+
+const fastifyErrorPayloadByStatus: Partial<Record<number, CodedErrorPayload>> =
+  {
+    401: {
+      code: apiErrorCodes.unauthorized,
+      context: {},
+      error: true,
+    },
+    403: {
+      code: apiErrorCodes.unauthorizedAccess,
+      context: { entityType: 'request' },
+      error: true,
+    },
+    404: {
+      code: apiErrorCodes.entityNotFound,
+      context: { entityType: 'route' },
+      error: true,
+    },
+    409: {
+      code: apiErrorCodes.conflict,
+      context: {},
+      error: true,
+    },
+  } satisfies Partial<Record<number, CodedErrorPayload>>;
+
+const getFastifyErrorPayload = (status: number): CodedErrorPayload => {
+  if (status >= 500) {
+    return {
+      code: apiErrorCodes.internalServerError,
+      context: {},
+      error: true,
+    };
+  }
+
+  return (
+    fastifyErrorPayloadByStatus[status] ?? {
+      code: apiErrorCodes.badRequest,
+      context: {},
+      error: true,
+    }
+  );
+};
+
 export function errorHandler(
   error: FastifyError | Error,
   _request: FastifyRequest,
@@ -123,12 +185,9 @@ export function errorHandler(
   }
 
   if (isFastifyError(error)) {
-    return sendCodedError(
-      reply,
-      statusByErrorCode[apiErrorCodes.badRequest],
-      apiErrorCodes.badRequest,
-      {},
-    );
+    const status = getFastifyErrorStatus(error);
+
+    return reply.status(status).send(getFastifyErrorPayload(status));
   }
 
   if (error instanceof ZodError) {

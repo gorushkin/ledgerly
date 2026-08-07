@@ -62,4 +62,10 @@ describe("accountQuerySchema", () => {
       status: "all",
     });
   });
+
+  it("allows querying closed accounts", () => {
+    expect(accountQuerySchema.parse({ status: "closed" })).toEqual({
+      status: "closed",
+    });
+  });
 });

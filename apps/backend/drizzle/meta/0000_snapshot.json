@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "72b37ad6-4dd9-43c4-8017-7b838aee4e7b",
+  "id": "ad990ec5-37cd-4951-b167-95daaec0d35f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -100,6 +100,14 @@
         }
       },
       "indexes": {
+        "accounts_user_id_id_unique_idx": {
+          "name": "accounts_user_id_id_unique_idx",
+          "columns": [
+            "user_id",
+            "id"
+          ],
+          "isUnique": true
+        },
         "user_id_name_unique_idx": {
           "name": "user_id_name_unique_idx",
           "columns": [
@@ -110,19 +118,6 @@
         }
       },
       "foreignKeys": {
-        "accounts_commodity_id_commodities_id_fk": {
-          "name": "accounts_commodity_id_commodities_id_fk",
-          "tableFrom": "accounts",
-          "tableTo": "commodities",
-          "columnsFrom": [
-            "commodity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
         "accounts_user_id_users_id_fk": {
           "name": "accounts_user_id_users_id_fk",
           "tableFrom": "accounts",
@@ -134,6 +129,21 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "accounts_user_id_commodity_id_commodities_user_id_id_fk": {
+          "name": "accounts_user_id_commodity_id_commodities_user_id_id_fk",
+          "tableFrom": "accounts",
+          "tableTo": "commodities",
+          "columnsFrom": [
+            "user_id",
+            "commodity_id"
+          ],
+          "columnsTo": [
+            "user_id",
+            "id"
+          ],
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -223,22 +233,17 @@
             "transaction_date"
           ],
           "isUnique": false
+        },
+        "transactions_user_id_id_unique_idx": {
+          "name": "transactions_user_id_id_unique_idx",
+          "columns": [
+            "user_id",
+            "id"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
-        "transactions_commodity_id_commodities_id_fk": {
-          "name": "transactions_commodity_id_commodities_id_fk",
-          "tableFrom": "transactions",
-          "tableTo": "commodities",
-          "columnsFrom": [
-            "commodity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
         "transactions_user_id_users_id_fk": {
           "name": "transactions_user_id_users_id_fk",
           "tableFrom": "transactions",
@@ -250,6 +255,21 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "transactions_user_id_commodity_id_commodities_user_id_id_fk": {
+          "name": "transactions_user_id_commodity_id_commodities_user_id_id_fk",
+          "tableFrom": "transactions",
+          "tableTo": "commodities",
+          "columnsFrom": [
+            "user_id",
+            "commodity_id"
+          ],
+          "columnsTo": [
+            "user_id",
+            "id"
+          ],
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -362,32 +382,6 @@
         }
       },
       "foreignKeys": {
-        "operations_account_id_accounts_id_fk": {
-          "name": "operations_account_id_accounts_id_fk",
-          "tableFrom": "operations",
-          "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "operations_transaction_id_transactions_id_fk": {
-          "name": "operations_transaction_id_transactions_id_fk",
-          "tableFrom": "operations",
-          "tableTo": "transactions",
-          "columnsFrom": [
-            "transaction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "operations_user_id_users_id_fk": {
           "name": "operations_user_id_users_id_fk",
           "tableFrom": "operations",
@@ -396,6 +390,36 @@
             "user_id"
           ],
           "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "operations_user_id_account_id_accounts_user_id_id_fk": {
+          "name": "operations_user_id_account_id_accounts_user_id_id_fk",
+          "tableFrom": "operations",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "user_id",
+            "account_id"
+          ],
+          "columnsTo": [
+            "user_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "operations_user_id_transaction_id_transactions_user_id_id_fk": {
+          "name": "operations_user_id_transaction_id_transactions_user_id_id_fk",
+          "tableFrom": "operations",
+          "tableTo": "transactions",
+          "columnsFrom": [
+            "user_id",
+            "transaction_id"
+          ],
+          "columnsTo": [
+            "user_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -535,6 +559,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "is_closed": {
+          "name": "is_closed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "is_tombstone": {
           "name": "is_tombstone",
           "type": "integer",
@@ -584,6 +615,14 @@
           "columns": [
             "user_id",
             "code"
+          ],
+          "isUnique": true
+        },
+        "commodities_user_id_id_unique_idx": {
+          "name": "commodities_user_id_id_unique_idx",
+          "columns": [
+            "user_id",
+            "id"
           ],
           "isUnique": true
         }

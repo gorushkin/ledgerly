@@ -9,7 +9,6 @@ import type {
   TransactionRepositoryInterface,
 } from 'src/application/interfaces';
 import { Commodity } from 'src/domain/commodities';
-import { DeletedEntityOperationError } from 'src/domain/domain.errors';
 
 export class CommodityReferencePolicy {
   constructor(
@@ -28,10 +27,6 @@ export class CommodityReferencePolicy {
     );
 
     const commodity = Commodity.restore(commoditySnapshot);
-
-    if (commodity.isDeleted()) {
-      throw DeletedEntityOperationError.forUse(Commodity.entityType);
-    }
 
     if (commodity.closed) {
       throw new CommodityClosedError(commodityId, 'create_account');

@@ -272,6 +272,47 @@ describe('errorHandler', () => {
     });
   });
 
+  it.each([
+    [401, apiErrorCodes.unauthorized, {}],
+    [403, apiErrorCodes.unauthorizedAccess, { entityType: 'request' }],
+    [404, apiErrorCodes.entityNotFound, { entityType: 'route' }],
+    [409, apiErrorCodes.conflict, {}],
+    [415, apiErrorCodes.badRequest, {}],
+  ])(
+    'maps Fastify status %i to the matching stable API error code',
+    (statusCode, expectedCode, expectedContext) => {
+      const error = Object.assign(new Error('fastify diagnostic'), {
+        code: 'FST_ERR_TEST',
+        statusCode,
+      });
+
+      expect(handle(error)).toEqual({
+        payload: {
+          code: expectedCode,
+          context: expectedContext,
+          error: true,
+        },
+        statusCode,
+      });
+    },
+  );
+
+  it('does not classify Fastify server errors as bad request', () => {
+    const error = Object.assign(new Error('server diagnostic'), {
+      code: 'FST_ERR_INTERNAL_SERVER',
+      statusCode: 500,
+    });
+
+    expect(handle(error)).toEqual({
+      payload: {
+        code: apiErrorCodes.internalServerError,
+        context: {},
+        error: true,
+      },
+      statusCode: 500,
+    });
+  });
+
   it('uses a safe, stable response for unknown errors', () => {
     const response = handle(new Error('unhandled secret diagnostic'));
 

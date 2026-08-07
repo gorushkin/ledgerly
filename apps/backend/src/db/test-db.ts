@@ -14,7 +14,7 @@ import {
 } from '@ledgerly/shared/types';
 import { isoDate, isoDatetime } from '@ledgerly/shared/validation';
 import { createClient } from '@libsql/client';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { DataBase } from 'src/db';
@@ -356,7 +356,7 @@ export class TestDB {
     const transaction = await this.db
       .select()
       .from(schema.transactionsTable)
-      .where(sql`${schema.transactionsTable.id} = ${transactionId}`)
+      .where(eq(schema.transactionsTable.id, transactionId))
       .get();
 
     return transaction ?? null;
@@ -372,7 +372,7 @@ export class TestDB {
     const operations = await this.db
       .select()
       .from(schema.operationsTable)
-      .where(sql`${schema.operationsTable.transactionId} = ${transactionId}`);
+      .where(eq(schema.operationsTable.transactionId, transactionId));
 
     return { operations, ...transaction };
   };
@@ -381,7 +381,7 @@ export class TestDB {
     return await this.db
       .update(schema.transactionsTable)
       .set({ isTombstone: true })
-      .where(sql`${schema.transactionsTable.id} = ${transactionId}`)
+      .where(eq(schema.transactionsTable.id, transactionId))
       .returning()
       .get();
   };
@@ -479,8 +479,7 @@ export class TestDB {
     const account = await this.db
       .select()
       .from(accountsTable)
-      .where(sql`${accountsTable.id} = ${accountId}  `)
-
+      .where(eq(accountsTable.id, accountId))
       .get();
 
     return account ?? null;
@@ -542,7 +541,10 @@ export class TestDB {
       .select()
       .from(schema.operationsTable)
       .where(
-        sql`${schema.operationsTable.accountId} = ${accountId} AND ${schema.operationsTable.userId} = ${userId}`,
+        and(
+          eq(schema.operationsTable.accountId, accountId),
+          eq(schema.operationsTable.userId, userId),
+        ),
       );
 
     return operations;
@@ -552,7 +554,7 @@ export class TestDB {
     const operation = await this.db
       .select()
       .from(schema.operationsTable)
-      .where(sql`${schema.operationsTable.id} = ${operationId}`)
+      .where(eq(schema.operationsTable.id, operationId))
       .get();
 
     return operation ?? null;
@@ -563,7 +565,10 @@ export class TestDB {
       .select()
       .from(schema.operationsTable)
       .where(
-        sql`${schema.operationsTable.transactionId} = ${transactionId} AND ${schema.operationsTable.userId} = ${userId}`,
+        and(
+          eq(schema.operationsTable.transactionId, transactionId),
+          eq(schema.operationsTable.userId, userId),
+        ),
       );
 
     return operations;
@@ -573,7 +578,7 @@ export class TestDB {
     const commodity = await this.db
       .select()
       .from(schema.commoditiesTable)
-      .where(sql`${schema.commoditiesTable.id} = ${commodityId}`)
+      .where(eq(schema.commoditiesTable.id, commodityId))
       .get();
 
     return commodity ?? null;

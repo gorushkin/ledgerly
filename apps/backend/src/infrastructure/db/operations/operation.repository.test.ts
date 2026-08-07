@@ -8,7 +8,10 @@ import {
 import { Transaction } from 'src/domain';
 import { Amount, Timestamp } from 'src/domain/domain-core';
 import { OperationSnapshot } from 'src/domain/operations/types';
-import { RepositoryInvariantError } from 'src/infrastructure/errors';
+import {
+  ForeignKeyConstraintError,
+  RepositoryInvariantError,
+} from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestDB } from '../../../db/test-db';
@@ -180,6 +183,62 @@ describe('OperationRepository', () => {
         const originalOp = operations[index];
         expect(op).toEqual(expect.objectContaining(originalOp));
       });
+    });
+
+    it('should reject operation insert with ForeignKeyConstraintError when account belongs to another user at DB level', async () => {
+      const otherUser = await testDB.createUser({
+        email: `other-${Date.now()}@example.com`,
+      });
+
+      const otherCommodity = await testDB.createCommodity(otherUser.id);
+
+      const otherAccount = await testDB.createAccount(
+        otherUser.id,
+        otherCommodity.id,
+      );
+
+      const operation = OperationPersistenceMapper.toDBRow(data.operations[0]);
+
+      const operationWithOtherAccount = {
+        ...operation,
+        accountId: otherAccount.id,
+      };
+
+      await expect(
+        operationRepository.save(
+          userSnapshot.id,
+          [operationWithOtherAccount],
+          new Map(),
+        ),
+      ).rejects.toThrow(ForeignKeyConstraintError);
+    });
+
+    it('should reject operation insert with ForeignKeyConstraintError when transaction belongs to another user at DB level', async () => {
+      const otherUser = await testDB.createUser({
+        email: `other-${Date.now()}@example.com`,
+      });
+
+      const otherCommodity = await testDB.createCommodity(otherUser.id);
+
+      const otherTransaction = await testDB.createTransaction(
+        otherUser.id,
+        otherCommodity.id,
+      );
+
+      const operation = OperationPersistenceMapper.toDBRow(data.operations[0]);
+
+      const operationWithOtherTransaction = {
+        ...operation,
+        transactionId: otherTransaction.id,
+      };
+
+      await expect(
+        operationRepository.save(
+          userSnapshot.id,
+          [operationWithOtherTransaction],
+          new Map(),
+        ),
+      ).rejects.toThrow(ForeignKeyConstraintError);
     });
 
     it('should update and delete operations successfully based on the snapshot', async () => {

@@ -1,11 +1,11 @@
 import { type ErrorContextByCode, UUID } from '@ledgerly/shared/types';
 import {
   DBErrorContext,
+  DatabaseError,
   DatabaseOperationError,
   ForbiddenAccessError,
   ForeignKeyConstraintError,
   InfrastructureError,
-  InvalidDataError,
   RecordAlreadyExistsError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
@@ -78,7 +78,7 @@ export class BaseRepository {
         }
       }
 
-      if (error instanceof InvalidDataError) throw error;
+      if (error instanceof DatabaseError) throw error;
       if (error instanceof InfrastructureError) throw error;
 
       const databaseError = new DatabaseOperationError({

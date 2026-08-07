@@ -360,9 +360,9 @@ USERS (root entity)
 ### Data Integrity
 
 1. **User ownership**: user-owned records must not reference entities owned by
-   another user. Account-to-Commodity ownership is enforced with a composite
-   foreign key. Additional same-user composite foreign keys for transaction and
-   operation relations are tracked by LED-132.
+   another user. Account-to-Commodity, Transaction-to-Commodity,
+   Operation-to-Account, and Operation-to-Transaction ownership are enforced with
+   same-user composite foreign keys.
 2. **Required relations**: each operation must have a transaction and account.
 3. **Soft deletes**: entities use `isTombstone` where the deletion must be
    retained in storage.
