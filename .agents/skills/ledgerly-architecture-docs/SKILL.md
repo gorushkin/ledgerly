@@ -14,7 +14,7 @@ Use this skill when the user asks to:
 
 - create or update ADRs;
 - add architectural decision rationale to task docs;
-- link Jira/PR to architecture docs;
+- link Jira tasks to architecture docs;
 - archive completed plan documents;
 - replace obsolete decisions and mark superseded status.
 
@@ -52,7 +52,10 @@ Every ADR should include:
 - `Status: Proposed|Accepted|Superseded|Deprecated`
 - `Date: YYYY-MM-DD`
 - `Jira: <link-or-N/A>`
-- `PR: <link-or-TBD>`
+
+ADR files should not include PR metadata. If a branch reference is useful while
+work is in progress, add it under `Related` instead of making it a required
+metadata field.
 
 ### Minimum ADR sections
 
@@ -71,7 +74,7 @@ Keep each section concise and decision-focused.
 3. Preserve historical facts; do not rewrite accepted history to match new intent.
 4. If direction changed, create new ADR and mark old one as `Superseded`.
 5. Keep links stable; when moving plan docs to archive, update ADR links.
-6. Prefer explicit links to Jira issue and PR once available.
+6. Prefer explicit links to Jira issues; avoid PR metadata in ADR front matter.
 7. When updating docs alongside code, keep the doc change scoped to the same
    Jira task and explain the code/docs relationship in the final response.
 
@@ -93,8 +96,8 @@ For task documents in `docs/plans/`:
 2. Create `NNNN-*.md` with required metadata and sections.
 3. Add concise rationale and rejected alternatives.
 4. Update ADR index in `docs/architecture/adr/README.md`.
-5. Add Jira immediately; fill PR as `TBD` if not created.
-6. After PR creation, replace `PR: TBD` with actual link.
+5. Add Jira immediately. Optionally mention the implementation branch in
+   `Related` while work is in progress.
 
 ### Supersede an ADR
 
@@ -107,7 +110,7 @@ For task documents in `docs/plans/`:
 ### Finalize completed task docs
 
 1. Verify all checklist items are complete.
-2. Add/verify Jira and PR references.
+2. Add/verify Jira references.
 3. Move completed plan to archive if team follows archive policy.
 4. Update links in ADR and any docs that referenced old path.
 
@@ -132,7 +135,6 @@ Before finalizing documentation changes, confirm:
 - Status: Proposed|Accepted|Superseded|Deprecated
 - Date: YYYY-MM-DD
 - Jira: <link-or-N/A>
-- PR: <link-or-TBD>
 
 ## Context
 
@@ -160,7 +162,6 @@ Before finalizing documentation changes, confirm:
 ```md
 Статус документа: выполнено.
 
-- [x] Связать этот документ с Jira-задачей и итоговым pull request.
+- [x] Связать этот документ с Jira-задачей.
       Jira: <link>
-      PR: <link>
 ```
