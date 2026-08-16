@@ -3,7 +3,6 @@
 - Status: Accepted
 - Date: 2026-08-05
 - Jira: https://gorushkin.atlassian.net/browse/LED-125
-- PR: TBD
 
 ## Context
 
