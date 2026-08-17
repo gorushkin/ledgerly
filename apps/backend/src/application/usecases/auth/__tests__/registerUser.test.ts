@@ -1,8 +1,9 @@
-import { UserAlreadyExistsError } from 'src/application/application.errors';
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import { CreateUserRequestDTO } from 'src/application/dto';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { User } from 'src/domain/users/user.entity';
+import { RecordAlreadyExistsError } from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RegisterUserUseCase } from '../registerUser';
@@ -39,14 +40,13 @@ describe('RegisterUserUseCase', () => {
         name,
       };
 
-      mockUserRepository.getByEmail.mockResolvedValue(null);
       mockUserRepository.create.mockResolvedValue(persistedUser);
 
       const result = await registerUserUseCase.execute(validRequest);
 
       expect(result).toBe(persistedUser);
 
-      expect(mockUserRepository.getByEmail).toHaveBeenCalledWith(email);
+      expect(mockUserRepository.getByEmail).not.toHaveBeenCalled();
 
       expect(mockUserRepository.create).toHaveBeenCalledOnce();
 
@@ -57,30 +57,33 @@ describe('RegisterUserUseCase', () => {
       expect(typeof createPayload.getId().valueOf()).toBe('string');
     });
 
-    it('should throw error if user with email already exists', async () => {
-      // Arrange
-      mockUserRepository.getByEmail.mockResolvedValue({
-        email: 'test@example.com',
-        id: Id.create().valueOf(),
-      });
-
-      // Act & Assert
-      await expect(registerUserUseCase.execute(validRequest)).rejects.toThrow(
-        UserAlreadyExistsError,
+    it('should map duplicate email repository errors to ENTITY_ALREADY_EXISTS', async () => {
+      mockUserRepository.create.mockRejectedValue(
+        new RecordAlreadyExistsError({
+          context: {
+            field: 'email',
+            tableName: 'users',
+            value: email,
+          },
+        }),
       );
 
-      expect(mockUserRepository.create).not.toHaveBeenCalled();
-    });
+      await expect(
+        registerUserUseCase.execute(validRequest),
+      ).rejects.toMatchObject({
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'user',
+          field: 'email',
+        },
+      });
 
-    it.todo('should call findByEmail with correct email');
+      expect(mockUserRepository.getByEmail).not.toHaveBeenCalled();
+    });
 
     it.todo('should hash password before storing');
 
     it.todo('should pass all data to repository create method');
-
-    it.todo('should not call create method if user already exists');
-
-    it.todo('should handle repository errors during user lookup');
 
     it.todo('should handle password hashing errors');
 

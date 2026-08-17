@@ -6,8 +6,8 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   AccountHasActiveOperationsError,
   CommodityHasActiveReferencesError,
+  EntityAlreadyExistsError,
   InvalidPasswordError,
-  UserAlreadyExistsError,
   UserNotFoundError,
 } from 'src/application/application.errors';
 import { Id } from 'src/domain/domain-core';
@@ -131,11 +131,17 @@ describe('errorHandler', () => {
       {},
     ],
     [
-      'a duplicate registration',
-      new UserAlreadyExistsError(),
+      'an entity that already exists',
+      new EntityAlreadyExistsError({
+        entityType: 'user',
+        field: 'email',
+      }),
       409,
-      apiErrorCodes.registrationConflict,
-      {},
+      apiErrorCodes.entityAlreadyExists,
+      {
+        entityType: 'user',
+        field: 'email',
+      },
     ],
     [
       'an account with active operations',

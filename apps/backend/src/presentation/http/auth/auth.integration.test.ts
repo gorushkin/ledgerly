@@ -55,12 +55,15 @@ describe('Auth Integration Tests', () => {
       expect(response.statusCode).toBe(409);
       const body = JSON.parse(response.body) as Extract<
         ApiErrorResponse,
-        { code: typeof apiErrorCodes.registrationConflict }
+        { code: typeof apiErrorCodes.entityAlreadyExists }
       >;
 
       expect(body).toEqual({
-        code: apiErrorCodes.registrationConflict,
-        context: {},
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'user',
+          field: 'email',
+        },
         error: true,
       });
     });

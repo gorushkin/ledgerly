@@ -10,6 +10,7 @@ import type {
 import { AccountMapper } from 'src/application/mappers';
 import { AccountOperationPolicy } from 'src/application/services';
 import { EnsureOwnedSnapshotFn } from 'src/application/shared/ensureOwnedSnapshot';
+import { mapRepositoryAlreadyExists } from 'src/application/shared/repositoryConflictMapper';
 import { Account, AccountSnapshot } from 'src/domain/accounts';
 import { ClosedAccountOperationError } from 'src/domain/domain.errors';
 import { User } from 'src/domain/users/user.entity';
@@ -59,10 +60,20 @@ export class UpdateAccountUseCase {
 
       account.update(AccountMapper.toUpdateProps(data));
 
-      await this.accountRepository.update(
-        user.getId().valueOf(),
-        accountId,
-        account.toSnapshot(),
+      await mapRepositoryAlreadyExists(
+        () =>
+          this.accountRepository.update(
+            user.getId().valueOf(),
+            accountId,
+            account.toSnapshot(),
+          ),
+        [
+          {
+            entityType: 'account',
+            field: 'name',
+            tableName: 'accounts',
+          },
+        ],
       );
 
       return account.toSnapshot();

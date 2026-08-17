@@ -12,6 +12,7 @@ export const apiErrorCodes = {
   conflictingOperationIds: "CONFLICTING_OPERATION_IDS",
   deletedEntityOperation: "DELETED_ENTITY_OPERATION",
   emptyOperations: "EMPTY_OPERATIONS",
+  entityAlreadyExists: "ENTITY_ALREADY_EXISTS",
   entityNotFound: "ENTITY_NOT_FOUND",
   excessiveOperations: "EXCESSIVE_OPERATIONS",
   insufficientOperations: "INSUFFICIENT_OPERATIONS",
@@ -34,7 +35,6 @@ export const apiErrorCodes = {
   operationNotFoundInTransaction: "OPERATION_NOT_FOUND_IN_TRANSACTION",
   operationTransactionMismatch: "OPERATION_TRANSACTION_MISMATCH",
   operationUserMismatch: "OPERATION_USER_MISMATCH",
-  registrationConflict: "REGISTRATION_CONFLICT",
   transactionUnbalanced: "TRANSACTION_UNBALANCED",
   unauthorized: "UNAUTHORIZED",
   unauthorizedAccess: "UNAUTHORIZED_ACCESS",
@@ -91,6 +91,19 @@ export type ErrorContextByCode = {
     operation: "delete" | "update" | "use";
   };
   EMPTY_OPERATIONS: Record<string, never>;
+  ENTITY_ALREADY_EXISTS:
+    | {
+        entityType: "account";
+        field: "name";
+      }
+    | {
+        entityType: "commodity";
+        field: "code";
+      }
+    | {
+        entityType: "user";
+        field: "email";
+      };
   ENTITY_NOT_FOUND: {
     entityId?: UUID;
     entityType: string;
@@ -169,7 +182,6 @@ export type ErrorContextByCode = {
     operationId: UUID;
     transactionId: UUID;
   };
-  REGISTRATION_CONFLICT: Record<string, never>;
   TRANSACTION_UNBALANCED: {
     difference: string;
     entityType: string;

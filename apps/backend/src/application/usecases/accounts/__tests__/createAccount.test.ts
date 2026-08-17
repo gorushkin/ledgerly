@@ -1,11 +1,13 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import type {
-  TransactionManagerInterface,
   AccountRepositoryInterface,
+  TransactionManagerInterface,
 } from 'src/application';
 import { CommodityReferencePolicy } from 'src/application/services';
 import { createUser } from 'src/db/createTestUser';
 import { Commodity } from 'src/domain';
 import { CommodityCode } from 'src/domain/domain-core';
+import { RecordAlreadyExistsError } from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateAccountUseCase } from '../createAccount';
@@ -116,6 +118,35 @@ describe('CreateAccountUseCase', async () => {
       ).rejects.toBe(error);
 
       expect(accountRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('should map duplicate account names to ENTITY_ALREADY_EXISTS', async () => {
+      const mockedCommoditySnapshot = commodity.toSnapshot();
+
+      accountRepository.create.mockRejectedValue(
+        new RecordAlreadyExistsError({
+          context: {
+            field: 'accountName',
+            tableName: 'accounts',
+            value: name,
+          },
+        }),
+      );
+
+      await expect(
+        createAccountUseCase.execute(user, {
+          commodityId: mockedCommoditySnapshot.id,
+          description,
+          name,
+          type,
+        }),
+      ).rejects.toMatchObject({
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'account',
+          field: 'name',
+        },
+      });
     });
   });
 });

@@ -410,7 +410,17 @@ describe('Commodities Integration Tests', () => {
         url,
       });
 
+      const parsedResponse = parseResponse<ApiErrorResponse>(response);
+
       expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'commodity',
+          field: 'code',
+        },
+        error: true,
+      });
     });
 
     it('should allow the same code for different users', async () => {
@@ -515,7 +525,17 @@ describe('Commodities Integration Tests', () => {
         url: `${url}/${commodityToUpdate.id}`,
       });
 
+      const parsedResponse = parseResponse<ApiErrorResponse>(response);
+
       expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'commodity',
+          field: 'code',
+        },
+        error: true,
+      });
     });
 
     it('should allow updating to a code used by another user', async () => {

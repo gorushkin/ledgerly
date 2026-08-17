@@ -1,6 +1,6 @@
 import {
+  EntityAlreadyExistsError,
   InvalidPasswordError,
-  UserAlreadyExistsError,
   UserNotFoundError,
 } from 'src/application/application.errors';
 import { Id } from 'src/domain/domain-core';
@@ -114,7 +114,7 @@ describe.skip('UserService', () => {
       mockUsersRepository.findByEmail.mockResolvedValue({ id: '1' });
 
       await expect(service.update(nextId, userData)).rejects.toThrowError(
-        UserAlreadyExistsError,
+        EntityAlreadyExistsError,
       );
     });
 

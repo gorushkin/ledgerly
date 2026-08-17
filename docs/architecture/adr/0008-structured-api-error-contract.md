@@ -35,8 +35,9 @@ presentation layer needs a uniform, safe response format.
 8. Authentication failures use one `AUTHENTICATION_FAILED` response with an
    empty context and HTTP 401 whether the account is absent or the password is
    invalid. Internal error messages may retain the cause for diagnostics, but
-   are never serialized. Registration conflicts use the stable
-   `REGISTRATION_CONFLICT` code with an empty context and HTTP 409.
+   are never serialized. Registration conflicts originally used
+   `REGISTRATION_CONFLICT`; duplicate entity conflicts are now covered by
+   `ENTITY_ALREADY_EXISTS` as described in ADR 0023.
 
 ## Alternatives Considered
 
@@ -82,3 +83,4 @@ Neutral/cost:
 - [LED-72: Unify entity identifiers in domain errors](https://gorushkin.atlassian.net/browse/LED-72)
 - [LED-74: Define secure auth error API contract](https://gorushkin.atlassian.net/browse/LED-74)
 - [ADR 0002: Operation application boundary](./0002-operation-application-boundary.md)
+- [ADR 0023: Entity already exists error contract](./0023-entity-already-exists-error-contract.md)
