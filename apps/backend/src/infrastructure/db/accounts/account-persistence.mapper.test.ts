@@ -1,5 +1,5 @@
 import { AccountDbRow } from 'src/db/schema';
-import { Amount, Id, Timestamp } from 'src/domain/domain-core';
+import { Id, Timestamp } from 'src/domain/domain-core';
 import { describe, expect, it } from 'vitest';
 
 import { AccountPersistenceMapper } from './account-persistence.mapper';
@@ -8,12 +8,9 @@ describe('AccountPersistenceMapper', () => {
   const row: AccountDbRow = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currentClearedBalanceLocal: Amount.create('2500').valueOf(),
     description: 'Operating account',
     id: Id.create().valueOf(),
-    initialBalance: Amount.create('1000').valueOf(),
     isClosed: false,
-    isSystem: true,
     isTombstone: false,
     name: 'Primary Checking',
     type: 'asset',
@@ -25,12 +22,9 @@ describe('AccountPersistenceMapper', () => {
     expect(AccountPersistenceMapper.toSnapshot(row)).toEqual({
       commodityId: row.commodityId,
       createdAt: row.createdAt,
-      currentClearedBalanceLocal: row.currentClearedBalanceLocal,
       description: row.description,
       id: row.id,
-      initialBalance: row.initialBalance,
       isClosed: row.isClosed,
-      isSystem: row.isSystem,
       isTombstone: row.isTombstone,
       name: row.name,
       type: row.type,
@@ -55,12 +49,9 @@ describe('AccountPersistenceMapper', () => {
     ).toEqual({
       commodityId: row.commodityId,
       createdAt: row.createdAt,
-      currentClearedBalanceLocal: row.currentClearedBalanceLocal,
       description: row.description,
       id: row.id,
-      initialBalance: row.initialBalance,
       isClosed: row.isClosed,
-      isSystem: row.isSystem,
       isTombstone: row.isTombstone,
       name: row.name,
       type: row.type,

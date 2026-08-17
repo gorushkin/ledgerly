@@ -17,14 +17,7 @@ const ACCOUNT_TYPES: AccountTypeValue[] = [
   'currencyTrading',
 ];
 
-const SYSTEM_ACCOUNT_TYPES: AccountTypeValue[] = ['currencyTrading'];
-
 const ACCOUNT_TYPE_VALUES = ACCOUNT_TYPES as [
-  AccountTypeValue,
-  ...AccountTypeValue[],
-];
-
-const SYSTEM_ACCOUNT_TYPE_VALUES = SYSTEM_ACCOUNT_TYPES as [
   AccountTypeValue,
   ...AccountTypeValue[],
 ];
@@ -56,9 +49,5 @@ export class AccountType {
 
   valueOf(): AccountTypeValue {
     return this.value;
-  }
-
-  isSystemType(): boolean {
-    return SYSTEM_ACCOUNT_TYPE_VALUES.includes(this.value);
   }
 }

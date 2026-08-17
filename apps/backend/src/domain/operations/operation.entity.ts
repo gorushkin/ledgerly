@@ -29,7 +29,6 @@ export class Operation {
     public amount: Amount,
     public value: Amount,
     public description: string,
-    public readonly isSystem: boolean,
   ) {}
 
   static create(
@@ -66,7 +65,6 @@ export class Operation {
       amount,
       value,
       description,
-      account.isSystem,
     );
   }
 
@@ -77,7 +75,6 @@ export class Operation {
       createdAt,
       description,
       id,
-      isSystem,
       isTombstone,
       transactionId,
       updatedAt,
@@ -118,7 +115,6 @@ export class Operation {
       Amount.restore(amount),
       Amount.restore(value),
       description,
-      isSystem,
     );
   }
 
@@ -168,7 +164,6 @@ export class Operation {
       createdAt: this.getCreatedAt().valueOf(),
       description: this.description,
       id: this.getId().valueOf(),
-      isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
       transactionId: this.transactionRelation.getParentId().valueOf(),
       updatedAt: this.getUpdatedAt().valueOf(),

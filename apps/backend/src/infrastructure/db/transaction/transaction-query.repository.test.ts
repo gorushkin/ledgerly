@@ -70,7 +70,6 @@ describe('TransactionQueryRepository', () => {
       expect(operation.description).toBe(operationSeed.description);
       expect(operation.userId).toBe(user.id);
       expect(operation.transactionId).toBe(transaction.id);
-      expect(operation.isSystem).toBe(false);
     });
   };
 
@@ -507,7 +506,6 @@ describe('TransactionQueryRepository', () => {
             'createdAt',
             'description',
             'id',
-            'isSystem',
             'transactionId',
             'updatedAt',
             'userId',

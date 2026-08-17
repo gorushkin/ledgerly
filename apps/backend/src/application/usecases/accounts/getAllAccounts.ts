@@ -4,12 +4,10 @@ import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { User } from 'src/domain/users/user.entity';
 
-import { AccountUseCaseBase } from './accountBase';
-
-export class GetAllAccountsUseCase extends AccountUseCaseBase {
-  constructor(accountRepository: AccountRepositoryInterface) {
-    super(accountRepository);
-  }
+export class GetAllAccountsUseCase {
+  constructor(
+    protected readonly accountRepository: AccountRepositoryInterface,
+  ) {}
 
   async execute(
     user: User,

@@ -74,7 +74,6 @@ describe('TransactionMapper', () => {
           createdAt: activeOperation.createdAt,
           description: activeOperation.description,
           id: activeOperation.id,
-          isSystem: activeOperation.isSystem,
           transactionId: activeOperation.transactionId,
           updatedAt: activeOperation.updatedAt,
           userId: activeOperation.userId,

@@ -1,22 +1,21 @@
-import { OperationRepoInsert } from 'src/db/schema';
+import { OperationDbInsert } from 'src/db/schema';
 import { Operation } from 'src/domain/operations/operation.entity';
 import { OperationSnapshot } from 'src/domain/operations/types';
 
 export class OperationPersistenceMapper {
-  static toDBRow(operation: Operation): OperationRepoInsert {
+  static toDBRow(operation: Operation): OperationDbInsert {
     return OperationPersistenceMapper.toDBRowFromSnapshot(
       operation.toSnapshot(),
     );
   }
 
-  static toDBRowFromSnapshot(snapshot: OperationSnapshot): OperationRepoInsert {
+  static toDBRowFromSnapshot(snapshot: OperationSnapshot): OperationDbInsert {
     return {
       accountId: snapshot.accountId,
       amount: snapshot.amount,
       createdAt: snapshot.createdAt,
       description: snapshot.description,
       id: snapshot.id,
-      isSystem: snapshot.isSystem,
       isTombstone: snapshot.isTombstone,
       transactionId: snapshot.transactionId,
       updatedAt: snapshot.updatedAt,

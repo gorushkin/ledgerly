@@ -9,11 +9,13 @@ import type {
 } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { AccountOperationPolicy } from 'src/application/services';
+import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { createUser } from 'src/db/createTestUser';
 import { Account, AccountSnapshot } from 'src/domain/accounts';
-import { Amount, Timestamp } from 'src/domain/domain-core';
+import { Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { ClosedAccountOperationError } from 'src/domain/domain.errors';
+import { RecordAlreadyExistsError } from 'src/infrastructure/errors';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UpdateAccountUseCase } from '../updateAccount';
@@ -45,18 +47,14 @@ describe('UpdateAccount', async () => {
 
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = Amount.create('1000').valueOf();
   const accountType = 'asset' as AccountTypeValue;
 
   const mockAccountData: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currentClearedBalanceLocal: initialBalance,
     description,
     id: accountId,
-    initialBalance,
     isClosed: false,
-    isSystem: false,
     isTombstone: false,
     name: accountName,
     type: accountType,
@@ -76,6 +74,7 @@ describe('UpdateAccount', async () => {
       mockAccountRepository as unknown as AccountRepositoryInterface,
       mockAccountOperationPolicy as unknown as AccountOperationPolicy,
       mockTransactionManager as unknown as TransactionManagerInterface,
+      ensureOwnedSnapshot,
     );
   });
 
@@ -120,6 +119,31 @@ describe('UpdateAccount', async () => {
           updatedAt,
         }),
       );
+    });
+
+    it('maps duplicate account names to ENTITY_ALREADY_EXISTS', async () => {
+      mockAccountRepository.getById.mockResolvedValue(mockAccountData);
+      mockAccountRepository.update.mockRejectedValue(
+        new RecordAlreadyExistsError({
+          context: {
+            field: 'accountName',
+            tableName: 'accounts',
+            value: mockAccountUpdatedData.name,
+          },
+        }),
+      );
+
+      await expect(
+        updateAccountUseCase.execute(user, accountId, {
+          name: mockAccountUpdatedData.name,
+        }),
+      ).rejects.toMatchObject({
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'account',
+          field: 'name',
+        },
+      });
     });
 
     it('should throw error when account does not exist', async () => {

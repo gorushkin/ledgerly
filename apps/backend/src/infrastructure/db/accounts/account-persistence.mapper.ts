@@ -1,4 +1,4 @@
-import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
+import { AccountDbInsert, AccountDbRow } from 'src/db/schema';
 import { Account, AccountSnapshot } from 'src/domain/accounts';
 
 export class AccountPersistenceMapper {
@@ -10,12 +10,9 @@ export class AccountPersistenceMapper {
     return {
       commodityId: row.commodityId,
       createdAt: row.createdAt,
-      currentClearedBalanceLocal: row.currentClearedBalanceLocal,
       description: row.description,
       id: row.id,
-      initialBalance: row.initialBalance,
       isClosed: row.isClosed,
-      isSystem: row.isSystem,
       isTombstone: row.isTombstone,
       name: row.name,
       type: row.type,
@@ -24,16 +21,13 @@ export class AccountPersistenceMapper {
     };
   }
 
-  static toDBRowFromSnapshot(snapshot: AccountSnapshot): AccountRepoInsert {
+  static toDBRowFromSnapshot(snapshot: AccountSnapshot): AccountDbInsert {
     return {
       commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
-      currentClearedBalanceLocal: snapshot.currentClearedBalanceLocal,
       description: snapshot.description,
       id: snapshot.id,
-      initialBalance: snapshot.initialBalance,
       isClosed: snapshot.isClosed,
-      isSystem: snapshot.isSystem,
       isTombstone: snapshot.isTombstone,
       name: snapshot.name,
       type: snapshot.type,

@@ -9,7 +9,7 @@ import {
   type CommodityRepositoryUpdateInput,
   type CommodityRepositoryDeleteInput,
 } from 'src/application';
-import { commoditiesTable } from 'src/db/schemas/commodities';
+import { commoditiesTable } from 'src/db/schemas';
 import { CommoditySnapshot } from 'src/domain/commodities/types';
 import {
   RepositoryInvariantError,

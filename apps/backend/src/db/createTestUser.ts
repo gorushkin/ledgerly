@@ -1,11 +1,5 @@
 import { Account, AccountType, Commodity } from 'src/domain';
-import {
-  Name,
-  Email,
-  Password,
-  Amount,
-  CommodityCode,
-} from 'src/domain/domain-core';
+import { Name, Email, Password, CommodityCode } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 
 export const createUser = async (
@@ -65,7 +59,6 @@ export const createAccount = (
   return Account.create(user, {
     commodityId: commodity.getId(),
     description: params.description ?? 'Account for testing',
-    initialBalance: Amount.create('0'),
     name: Name.create(params.name ?? 'Test Account'),
     type: AccountType.create('asset'),
   });

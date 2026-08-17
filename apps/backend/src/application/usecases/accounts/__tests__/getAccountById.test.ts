@@ -5,9 +5,10 @@ import {
 } from 'src/application/application.errors';
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
+import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { createUser } from 'src/db/createTestUser';
 import { Account, AccountSnapshot } from 'src/domain/accounts';
-import { Amount, Timestamp } from 'src/domain/domain-core';
+import { Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -29,7 +30,6 @@ describe('GetAccountByIdUseCase', async () => {
   ).valueOf();
   const accountName = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = Amount.create('1000').valueOf();
   const accountType = 'asset' as AccountTypeValue;
 
   const mockUser = {
@@ -42,12 +42,9 @@ describe('GetAccountByIdUseCase', async () => {
   const mockSavedAccountData: AccountSnapshot = {
     commodityId: Id.create().valueOf(),
     createdAt: Timestamp.create().valueOf(),
-    currentClearedBalanceLocal: initialBalance,
     description,
     id: accountId,
-    initialBalance,
     isClosed: false,
-    isSystem: false,
     isTombstone: false,
     name: accountName,
     type: accountType,
@@ -67,6 +64,7 @@ describe('GetAccountByIdUseCase', async () => {
 
     getAccountByIdUseCase = new GetAccountByIdUseCase(
       mockAccountRepository as unknown as AccountRepositoryInterface,
+      ensureOwnedSnapshot,
     );
   });
 

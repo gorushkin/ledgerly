@@ -35,7 +35,6 @@ export class OperationMapper {
       createdAt: snapshot.createdAt,
       description: snapshot.description,
       id: snapshot.id,
-      isSystem: snapshot.isSystem,
       transactionId: snapshot.transactionId,
       updatedAt: snapshot.updatedAt,
       userId: snapshot.userId,

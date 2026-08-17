@@ -8,7 +8,6 @@ import {
 
 const validCreateAccount = {
   commodityId: "00000000-0000-4000-8000-000000000000",
-  initialBalance: "0",
   name: "Checking",
   type: "asset",
 };

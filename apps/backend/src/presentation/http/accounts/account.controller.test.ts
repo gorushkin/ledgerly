@@ -9,7 +9,6 @@ import {
   OpenAccountUseCase,
   UpdateAccountUseCase,
 } from 'src/application/usecases/accounts';
-import { Amount } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { User } from 'src/domain/users/user.entity';
 import { createUser } from 'src/testing';
@@ -120,7 +119,6 @@ describe('AccountController', () => {
       const requestBody: AccountCreateDTO = {
         commodityId: Id.create().valueOf(),
         description: 'Test Account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'liability',
       };

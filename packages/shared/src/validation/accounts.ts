@@ -7,7 +7,6 @@ import {
   optionalText,
   requiredText,
   uuid,
-  amountString,
 } from "./baseValidations";
 
 const accountType = z.enum(ACCOUNT_TYPES);
@@ -17,7 +16,6 @@ export const accountCreateSchema = z
   .object({
     commodityId: uuid,
     description: defaultText,
-    initialBalance: amountString,
     name: accountName,
     type: accountType,
   })

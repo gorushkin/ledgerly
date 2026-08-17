@@ -40,9 +40,8 @@ Represents a single financial posting affecting an account.
 - May be soft-deleted in persistence via `isTombstone`
 - Tombstone operations remain part of the raw transaction aggregate state for persistence, but are excluded from active domain accessors and read API responses
 - Has optional description field
-- `isSystem` — reserved for future trading operations (see below)
 
-> **Temporarily deprecated:** `isSystem = true` trading operations and system trading accounts are not created at this time. The system currently validates balance by summing `value` across all operations of a transaction (must equal 0). Trading accounts may be introduced later for full multi-currency reconciliation.
+> **Temporarily deprecated:** Trading operations are not created at this time. The system currently validates balance by summing `value` across all operations of a transaction (must equal 0). Automated reconciliation postings may be introduced later for full multi-currency reconciliation.
 
 ### Account
 
@@ -57,18 +56,17 @@ Represents different financial accounts with unified structure for all account t
   - **Expense**: Spending categories
 - Has a designated Commodity
 - **Balance tracking**:
-  - For Asset/Liability: real balance stored in `currentClearedBalanceLocal`, must match reality
+  - For Asset/Liability: real balance comes from ledger operations/read models
   - For Income/Expense: reporting metric (sum over period), calculated from operations
 - Balance is calculated from operations
-- Has initial balance (`initialBalance`)
-- `isSystem = true` is reserved for future system trading accounts (currently unused)
 - Reversible account close state is represented by `isClosed`
 - Terminal account deletion is represented by `isTombstone`
 - `GET /accounts` returns open accounts by default and supports
-  `status=open|closed|all`; all normal list filters exclude tombstoned accounts
+  `status=open|closed|all`; `all` includes open and closed non-tombstoned
+  accounts, and all normal list filters exclude tombstoned accounts
 - Closed accounts keep history and reports but cannot receive new operations
-- Closed accounts cannot be updated through the regular account update flow;
-  descriptive-field editing must be handled as an explicit lifecycle exception
+- Closed accounts can still have descriptive fields edited through the regular
+  account update flow, but account `type` cannot be changed while closed
 - Account `type` can be changed only while the account has no active operations
 - `DELETE /accounts/:id` means terminal tombstone delete and is rejected while
   active operations still reference the account
@@ -277,7 +275,7 @@ tasks.
 
 1. Each operation carries both `amount` (account Commodity) and `value` (transaction Commodity)
 2. For same-currency operations `amount === value`
-3. **Trading operations** (`isSystem = true`) and system trading accounts are **not currently implemented**; they are reserved for a future multi-currency reconciliation phase
+3. **Trading operations** are **not currently implemented**; they are reserved for a future multi-currency reconciliation phase
 
 ### Account Balance
 
@@ -355,12 +353,12 @@ Balance: `sum(value) = -10000 + 10000 = 0` ✓
 When trading accounts are introduced, the transaction will look like:
 
 **Operations**
-| id | transactionId | accountId | account | amount (cents) | value (USD cents) | isSystem |
-|----|---------------|-----------|---------|----------------|-------------------|----------|
-| O3 | T2 | A3 | Asset:Cash USD | -1000 | -1000 | false |
-| O4 | T2 | A4 | System:Trading:USD | +1000 | +1000 | true |
-| O5 | T2 | A5 | System:Trading:EUR | -900 | +900 | true |
-| O6 | T2 | A6 | Expense:Goods EUR | +900 | -900 | false |
+| id | transactionId | accountId | account | amount (cents) | value (USD cents) |
+|----|---------------|-----------|---------|----------------|-------------------|
+| O3 | T2 | A3 | Asset:Cash USD | -1000 | -1000 |
+| O4 | T2 | A4 | System:Trading:USD | +1000 | +1000 |
+| O5 | T2 | A5 | System:Trading:EUR | -900 | +900 |
+| O6 | T2 | A6 | Expense:Goods EUR | +900 | -900 |
 
 Balance: `sum(value) = 0` ✓ — currently this phase is not implemented.
 
@@ -397,7 +395,6 @@ Operation
 - amount: integer             -- in account Commodity minor units
 - value: integer              -- in transaction Commodity minor units; used for balance validation
 - description: string (optional)
-- isSystem: boolean           -- reserved for future trading operations (currently always false)
 - isTombstone: boolean
 - userId: UUID (FK)
 - createdAt: timestamp
@@ -409,9 +406,6 @@ Account
 - type: enum (Asset, Liability, Income, Expense)
 - commodityId: UUID (FK)
 - description: string
-- initialBalance: integer (cents)
-- currentClearedBalanceLocal: integer (cents)
-- isSystem: boolean (for trading accounts)
 - isTombstone: boolean
 - userId: UUID (FK)
 - createdAt: timestamp
@@ -442,7 +436,6 @@ Settings
 - **IDs**: UUIDs for all entities
 - **Soft deletion**: Uses `isTombstone` flag instead of hard deletes
 - **MVP operation deletion rule**: deleted operations may remain in raw aggregate and storage state, but are excluded from active domain/read behavior
-- **System entities**: System accounts and operations marked with `isSystem = true`
 
 ## Future Improvements
 

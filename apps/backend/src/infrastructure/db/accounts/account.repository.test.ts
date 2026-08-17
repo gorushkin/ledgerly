@@ -13,7 +13,7 @@ import {
   compareEntities,
   compareEntityArrays,
 } from 'src/db/test-utils/entityComparer';
-import { Amount, CommodityCode, Timestamp } from 'src/domain/domain-core';
+import { CommodityCode, Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { AccountRepository } from 'src/infrastructure/db/';
 import {
@@ -37,11 +37,8 @@ const getAccountData = (params: {
 }): AccountDbInsert => {
   return {
     commodityId: params.commodityId,
-    currentClearedBalanceLocal: Amount.create('0').valueOf(),
     description: 'This is a test account',
-    initialBalance: Amount.create('100').valueOf(),
     isClosed: false,
-    isSystem: false,
     isTombstone: false,
     name: params.name,
     type: params.type,
@@ -333,7 +330,7 @@ describe('AccountRepository', () => {
       (account) => !account.isTombstone,
     );
 
-    const activeAccounts = accountsDataList.filter(
+    const openAccounts = accountsDataList.filter(
       (account) => !account.isClosed && !account.isTombstone,
     );
 
@@ -349,7 +346,7 @@ describe('AccountRepository', () => {
 
     const testData: [AccountQuery, TestData[]][] = [
       [{ status: 'all' }, allAccounts],
-      [{ status: 'open' }, activeAccounts],
+      [{ status: 'open' }, openAccounts],
       [{ status: 'closed' }, closedAccounts],
     ];
 
@@ -615,7 +612,6 @@ describe('AccountRepository', () => {
       });
 
       await testDB.createAccount(user.id, usdCommodity.id, {
-        initialBalance: Amount.create('200').valueOf(),
         name: updatedAccountData.name,
         type: 'asset',
       });
@@ -652,7 +648,6 @@ describe('AccountRepository', () => {
         secondUser.id,
         secondUserCommodity.id,
         {
-          initialBalance: Amount.create('200').valueOf(),
           name: 'Shared Account Name',
           type: 'asset',
         },
@@ -734,7 +729,6 @@ describe('AccountRepository', () => {
       const maliciousData = {
         createdAt: Timestamp.create().valueOf(),
         id: 'malicious-id',
-        initialBalance: Amount.create('2000').valueOf(),
         name: 'Updated Account',
         type: 'expense' as const,
         updatedAt: Timestamp.create().valueOf(),
@@ -798,7 +792,6 @@ describe('AccountRepository', () => {
         secondUser.id,
         secondUserCommodity.id,
         {
-          initialBalance: Amount.create('2000').valueOf(),
           name: 'Shared Account Name',
           type: 'asset',
         },
@@ -874,7 +867,6 @@ describe('AccountRepository', () => {
       const maliciousData = {
         createdAt: Timestamp.create().valueOf(),
         id: 'malicious-id',
-        initialBalance: Amount.create('2000').valueOf(),
         isClosed: true,
         name: 'Updated Account',
         type: 'expense' as const,

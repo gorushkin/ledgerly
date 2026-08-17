@@ -10,7 +10,6 @@ import {
   isTombstone,
   id,
   getAmountColumn,
-  isSystem,
 } from './common';
 import { transactionsTable } from './transactions';
 import { usersTable } from './users';
@@ -23,7 +22,6 @@ export const operationsTable = sqliteTable(
     createdAt,
     description,
     id,
-    isSystem,
     isTombstone,
     transactionId: text('transaction_id').notNull().$type<UUID>(),
     updatedAt,
@@ -60,5 +58,3 @@ export const operationsRelations = relations(operationsTable, ({ one }) => ({
 
 export type OperationDbRow = InferSelectModel<typeof operationsTable>;
 export type OperationDbInsert = InferInsertModel<typeof operationsTable>;
-
-export type OperationRepoInsert = OperationDbInsert;

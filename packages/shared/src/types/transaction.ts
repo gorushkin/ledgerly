@@ -34,7 +34,6 @@ export type OperationResponseDTO = {
   createdAt: IsoDatetimeString;
   description?: string;
   id: UUID;
-  isSystem: boolean;
   transactionId: UUID;
   updatedAt: IsoDatetimeString;
   userId: UUID;

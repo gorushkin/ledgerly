@@ -4,10 +4,10 @@ import {
   AuthenticationFailedError,
   CommodityClosedError,
   CommodityHasActiveReferencesError,
+  EntityAlreadyExistsError,
   InvalidPasswordError,
   ApplicationError,
   EntityNotFoundError,
-  UserAlreadyExistsError,
   UserNotFoundError,
 } from 'src/application/application.errors';
 import { describe, expect, it } from 'vitest';
@@ -38,10 +38,18 @@ describe('coded application errors', () => {
     },
   );
 
-  it('uses a stable public code for a registration conflict', () => {
-    expect(new UserAlreadyExistsError()).toMatchObject({
-      code: apiErrorCodes.registrationConflict,
-      context: {},
+  it('uses a stable public code for an entity that already exists', () => {
+    expect(
+      new EntityAlreadyExistsError({
+        entityType: 'user',
+        field: 'email',
+      }),
+    ).toMatchObject({
+      code: apiErrorCodes.entityAlreadyExists,
+      context: {
+        entityType: 'user',
+        field: 'email',
+      },
     });
   });
 

@@ -3,7 +3,6 @@
 - Status: Superseded
 - Date: 2026-07-23
 - Jira: https://gorushkin.atlassian.net/browse/LED-69
-- PR: TBD
 
 ## Context
 

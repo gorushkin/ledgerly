@@ -10,7 +10,6 @@ export type OperationSnapshot = {
   isTombstone: boolean;
   updatedAt: IsoDatetimeString;
   userId: UUID;
-  isSystem: boolean;
   accountId: UUID;
   amount: AmountString;
   value: AmountString;

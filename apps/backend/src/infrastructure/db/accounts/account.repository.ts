@@ -8,7 +8,7 @@ import {
   type AccountRepositoryUpdateInput,
   type AccountLifecycleAction,
 } from 'src/application';
-import { accountsTable } from 'src/db/schemas/accounts';
+import { accountsTable } from 'src/db/schemas';
 import { AccountSnapshot } from 'src/domain/accounts';
 import {
   AccountPersistenceConflictError,
@@ -99,7 +99,6 @@ export class AccountRepository
 
         const result = await this.db.insert(accountsTable).values({
           ...AccountPersistenceMapper.toDBRowFromSnapshot(data),
-          currentClearedBalanceLocal: data.currentClearedBalanceLocal ?? '0',
         });
 
         this.ensureRowsAffected(
@@ -167,7 +166,6 @@ export class AccountRepository
       async () => {
         const safeData = this.getSafeUpdate(data, [
           'description',
-          'initialBalance',
           'name',
           'type',
           'updatedAt',

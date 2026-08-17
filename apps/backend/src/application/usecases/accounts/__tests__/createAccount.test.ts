@@ -1,11 +1,13 @@
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import type {
-  TransactionManagerInterface,
   AccountRepositoryInterface,
+  TransactionManagerInterface,
 } from 'src/application';
 import { CommodityReferencePolicy } from 'src/application/services';
 import { createUser } from 'src/db/createTestUser';
 import { Commodity } from 'src/domain';
-import { Amount, CommodityCode } from 'src/domain/domain-core';
+import { CommodityCode } from 'src/domain/domain-core';
+import { RecordAlreadyExistsError } from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateAccountUseCase } from '../createAccount';
@@ -29,8 +31,6 @@ describe('CreateAccountUseCase', async () => {
 
   const name = 'Test Account';
   const description = 'Test account description';
-  const initialBalance = Amount.create('1000').valueOf();
-  const currentClearedBalanceLocal = Amount.create('0').valueOf();
 
   const commodity = Commodity.create(user, {
     code: CommodityCode.create('USD').valueOf(),
@@ -43,6 +43,8 @@ describe('CreateAccountUseCase', async () => {
   beforeEach(() => {
     accountRepository.create.mockReset();
     commodityReferencePolicy.assertUsableForNewAccount.mockReset();
+    transactionManager.run.mockReset();
+    transactionManager.run.mockImplementation((cb: () => unknown) => cb());
 
     createAccountUseCase = new CreateAccountUseCase(
       accountRepository as unknown as AccountRepositoryInterface,
@@ -61,7 +63,6 @@ describe('CreateAccountUseCase', async () => {
       const result = await createAccountUseCase.execute(user, {
         commodityId: mockedCommoditySnapshot.id,
         description,
-        initialBalance,
         name,
         type,
       });
@@ -73,17 +74,16 @@ describe('CreateAccountUseCase', async () => {
         mockedCommoditySnapshot.id,
       );
 
+      expect(transactionManager.run).toHaveBeenCalledTimes(1);
+
       expect(accountRepository.create).toHaveBeenCalledWith(
         user.getId().valueOf(),
         {
           commodityId: result.commodityId,
           createdAt: result.createdAt,
-          currentClearedBalanceLocal,
           description,
           id: result.id,
-          initialBalance,
           isClosed: false,
-          isSystem: false,
           isTombstone: false,
           name,
           type,
@@ -94,8 +94,6 @@ describe('CreateAccountUseCase', async () => {
 
       expect(result).toMatchObject({
         description,
-        initialBalance,
-        isSystem: false,
         name,
         type,
         userId: user.getId().valueOf(),
@@ -114,13 +112,41 @@ describe('CreateAccountUseCase', async () => {
         createAccountUseCase.execute(user, {
           commodityId: mockedCommoditySnapshot.id,
           description,
-          initialBalance,
           name,
           type,
         }),
       ).rejects.toBe(error);
 
       expect(accountRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('should map duplicate account names to ENTITY_ALREADY_EXISTS', async () => {
+      const mockedCommoditySnapshot = commodity.toSnapshot();
+
+      accountRepository.create.mockRejectedValue(
+        new RecordAlreadyExistsError({
+          context: {
+            field: 'accountName',
+            tableName: 'accounts',
+            value: name,
+          },
+        }),
+      );
+
+      await expect(
+        createAccountUseCase.execute(user, {
+          commodityId: mockedCommoditySnapshot.id,
+          description,
+          name,
+          type,
+        }),
+      ).rejects.toMatchObject({
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'account',
+          field: 'name',
+        },
+      });
     });
   });
 });
