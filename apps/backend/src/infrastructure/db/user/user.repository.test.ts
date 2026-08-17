@@ -204,7 +204,9 @@ describe('UsersRepository', () => {
     it('throws RecordAlreadyExistsError for duplicate email', async () => {
       await userRepository.create(await createUser());
 
-      await expect(userRepository.create(await createUser())).rejects.toThrow(
+      await expect(
+        userRepository.create(await createUser()),
+      ).rejects.toThrowError(
         new RecordAlreadyExistsError({
           context: {
             field: 'email',

@@ -7,6 +7,7 @@ import type {
 import { DataBase, TxType } from 'src/db';
 
 type Store = {
+  context: TransactionContext;
   tx: TxType;
 };
 
@@ -19,13 +20,15 @@ export class TransactionManager implements TransactionManagerInterface {
   ): Promise<T> {
     const existingStore = this.storage.getStore();
     if (existingStore) {
-      return await callback();
+      return await callback(existingStore.context);
     }
 
     return await this.db.transaction(async (tx: TxType) => {
-      return this.storage.run({ tx }, async () => {
+      const context: TransactionContext = {};
+
+      return this.storage.run({ context, tx }, async () => {
         try {
-          return await callback({});
+          return await callback(context);
         } catch (error) {
           if (process.env.NODE_ENV !== 'test') {
             console.error('Transaction error, rolling back');

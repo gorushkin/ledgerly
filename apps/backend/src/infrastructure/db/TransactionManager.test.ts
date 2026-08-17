@@ -1,3 +1,4 @@
+import type { TransactionContext } from 'src/application/interfaces';
 import type { DataBase, TxType } from 'src/db';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -14,19 +15,24 @@ describe('TransactionManager', () => {
     } as unknown as DataBase;
     const transactionManager = new TransactionManager(db);
 
-    const result = await transactionManager.run(async () => {
-      const outerTransaction = transactionManager.getCurrentTransaction();
+    let outerContext: TransactionContext | undefined;
 
-      return await transactionManager.run(() => {
+    const result = await transactionManager.run(async (context) => {
+      const outerTransaction = transactionManager.getCurrentTransaction();
+      outerContext = context;
+
+      return await transactionManager.run((nestedContext) => {
         expect(transactionManager.getCurrentTransaction()).toBe(
           outerTransaction,
         );
+        expect(nestedContext).toBe(outerContext);
 
         return Promise.resolve('nested result');
       });
     });
 
     expect(result).toBe('nested result');
+    expect(outerContext).toEqual({});
     expect(transaction).toHaveBeenCalledTimes(1);
     expect(transactionManager.getCurrentTransaction()).toBe(db);
   });
