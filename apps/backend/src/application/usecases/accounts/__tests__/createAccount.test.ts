@@ -41,6 +41,8 @@ describe('CreateAccountUseCase', async () => {
   beforeEach(() => {
     accountRepository.create.mockReset();
     commodityReferencePolicy.assertUsableForNewAccount.mockReset();
+    transactionManager.run.mockReset();
+    transactionManager.run.mockImplementation((cb: () => unknown) => cb());
 
     createAccountUseCase = new CreateAccountUseCase(
       accountRepository as unknown as AccountRepositoryInterface,
@@ -69,6 +71,8 @@ describe('CreateAccountUseCase', async () => {
         user.getId().valueOf(),
         mockedCommoditySnapshot.id,
       );
+
+      expect(transactionManager.run).toHaveBeenCalledTimes(1);
 
       expect(accountRepository.create).toHaveBeenCalledWith(
         user.getId().valueOf(),
