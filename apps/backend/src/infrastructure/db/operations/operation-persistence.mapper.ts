@@ -1,15 +1,15 @@
-import { OperationRepoInsert } from 'src/db/schema';
+import { OperationDbInsert } from 'src/db/schema';
 import { Operation } from 'src/domain/operations/operation.entity';
 import { OperationSnapshot } from 'src/domain/operations/types';
 
 export class OperationPersistenceMapper {
-  static toDBRow(operation: Operation): OperationRepoInsert {
+  static toDBRow(operation: Operation): OperationDbInsert {
     return OperationPersistenceMapper.toDBRowFromSnapshot(
       operation.toSnapshot(),
     );
   }
 
-  static toDBRowFromSnapshot(snapshot: OperationSnapshot): OperationRepoInsert {
+  static toDBRowFromSnapshot(snapshot: OperationSnapshot): OperationDbInsert {
     return {
       accountId: snapshot.accountId,
       amount: snapshot.amount,

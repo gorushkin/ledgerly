@@ -8,7 +8,7 @@ import {
   type AccountRepositoryUpdateInput,
   type AccountLifecycleAction,
 } from 'src/application';
-import { accountsTable } from 'src/db/schemas/accounts';
+import { accountsTable } from 'src/db/schemas';
 import { AccountSnapshot } from 'src/domain/accounts';
 import {
   AccountPersistenceConflictError,

@@ -385,8 +385,11 @@ Schemas are defined in the following files:
 - `apps/backend/src/db/schemas/operations.ts` - Operations
 - `apps/backend/src/db/schemas/settings.ts` - Settings
 
-All schemas are exported through `apps/backend/src/db/schema.ts`.
+The canonical schema module public API is
+`apps/backend/src/db/schemas/index.ts`. The
+`apps/backend/src/db/schema.ts` file remains as a compatibility entrypoint and
+re-exports the schema public API.
 
 ---
 
-_Last updated: July 23, 2026_
+_Last updated: August 17, 2026_

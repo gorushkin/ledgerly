@@ -1,4 +1,4 @@
-import { AccountDbRow, AccountRepoInsert } from 'src/db/schema';
+import { AccountDbInsert, AccountDbRow } from 'src/db/schema';
 import { Account, AccountSnapshot } from 'src/domain/accounts';
 
 export class AccountPersistenceMapper {
@@ -21,7 +21,7 @@ export class AccountPersistenceMapper {
     };
   }
 
-  static toDBRowFromSnapshot(snapshot: AccountSnapshot): AccountRepoInsert {
+  static toDBRowFromSnapshot(snapshot: AccountSnapshot): AccountDbInsert {
     return {
       commodityId: snapshot.commodityId,
       createdAt: snapshot.createdAt,
