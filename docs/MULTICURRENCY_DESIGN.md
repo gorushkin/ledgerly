@@ -55,7 +55,7 @@ These accounts:
 - exist solely to maintain correct double-entry,
 - cannot be used manually.
 
-**Current state:** Trading accounts and `isSystem = true` operations are **temporarily deprecated**. They will be introduced in a dedicated multi-currency reconciliation phase.
+**Current state:** Trading accounts and automated trading operations are **temporarily deprecated**. They will be introduced in a dedicated multi-currency reconciliation phase.
 
 ### 2.5 ~~Entry Wrapper~~ *(removed)*
 ~~Operations are grouped within **Entries**.~~
@@ -91,10 +91,10 @@ When trading accounts are introduced, Ledgerly will generate **balancing posting
 ```
 Transaction T2: "Exchange USD to RUB"
   Operations:
-    Assets:WalletUSD       amount=-100 USD   value=-100   isSystem=false
-    System:Trading:USD     amount=+100 USD   value=+100   isSystem=true
-    System:Trading:RUB     amount=-1000 RUB  value=+100   isSystem=true
-    Assets:WalletRUB       amount=+1000 RUB  value=-100   isSystem=false
+    Assets:WalletUSD       amount=-100 USD   value=-100
+    System:Trading:USD     amount=+100 USD   value=+100
+    System:Trading:RUB     amount=-1000 RUB  value=+100
+    Assets:WalletRUB       amount=+1000 RUB  value=-100
 
 Balance: sum(value) = 0 ✓
 ```
@@ -147,7 +147,6 @@ Individual account posting:
 - `amount` (signed integer, in the **account's Commodity**)
 - `value` (signed integer, in the **transaction Commodity**)
 - `description` (optional)
-- `isSystem` (true for trading postings)
 - `createdAt`, `updatedAt`, `isTombstone`
 
 #### `amount` vs `value` — GnuCash convention
@@ -175,8 +174,6 @@ Transaction Commodity: USD
 Notes:
 - Account denomination is determined by the account's Commodity.
 - Operations are immutable.
-- Normal operations have `isSystem = false`.
-- Trading operations have `isSystem = true`.
 
 ---
 
@@ -196,10 +193,10 @@ Balance: sum(value) = +100 - 100 = 0 ✓
 
 **Transaction T2 (future):**
 ```
-  Assets:WalletUSD       amount=-100 USD   value=-100   isSystem=false
-  System:Trading:USD     amount=+100 USD   value=+100   isSystem=true
-  System:Trading:RUB     amount=-1000 RUB  value=+100   isSystem=true
-  Assets:WalletRUB       amount=+1000 RUB  value=-100   isSystem=false
+  Assets:WalletUSD       amount=-100 USD   value=-100
+  System:Trading:USD     amount=+100 USD   value=+100
+  System:Trading:RUB     amount=-1000 RUB  value=+100
+  Assets:WalletRUB       amount=+1000 RUB  value=-100
 ```
 
 Balance: sum(value) = 0 ✓
@@ -258,7 +255,7 @@ Currently, Ledgerly stays closer to GnuCash than to PTA.
 ### Planned
 
 - GnuCash-style trading accounts (`System:Trading:*`)  
-- `isSystem = true` operations for automatic currency reconciliation  
+- Automatic currency reconciliation operations
 - Per-currency double-entry balancing  
 
 This foundation ensures correctness, extensibility, and simplicity for all future Ledgerly features.

@@ -162,7 +162,6 @@ export class TransactionBuilder {
       const account = Account.create(this.user, {
         commodityId: commodity.getId(),
         description: `Account ${commodityCode}`,
-        initialBalance: Amount.create('0'),
         name: Name.create(`Account ${commodityCode}`),
         type: AccountType.create('asset'),
       });

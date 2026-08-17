@@ -1,6 +1,5 @@
 import { Commodity } from '../commodities';
 import {
-  Amount,
   Id,
   Timestamp,
   Name,
@@ -30,11 +29,8 @@ export class Account {
     private readonly commodityRelation: ParentChildRelation,
     public name: Name,
     public description: string,
-    private initialBalance: Amount,
-    private currentClearedBalanceLocal: Amount,
     private type: AccountType,
     private isClosed: boolean,
-    public isSystem: boolean,
   ) {}
 
   static create(user: User, props: CreateAccountProps): Account {
@@ -52,8 +48,6 @@ export class Account {
       identity.getId(),
     );
 
-    const isSystem = props.type.isSystemType();
-
     return new Account(
       identity,
       timestamps,
@@ -62,11 +56,8 @@ export class Account {
       commodityRelation,
       props.name,
       props.description,
-      props.initialBalance,
-      Amount.create('0'),
       props.type,
       false,
-      isSystem,
     );
   }
 
@@ -74,12 +65,9 @@ export class Account {
     const {
       commodityId,
       createdAt,
-      currentClearedBalanceLocal,
       description,
       id,
-      initialBalance,
       isClosed,
-      isSystem,
       isTombstone,
       name,
       type,
@@ -114,11 +102,8 @@ export class Account {
       commodityRelation,
       Name.restore(name),
       description,
-      Amount.restore(initialBalance),
-      Amount.restore(currentClearedBalanceLocal),
       AccountType.restore(type),
       isClosed,
-      isSystem,
     );
   }
 
@@ -174,12 +159,9 @@ export class Account {
     return {
       commodityId: this.commodityRelation.getParentId().valueOf(),
       createdAt: this.getCreatedAt().valueOf(),
-      currentClearedBalanceLocal: this.currentClearedBalanceLocal.valueOf(),
       description: this.description,
       id: this.getId().valueOf(),
-      initialBalance: this.initialBalance.valueOf(),
       isClosed: this.isClosed,
-      isSystem: this.isSystem,
       isTombstone: this.softDelete.getIsTombstone(),
       name: this.name.valueOf(),
       type: this.type.valueOf(),

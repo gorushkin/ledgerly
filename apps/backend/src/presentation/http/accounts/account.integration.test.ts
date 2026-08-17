@@ -27,7 +27,6 @@ const closedAccountsData = [
   {
     commodityId: Id.create().valueOf(),
     description: 'Closed account 1 for testing purposes',
-    initialBalance: Amount.create('1000').valueOf(),
     isClosed: true,
     name: 'Test Account',
     type: AccountType.create('asset').valueOf(),
@@ -35,7 +34,6 @@ const closedAccountsData = [
   {
     commodityId: Id.create().valueOf(),
     description: 'Closed account 2 for testing purposes',
-    initialBalance: Amount.create('1000').valueOf(),
     isClosed: true,
     name: 'Savings Account',
     type: AccountType.create('asset').valueOf(),
@@ -46,7 +44,6 @@ const openAccountsData = [
   {
     commodityId: Id.create().valueOf(),
     description: 'Open account 1 for testing purposes',
-    initialBalance: Amount.create('1000').valueOf(),
     isClosed: false,
     name: 'Open Account',
     type: AccountType.create('asset').valueOf(),
@@ -54,7 +51,6 @@ const openAccountsData = [
   {
     commodityId: Id.create().valueOf(),
     description: 'Open account 2 for testing purposes',
-    initialBalance: Amount.create('1000').valueOf(),
     isClosed: false,
     name: 'Open Savings Account',
     type: AccountType.create('asset').valueOf(),
@@ -65,7 +61,6 @@ const deletedAccountsData = [
   {
     commodityId: Id.create().valueOf(),
     description: 'Deleted account 1 for testing purposes',
-    initialBalance: Amount.create('1000').valueOf(),
     isTombstone: true,
     name: 'Deleted Account',
     type: AccountType.create('asset').valueOf(),
@@ -73,7 +68,6 @@ const deletedAccountsData = [
   {
     commodityId: Id.create().valueOf(),
     description: 'Deleted account 2 for testing purposes',
-    initialBalance: Amount.create('1000').valueOf(),
     isTombstone: true,
     name: 'Deleted Savings Account',
     type: AccountType.create('asset').valueOf(),
@@ -236,7 +230,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'asset' as AccountTypeValue,
       };
@@ -628,7 +621,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: '',
         type: 'asset' as AccountTypeValue,
       };
@@ -646,7 +638,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         type: 'asset' as AccountTypeValue,
       } as unknown as AccountCreateDTO; // Type assertion to bypass TypeScript checks for testing purposes
 
@@ -663,7 +654,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 123 as unknown as string,
         type: 'asset' as AccountTypeValue,
       };
@@ -681,7 +671,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: '' as unknown as UUID,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'asset' as AccountTypeValue,
       };
@@ -698,7 +687,6 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when commodityId is missing', async () => {
       const payload: AccountCreateDTO = {
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'asset' as AccountTypeValue,
       } as unknown as AccountCreateDTO; // Type assertion to bypass TypeScript checks for testing purposes
@@ -716,7 +704,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: 'invalid-uuid' as unknown as UUID,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'asset' as AccountTypeValue,
       };
@@ -734,7 +721,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: Id.create().valueOf(),
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'asset' as AccountTypeValue,
       };
@@ -754,7 +740,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: otherUserCommodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: AccountType.create('asset').valueOf(),
       };
@@ -774,7 +759,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'asset' as AccountTypeValue,
       };
@@ -800,7 +784,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: closedCommodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'asset' as AccountTypeValue,
       };
@@ -830,7 +813,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: '' as unknown as AccountTypeValue,
       };
@@ -848,7 +830,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'invalid-type' as unknown as AccountTypeValue,
       };
@@ -866,7 +847,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
       } as unknown as AccountCreateDTO;
 
@@ -883,7 +863,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: accounts[0].name,
         type: 'asset' as AccountTypeValue,
       } as unknown as AccountCreateDTO; // Type assertion to bypass TypeScript checks for testing purposes
@@ -901,7 +880,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 123 as unknown as string,
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'asset' as AccountTypeValue,
       };
@@ -920,7 +898,6 @@ describe('Accounts Integration Tests', () => {
         commodityId: commodity.id,
         description: 'This is a new account',
         extraField: 'unexpected',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account',
         type: 'asset' as AccountTypeValue,
       };
@@ -966,7 +943,6 @@ describe('Accounts Integration Tests', () => {
         otherUserCommodity.id,
         {
           description: 'Other user account',
-          initialBalance: Amount.create('1000').valueOf(),
           name: 'Other User Account',
           type: 'asset' as AccountTypeValue,
         },
@@ -1125,7 +1101,6 @@ describe('Accounts Integration Tests', () => {
         otherUserCommodity.id,
         {
           description: 'Other user account',
-          initialBalance: Amount.create('1000').valueOf(),
           name: 'Other User Account',
           type: 'asset' as AccountTypeValue,
         },
@@ -1307,7 +1282,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'New Account for Timestamp Test',
         type: AccountType.create('asset').valueOf(),
       };
@@ -1325,7 +1299,6 @@ describe('Accounts Integration Tests', () => {
       expect(createdAccount.name).toBe(payload.name);
       expect(createdAccount.type).toBe(payload.type);
       expect(createdAccount.description).toBe(payload.description);
-      expect(createdAccount.initialBalance).toBe(payload.initialBalance);
     });
   });
 
@@ -1407,12 +1380,9 @@ describe('Accounts Integration Tests', () => {
       const requiredFields = [
         'commodityId',
         'createdAt',
-        'currentClearedBalanceLocal',
         'description',
         'id',
-        'initialBalance',
         'isClosed',
-        'isSystem',
         'isTombstone',
         'name',
         'type',
@@ -1424,7 +1394,6 @@ describe('Accounts Integration Tests', () => {
         expect(account).toHaveProperty(field);
       });
       expect(typeof account.isClosed).toBe('boolean');
-      expect(typeof account.isSystem).toBe('boolean');
       expect(typeof account.isTombstone).toBe('boolean');
     });
   });
@@ -1434,7 +1403,6 @@ describe('Accounts Integration Tests', () => {
       const payload: AccountCreateDTO = {
         commodityId: commodity.id,
         description: 'This is a new account',
-        initialBalance: Amount.create('1000').valueOf(),
         name: 'a'.repeat(256),
         type: 'asset' as AccountTypeValue,
       };

@@ -3,7 +3,6 @@
 - Status: Accepted
 - Date: 2026-06-14
 - Jira: https://gorushkin.atlassian.net/browse/LED-37
-- PR: https://github.com/gorushkin/ledgerly/pull/196
 
 ## Context
 

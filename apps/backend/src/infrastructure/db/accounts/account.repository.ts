@@ -99,7 +99,6 @@ export class AccountRepository
 
         const result = await this.db.insert(accountsTable).values({
           ...AccountPersistenceMapper.toDBRowFromSnapshot(data),
-          currentClearedBalanceLocal: data.currentClearedBalanceLocal ?? '0',
         });
 
         this.ensureRowsAffected(
@@ -167,7 +166,6 @@ export class AccountRepository
       async () => {
         const safeData = this.getSafeUpdate(data, [
           'description',
-          'initialBalance',
           'name',
           'type',
           'updatedAt',

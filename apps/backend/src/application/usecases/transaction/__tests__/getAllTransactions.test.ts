@@ -45,7 +45,6 @@ describe('GetAllTransactionsUseCase', () => {
     createdAt: Timestamp.create().valueOf(),
     description: 'Operation',
     id: Id.create().valueOf(),
-    isSystem: false,
     transactionId,
     updatedAt: Timestamp.create().valueOf(),
     userId,

@@ -3,7 +3,6 @@
 - Status: Accepted
 - Date: 2026-06-24
 - Jira: N/A
-- PR: TBD
 
 ## Context
 

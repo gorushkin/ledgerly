@@ -3,9 +3,7 @@ import { AccountQuery } from '@ledgerly/shared/validation';
 import { AccountSnapshot } from 'src/domain/accounts';
 
 export type AccountRepositoryUpdateInput = Pick<AccountSnapshot, 'updatedAt'> &
-  Partial<
-    Pick<AccountSnapshot, 'description' | 'initialBalance' | 'name' | 'type'>
-  >;
+  Partial<Pick<AccountSnapshot, 'description' | 'name' | 'type'>>;
 
 export type AccountRepositoryLifecycleInput = { updatedAt: IsoDatetimeString };
 

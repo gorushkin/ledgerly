@@ -48,10 +48,7 @@ erDiagram
         string name
         string type "Asset|Liability|Income|Expense"
         string description
-        integer initialBalance
-        integer currentClearedBalanceLocal
         boolean isClosed
-        boolean isSystem
         boolean isTombstone
         uuid userId FK
         timestamp createdAt
@@ -78,7 +75,6 @@ erDiagram
         integer amount
         integer value
         string description
-        boolean isSystem
         boolean isTombstone
         uuid userId FK
         timestamp createdAt
@@ -189,10 +185,7 @@ User's financial accounts for tracking funds.
 | `name`                       | String    | Account name                         | NOT NULL                                                          |
 | `type`                       | Enum      | Account type                         | `Asset\|Liability\|Income\|Expense`                               |
 | `description`                | String    | Account description                  | NOT NULL                                                          |
-| `initialBalance`             | Integer   | Initial balance in minor units       | NOT NULL, default: 0                                              |
-| `currentClearedBalanceLocal` | Integer   | Current local balance in minor units | NOT NULL, default: 0                                              |
 | `isClosed`                   | Boolean   | Reversible account close state       | NOT NULL, default: false                                          |
-| `isSystem`                   | Boolean   | Reserved system account flag         | NOT NULL, default: false                                          |
 | `isTombstone`                | Boolean   | Terminal tombstone delete flag       | NOT NULL, default: false                                          |
 | `userId`                     | UUID      | Account owner                        | FK -> `users.id`, NOT NULL, ON DELETE CASCADE                     |
 | `createdAt`                  | Timestamp | Creation date                        | NOT NULL                                                          |
@@ -222,7 +215,8 @@ User's financial accounts for tracking funds.
   tombstoned accounts.
 - Terminal account delete is allowed only when no active operations reference the
   account.
-- System accounts are reserved for future trading-account support.
+- Trading accounts are reserved for future multi-currency reconciliation
+  support. The current account schema has no system-account flag.
 
 ---
 
@@ -274,7 +268,6 @@ Individual financial postings affecting accounts.
 | `amount`        | Integer   | Amount in the account's Commodity minor units   | NOT NULL                                             |
 | `value`         | Integer   | Amount in the transaction Commodity minor units | NOT NULL                                             |
 | `description`   | String    | Operation description                           | NOT NULL                                             |
-| `isSystem`      | Boolean   | Reserved system operation flag                  | NOT NULL, default: false                             |
 | `isTombstone`   | Boolean   | Soft delete flag                                | NOT NULL, default: false                             |
 | `userId`        | UUID      | Operation owner                                 | FK -> `users.id`, NOT NULL, ON DELETE CASCADE        |
 | `createdAt`     | Timestamp | Creation date                                   | NOT NULL                                             |
@@ -292,7 +285,9 @@ Individual financial postings affecting accounts.
 - `value` is denominated by the parent transaction's Commodity.
 - Balance check: `sum(value)` across active operations in a transaction must
   equal 0.
-- System operations are reserved for future trading-account support.
+- Automated trading operations are reserved for future multi-currency
+  reconciliation support. The current operation schema has no system-operation
+  flag.
 
 **Indexes:**
 
