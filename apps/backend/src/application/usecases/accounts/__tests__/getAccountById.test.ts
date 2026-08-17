@@ -5,6 +5,7 @@ import {
 } from 'src/application/application.errors';
 import type { AccountRepositoryInterface } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
+import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { createUser } from 'src/db/createTestUser';
 import { Account, AccountSnapshot } from 'src/domain/accounts';
 import { Timestamp } from 'src/domain/domain-core';
@@ -63,6 +64,7 @@ describe('GetAccountByIdUseCase', async () => {
 
     getAccountByIdUseCase = new GetAccountByIdUseCase(
       mockAccountRepository as unknown as AccountRepositoryInterface,
+      ensureOwnedSnapshot,
     );
   });
 
