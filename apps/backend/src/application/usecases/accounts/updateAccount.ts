@@ -9,20 +9,18 @@ import type {
 } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { AccountOperationPolicy } from 'src/application/services';
-import { Account } from 'src/domain/accounts';
+import { EnsureOwnedSnapshotFn } from 'src/application/shared/ensureOwnedSnapshot';
+import { Account, AccountSnapshot } from 'src/domain/accounts';
 import { ClosedAccountOperationError } from 'src/domain/domain.errors';
 import { User } from 'src/domain/users/user.entity';
 
-import { AccountUseCaseBase } from './accountBase';
-
-export class UpdateAccountUseCase extends AccountUseCaseBase {
+export class UpdateAccountUseCase {
   constructor(
-    accountRepository: AccountRepositoryInterface,
+    protected readonly accountRepository: AccountRepositoryInterface,
     private readonly accountOperationPolicy: AccountOperationPolicy,
     private readonly transactionManager: TransactionManagerInterface,
-  ) {
-    super(accountRepository);
-  }
+    protected readonly ensureOwnedSnapshot: EnsureOwnedSnapshotFn,
+  ) {}
 
   private async checkAccountUpdateValidity(
     user: User,
@@ -48,10 +46,13 @@ export class UpdateAccountUseCase extends AccountUseCaseBase {
     data: AccountUpdateDTO,
   ): Promise<AccountResponseDTO> {
     const accountSnapshot = await this.transactionManager.run(async () => {
-      const accountData = await this.ensureAccountExistsAndOwned(
+      const accountData = await this.ensureOwnedSnapshot<AccountSnapshot>({
+        entityId: accountId,
+        entityType: Account.entityType,
+        getOwnerId: (account) => account.userId,
+        load: this.accountRepository.getById.bind(this.accountRepository),
         user,
-        accountId,
-      );
+      });
 
       const account = Account.restore(accountData);
       await this.checkAccountUpdateValidity(user, accountId, account, data);

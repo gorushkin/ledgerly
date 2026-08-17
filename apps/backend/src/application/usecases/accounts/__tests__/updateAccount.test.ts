@@ -9,6 +9,7 @@ import type {
 } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { AccountOperationPolicy } from 'src/application/services';
+import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { createUser } from 'src/db/createTestUser';
 import { Account, AccountSnapshot } from 'src/domain/accounts';
 import { Timestamp } from 'src/domain/domain-core';
@@ -72,6 +73,7 @@ describe('UpdateAccount', async () => {
       mockAccountRepository as unknown as AccountRepositoryInterface,
       mockAccountOperationPolicy as unknown as AccountOperationPolicy,
       mockTransactionManager as unknown as TransactionManagerInterface,
+      ensureOwnedSnapshot,
     );
   });
 

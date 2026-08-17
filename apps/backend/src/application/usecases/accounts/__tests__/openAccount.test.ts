@@ -7,6 +7,7 @@ import type {
   TransactionManagerInterface,
 } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
+import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { createUser } from 'src/db/createTestUser';
 import { AccountSnapshot } from 'src/domain/accounts';
 import { Timestamp } from 'src/domain/domain-core';
@@ -74,6 +75,7 @@ describe('OpenAccountUseCase', async () => {
     openAccountUseCase = new OpenAccountUseCase(
       mockAccountRepository as unknown as AccountRepositoryInterface,
       mockTransactionManager as unknown as TransactionManagerInterface,
+      ensureOwnedSnapshot,
     );
   });
 

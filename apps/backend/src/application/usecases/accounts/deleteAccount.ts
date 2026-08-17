@@ -9,17 +9,13 @@ import type { AccountSnapshot } from 'src/domain/accounts';
 import { Account } from 'src/domain/accounts';
 import { User } from 'src/domain/users/user.entity';
 
-import { AccountUseCaseBase } from './accountBase';
-
-export class DeleteAccountUseCase extends AccountUseCaseBase {
+export class DeleteAccountUseCase {
   constructor(
-    accountRepository: AccountRepositoryInterface,
+    protected readonly accountRepository: AccountRepositoryInterface,
     private readonly accountOperationPolicy: AccountOperationPolicy,
     private readonly transactionManager: TransactionManagerInterface,
     protected readonly ensureOwnedSnapshot: EnsureOwnedSnapshotFn,
-  ) {
-    super(accountRepository);
-  }
+  ) {}
 
   async execute(user: User, accountId: UUID): Promise<void> {
     await this.transactionManager.run(async () => {

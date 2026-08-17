@@ -105,11 +105,15 @@ export const createContainer = (db: DataBase): AppContainer => {
     commodityReferencePolicy,
   );
   const getAllAccountsUseCase = new GetAllAccountsUseCase(accountRepository);
-  const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
+  const getAccountByIdUseCase = new GetAccountByIdUseCase(
+    accountRepository,
+    ensureOwnedSnapshot,
+  );
   const updateAccountUseCase = new UpdateAccountUseCase(
     accountRepository,
     accountOperationPolicy,
     transactionManager,
+    ensureOwnedSnapshot,
   );
   const deleteAccountUseCase = new DeleteAccountUseCase(
     accountRepository,
@@ -120,10 +124,12 @@ export const createContainer = (db: DataBase): AppContainer => {
   const closeAccountUseCase = new CloseAccountUseCase(
     accountRepository,
     transactionManager,
+    ensureOwnedSnapshot,
   );
   const openAccountUseCase = new OpenAccountUseCase(
     accountRepository,
     transactionManager,
+    ensureOwnedSnapshot,
   );
 
   const loginUserUseCase = new LoginUserUseCase(userRepository);
