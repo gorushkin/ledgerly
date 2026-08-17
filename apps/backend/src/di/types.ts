@@ -21,16 +21,16 @@ import {
   CloseCommodityUseCase,
   OpenCommodityUseCase,
 } from 'src/application';
+import type {
+  AccountRepositoryInterface,
+  CommodityRepositoryInterface,
+  OperationRepositoryInterface,
+  TransactionQueryRepositoryInterface,
+  TransactionRepositoryInterface,
+  UserRepositoryInterface,
+} from 'src/application/interfaces';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
-import {
-  TransactionQueryRepository,
-  AccountRepository,
-  TransactionRepository,
-  CommodityRepository,
-  UserRepository,
-  OperationRepository,
-} from 'src/infrastructure/db';
 import {
   AccountController,
   AuthController,
@@ -40,12 +40,12 @@ import {
 } from 'src/presentation/http';
 
 type Repositories = {
-  transaction: TransactionRepository;
-  commodity: CommodityRepository;
-  transactionQuery: TransactionQueryRepository;
-  account: AccountRepository;
-  user: UserRepository;
-  operation: OperationRepository;
+  transaction: TransactionRepositoryInterface;
+  commodity: CommodityRepositoryInterface;
+  transactionQuery: TransactionQueryRepositoryInterface;
+  account: AccountRepositoryInterface;
+  user: UserRepositoryInterface;
+  operation: OperationRepositoryInterface;
 };
 
 type Services = {
