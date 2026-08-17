@@ -50,15 +50,18 @@ the orchestration boundary.
 Examples include:
 
 - `EntityNotFoundError`
+- `EntityAlreadyExistsError`
 - `UnauthorizedAccessError`
 - `UserNotFoundError`
 - `InvalidPasswordError`
-- `UserAlreadyExistsError`
 - `VersionConflictError`
 - `CommodityClosedError`
 
 Authentication failures intentionally map to the same public
 `AUTHENTICATION_FAILED` code with empty context.
+
+Known duplicate entity conflicts use `EntityAlreadyExistsError` with
+allowlisted context such as `{ entityType: "account", field: "name" }`.
 
 ### Infrastructure
 

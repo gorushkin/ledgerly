@@ -15,6 +15,7 @@ import { Account, AccountSnapshot } from 'src/domain/accounts';
 import { Timestamp } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { ClosedAccountOperationError } from 'src/domain/domain.errors';
+import { RecordAlreadyExistsError } from 'src/infrastructure/errors';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UpdateAccountUseCase } from '../updateAccount';
@@ -118,6 +119,31 @@ describe('UpdateAccount', async () => {
           updatedAt,
         }),
       );
+    });
+
+    it('maps duplicate account names to ENTITY_ALREADY_EXISTS', async () => {
+      mockAccountRepository.getById.mockResolvedValue(mockAccountData);
+      mockAccountRepository.update.mockRejectedValue(
+        new RecordAlreadyExistsError({
+          context: {
+            field: 'accountName',
+            tableName: 'accounts',
+            value: mockAccountUpdatedData.name,
+          },
+        }),
+      );
+
+      await expect(
+        updateAccountUseCase.execute(user, accountId, {
+          name: mockAccountUpdatedData.name,
+        }),
+      ).rejects.toMatchObject({
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'account',
+          field: 'name',
+        },
+      });
     });
 
     it('should throw error when account does not exist', async () => {

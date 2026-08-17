@@ -10,6 +10,7 @@ import {
   TransactionManagerInterface,
 } from 'src/application/interfaces';
 import { EnsureOwnedSnapshotFn } from 'src/application/shared/ensureOwnedSnapshot';
+import { mapRepositoryAlreadyExists } from 'src/application/shared/repositoryConflictMapper';
 import { Commodity, CommoditySnapshot } from 'src/domain/commodities';
 import { User } from 'src/domain/users/user.entity';
 
@@ -52,10 +53,20 @@ export class UpdateCommodityUseCase {
 
         const updatedCommoditySnapshot = commodity.toSnapshot();
 
-        await this.commodityRepository.update(
-          user.getId().valueOf(),
-          commodityId,
-          updatedCommoditySnapshot,
+        await mapRepositoryAlreadyExists(
+          () =>
+            this.commodityRepository.update(
+              user.getId().valueOf(),
+              commodityId,
+              updatedCommoditySnapshot,
+            ),
+          [
+            {
+              entityType: 'commodity',
+              field: 'code',
+              tableName: 'commodities',
+            },
+          ],
         );
 
         return updatedCommoditySnapshot;

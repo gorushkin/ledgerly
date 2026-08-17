@@ -1,4 +1,4 @@
-import { CommodityResponseDTO } from '@ledgerly/shared/types';
+import { CommodityResponseDTO, apiErrorCodes } from '@ledgerly/shared/types';
 import {
   CommodityRepositoryInterface,
   TransactionManagerInterface,
@@ -10,8 +10,9 @@ import {
 import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
 import { createCommodity } from 'src/db/createTestUser';
 import { Commodity } from 'src/domain/commodities/commodity.entity';
-import { Id, Timestamp } from 'src/domain/domain-core/';
+import { CommodityCode, Id, Timestamp } from 'src/domain/domain-core/';
 import { User } from 'src/domain/users/user.entity';
+import { RecordAlreadyExistsError } from 'src/infrastructure/errors';
 import { createUser } from 'src/testing/helpers';
 import { describe, vi, beforeAll, beforeEach, expect, it } from 'vitest';
 
@@ -115,6 +116,39 @@ describe('UpdateCommodityUseCase', () => {
 
       expect(mockTransactionManager.run).toHaveBeenCalledTimes(1);
       expect(result).toEqual(updatedCommoditySnapshot);
+    });
+
+    it('should map duplicate commodity codes to ENTITY_ALREADY_EXISTS', async () => {
+      const commodity = createCommodity(user, {
+        code: 'TEST',
+        name: 'Test Commodity',
+        precision: 2,
+        symbol: 'T',
+      });
+      const commodityId = commodity.getId().valueOf();
+
+      commodityRepository.getById.mockResolvedValue(commodity.toSnapshot());
+      commodityRepository.update.mockRejectedValue(
+        new RecordAlreadyExistsError({
+          context: {
+            field: 'code',
+            tableName: 'commodities',
+            value: 'DUP',
+          },
+        }),
+      );
+
+      await expect(
+        updateCommodityUseCase.execute(user, commodityId, {
+          code: CommodityCode.create('DUP').valueOf(),
+        }),
+      ).rejects.toMatchObject({
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'commodity',
+          field: 'code',
+        },
+      });
     });
 
     it('should throw an error if the commodity does not exist', async () => {

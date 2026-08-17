@@ -5,6 +5,7 @@ import type {
 } from 'src/application/interfaces';
 import { AccountMapper } from 'src/application/mappers';
 import { CommodityReferencePolicy } from 'src/application/services';
+import { mapRepositoryAlreadyExists } from 'src/application/shared/repositoryConflictMapper';
 import { Account } from 'src/domain/';
 import { User } from 'src/domain/users/user.entity';
 export class CreateAccountUseCase {
@@ -30,9 +31,19 @@ export class CreateAccountUseCase {
 
       const accountSnapshot = account.toSnapshot();
 
-      await this.accountRepository.create(
-        user.getId().valueOf(),
-        accountSnapshot,
+      await mapRepositoryAlreadyExists(
+        () =>
+          this.accountRepository.create(
+            user.getId().valueOf(),
+            accountSnapshot,
+          ),
+        [
+          {
+            entityType: 'account',
+            field: 'name',
+            tableName: 'accounts',
+          },
+        ],
       );
 
       return accountSnapshot;

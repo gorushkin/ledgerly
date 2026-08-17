@@ -3,7 +3,7 @@ import {
   UserChangePasswordDTO,
   UUID,
 } from '@ledgerly/shared/types';
-import { UserAlreadyExistsError } from 'src/application/application.errors';
+import { EntityAlreadyExistsError } from 'src/application';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UserRepository } from 'src/infrastructure/db/';
 
@@ -18,13 +18,6 @@ export class UserService {
   }
 
   validateUser(_id: UUID): Promise<UsersUpdateDTO> {
-    // const existingUser = await this.usersRepository.getUserById(id);
-
-    // if (!existingUser) {
-    //   throw new UserNotFoundError();
-    // }
-
-    // return existingUser;
     throw new Error('Not implemented');
   }
 
@@ -37,7 +30,10 @@ export class UserService {
       );
 
       if (existingUser && existingUser.id !== id) {
-        throw new UserAlreadyExistsError('Email already exists');
+        throw new EntityAlreadyExistsError({
+          entityType: 'user',
+          field: 'email',
+        });
       }
     }
 

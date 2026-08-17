@@ -899,7 +899,17 @@ describe('Accounts Integration Tests', () => {
         url,
       });
 
+      const parsedResponse = JSON.parse(response.body) as ApiErrorResponse;
+
       expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'account',
+          field: 'name',
+        },
+        error: true,
+      });
     });
 
     it('should return 400 when description is not a string', async () => {
@@ -1089,7 +1099,17 @@ describe('Accounts Integration Tests', () => {
         url: `/api/accounts/${accountToUpdate.id}`,
       });
 
+      const parsedResponse = JSON.parse(response.body) as ApiErrorResponse;
+
       expect(response.statusCode).toBe(409);
+      expect(parsedResponse).toEqual({
+        code: apiErrorCodes.entityAlreadyExists,
+        context: {
+          entityType: 'account',
+          field: 'name',
+        },
+        error: true,
+      });
     });
 
     it('should return 400 when empty object is provided', async () => {

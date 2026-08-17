@@ -41,6 +41,19 @@ export class EntityNotFoundError extends CodedApplicationError<'ENTITY_NOT_FOUND
 }
 
 /**
+ * Thrown when an entity violates a public uniqueness contract.
+ */
+export class EntityAlreadyExistsError extends CodedApplicationError<'ENTITY_ALREADY_EXISTS'> {
+  constructor(context: ErrorContextByCode['ENTITY_ALREADY_EXISTS']) {
+    super(
+      `${context.entityType} already exists for ${context.field}`,
+      apiErrorCodes.entityAlreadyExists,
+      context,
+    );
+  }
+}
+
+/**
  * Thrown when a user attempts to access an entity they don't own.
  */
 export class UnauthorizedAccessError extends CodedApplicationError<'UNAUTHORIZED_ACCESS'> {
@@ -128,15 +141,6 @@ export class UserNotFoundError extends AuthenticationFailedError {
 export class InvalidPasswordError extends AuthenticationFailedError {
   constructor(message = 'Invalid password') {
     super(message);
-  }
-}
-
-/**
- * Thrown when trying to register a user that already exists.
- */
-export class UserAlreadyExistsError extends CodedApplicationError<'REGISTRATION_CONFLICT'> {
-  constructor(message = 'User already exists') {
-    super(message, apiErrorCodes.registrationConflict, {});
   }
 }
 
