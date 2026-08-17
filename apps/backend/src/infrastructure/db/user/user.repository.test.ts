@@ -2,7 +2,10 @@ import { UserRepositoryInterface } from 'src/application';
 import { Email, Id, Name, Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 import { TransactionManager } from 'src/infrastructure/db';
-import { RepositoryNotFoundError } from 'src/infrastructure/errors';
+import {
+  RecordAlreadyExistsError,
+  RepositoryNotFoundError,
+} from 'src/infrastructure/errors';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 
 import { UserRepository } from '../';
@@ -196,6 +199,20 @@ describe('UsersRepository', () => {
       );
 
       expect(user1.id).not.toBe(user2.id);
+    });
+
+    it('throws RecordAlreadyExistsError for duplicate email', async () => {
+      await userRepository.create(await createUser());
+
+      await expect(userRepository.create(await createUser())).rejects.toThrow(
+        new RecordAlreadyExistsError({
+          context: {
+            field: 'email',
+            tableName: 'users',
+            value: email,
+          },
+        }),
+      );
     });
   });
 

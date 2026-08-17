@@ -136,6 +136,13 @@ export class UserRepository
       async () =>
         this.db.insert(usersTable).values(data).returning(userSelect).get(),
       'Failed to create user',
+      {
+        unique: {
+          field: 'email',
+          tableName: 'users',
+          value: data.email,
+        },
+      },
     );
   }
 

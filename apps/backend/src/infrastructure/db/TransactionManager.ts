@@ -17,12 +17,12 @@ export class TransactionManager implements TransactionManagerInterface {
   async run<T>(
     callback: (context?: TransactionContext) => Promise<T>,
   ): Promise<T> {
-    return await this.db.transaction(async (tx: TxType) => {
-      const existingStore = this.storage.getStore();
-      if (existingStore) {
-        return await callback();
-      }
+    const existingStore = this.storage.getStore();
+    if (existingStore) {
+      return await callback();
+    }
 
+    return await this.db.transaction(async (tx: TxType) => {
       return this.storage.run({ tx }, async () => {
         try {
           return await callback({});
