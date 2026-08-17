@@ -3,7 +3,7 @@ import {
   UserChangePasswordDTO,
   UUID,
 } from '@ledgerly/shared/types';
-import { EntityAlreadyExistsError } from 'src/application/application.errors';
+import { EntityAlreadyExistsError } from 'src/application';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import { UserRepository } from 'src/infrastructure/db/';
 

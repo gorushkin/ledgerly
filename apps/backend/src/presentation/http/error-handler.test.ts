@@ -9,7 +9,7 @@ import {
   EntityAlreadyExistsError,
   InvalidPasswordError,
   UserNotFoundError,
-} from 'src/application/application.errors';
+} from 'src/application';
 import { Id } from 'src/domain/domain-core';
 import {
   AccountPersistenceConflictError,
