@@ -330,7 +330,7 @@ describe('AccountRepository', () => {
       (account) => !account.isTombstone,
     );
 
-    const activeAccounts = accountsDataList.filter(
+    const openAccounts = accountsDataList.filter(
       (account) => !account.isClosed && !account.isTombstone,
     );
 
@@ -346,7 +346,7 @@ describe('AccountRepository', () => {
 
     const testData: [AccountQuery, TestData[]][] = [
       [{ status: 'all' }, allAccounts],
-      [{ status: 'open' }, activeAccounts],
+      [{ status: 'open' }, openAccounts],
       [{ status: 'closed' }, closedAccounts],
     ];
 

@@ -155,8 +155,7 @@ describe('Accounts Integration Tests', () => {
   describe('GET /api/accounts', () => {
     const testCases = [
       {
-        description:
-          'should return all active open accounts by default for the user',
+        description: 'should return all open accounts by default for the user',
         expectedAccounts: (accounts: AccountResponseDTO[]) =>
           accounts.filter(
             (account) => !account.isClosed && !account.isTombstone,
@@ -165,7 +164,7 @@ describe('Accounts Integration Tests', () => {
       },
       {
         description:
-          'should return all accounts including closed when query param status=all',
+          'should return all non-deleted accounts when query param status=all',
         expectedAccounts: (accounts: AccountResponseDTO[]) =>
           accounts.filter((account) => !account.isTombstone),
         query: { status: 'all' },
@@ -200,6 +199,33 @@ describe('Accounts Integration Tests', () => {
         compareEntityArrays(responseAccounts, expectedAccounts(accounts));
       });
     });
+
+    it.each(['open', 'closed', 'all'] as const)(
+      'should not include accounts owned by another user when status=%s',
+      async (status) => {
+        const otherUserCommodity = await testDB.createCommodity(otherUserId);
+
+        await testDB.createAccount(otherUserId, otherUserCommodity.id, {
+          isClosed: status === 'closed',
+          name: `Other User ${status} Account`,
+          type: 'asset',
+        });
+
+        const response = await injectAuthorized({
+          method: 'GET',
+          url: getWithQueryParamsUrl(status),
+        });
+
+        const responseAccounts = JSON.parse(
+          response.body,
+        ) as AccountResponseDTO[];
+
+        expect(response.statusCode).toBe(200);
+        expect(
+          responseAccounts.every((account) => account.userId === userId),
+        ).toBe(true);
+      },
+    );
   });
 
   describe('GET /api/accounts/:id', () => {
