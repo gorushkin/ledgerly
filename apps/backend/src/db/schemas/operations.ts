@@ -58,5 +58,3 @@ export const operationsRelations = relations(operationsTable, ({ one }) => ({
 
 export type OperationDbRow = InferSelectModel<typeof operationsTable>;
 export type OperationDbInsert = InferInsertModel<typeof operationsTable>;
-
-export type OperationRepoInsert = OperationDbInsert;

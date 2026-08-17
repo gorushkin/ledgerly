@@ -8,7 +8,7 @@ import {
   apiErrorCodes,
   UUID,
 } from '@ledgerly/shared/types';
-import { CommodityDbRow } from 'src/db/schemas/commodities';
+import { CommodityDbRow } from 'src/db/schemas';
 import { TestDB } from 'src/db/test-db';
 import { compareEntityArrays } from 'src/db/test-utils/entityComparer';
 import { AccountType } from 'src/domain';

@@ -51,5 +51,3 @@ export const accountsTable = sqliteTable(
 
 export type AccountDbRow = InferSelectModel<typeof accountsTable>;
 export type AccountDbInsert = InferInsertModel<typeof accountsTable>;
-
-export type AccountRepoInsert = AccountDbInsert;

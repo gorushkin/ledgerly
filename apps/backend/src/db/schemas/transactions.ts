@@ -8,8 +8,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
-import { commoditiesTable, OperationDbRow, operationsTable } from '../schema';
-
+import { commoditiesTable } from './commodities';
 import {
   createdAt,
   description,
@@ -19,6 +18,7 @@ import {
   getIsoDateString,
   version,
 } from './common';
+import { OperationDbRow, operationsTable } from './operations';
 import { usersTable } from './users';
 
 export const transactionsTable = sqliteTable(
@@ -62,12 +62,6 @@ export const transactionsRelations = relations(
 
 export type TransactionDbRow = InferSelectModel<typeof transactionsTable>;
 export type TransactionDbInsert = InferInsertModel<typeof transactionsTable>;
-
-export type TransactionRepoInsert = TransactionDbInsert;
-
-export type TransactionDbUpdate = Partial<
-  Omit<TransactionDbRow, 'id' | 'userId' | 'createdAt'>
->;
 
 // Type for transaction with nested relations (operations as array)
 export type TransactionWithRelations = TransactionDbRow & {
