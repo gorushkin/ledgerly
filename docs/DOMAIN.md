@@ -62,10 +62,11 @@ Represents different financial accounts with unified structure for all account t
 - Reversible account close state is represented by `isClosed`
 - Terminal account deletion is represented by `isTombstone`
 - `GET /accounts` returns open accounts by default and supports
-  `status=open|closed|all`; all normal list filters exclude tombstoned accounts
+  `status=open|closed|all`; `all` includes open and closed non-tombstoned
+  accounts, and all normal list filters exclude tombstoned accounts
 - Closed accounts keep history and reports but cannot receive new operations
-- Closed accounts cannot be updated through the regular account update flow;
-  descriptive-field editing must be handled as an explicit lifecycle exception
+- Closed accounts can still have descriptive fields edited through the regular
+  account update flow, but account `type` cannot be changed while closed
 - Account `type` can be changed only while the account has no active operations
 - `DELETE /accounts/:id` means terminal tombstone delete and is rejected while
   active operations still reference the account
