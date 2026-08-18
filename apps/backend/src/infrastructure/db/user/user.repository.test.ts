@@ -64,7 +64,7 @@ describe('UsersRepository', () => {
       expect(foundUser).not.toHaveProperty('password');
     });
 
-    it('should return undefined for non-existent user', async () => {
+    it('should throw RepositoryNotFoundError for non-existent user', async () => {
       const foundUser = userRepository.getProfileById(Id.create().valueOf());
 
       await expect(foundUser).rejects.toThrowError(RepositoryNotFoundError);

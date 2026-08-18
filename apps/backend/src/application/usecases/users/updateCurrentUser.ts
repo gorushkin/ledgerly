@@ -3,9 +3,8 @@ import { UserRepositoryInterface } from 'src/application/interfaces';
 import { UserMapper } from 'src/application/mappers';
 import { mapRepositoryAlreadyExists } from 'src/application/shared/repositoryConflictMapper';
 import { userRepositoryAlreadyExistsMappings } from 'src/application/shared/userRepositoryConflictMappings';
-import { Email } from 'src/domain/domain-core/value-objects/Email';
-import { Name } from 'src/domain/domain-core/value-objects/Name';
-import { User } from 'src/domain/users/user.entity';
+import { Email, Name } from 'src/domain/domain-core/';
+import { User } from 'src/domain/users';
 
 export class UpdateCurrentUserUseCase {
   constructor(private readonly usersRepository: UserRepositoryInterface) {}

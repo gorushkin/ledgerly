@@ -139,9 +139,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const registerUserUseCase = new RegisterUserUseCase(userRepository);
 
   const getCurrentUserUseCase = new GetCurrentUserUseCase();
-  const getUpdateCurrentUserUseCase = new UpdateCurrentUserUseCase(
-    userRepository,
-  );
+  const updateCurrentUserUseCase = new UpdateCurrentUserUseCase(userRepository);
 
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager,
@@ -250,7 +248,7 @@ export const createContainer = (db: DataBase): AppContainer => {
     },
     user: {
       getCurrentUser: getCurrentUserUseCase,
-      updateCurrentUser: getUpdateCurrentUserUseCase,
+      updateCurrentUser: updateCurrentUserUseCase,
     },
   };
 
@@ -266,7 +264,7 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const userController = new UserController(
     getCurrentUserUseCase,
-    getUpdateCurrentUserUseCase,
+    updateCurrentUserUseCase,
   );
 
   const authController = new AuthController(

@@ -3,8 +3,8 @@ import { eq } from 'drizzle-orm';
 import { UserRepositoryInterface } from 'src/application';
 import type { UserRepositoryUpdateProfileInput } from 'src/application';
 import { usersTable } from 'src/db/schemas';
+import { User } from 'src/domain/users/';
 import { UserProfileSnapshot, UserSnapshot } from 'src/domain/users/types';
-import { User } from 'src/domain/users/user.entity';
 
 import { BaseRepository } from '../BaseRepository';
 

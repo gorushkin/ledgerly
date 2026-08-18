@@ -3,8 +3,8 @@ import { usersUpdateSchema } from '@ledgerly/shared/validation';
 import {
   GetCurrentUserUseCase,
   UpdateCurrentUserUseCase,
-} from 'src/application/usecases/users';
-import { User } from 'src/domain/users/user.entity';
+} from 'src/application/';
+import { User } from 'src/domain/users/';
 
 const notImplemented = () => Promise.reject(new Error('Not implemented yet'));
 

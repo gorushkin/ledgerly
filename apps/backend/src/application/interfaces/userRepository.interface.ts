@@ -9,7 +9,7 @@ export type UserRepositoryInterface = {
   create(user: User): Promise<UserResponseDTO>;
   getByEmail(email: string): Promise<UserResponseDTO | undefined>;
   getProfileById(userId: UUID): Promise<UserProfileSnapshot>;
-  getById(userId: UUID): Promise<UserProfileSnapshot | undefined>;
+  getById(userId: UUID): Promise<UserSnapshot>;
   getByIdWithPassword(userId: UUID): Promise<User | undefined>;
   getByEmailWithPassword(email: string): Promise<User | undefined>;
   updateUserProfile(
