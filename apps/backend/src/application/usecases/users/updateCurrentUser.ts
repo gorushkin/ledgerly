@@ -6,9 +6,10 @@ import { userRepositoryAlreadyExistsMappings } from 'src/application/shared/user
 import { Email, Name } from 'src/domain/domain-core/';
 import { User } from 'src/domain/users';
 
-export type UpdateCurrentUserInput = Partial<
-  Pick<UserResponseDTO, 'email' | 'name'>
->;
+type UpdateCurrentUserInput = {
+  email?: string;
+  name?: string;
+};
 
 export class UpdateCurrentUserUseCase {
   constructor(private readonly usersRepository: UserRepositoryInterface) {}
