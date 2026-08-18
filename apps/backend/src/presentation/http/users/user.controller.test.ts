@@ -1,4 +1,5 @@
-import { UserChangePasswordDTO, UsersUpdateDTO } from '@ledgerly/shared/types';
+import { UserChangePasswordDTO, UserUpdateDTO } from '@ledgerly/shared/types';
+import type { GetCurrentUserUseCase } from 'src/application/usecases/users/getCurrentUser';
 import { User } from 'src/domain/users/user.entity';
 import { createUser } from 'src/testing';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -16,7 +17,13 @@ describe.skip('UserController', () => {
   //   update: vi.fn(),
   // };
 
-  const controller = new UserController();
+  const mockGetCurrentUserUseCase = {
+    execute: vi.fn(),
+  };
+
+  const controller = new UserController(
+    mockGetCurrentUserUseCase as unknown as GetCurrentUserUseCase,
+  );
 
   beforeEach(async () => {
     user = await createUser();
@@ -110,10 +117,11 @@ describe.skip('UserController', () => {
     });
 
     it('should throw ZodError for invalid name type', async () => {
-      const invalidData = {
+      const invalidData: UserUpdateDTO = {
         email: 'valid@email.com',
+        id: user.getId().valueOf(),
         name: 123,
-      } as unknown as UsersUpdateDTO;
+      } as unknown as UserUpdateDTO;
 
       await expect(controller.update(user, invalidData)).rejects.toThrow(
         ZodError,

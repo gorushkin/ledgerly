@@ -3,10 +3,11 @@ import type { FastifyInstance } from 'fastify';
 export const registerUserRoutes = (app: FastifyInstance) => {
   const userController = app.container.controllers.user;
 
+  // TODO: consider adding /me route for getting current user info, instead of just / route. This would make it more clear that this route is for getting the current user's info, and not for getting a list of all users.
   app.get('/', async (request) => {
     const user = request.user;
 
-    return userController.getById(user);
+    return userController.getCurrentUser(user);
   });
 
   app.put('/', async (request, reply) => {

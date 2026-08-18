@@ -26,6 +26,25 @@ describe('UserPersistenceMapper', () => {
     });
   });
 
+  it('maps a persistence row to a user snapshot', () => {
+    expect(UserPersistenceMapper.toSnapshot(row)).toEqual({
+      createdAt: row.createdAt,
+      email: row.email,
+      id: row.id,
+      name: row.name,
+      password: row.password,
+      updatedAt: row.updatedAt,
+    });
+  });
+
+  it('maps a persistence row to a user profile snapshot', () => {
+    expect(UserPersistenceMapper.toProfileSnapshot(row)).toEqual({
+      email: row.email,
+      id: row.id,
+      name: row.name,
+    });
+  });
+
   it('maps a domain user to a persistence row', () => {
     const user = UserPersistenceMapper.toDomain(row);
 

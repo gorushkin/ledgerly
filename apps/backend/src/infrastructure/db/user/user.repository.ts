@@ -1,11 +1,8 @@
-import { UsersResponseDTO, UsersUpdateDTO, UUID } from '@ledgerly/shared/types';
+import { UserResponseDTO, UserUpdateDTO, UUID } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
-import {
-  UserRepositoryInterface,
-  UpdateUserRequestDTO,
-  UserResponseDTO,
-} from 'src/application';
+import { UserRepositoryInterface } from 'src/application';
 import { usersTable } from 'src/db/schemas';
+import { UserProfileSnapshot } from 'src/domain/users/types';
 import { User } from 'src/domain/users/user.entity';
 
 import { BaseRepository } from '../BaseRepository';
@@ -22,10 +19,7 @@ export class UserRepository
   extends BaseRepository
   implements UserRepositoryInterface
 {
-  update(
-    _userId: UUID,
-    _userData: UpdateUserRequestDTO,
-  ): Promise<UserResponseDTO> {
+  update(_userId: UUID, _userData: UserUpdateDTO): Promise<UserResponseDTO> {
     throw new Error('Method not implemented.');
   }
 
@@ -53,7 +47,7 @@ export class UserRepository
     }, `Failed to find user with email ${email}`);
   }
 
-  async getById(id: UUID): Promise<UserResponseDTO> {
+  async getById(id: UUID): Promise<UserProfileSnapshot> {
     return this.executeDatabaseOperation(async () => {
       const user = await this.db
         .select(userSelect)
@@ -61,11 +55,13 @@ export class UserRepository
         .where(eq(usersTable.id, id))
         .get();
 
-      return this.ensureEntityExists(
+      const existingUser = this.ensureEntityExists(
         user,
         `User with ID ${id} not found`,
         this.entityNotFoundContext('user', id),
       );
+
+      return UserPersistenceMapper.toProfileSnapshot(existingUser);
     }, `Failed to fetch user with ID ${id}`);
   }
 
@@ -83,8 +79,8 @@ export class UserRepository
 
   async updateUserProfile(
     id: UUID,
-    data: UsersUpdateDTO,
-  ): Promise<UsersResponseDTO> {
+    data: UserUpdateDTO,
+  ): Promise<UserResponseDTO> {
     return this.executeDatabaseOperation(async () => {
       const updateData: Partial<
         Pick<typeof usersTable.$inferInsert, 'email' | 'name'>
@@ -162,7 +158,7 @@ export class UserRepository
   }
 
   // TODO: remove this method
-  async getAll(): Promise<UsersResponseDTO[]> {
+  async getAll(): Promise<UserResponseDTO[]> {
     return this.executeDatabaseOperation(
       async () => this.db.select(userSelect).from(usersTable).all(),
       'Failed to fetch all users',

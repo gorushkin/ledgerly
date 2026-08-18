@@ -1,11 +1,13 @@
+import { UserResponseDTO } from '@ledgerly/shared/types';
+import { GetCurrentUserUseCase } from 'src/application/usecases/users';
 import { User } from 'src/domain/users/user.entity';
 
 const notImplemented = () => Promise.reject(new Error('Not implemented yet'));
 
 export class UserController {
-  getById(_user: User): Promise<never> {
-    // return this.getUserProfileUseCase.execute(user);
-    return notImplemented();
+  constructor(private readonly getCurrentUserUseCase: GetCurrentUserUseCase) {}
+  getCurrentUser(user: User): Promise<UserResponseDTO> {
+    return this.getCurrentUserUseCase.execute(user);
   }
 
   update(_user: User, _requestBody: unknown): Promise<never> {

@@ -1,5 +1,4 @@
-import { apiErrorCodes } from '@ledgerly/shared/types';
-import { CreateUserRequestDTO } from 'src/application/dto';
+import { apiErrorCodes, UserCreateDTO } from '@ledgerly/shared/types';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { User } from 'src/domain/users/user.entity';
@@ -27,7 +26,7 @@ describe('RegisterUserUseCase', () => {
   });
 
   describe('execute', () => {
-    const validRequest: CreateUserRequestDTO = {
+    const validRequest: UserCreateDTO = {
       email,
       name,
       password,

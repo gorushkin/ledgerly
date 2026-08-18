@@ -28,6 +28,7 @@ import {
 } from 'src/application/services';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
+import { GetCurrentUserUseCase } from 'src/application/usecases/users/getCurrentUser';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import {
@@ -136,6 +137,8 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const registerUserUseCase = new RegisterUserUseCase(userRepository);
 
+  const getCurrentUserUseCase = new GetCurrentUserUseCase(userRepository);
+
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager,
     transactionRepository,
@@ -241,6 +244,9 @@ export const createContainer = (db: DataBase): AppContainer => {
       getTransactionById: getTransactionByIdUseCase,
       updateTransaction: updateTransactionUseCase,
     },
+    user: {
+      getCurrentUser: getCurrentUserUseCase,
+    },
   };
 
   const accountController = new AccountController(
@@ -253,7 +259,8 @@ export const createContainer = (db: DataBase): AppContainer => {
     useCases.account.openAccount,
   );
 
-  const userController = new UserController();
+  const userController = new UserController(getCurrentUserUseCase);
+
   const authController = new AuthController(
     registerUserUseCase,
     loginUserUseCase,

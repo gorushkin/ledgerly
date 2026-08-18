@@ -1,28 +1,18 @@
 import { UUID } from "./types";
 
-export type UserBaseDTO = {
+export type UserResponseDTO = {
   email: string;
+  id: UUID;
   name: string;
 };
 
-export type UserDbInsertDTO = UserBaseDTO & {
+export type UserCreateDTO = {
+  email: string;
+  name: string;
   password: string;
 };
 
-export type UserDbRowDTO = UserBaseDTO & {
-  id: UUID;
-};
-export type UserDbUpdateDTO = Partial<UserBaseDTO>;
-
-export type UsersCreateDTO = UserBaseDTO & {
-  password: string;
-};
-
-export type UsersResponseDTO = UserBaseDTO & {
-  id: UUID;
-};
-
-export type UsersUpdateDTO = Partial<UserBaseDTO>;
+export type UserUpdateDTO = Partial<UserResponseDTO>;
 
 export type UserChangePasswordDTO = {
   currentPassword: string;

@@ -1,5 +1,5 @@
 import { ROUTES } from '@ledgerly/shared/routes';
-import { UsersResponseDTO, UUID } from '@ledgerly/shared/types';
+import { UserResponseDTO, UUID } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/http';
@@ -69,7 +69,7 @@ describe.skip('User Integration Tests', () => {
 
       expect(1).toBe(1);
 
-      const user = JSON.parse(response.body) as UsersResponseDTO;
+      const user = JSON.parse(response.body) as UserResponseDTO;
 
       expect(response.statusCode).toBe(200);
       expect(user).toHaveProperty('email', testUser.email);
@@ -135,7 +135,7 @@ describe.skip('User Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const user = JSON.parse(response.body) as UsersResponseDTO;
+      const user = JSON.parse(response.body) as UserResponseDTO;
       expect(user).toHaveProperty('email', updatedData.email);
       expect(user).toHaveProperty('name', updatedData.name);
       expect(user).not.toHaveProperty('password');
@@ -234,7 +234,7 @@ describe.skip('User Integration Tests', () => {
         url,
       });
 
-      const result = JSON.parse(response.body) as UsersResponseDTO;
+      const result = JSON.parse(response.body) as UserResponseDTO;
       expect(response.statusCode).toBe(200);
       expect(result).toHaveProperty('message', 'Profile successfully deleted');
 

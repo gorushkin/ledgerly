@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetAccountByIdUseCase } from '../getAccountById';
 
+// TODO: move creating user to beforeAll section
 describe('GetAccountByIdUseCase', async () => {
   const user = await createUser();
 

@@ -4,7 +4,7 @@ import { AccountMapper } from 'src/application/mappers';
 import { EnsureOwnedSnapshotFn } from 'src/application/shared/ensureOwnedSnapshot';
 import type { AccountSnapshot } from 'src/domain/accounts';
 import { Account } from 'src/domain/accounts';
-import { User } from 'src/domain/users/user.entity';
+import { User } from 'src/domain/users/';
 
 export class GetAccountByIdUseCase {
   constructor(
