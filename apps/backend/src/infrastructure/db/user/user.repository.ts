@@ -1,4 +1,4 @@
-import { UserResponseDTO, UserUpdateDTO, UUID } from '@ledgerly/shared/types';
+import { UserResponseDTO, UUID } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { UserRepositoryInterface } from 'src/application';
 import type { UserRepositoryUpdateProfileInput } from 'src/application';
@@ -20,10 +20,6 @@ export class UserRepository
   extends BaseRepository
   implements UserRepositoryInterface
 {
-  update(_userId: UUID, _userData: UserUpdateDTO): Promise<UserResponseDTO> {
-    throw new Error('Method not implemented.');
-  }
-
   async getByEmail(email: string): Promise<UserResponseDTO | undefined> {
     return this.executeDatabaseOperation(
       async () =>

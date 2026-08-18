@@ -72,8 +72,6 @@ describe('User Integration Tests', () => {
         url,
       });
 
-      expect(1).toBe(1);
-
       const user = httpClient.parseResponse<UserResponseDTO>(response);
 
       expect(response.statusCode).toBe(200);

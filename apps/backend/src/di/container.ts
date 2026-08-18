@@ -20,6 +20,8 @@ import {
   CreateCommodityUseCase,
   CloseCommodityUseCase,
   OpenCommodityUseCase,
+  GetCurrentUserUseCase,
+  UpdateCurrentUserUseCase,
 } from 'src/application';
 import {
   AccountOperationPolicy,
@@ -28,8 +30,6 @@ import {
 } from 'src/application/services';
 import { ensureEntityExistsAndOwned } from 'src/application/shared/ensureEntityExistsAndOwned';
 import { ensureOwnedSnapshot } from 'src/application/shared/ensureOwnedSnapshot';
-import { GetCurrentUserUseCase } from 'src/application/usecases/users/getCurrentUser';
-import { UpdateCurrentUserUseCase } from 'src/application/usecases/users/updateCurrentUser';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import {

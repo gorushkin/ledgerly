@@ -87,7 +87,6 @@ type CommodityUseCases = {
   updateCommodity: UpdateCommodityUseCase;
 };
 
-// TODO: check if we need UserUseCases and AuthUseCases to be separate or if we can merge them into one. For now, we keep them separate for clarity and future expansion.
 type UserUseCases = {
   getCurrentUser: GetCurrentUserUseCase;
   updateCurrentUser: UpdateCurrentUserUseCase;
