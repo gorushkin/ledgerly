@@ -6,12 +6,6 @@ export type UserResponseDTO = {
   name: string;
 };
 
-export type UserCreateDTO = {
-  email: string;
-  name: string;
-  password: string;
-};
-
 export type UserUpdateDTO = {
   email?: string;
   name?: string;
