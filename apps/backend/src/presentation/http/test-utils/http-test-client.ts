@@ -1,10 +1,17 @@
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'node:http';
 
+import { UUID } from '@ledgerly/shared/types';
 import type { createServer } from 'src/presentation/http/server';
 
 type TestServer = ReturnType<typeof createServer>;
 type HttpMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 type InjectPayload = string | object | Buffer | NodeJS.ReadableStream;
+type AuthTokenPayload = {
+  email: string;
+  userId: UUID;
+};
+
+const defaultTestTokenExpiresIn = '1h';
 
 export type HttpTestInjectOptions = {
   headers?: IncomingHttpHeaders | OutgoingHttpHeaders;
@@ -43,11 +50,32 @@ export const createHttpTestClient = (
     return JSON.parse(response.body) as TResponse;
   };
 
+  const registerAndGetToken = async (payload: InjectPayload) => {
+    const response = await server.inject({
+      method: 'POST',
+      payload,
+      url: '/api/auth/register',
+    });
+
+    return parseResponse<{ token: string }>(response);
+  };
+
+  const signAuthToken = (
+    payload: AuthTokenPayload,
+    options?: Parameters<TestServer['jwt']['sign']>[1],
+  ) =>
+    server.jwt.sign(payload, {
+      expiresIn: defaultTestTokenExpiresIn,
+      ...(options ?? {}),
+    });
+
   return {
     injectAuthorized,
     injectUnauthenticated,
     injectWithToken,
     parseResponse,
+    registerAndGetToken,
+    signAuthToken,
   };
 };
 

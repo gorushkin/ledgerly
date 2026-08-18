@@ -181,8 +181,6 @@ describe('UsersRepository', () => {
 
       expect(user.email).toBe(email);
       expect(user.name).toBe(name);
-
-      expect(1).toBe(1); // Placeholder for actual test logic
     });
 
     it('should not return password in create response', async () => {

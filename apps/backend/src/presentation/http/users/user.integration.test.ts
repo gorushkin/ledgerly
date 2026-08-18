@@ -1,6 +1,7 @@
 import { ROUTES } from '@ledgerly/shared/routes';
 import { UserResponseDTO, UUID } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
+import { Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/http';
 import {
   createHttpTestClient,
@@ -31,13 +32,7 @@ describe('User Integration Tests', () => {
 
     httpClient = createHttpTestClient(server, () => authToken);
 
-    const response = await server.inject({
-      method: 'POST',
-      payload: testUser,
-      url: '/api/auth/register',
-    });
-
-    const { token } = httpClient.parseResponse<{ token: string }>(response);
+    const { token } = await httpClient.registerAndGetToken(testUser);
 
     authToken = token;
 
@@ -63,6 +58,20 @@ describe('User Integration Tests', () => {
 
     it('should fail without auth token', async () => {
       const response = await httpClient.injectUnauthenticated({
+        method: 'GET',
+        url,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('should fail when auth token references a missing user', async () => {
+      const token = httpClient.signAuthToken({
+        email: 'missing@example.com',
+        userId: Id.create().valueOf(),
+      });
+
+      const response = await httpClient.injectWithToken(token, {
         method: 'GET',
         url,
       });
@@ -130,6 +139,24 @@ describe('User Integration Tests', () => {
       expect(user).toHaveProperty('email', updatedData.email);
       expect(user).toHaveProperty('name', updatedData.name);
       expect(user).not.toHaveProperty('password');
+    });
+
+    it('should preserve user ID during update', async () => {
+      const updatedData = {
+        email: 'updated@example.com',
+        name: 'Updated Name',
+      };
+
+      const response = await httpClient.injectAuthorized({
+        method: 'PUT',
+        payload: updatedData,
+        url,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const user = httpClient.parseResponse<UserResponseDTO>(response);
+      expect(user).toHaveProperty('id', userId);
     });
 
     const invalidBodies = [
