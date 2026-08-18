@@ -43,6 +43,6 @@ export class UpdateCurrentUserUseCase {
       );
     }
 
-    return UserMapper.toResponseDTOFromProfileSnapshot(snapshot);
+    return UserMapper.toResponseDTOFromSnapshot(snapshot);
   }
 }

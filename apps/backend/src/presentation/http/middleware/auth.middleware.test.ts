@@ -1,6 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 import { Id, Timestamp } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
+import { RepositoryNotFoundError } from 'src/infrastructure/errors';
 import { UnauthorizedError } from 'src/presentation/http';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -8,11 +9,11 @@ import { authMiddleware } from './auth.middleware';
 
 const createRequest = ({
   authorization,
-  getByIdWithPassword = vi.fn(),
+  getById = vi.fn(),
   jwtVerify = vi.fn(),
 }: {
   authorization?: string;
-  getByIdWithPassword?: ReturnType<typeof vi.fn>;
+  getById?: ReturnType<typeof vi.fn>;
   jwtVerify?: ReturnType<typeof vi.fn>;
 }) =>
   ({
@@ -21,7 +22,7 @@ const createRequest = ({
     server: {
       container: {
         repositories: {
-          user: { getByIdWithPassword },
+          user: { getById },
         },
       },
     },
@@ -38,10 +39,10 @@ describe('authMiddleware', () => {
   });
 
   it('loads the authenticated domain user', async () => {
-    const getByIdWithPassword = vi.fn().mockResolvedValue(user);
+    const getById = vi.fn().mockResolvedValue(user.toSnapshot());
     const request = createRequest({
       authorization: 'Bearer token',
-      getByIdWithPassword,
+      getById,
       jwtVerify: vi.fn().mockResolvedValue({
         email: user.email.valueOf(),
         userId: user.getId().valueOf(),
@@ -50,20 +51,25 @@ describe('authMiddleware', () => {
 
     await authMiddleware(request, {} as never);
 
-    expect(getByIdWithPassword).toHaveBeenCalledWith(user.getId().valueOf());
-    expect(request.user).toBe(user);
+    expect(getById).toHaveBeenCalledWith(user.getId().valueOf());
+    expect(request.user.toSnapshot()).toEqual(user.toSnapshot());
   });
 
   it('preserves the authentication-required error when the token is missing', async () => {
     await expect(
       authMiddleware(createRequest({}), {} as never),
-    ).rejects.toThrow(new UnauthorizedError('Authentication required'));
+    ).rejects.toThrow(UnauthorizedError);
   });
 
   it('preserves the user-not-found error when the token user no longer exists', async () => {
     const request = createRequest({
       authorization: 'Bearer token',
-      getByIdWithPassword: vi.fn().mockResolvedValue(null),
+      getById: vi.fn().mockRejectedValue(
+        new RepositoryNotFoundError('User with ID missing-user-id not found', {
+          entityId: 'missing-user-id' as never,
+          entityType: 'user',
+        }),
+      ),
       jwtVerify: vi.fn().mockResolvedValue({
         email: 'missing@example.com',
         userId: 'missing-user-id',
@@ -79,7 +85,7 @@ describe('authMiddleware', () => {
     const repositoryError = new Error('database unavailable');
     const request = createRequest({
       authorization: 'Bearer token',
-      getByIdWithPassword: vi.fn().mockRejectedValue(repositoryError),
+      getById: vi.fn().mockRejectedValue(repositoryError),
       jwtVerify: vi.fn().mockResolvedValue({
         email: 'user@example.com',
         userId: user.getId().valueOf(),

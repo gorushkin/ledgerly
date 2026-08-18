@@ -1,6 +1,6 @@
 import { UserResponseDTO } from '@ledgerly/shared/types';
 import { User } from 'src/domain';
-import { UserProfileSnapshot } from 'src/domain/users';
+import { UserSnapshot } from 'src/domain/users';
 
 export class UserMapper {
   static toResponseDTO(user: User): UserResponseDTO {
@@ -13,9 +13,7 @@ export class UserMapper {
     };
   }
 
-  static toResponseDTOFromProfileSnapshot(
-    snapshot: UserProfileSnapshot,
-  ): UserResponseDTO {
+  static toResponseDTOFromSnapshot(snapshot: UserSnapshot): UserResponseDTO {
     return {
       email: snapshot.email,
       id: snapshot.id,

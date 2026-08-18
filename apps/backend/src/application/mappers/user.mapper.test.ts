@@ -1,5 +1,5 @@
 import { User } from 'src/domain';
-import { UserProfileSnapshot, UserSnapshot } from 'src/domain/users/types';
+import { UserSnapshot } from 'src/domain/users/types';
 import { describe, expect, it } from 'vitest';
 
 import { UserMapper } from './user.mapper';
@@ -15,12 +15,6 @@ describe('UserMapper', () => {
   };
 
   const user = User.restore(snapshot);
-  const profileSnapshot: UserProfileSnapshot = {
-    email: snapshot.email,
-    id: snapshot.id,
-    name: snapshot.name,
-  };
-
   it('maps a domain user to a response DTO without password', () => {
     const dto = UserMapper.toResponseDTO(user);
 
@@ -33,8 +27,8 @@ describe('UserMapper', () => {
     expect(dto).not.toHaveProperty('password');
   });
 
-  it('maps a user profile snapshot to a response DTO', () => {
-    const dto = UserMapper.toResponseDTOFromProfileSnapshot(profileSnapshot);
+  it('maps a user snapshot to a response DTO without password', () => {
+    const dto = UserMapper.toResponseDTOFromSnapshot(snapshot);
 
     expect(dto).toEqual({
       email: snapshot.email,

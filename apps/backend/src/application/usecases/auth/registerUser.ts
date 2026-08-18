@@ -1,5 +1,6 @@
 import { UserCreateDTO, UserResponseDTO } from '@ledgerly/shared/types';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
+import { UserMapper } from 'src/application/mappers';
 import { mapRepositoryAlreadyExists } from 'src/application/shared/repositoryConflictMapper';
 import { userRepositoryAlreadyExistsMappings } from 'src/application/shared/userRepositoryConflictMappings';
 import { Email, Name, Password } from 'src/domain/domain-core';
@@ -16,10 +17,13 @@ export class RegisterUserUseCase {
     const passwordVO = await Password.create(password);
 
     const user = User.create(nameVO, emailVO, passwordVO);
+    const userSnapshot = user.toSnapshot();
 
-    return mapRepositoryAlreadyExists(
+    await mapRepositoryAlreadyExists(
       () => this.userRepository.create(user),
       userRepositoryAlreadyExistsMappings,
     );
+
+    return UserMapper.toResponseDTOFromSnapshot(userSnapshot);
   }
 }

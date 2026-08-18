@@ -1,6 +1,6 @@
 # ADR 0012: User repository application boundary
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-07-10
 - Jira: https://gorushkin.atlassian.net/browse/LED-91
 
@@ -65,4 +65,5 @@ Neutral/cost:
 ## Related
 
 - [ADR 0011: Domain entity API conventions](./0011-domain-entity-api-conventions.md)
+- Superseded by [ADR 0024: User repository snapshot contract](./0024-user-repository-snapshot-contract.md)
 - Jira: https://gorushkin.atlassian.net/browse/LED-91
