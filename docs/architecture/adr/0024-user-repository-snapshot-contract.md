@@ -32,9 +32,9 @@ User repository methods should expose persistence-safe application contracts:
 6. API response DTOs are produced in application mappers and use cases, not in
    the repository.
 7. User response and persistence output mappers consume `UserSnapshot` values
-   (`UserMapper.toResponseDTOFromSnapshot(...)` and
-   `UserPersistenceMapper.toDBRowFromSnapshot(...)`) instead of domain `User`
-   entities.
+   (`UserMapper.toResponseDTO(snapshot)` and
+   `UserPersistenceMapper.toDBRowFromSnapshot(snapshot)`) instead of domain
+   `User` entities.
 
 ## Alternatives Considered
 

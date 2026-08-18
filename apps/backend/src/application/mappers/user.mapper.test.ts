@@ -14,7 +14,7 @@ describe('UserMapper', () => {
   };
 
   it('maps a user snapshot to a response DTO without password', () => {
-    const dto = UserMapper.toResponseDTOFromSnapshot(snapshot);
+    const dto = UserMapper.toResponseDTO(snapshot);
 
     expect(dto).toEqual({
       email: snapshot.email,

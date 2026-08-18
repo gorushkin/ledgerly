@@ -30,6 +30,6 @@ export class RegisterUserUseCase {
       userRepositoryAlreadyExistsMappings,
     );
 
-    return UserMapper.toResponseDTOFromSnapshot(userSnapshot);
+    return UserMapper.toResponseDTO(userSnapshot);
   }
 }
