@@ -15,7 +15,10 @@ import { AccountType } from 'src/domain';
 import { Amount, CommodityCode } from 'src/domain/domain-core';
 import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { createServer } from 'src/presentation/http';
-import { createHttpTestClient } from 'src/presentation/http/test-utils';
+import {
+  createHttpTestClient,
+  HttpTestClient,
+} from 'src/presentation/http/test-utils';
 import { describe, beforeEach, it, expect } from 'vitest';
 
 const url = `/api${ROUTES.accounts}`;
@@ -100,22 +103,13 @@ describe('Accounts Integration Tests', () => {
   let otherUserId: UUID;
   let accounts: AccountResponseDTO[] = [];
   let commodity: CommodityDbRow;
-  let injectAuthorized: ReturnType<
-    typeof createHttpTestClient
-  >['injectAuthorized'];
-
-  let injectWithToken: ReturnType<
-    typeof createHttpTestClient
-  >['injectWithToken'];
+  let httpClient: HttpTestClient;
 
   beforeEach(async () => {
     testDB = new TestDB();
     server = createServer(testDB.db);
 
-    ({ injectAuthorized, injectWithToken } = createHttpTestClient(
-      server,
-      () => authToken,
-    ));
+    httpClient = createHttpTestClient(server, () => authToken);
 
     await testDB.setupTestDb();
 
@@ -186,7 +180,7 @@ describe('Accounts Integration Tests', () => {
           query as Record<string, string>,
         ).toString();
 
-        const response = await injectAuthorized({
+        const response = await httpClient.injectAuthorized({
           method: 'GET',
           url: `${url}?${queryString}`,
         });
@@ -211,7 +205,7 @@ describe('Accounts Integration Tests', () => {
           type: 'asset',
         });
 
-        const response = await injectAuthorized({
+        const response = await httpClient.injectAuthorized({
           method: 'GET',
           url: getWithQueryParamsUrl(status),
         });
@@ -230,7 +224,7 @@ describe('Accounts Integration Tests', () => {
 
   describe('GET /api/accounts/:id', () => {
     it('should return 200 and the account by id', async () => {
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'GET',
         url: `${url}/${accounts[0].id}`,
       });
@@ -260,7 +254,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -273,7 +267,7 @@ describe('Accounts Integration Tests', () => {
       expect(createdAccount.type).toBe(payload.type);
       expect(createdAccount.description).toBe(payload.description);
 
-      const finalResponse = await injectAuthorized({
+      const finalResponse = await httpClient.injectAuthorized({
         method: 'GET',
         url: getWithQueryParamsUrl('all'),
       });
@@ -295,14 +289,14 @@ describe('Accounts Integration Tests', () => {
 
       const accountToDelete = accounts[0];
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'DELETE',
         url: `${url}/${accountToDelete.id}`,
       });
 
       expect(response.statusCode).toBe(204);
 
-      const finalResponse = await injectAuthorized({
+      const finalResponse = await httpClient.injectAuthorized({
         method: 'GET',
         url: getWithQueryParamsUrl('all'),
       });
@@ -326,7 +320,7 @@ describe('Accounts Integration Tests', () => {
         throw new Error('No account available to close');
       }
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         url: `${url}/${accountToClose.id}/close`,
       });
@@ -339,7 +333,7 @@ describe('Accounts Integration Tests', () => {
         isClosed: true,
       });
 
-      const finalResponse = await injectAuthorized({
+      const finalResponse = await httpClient.injectAuthorized({
         method: 'GET',
         url: `${url}/${accountToClose.id}`,
       });
@@ -361,7 +355,7 @@ describe('Accounts Integration Tests', () => {
         throw new Error('No closed account available');
       }
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         url: `${url}/${closedAccount.id}/close`,
       });
@@ -382,7 +376,7 @@ describe('Accounts Integration Tests', () => {
         otherUserCommodity.id,
       );
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         url: `${url}/${otherUserAccount.id}/close`,
       });
@@ -393,7 +387,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 404 when account is deleted', async () => {
       const deletedAccount = accounts.find((account) => account.isTombstone);
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         url: `${url}/${deletedAccount?.id}/close`,
       });
@@ -402,7 +396,7 @@ describe('Accounts Integration Tests', () => {
     });
 
     it('should return 400 when account id has an invalid UUID format', async () => {
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         url: `${url}/invalid-uuid/close`,
       });
@@ -421,7 +415,7 @@ describe('Accounts Integration Tests', () => {
         throw new Error('No account available to open');
       }
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         url: `${url}/${accountToOpen.id}/open`,
       });
@@ -434,7 +428,7 @@ describe('Accounts Integration Tests', () => {
         isClosed: false,
       });
 
-      const finalResponse = await injectAuthorized({
+      const finalResponse = await httpClient.injectAuthorized({
         method: 'GET',
         url: `${url}/${accountToOpen.id}`,
       });
@@ -456,7 +450,7 @@ describe('Accounts Integration Tests', () => {
         throw new Error('No open account available');
       }
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         url: `${url}/${openAccount.id}/open`,
       });
@@ -478,7 +472,7 @@ describe('Accounts Integration Tests', () => {
         { isClosed: true },
       );
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         url: `${url}/${otherUserAccount.id}/open`,
       });
@@ -489,7 +483,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 404 when account is deleted', async () => {
       const deletedAccount = accounts.find((account) => account.isTombstone);
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         url: `${url}/${deletedAccount?.id}/open`,
       });
@@ -498,7 +492,7 @@ describe('Accounts Integration Tests', () => {
     });
 
     it('should return 400 when account id has an invalid UUID format', async () => {
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         url: `${url}/invalid-uuid/open`,
       });
@@ -521,7 +515,7 @@ describe('Accounts Integration Tests', () => {
         throw new Error('No account available for update');
       }
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: updatedData,
         url: `${url}/${accountToUpdate.id}`,
@@ -532,7 +526,7 @@ describe('Accounts Integration Tests', () => {
       expect(response.statusCode).toBe(200);
       expect(updatedAccount.name).toBe(updatedData.name);
 
-      const finalResponse = await injectAuthorized({
+      const finalResponse = await httpClient.injectAuthorized({
         method: 'GET',
         url: getWithQueryParamsUrl('all'),
       });
@@ -558,7 +552,7 @@ describe('Accounts Integration Tests', () => {
         name: 'Updated Closed Account',
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: updatedData,
         url: `${url}/${accountToUpdate.id}`,
@@ -584,7 +578,7 @@ describe('Accounts Integration Tests', () => {
         throw new Error('No closed account available for update');
       }
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: { type: 'liability' as AccountTypeValue },
         url: `${url}/${accountToUpdate.id}`,
@@ -596,7 +590,7 @@ describe('Accounts Integration Tests', () => {
 
   describe('Authentication', () => {
     it('should return 401 when no auth token is provided', async () => {
-      const response = await server.inject({
+      const response = await httpClient.injectUnauthenticated({
         method: 'GET',
         url,
       });
@@ -605,7 +599,7 @@ describe('Accounts Integration Tests', () => {
     });
 
     it('should return 401 when an invalid auth token is provided', async () => {
-      const response = await injectWithToken('invalidToken', {
+      const response = await httpClient.injectWithToken('invalidToken', {
         method: 'GET',
         url,
       });
@@ -620,7 +614,7 @@ describe('Accounts Integration Tests', () => {
         userId,
       });
 
-      const response = await injectWithToken(expiredToken, {
+      const response = await httpClient.injectWithToken(expiredToken, {
         method: 'GET',
         url,
       });
@@ -631,7 +625,7 @@ describe('Accounts Integration Tests', () => {
 
   describe('GET /api/accounts - Validation', () => {
     it('should return 400 when status is an invalid enum value', async () => {
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'GET',
         url: getWithQueryParamsUrl(
           'inactive' as unknown as AccountStatusFilterValue,
@@ -651,7 +645,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -667,7 +661,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       } as unknown as AccountCreateDTO; // Type assertion to bypass TypeScript checks for testing purposes
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -684,7 +678,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -701,7 +695,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -717,7 +711,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       } as unknown as AccountCreateDTO; // Type assertion to bypass TypeScript checks for testing purposes
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -734,7 +728,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -751,7 +745,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -770,7 +764,7 @@ describe('Accounts Integration Tests', () => {
         type: AccountType.create('asset').valueOf(),
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -789,7 +783,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -814,7 +808,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -843,7 +837,7 @@ describe('Accounts Integration Tests', () => {
         type: '' as unknown as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -860,7 +854,7 @@ describe('Accounts Integration Tests', () => {
         type: 'invalid-type' as unknown as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -876,7 +870,7 @@ describe('Accounts Integration Tests', () => {
         name: 'New Account',
       } as unknown as AccountCreateDTO;
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -893,7 +887,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       } as unknown as AccountCreateDTO; // Type assertion to bypass TypeScript checks for testing purposes
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -920,7 +914,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -938,7 +932,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -952,7 +946,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 404 when account id does not exist', async () => {
       const nonExistentId = Id.create().valueOf();
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'GET',
         url: `/api/accounts/${nonExistentId}`,
       });
@@ -963,7 +957,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when account id has an invalid UUID format', async () => {
       const invalidId = 'invalid-uuid';
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'GET',
         url: `/api/accounts/${invalidId}`,
       });
@@ -983,7 +977,7 @@ describe('Accounts Integration Tests', () => {
           type: 'asset' as AccountTypeValue,
         },
       );
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'GET',
         url: `/api/accounts/${otherUserAccount.id}`,
       });
@@ -993,7 +987,7 @@ describe('Accounts Integration Tests', () => {
 
     it('should return 404 when account is deleted', async () => {
       const deletedAccount = accounts.find((account) => account.isTombstone);
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'GET',
         url: `/api/accounts/${deletedAccount?.id}`,
       });
@@ -1006,7 +1000,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when name is empty', async () => {
       const accountToUpdate = accounts[0];
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           name: '',
@@ -1020,7 +1014,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when name is not a string', async () => {
       const accountToUpdate = accounts[0];
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           name: 123 as unknown as string,
@@ -1034,7 +1028,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when type is an invalid enum value', async () => {
       const accountToUpdate = accounts[0];
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           type: 'invalid-type' as AccountTypeValue,
@@ -1048,7 +1042,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when description is not a string', async () => {
       const accountToUpdate = accounts[0];
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           description: 123 as unknown as string,
@@ -1062,7 +1056,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 404 when account id does not exist', async () => {
       const nonExistentId = '00000000-0000-0000-0000-000000000000';
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           name: 'Updated Name',
@@ -1076,7 +1070,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when account id has an invalid UUID format', async () => {
       const invalidId = 'invalid-uuid';
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           name: 'Updated Name',
@@ -1091,7 +1085,7 @@ describe('Accounts Integration Tests', () => {
       const accountToUpdate = accounts[0];
       const duplicateName = accounts[1].name;
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           name: duplicateName,
@@ -1115,7 +1109,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when empty object is provided', async () => {
       const accountToUpdate = accounts[0];
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {},
         url: `/api/accounts/${accountToUpdate.id}`,
@@ -1127,7 +1121,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when extra unexpected fields are provided', async () => {
       const accountToUpdate = accounts[0];
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           name: 'Updated Name',
@@ -1152,7 +1146,7 @@ describe('Accounts Integration Tests', () => {
         },
       );
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           name: 'Updated Name',
@@ -1165,7 +1159,7 @@ describe('Accounts Integration Tests', () => {
 
     it('should return 404 when account is deleted', async () => {
       const deletedAccount = accounts.find((account) => account.isTombstone);
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           name: 'Updated Name',
@@ -1191,7 +1185,7 @@ describe('Accounts Integration Tests', () => {
         ],
       });
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'PATCH',
         payload: {
           type: AccountType.create('liability').valueOf(),
@@ -1207,7 +1201,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 404 when account id does not exist', async () => {
       const nonExistentId = Id.create().valueOf();
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'DELETE',
         url: `/api/accounts/${nonExistentId}`,
       });
@@ -1218,7 +1212,7 @@ describe('Accounts Integration Tests', () => {
     it('should return 400 when account id has an invalid UUID format', async () => {
       const invalidId = 'invalid-uuid';
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'DELETE',
         url: `/api/accounts/${invalidId}`,
       });
@@ -1233,7 +1227,7 @@ describe('Accounts Integration Tests', () => {
         otherUserCommodity.id,
       );
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'DELETE',
         url: `/api/accounts/${otherUserAccount?.id}`,
       });
@@ -1248,7 +1242,7 @@ describe('Accounts Integration Tests', () => {
       const accountBeforeDelete = await testDB.getAccountById(
         deletedAccount!.id,
       );
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'DELETE',
         url: `/api/accounts/${deletedAccount!.id}`,
       });
@@ -1283,7 +1277,7 @@ describe('Accounts Integration Tests', () => {
       const accountBeforeDelete = await testDB.getAccountById(
         deletedAccount!.id,
       );
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'DELETE',
         url: `/api/accounts/${deletedAccount!.id}`,
       });
@@ -1314,7 +1308,7 @@ describe('Accounts Integration Tests', () => {
         ],
       });
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'DELETE',
         url: `/api/accounts/${accountToDelete.id}`,
       });
@@ -1332,7 +1326,7 @@ describe('Accounts Integration Tests', () => {
         type: AccountType.create('asset').valueOf(),
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,
@@ -1350,7 +1344,7 @@ describe('Accounts Integration Tests', () => {
 
   describe('Request Format', () => {
     it('should return 400 when request body is not valid JSON', async () => {
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         headers: {
           'content-type': 'application/json',
         },
@@ -1363,7 +1357,7 @@ describe('Accounts Integration Tests', () => {
     });
 
     it('should return 400 when request body is null', async () => {
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         headers: {
           'content-type': 'application/json',
         },
@@ -1377,7 +1371,7 @@ describe('Accounts Integration Tests', () => {
     });
 
     it('should return 400 when request body is an array instead of object', async () => {
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload: [],
         url,
@@ -1389,7 +1383,7 @@ describe('Accounts Integration Tests', () => {
 
   describe('Response Format', () => {
     it('should return the standard error format for validation errors', async () => {
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'GET',
         url: getWithQueryParamsUrl(
           'inactive' as unknown as AccountStatusFilterValue,
@@ -1414,7 +1408,7 @@ describe('Accounts Integration Tests', () => {
     });
 
     it('should include all required fields in successful responses', async () => {
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'GET',
         url: `${url}/${accounts[0].id}`,
       });
@@ -1453,7 +1447,7 @@ describe('Accounts Integration Tests', () => {
         type: 'asset' as AccountTypeValue,
       };
 
-      const response = await injectAuthorized({
+      const response = await httpClient.injectAuthorized({
         method: 'POST',
         payload,
         url,

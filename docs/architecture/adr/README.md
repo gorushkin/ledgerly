@@ -43,7 +43,7 @@
 - [ADR 0009: Repository error-code migration](./0009-repository-error-code-migration.md)
 - [ADR 0010: Entity not found API code](./0010-entity-not-found-api-code.md)
 - [ADR 0011: Domain entity API conventions](./0011-domain-entity-api-conventions.md)
-- [ADR 0012: User repository application boundary](./0012-user-repository-application-boundary.md)
+- [ADR 0012: User repository application boundary (Superseded)](./0012-user-repository-application-boundary.md)
 - [ADR 0013: No DomainEntity base class](./0013-no-domain-entity-base-class.md)
 - [ADR 0014: Keep Amount value object name](./0014-keep-amount-value-object-name.md)
 - [ADR 0015: Domain restoration factory naming](./0015-domain-restoration-factory-naming.md)
@@ -55,3 +55,4 @@
 - [ADR 0021: Split Commodity Reference Business Policy From Persistence Integrity](./0021-split-commodity-reference-business-policy-from-persistence-integrity.md)
 - [ADR 0022: Remove system flags from account and operation contracts](./0022-remove-system-flags-from-account-and-operation-contracts.md)
 - [ADR 0023: Entity already exists error contract](./0023-entity-already-exists-error-contract.md)
+- [ADR 0024: User repository snapshot contract](./0024-user-repository-snapshot-contract.md)

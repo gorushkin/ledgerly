@@ -1,22 +1,18 @@
 import { UUID } from '@ledgerly/shared/types';
-import { User } from 'src/domain/users/user.entity';
+import { User } from 'src/domain';
+import { UserSnapshot } from 'src/domain/users';
 
-import { UpdateUserRequestDTO, UserResponseDTO } from '../dto';
+export type UserRepositoryUpdateProfileInput = Pick<UserSnapshot, 'updatedAt'> &
+  Partial<Pick<UserSnapshot, 'name' | 'email'>>;
 
 export type UserRepositoryInterface = {
-  create(user: User): Promise<UserResponseDTO>;
-  getByEmail(email: string): Promise<UserResponseDTO | undefined>;
-  update(
-    userId: UUID,
-    userData: UpdateUserRequestDTO,
-  ): Promise<UserResponseDTO>;
-  getById(userId: UUID): Promise<UserResponseDTO>;
-  getByIdWithPassword(userId: UUID): Promise<User | undefined>;
+  create(user: User): Promise<void>;
+  getById(userId: UUID): Promise<UserSnapshot>;
   getByEmailWithPassword(email: string): Promise<User | undefined>;
   updateUserProfile(
     id: UUID,
-    data: UpdateUserRequestDTO,
-  ): Promise<UserResponseDTO>;
+    data: UserRepositoryUpdateProfileInput,
+  ): Promise<UserSnapshot>;
   delete(id: UUID): Promise<void>;
   updateUserPassword(id: UUID, hashedPassword: string): Promise<void>;
 };

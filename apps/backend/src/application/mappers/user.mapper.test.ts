@@ -14,9 +14,8 @@ describe('UserMapper', () => {
     updatedAt: '2026-06-25T10:00:00.000Z' as UserSnapshot['updatedAt'],
   };
 
+  const user = User.restore(snapshot);
   it('maps a domain user to a response DTO without password', () => {
-    const user = User.restore(snapshot);
-
     const dto = UserMapper.toResponseDTO(user);
 
     expect(dto).toEqual({
@@ -24,6 +23,19 @@ describe('UserMapper', () => {
       id: snapshot.id,
       name: snapshot.name,
     });
+
+    expect(dto).not.toHaveProperty('password');
+  });
+
+  it('maps a user snapshot to a response DTO without password', () => {
+    const dto = UserMapper.toResponseDTOFromSnapshot(snapshot);
+
+    expect(dto).toEqual({
+      email: snapshot.email,
+      id: snapshot.id,
+      name: snapshot.name,
+    });
+
     expect(dto).not.toHaveProperty('password');
   });
 });

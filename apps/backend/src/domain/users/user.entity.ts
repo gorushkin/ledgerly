@@ -78,13 +78,11 @@ export class User {
 
   // Domain methods for controlled updates
   changeEmail(newEmail: Email): void {
-    // Business logic validation could go here
     this._email = newEmail;
     this.timestamps = this.timestamps.touch();
   }
 
   changeName(newName: Name): void {
-    // Business logic validation could go here
     this._name = newName;
     this.timestamps = this.timestamps.touch();
   }

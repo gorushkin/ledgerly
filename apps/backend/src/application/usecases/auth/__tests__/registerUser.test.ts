@@ -1,7 +1,5 @@
-import { apiErrorCodes } from '@ledgerly/shared/types';
-import { CreateUserRequestDTO } from 'src/application/dto';
+import { apiErrorCodes, UserCreateDTO } from '@ledgerly/shared/types';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
-import { Id } from 'src/domain/domain-core/value-objects/Id';
 import { User } from 'src/domain/users/user.entity';
 import { RecordAlreadyExistsError } from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,7 +13,6 @@ describe('RegisterUserUseCase', () => {
 
   const mockUserRepository = {
     create: vi.fn(),
-    getByEmail: vi.fn(),
   };
 
   const registerUserUseCase = new RegisterUserUseCase(
@@ -27,26 +24,24 @@ describe('RegisterUserUseCase', () => {
   });
 
   describe('execute', () => {
-    const validRequest: CreateUserRequestDTO = {
+    const validRequest: UserCreateDTO = {
       email,
       name,
       password,
     };
 
     it('should create a user successfully', async () => {
-      const persistedUser = {
-        email,
-        id: Id.create().valueOf(),
-        name,
-      };
-
-      mockUserRepository.create.mockResolvedValue(persistedUser);
+      mockUserRepository.create.mockResolvedValue(undefined);
 
       const result = await registerUserUseCase.execute(validRequest);
 
-      expect(result).toBe(persistedUser);
-
-      expect(mockUserRepository.getByEmail).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        email,
+        id: result.id,
+        name,
+      });
+      expect(typeof result.id).toBe('string');
+      expect(result).not.toHaveProperty('password');
 
       expect(mockUserRepository.create).toHaveBeenCalledOnce();
 
@@ -78,7 +73,7 @@ describe('RegisterUserUseCase', () => {
         },
       });
 
-      expect(mockUserRepository.getByEmail).not.toHaveBeenCalled();
+      expect(mockUserRepository.create).toHaveBeenCalledOnce();
     });
 
     it.todo('should hash password before storing');

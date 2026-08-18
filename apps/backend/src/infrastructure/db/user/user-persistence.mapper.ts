@@ -1,10 +1,14 @@
-import { UserDbInsert, UserDbRow } from 'src/db/schema';
+import { UserDbInsert, UserDbRow } from 'src/db/schemas';
 import { User } from 'src/domain';
-import { UserSnapshot } from 'src/domain/users/types';
+import { UserSnapshot } from 'src/domain/users/';
 
 export class UserPersistenceMapper {
   static toDomain(row: UserDbRow): User {
-    const snapshot: UserSnapshot = {
+    return User.restore(UserPersistenceMapper.toSnapshot(row));
+  }
+
+  static toSnapshot(row: UserDbRow): UserSnapshot {
+    return {
       createdAt: row.createdAt,
       email: row.email,
       id: row.id,
@@ -12,8 +16,6 @@ export class UserPersistenceMapper {
       password: row.password,
       updatedAt: row.updatedAt,
     };
-
-    return User.restore(snapshot);
   }
 
   static toDBRow(user: User): UserDbInsert {

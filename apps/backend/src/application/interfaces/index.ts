@@ -5,7 +5,10 @@ export type {
   AccountRepositoryLifecycleInput,
   AccountRepositoryUpdateInput,
 } from './AccountRepository.interface';
-export type { UserRepositoryInterface } from './userRepository.interface';
+export type {
+  UserRepositoryInterface,
+  UserRepositoryUpdateProfileInput,
+} from './userRepository.interface';
 export type {
   TransactionRepositoryInterface,
   TransactionUpdateResult,

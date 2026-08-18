@@ -1,4 +1,7 @@
-import { UserRepositoryInterface } from 'src/application';
+import {
+  UserRepositoryInterface,
+  UserRepositoryUpdateProfileInput,
+} from 'src/application';
 import { Email, Id, Name, Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 import { TransactionManager } from 'src/infrastructure/db';
@@ -55,41 +58,16 @@ describe('UsersRepository', () => {
       const foundUser = await userRepository.getById(user.id);
 
       expect(foundUser).toBeDefined();
-      expect(foundUser?.id).toBe(user.id);
-      expect(foundUser?.email).toBe(email);
-      expect(foundUser?.name).toBe(name);
-      expect(foundUser).not.toHaveProperty('password');
+      expect(foundUser.id).toBe(user.id);
+      expect(foundUser.email).toBe(email);
+      expect(foundUser.name).toBe(name);
+      expect(foundUser.password).toEqual(expect.any(String));
     });
 
-    it('should return undefined for non-existent user', async () => {
+    it('should throw RepositoryNotFoundError for non-existent user', async () => {
       const foundUser = userRepository.getById(Id.create().valueOf());
 
       await expect(foundUser).rejects.toThrowError(RepositoryNotFoundError);
-    });
-  });
-
-  describe('getByIdWithPassword', () => {
-    it('should get user with password by id', async () => {
-      const user = await testDB.createUser({ email, name, password });
-
-      const foundUser = await userRepository.getByIdWithPassword(user.id);
-
-      expect(foundUser).toBeDefined();
-      expect(foundUser?.getId().valueOf()).toBe(user.id);
-      expect(foundUser?.email.valueOf()).toBe(email);
-      expect(foundUser?.name.valueOf()).toBe(name);
-
-      const compareResult = await foundUser?.validatePassword(password);
-
-      expect(compareResult).toBe(true);
-    });
-
-    it('should return undefined for non-existent user', async () => {
-      const foundUser = await userRepository.getByIdWithPassword(
-        Id.create().valueOf(),
-      );
-
-      expect(foundUser).toBeUndefined();
     });
   });
 
@@ -121,7 +99,11 @@ describe('UsersRepository', () => {
     it('should update user profile successfully', async () => {
       const user = await testDB.createUser({ email, name, password });
 
-      const updateData = { email: 'updated@email.com', name: 'Updated Name' };
+      const updateData: UserRepositoryUpdateProfileInput = {
+        email: 'updated@email.com',
+        name: 'Updated Name',
+        updatedAt: user.updatedAt,
+      };
 
       const updatedUser = await userRepository.updateUserProfile(
         user.id,
@@ -136,7 +118,10 @@ describe('UsersRepository', () => {
     it('should update only provided fields', async () => {
       const user = await testDB.createUser({ email, name, password });
 
-      const updateData = { name: 'Only Name Updated' };
+      const updateData: UserRepositoryUpdateProfileInput = {
+        name: 'Only Name Updated',
+        updatedAt: user.updatedAt,
+      };
 
       const updatedUser = await userRepository.updateUserProfile(
         user.id,
@@ -167,38 +152,40 @@ describe('UsersRepository', () => {
 
   describe('create', () => {
     it('should create a user successfully', async () => {
-      const user = await userRepository.create(await createUser());
+      const user = await createUser();
 
-      expect(user.email).toBe(email);
-      expect(user.name).toBe(name);
+      await userRepository.create(user);
 
-      expect(1).toBe(1); // Placeholder for actual test logic
+      const persistedUser = await userRepository.getById(
+        user.getId().valueOf(),
+      );
+
+      expect(persistedUser.email).toBe(email);
+      expect(persistedUser.name).toBe(name);
     });
 
-    it('should not return password in create response', async () => {
-      const user = await userRepository.create(await createUser());
+    it('should not return data from create', async () => {
+      const result = await userRepository.create(await createUser());
 
-      expect(user).not.toHaveProperty('password');
+      expect(result).toBeUndefined();
     });
 
     it('should generate unique IDs for different users', async () => {
-      const user1 = await userRepository.create(
-        await createUser({
-          email: 'user1@test.com',
-          name: 'User 1',
-          password,
-        }),
-      );
+      const user1 = await createUser({
+        email: 'user1@test.com',
+        name: 'User 1',
+        password,
+      });
+      const user2 = await createUser({
+        email: 'user2@test.com',
+        name: 'User 2',
+        password,
+      });
 
-      const user2 = await userRepository.create(
-        await createUser({
-          email: 'user2@test.com',
-          name: 'User 2',
-          password,
-        }),
-      );
+      await userRepository.create(user1);
+      await userRepository.create(user2);
 
-      expect(user1.id).not.toBe(user2.id);
+      expect(user1.getId().valueOf()).not.toBe(user2.getId().valueOf());
     });
 
     it('throws RecordAlreadyExistsError for duplicate email', async () => {
@@ -218,24 +205,6 @@ describe('UsersRepository', () => {
     });
   });
 
-  describe('findByEmail', () => {
-    it('should find a user by email', async () => {
-      await testDB.createUser({ email, name, password });
-
-      const user = await userRepository.getByEmail(email);
-
-      expect(user).toBeDefined();
-      expect(user?.email).toBe(email);
-      expect(user?.name).toBe(name);
-    });
-
-    it('should return undefined for non-existent email', async () => {
-      const user = await userRepository.getByEmail('non-existent@email.com');
-
-      expect(user).toBeUndefined();
-    });
-  });
-
   describe('updatePassword', () => {
     it('should update user password', async () => {
       const user = await testDB.createUser({ email, name, password });
@@ -245,13 +214,10 @@ describe('UsersRepository', () => {
 
       await userRepository.updateUserPassword(user.id, newHashedPassword);
 
-      const updatedUser = await userRepository.getByIdWithPassword(user.id);
+      const updatedUserSnapshot = await userRepository.getById(user.id);
+      const updatedUser = User.restore(updatedUserSnapshot);
 
       expect(updatedUser).toBeDefined();
-
-      if (!updatedUser) {
-        throw new Error('Expected updated user to exist');
-      }
 
       await expect(updatedUser.validatePassword(newPassword)).resolves.toBe(
         true,

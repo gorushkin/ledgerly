@@ -741,4 +741,14 @@ export class TestDB {
       .delete(accountsTable)
       .where(eq(accountsTable.id, accountId));
   };
+
+  close = () => {
+    if (this.client) {
+      try {
+        this.client.close();
+      } catch {
+        /* empty */
+      }
+    }
+  };
 }

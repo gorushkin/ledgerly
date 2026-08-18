@@ -1,8 +1,8 @@
+import { UserResponseDTO } from '@ledgerly/shared/types';
 import {
   InvalidPasswordError,
   UserNotFoundError,
 } from 'src/application/application.errors';
-import { UserResponseDTO } from 'src/application/dto';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
 import { UserMapper } from 'src/application/mappers';
 

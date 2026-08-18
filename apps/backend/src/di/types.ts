@@ -20,6 +20,8 @@ import {
   CreateCommodityUseCase,
   CloseCommodityUseCase,
   OpenCommodityUseCase,
+  GetCurrentUserUseCase,
+  UpdateCurrentUserUseCase,
 } from 'src/application';
 import type {
   AccountRepositoryInterface,
@@ -85,6 +87,11 @@ type CommodityUseCases = {
   updateCommodity: UpdateCommodityUseCase;
 };
 
+type UserUseCases = {
+  getCurrentUser: GetCurrentUserUseCase;
+  updateCurrentUser: UpdateCurrentUserUseCase;
+};
+
 type Controllers = {
   account: AccountController;
   user: UserController;
@@ -102,6 +109,7 @@ export type AppContainer = {
     auth: AuthUseCases;
     transaction: TransactionUseCases;
     commodity: CommodityUseCases;
+    user: UserUseCases;
   };
   controllers: Controllers;
 };

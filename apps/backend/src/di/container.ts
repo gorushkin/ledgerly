@@ -20,6 +20,8 @@ import {
   CreateCommodityUseCase,
   CloseCommodityUseCase,
   OpenCommodityUseCase,
+  GetCurrentUserUseCase,
+  UpdateCurrentUserUseCase,
 } from 'src/application';
 import {
   AccountOperationPolicy,
@@ -136,6 +138,9 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const registerUserUseCase = new RegisterUserUseCase(userRepository);
 
+  const getCurrentUserUseCase = new GetCurrentUserUseCase();
+  const updateCurrentUserUseCase = new UpdateCurrentUserUseCase(userRepository);
+
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager,
     transactionRepository,
@@ -241,6 +246,10 @@ export const createContainer = (db: DataBase): AppContainer => {
       getTransactionById: getTransactionByIdUseCase,
       updateTransaction: updateTransactionUseCase,
     },
+    user: {
+      getCurrentUser: getCurrentUserUseCase,
+      updateCurrentUser: updateCurrentUserUseCase,
+    },
   };
 
   const accountController = new AccountController(
@@ -253,7 +262,11 @@ export const createContainer = (db: DataBase): AppContainer => {
     useCases.account.openAccount,
   );
 
-  const userController = new UserController();
+  const userController = new UserController(
+    getCurrentUserUseCase,
+    updateCurrentUserUseCase,
+  );
+
   const authController = new AuthController(
     registerUserUseCase,
     loginUserUseCase,

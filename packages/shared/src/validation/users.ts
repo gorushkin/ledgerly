@@ -10,8 +10,10 @@ const password = z
     message: "Password must be at most 255 characters long",
   });
 
+const normalizedEmail = z.string().trim().toLowerCase().min(1).max(255).email();
+
 export const usersCreateSchema = z.object({
-  email: z.string().email().toLowerCase().trim().min(1).max(255),
+  email: normalizedEmail,
   name: requiredText,
   password,
 });
@@ -24,7 +26,7 @@ export const usersResponseSchema = z
 
 export const usersUpdateSchema = z
   .object({
-    email: z.string().email().toLowerCase().trim().min(1).max(255).optional(),
+    email: normalizedEmail.optional(),
     name: requiredText.optional(),
   })
   .strict()
