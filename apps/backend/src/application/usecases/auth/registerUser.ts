@@ -1,6 +1,7 @@
 import { UserCreateDTO, UserResponseDTO } from '@ledgerly/shared/types';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
 import { mapRepositoryAlreadyExists } from 'src/application/shared/repositoryConflictMapper';
+import { userRepositoryAlreadyExistsMappings } from 'src/application/shared/userRepositoryConflictMappings';
 import { Email, Name, Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 
@@ -18,13 +19,7 @@ export class RegisterUserUseCase {
 
     return mapRepositoryAlreadyExists(
       () => this.userRepository.create(user),
-      [
-        {
-          entityType: 'user',
-          field: 'email',
-          tableName: 'users',
-        },
-      ],
+      userRepositoryAlreadyExistsMappings,
     );
   }
 }

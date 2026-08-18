@@ -20,6 +20,8 @@ import {
   CreateCommodityUseCase,
   CloseCommodityUseCase,
   OpenCommodityUseCase,
+  GetCurrentUserUseCase,
+  UpdateCurrentUserUseCase,
 } from 'src/application';
 import type {
   AccountRepositoryInterface,
@@ -29,7 +31,6 @@ import type {
   TransactionRepositoryInterface,
   UserRepositoryInterface,
 } from 'src/application/interfaces';
-import { GetCurrentUserUseCase } from 'src/application/usecases/users/getCurrentUser';
 import { DataBase } from 'src/db';
 import { PasswordManager } from 'src/infrastructure/auth/PasswordManager';
 import {
@@ -89,6 +90,7 @@ type CommodityUseCases = {
 // TODO: check if we need UserUseCases and AuthUseCases to be separate or if we can merge them into one. For now, we keep them separate for clarity and future expansion.
 type UserUseCases = {
   getCurrentUser: GetCurrentUserUseCase;
+  updateCurrentUser: UpdateCurrentUserUseCase;
 };
 
 type Controllers = {

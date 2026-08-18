@@ -6,7 +6,7 @@ export type UserProfileSnapshot = {
   name: string;
 };
 
-export type UserPrivateSnapshot = {
+export type UserSnapshot = {
   createdAt: IsoDatetimeString;
   email: string;
   id: UUID;
@@ -14,5 +14,3 @@ export type UserPrivateSnapshot = {
   password: string;
   updatedAt: IsoDatetimeString;
 };
-
-export type UserSnapshot = UserPrivateSnapshot;

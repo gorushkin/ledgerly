@@ -1,19 +1,28 @@
 import { UserResponseDTO } from '@ledgerly/shared/types';
-import { GetCurrentUserUseCase } from 'src/application/usecases/users';
+import { usersUpdateSchema } from '@ledgerly/shared/validation';
+import {
+  GetCurrentUserUseCase,
+  UpdateCurrentUserUseCase,
+} from 'src/application/usecases/users';
 import { User } from 'src/domain/users/user.entity';
 
 const notImplemented = () => Promise.reject(new Error('Not implemented yet'));
 
 export class UserController {
-  constructor(private readonly getCurrentUserUseCase: GetCurrentUserUseCase) {}
-  getCurrentUser(user: User): Promise<UserResponseDTO> {
+  constructor(
+    private readonly getCurrentUserUseCase: GetCurrentUserUseCase,
+    private readonly updateCurrentUserUseCase: UpdateCurrentUserUseCase,
+  ) {}
+  getCurrentUser(user: User): UserResponseDTO {
     return this.getCurrentUserUseCase.execute(user);
   }
 
-  update(_user: User, _requestBody: unknown): Promise<never> {
-    // const updatedProfileDTO = usersUpdateSchema.parse(requestBody);
-    // return this.updateUserProfileUseCase.execute(user, updatedProfileDTO);
-    return notImplemented();
+  async updateCurrentUser(
+    user: User,
+    requestBody: unknown,
+  ): Promise<UserResponseDTO> {
+    const updatedProfileDTO = usersUpdateSchema.parse(requestBody);
+    return this.updateCurrentUserUseCase.execute(user, updatedProfileDTO);
   }
 
   changePassword(_user: User, _requestBody: unknown): Promise<never> {

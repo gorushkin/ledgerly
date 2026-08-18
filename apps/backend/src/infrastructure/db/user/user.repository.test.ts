@@ -1,4 +1,7 @@
-import { UserRepositoryInterface } from 'src/application';
+import {
+  UserRepositoryInterface,
+  UserRepositoryUpdateProfileInput,
+} from 'src/application';
 import { Email, Id, Name, Password } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 import { TransactionManager } from 'src/infrastructure/db';
@@ -52,7 +55,7 @@ describe('UsersRepository', () => {
   describe('getById', () => {
     it('should get user by id successfully', async () => {
       const user = await testDB.createUser({ email, name, password });
-      const foundUser = await userRepository.getById(user.id);
+      const foundUser = await userRepository.getProfileById(user.id);
 
       expect(foundUser).toBeDefined();
       expect(foundUser?.id).toBe(user.id);
@@ -62,7 +65,7 @@ describe('UsersRepository', () => {
     });
 
     it('should return undefined for non-existent user', async () => {
-      const foundUser = userRepository.getById(Id.create().valueOf());
+      const foundUser = userRepository.getProfileById(Id.create().valueOf());
 
       await expect(foundUser).rejects.toThrowError(RepositoryNotFoundError);
     });
@@ -121,7 +124,11 @@ describe('UsersRepository', () => {
     it('should update user profile successfully', async () => {
       const user = await testDB.createUser({ email, name, password });
 
-      const updateData = { email: 'updated@email.com', name: 'Updated Name' };
+      const updateData: UserRepositoryUpdateProfileInput = {
+        email: 'updated@email.com',
+        name: 'Updated Name',
+        updatedAt: user.updatedAt,
+      };
 
       const updatedUser = await userRepository.updateUserProfile(
         user.id,
@@ -136,7 +143,10 @@ describe('UsersRepository', () => {
     it('should update only provided fields', async () => {
       const user = await testDB.createUser({ email, name, password });
 
-      const updateData = { name: 'Only Name Updated' };
+      const updateData: UserRepositoryUpdateProfileInput = {
+        name: 'Only Name Updated',
+        updatedAt: user.updatedAt,
+      };
 
       const updatedUser = await userRepository.updateUserProfile(
         user.id,
@@ -154,7 +164,7 @@ describe('UsersRepository', () => {
 
       await userRepository.delete(user.id);
 
-      const foundUser = userRepository.getById(user.id);
+      const foundUser = userRepository.getProfileById(user.id);
       await expect(foundUser).rejects.toThrowError(RepositoryNotFoundError);
     });
 

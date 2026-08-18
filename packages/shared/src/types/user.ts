@@ -12,7 +12,10 @@ export type UserCreateDTO = {
   password: string;
 };
 
-export type UserUpdateDTO = Partial<UserResponseDTO>;
+export type UserUpdateDTO = {
+  email?: string;
+  name?: string;
+};
 
 export type UserChangePasswordDTO = {
   currentPassword: string;

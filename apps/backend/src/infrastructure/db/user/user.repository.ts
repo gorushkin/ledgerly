@@ -1,8 +1,9 @@
 import { UserResponseDTO, UserUpdateDTO, UUID } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
 import { UserRepositoryInterface } from 'src/application';
+import type { UserRepositoryUpdateProfileInput } from 'src/application';
 import { usersTable } from 'src/db/schemas';
-import { UserProfileSnapshot } from 'src/domain/users/types';
+import { UserProfileSnapshot, UserSnapshot } from 'src/domain/users/types';
 import { User } from 'src/domain/users/user.entity';
 
 import { BaseRepository } from '../BaseRepository';
@@ -47,10 +48,10 @@ export class UserRepository
     }, `Failed to find user with email ${email}`);
   }
 
-  async getById(id: UUID): Promise<UserProfileSnapshot> {
+  async getProfileById(id: UUID): Promise<UserProfileSnapshot> {
     return this.executeDatabaseOperation(async () => {
       const user = await this.db
-        .select(userSelect)
+        .select()
         .from(usersTable)
         .where(eq(usersTable.id, id))
         .get();
@@ -62,6 +63,24 @@ export class UserRepository
       );
 
       return UserPersistenceMapper.toProfileSnapshot(existingUser);
+    }, `Failed to fetch user with ID ${id}`);
+  }
+
+  async getById(id: UUID): Promise<UserSnapshot> {
+    return this.executeDatabaseOperation(async () => {
+      const user = await this.db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, id))
+        .get();
+
+      const existingUser = this.ensureEntityExists(
+        user,
+        `User with ID ${id} not found`,
+        this.entityNotFoundContext('user', id),
+      );
+
+      return UserPersistenceMapper.toSnapshot(existingUser);
     }, `Failed to fetch user with ID ${id}`);
   }
 
@@ -79,34 +98,36 @@ export class UserRepository
 
   async updateUserProfile(
     id: UUID,
-    data: UserUpdateDTO,
-  ): Promise<UserResponseDTO> {
-    return this.executeDatabaseOperation(async () => {
-      const updateData: Partial<
-        Pick<typeof usersTable.$inferInsert, 'email' | 'name'>
-      > = {};
+    data: UserRepositoryUpdateProfileInput,
+  ): Promise<UserSnapshot> {
+    const safeData = this.getSafeUpdate(data, ['email', 'name', 'updatedAt']);
 
-      if (data.email !== undefined) {
-        updateData.email = data.email;
-      }
+    return this.executeDatabaseOperation(
+      async () => {
+        const updatedUserProfile = await this.db
+          .update(usersTable)
+          .set(safeData)
+          .where(eq(usersTable.id, id))
+          .returning()
+          .get();
 
-      if (data.name !== undefined) {
-        updateData.name = data.name;
-      }
+        this.ensureEntityExists(
+          updatedUserProfile,
+          `User with ID ${id} not found`,
+          this.entityNotFoundContext('user', id),
+        );
 
-      const updatedUserProfile = await this.db
-        .update(usersTable)
-        .set(updateData)
-        .where(eq(usersTable.id, id))
-        .returning(userSelect)
-        .get();
-
-      return this.ensureEntityExists(
-        updatedUserProfile,
-        `User with ID ${id} not found`,
-        this.entityNotFoundContext('user', id),
-      );
-    }, `Failed to update user profile with ID ${id}`);
+        return UserPersistenceMapper.toSnapshot(updatedUserProfile);
+      },
+      `Failed to update user profile with ID ${id}`,
+      {
+        unique: {
+          field: 'email',
+          tableName: 'users',
+          value: safeData.email,
+        },
+      },
+    );
   }
 
   async updateUserPassword(id: UUID, hashedPassword: string): Promise<void> {
