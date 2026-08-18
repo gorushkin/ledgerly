@@ -22,6 +22,6 @@ export class LoginUserUseCase {
       throw new InvalidPasswordError();
     }
 
-    return UserMapper.toResponseDTO(user.toSnapshot());
+    return UserMapper.toResponseDTOFromSnapshot(user.toSnapshot());
   }
 }
