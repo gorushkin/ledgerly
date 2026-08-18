@@ -2,20 +2,13 @@ import { UserChangePasswordDTO, UserUpdateDTO } from '@ledgerly/shared/types';
 import type { GetCurrentUserUseCase } from 'src/application/usecases/users/getCurrentUser';
 import { User } from 'src/domain/users/user.entity';
 import { createUser } from 'src/testing';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { ZodError } from 'zod';
 
 import { UserController } from './user.controller';
 
-describe.skip('UserController', () => {
+describe('UserController', () => {
   let user: User;
-
-  // const mockUserService = {
-  //   changePassword: vi.fn(),
-  //   delete: vi.fn(),
-  //   getById: vi.fn(),
-  //   update: vi.fn(),
-  // };
 
   const mockGetCurrentUserUseCase = {
     execute: vi.fn(),
@@ -25,27 +18,39 @@ describe.skip('UserController', () => {
     mockGetCurrentUserUseCase as unknown as GetCurrentUserUseCase,
   );
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     user = await createUser();
+  });
 
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('getById', () => {
-    // it('should return user data', async () => {
-    //   const mockUser = {
-    //     email: 'test@example.com',
-    //     id: '1',
-    //     name: 'Test User',
-    //   };
-    //   mockUserService.getById.mockResolvedValue(mockUser);
-    //   const result = await controller.getById(userId);
-    //   expect(mockUserService.getById).toHaveBeenCalledWith(userId);
-    //   expect(result).toEqual(mockUser);
-    // });
+  describe('getCurrentUser', () => {
+    it('should call getCurrentUserUseCase.execute with the correct user', async () => {
+      const mockUserResponse = {
+        email: user.email.valueOf(),
+        id: user.getId().valueOf(),
+        name: user.name.valueOf(),
+      };
+
+      mockGetCurrentUserUseCase.execute.mockResolvedValue(mockUserResponse);
+
+      const result = await controller.getCurrentUser(user);
+
+      expect(mockGetCurrentUserUseCase.execute).toHaveBeenCalledWith(user);
+      expect(result).toEqual(mockUserResponse);
+    });
+
+    it('should propagate errors from getCurrentUserUseCase', async () => {
+      const error = new Error('Test error');
+      mockGetCurrentUserUseCase.execute.mockRejectedValue(error);
+
+      await expect(controller.getCurrentUser(user)).rejects.toThrow(error);
+    });
   });
 
-  describe('update', () => {
+  describe.todo('update', () => {
     // const userData = {
     //   email: 'updated@example.com',
     //   name: 'Updated User',
@@ -84,7 +89,7 @@ describe.skip('UserController', () => {
     // });
   });
 
-  describe('delete', () => {
+  describe.todo('delete', () => {
     // it('should delete user', async () => {
     //   const existingUser = {
     //     email: 'test@example.com',
@@ -104,7 +109,7 @@ describe.skip('UserController', () => {
     it.todo('should handle validation through passwordChangeSchema');
   });
 
-  describe('update validation', () => {
+  describe.todo('update validation', () => {
     it('should throw ZodError for invalid email', async () => {
       const invalidData = {
         email: 'not-an-email',
@@ -151,7 +156,7 @@ describe.skip('UserController', () => {
     it.todo('should trim and lowercase email automatically');
   });
 
-  describe('changePassword validation', () => {
+  describe.todo('changePassword validation', () => {
     it('should throw ZodError for missing oldPassword', async () => {
       const invalidData = {
         newPassword: 'newPassword123',

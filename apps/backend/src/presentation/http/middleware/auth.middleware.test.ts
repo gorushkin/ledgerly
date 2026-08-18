@@ -75,6 +75,22 @@ describe('authMiddleware', () => {
     );
   });
 
+  it('preserves repository failures for the global error handler', async () => {
+    const repositoryError = new Error('database unavailable');
+    const request = createRequest({
+      authorization: 'Bearer token',
+      getByIdWithPassword: vi.fn().mockRejectedValue(repositoryError),
+      jwtVerify: vi.fn().mockResolvedValue({
+        email: 'user@example.com',
+        userId: user.getId().valueOf(),
+      }),
+    });
+
+    await expect(authMiddleware(request, {} as never)).rejects.toBe(
+      repositoryError,
+    );
+  });
+
   it('normalizes token verification failures to the invalid-token error', async () => {
     const request = createRequest({
       authorization: 'Bearer invalid-token',
@@ -85,4 +101,8 @@ describe('authMiddleware', () => {
       new UnauthorizedError('Invalid or expired token'),
     );
   });
+
+  it.todo(
+    'covers auth token variants centrally: invalid, expired, malformed, and unsupported Authorization scheme',
+  );
 });

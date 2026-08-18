@@ -3,6 +3,10 @@ import { UserResponseDTO, UUID } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/http';
+import {
+  createHttpTestClient,
+  HttpTestClient,
+} from 'src/presentation/http/test-utils';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 const url = `/api${ROUTES.user}`;
@@ -26,11 +30,13 @@ type LegacyValidationError = {
   ];
 };
 
-describe.skip('User Integration Tests', () => {
+describe('User Integration Tests', () => {
   let testDB: TestDB;
   let server: ReturnType<typeof createServer>;
   let authToken: string;
   let userId: string;
+
+  let httpClient: HttpTestClient;
 
   const testUser = {
     email: 'test@example.com',
@@ -43,13 +49,15 @@ describe.skip('User Integration Tests', () => {
     server = createServer(testDB.db);
     await testDB.setupTestDb();
 
+    httpClient = createHttpTestClient(server, () => authToken);
+
     const response = await server.inject({
       method: 'POST',
       payload: testUser,
       url: '/api/auth/register',
     });
 
-    const { token } = JSON.parse(response.body) as { token: string };
+    const { token } = httpClient.parseResponse<{ token: string }>(response);
 
     authToken = token;
 
@@ -59,17 +67,14 @@ describe.skip('User Integration Tests', () => {
 
   describe('GET /api/user', () => {
     it('should get user profile successfully', async () => {
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+      const response = await httpClient.injectAuthorized({
         method: 'GET',
         url,
       });
 
       expect(1).toBe(1);
 
-      const user = JSON.parse(response.body) as UserResponseDTO;
+      const user = httpClient.parseResponse<UserResponseDTO>(response);
 
       expect(response.statusCode).toBe(200);
       expect(user).toHaveProperty('email', testUser.email);
@@ -79,7 +84,7 @@ describe.skip('User Integration Tests', () => {
     });
 
     it('should fail without auth token', async () => {
-      const response = await server.inject({
+      const response = await httpClient.injectUnauthenticated({
         method: 'GET',
         url,
       });
@@ -87,38 +92,48 @@ describe.skip('User Integration Tests', () => {
       expect(response.statusCode).toBe(401);
     });
 
-    it('should fail with non-existent user ID', async () => {
-      const fakeToken = server.jwt.sign(
-        {
-          email: 'fake@example.com',
-          userId: fakeUserId,
-        },
-        { expiresIn: '1h' },
-      );
+    it('should handle database connection errors gracefully', async () => {
+      testDB.close();
 
-      const response = await server.inject({
-        headers: {
-          Authorization: `Bearer ${fakeToken}`,
-        },
+      const response = await httpClient.injectAuthorized({
         method: 'GET',
         url,
       });
 
-      const error = JSON.parse(response.body) as LegacyErrorResponse;
-
-      expect(response.statusCode).toBe(404);
-      expect(error.message).toBe(`User with ID ${fakeUserId} not found`);
+      expect(response.statusCode).toBe(500);
     });
 
-    it.todo('should fail with invalid auth token');
-    it.todo('should fail with expired auth token');
-    it.todo('should fail with malformed auth token');
-    it.todo('should handle database connection errors gracefully');
-    it.todo('should return consistent response format');
-    it.todo('should not return sensitive information');
+    it('should return consistent response format', async () => {
+      const response = await httpClient.injectAuthorized({
+        method: 'GET',
+        url,
+      });
+
+      const user = httpClient.parseResponse<UserResponseDTO>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(user).toHaveProperty('email', testUser.email);
+      expect(user).toHaveProperty('id', userId);
+      expect(user).toHaveProperty('name', testUser.name);
+      expect(user).not.toHaveProperty('password');
+    });
+
+    it('should not return sensitive information', async () => {
+      const response = await httpClient.injectAuthorized({
+        method: 'GET',
+        url,
+      });
+
+      const user = httpClient.parseResponse<UserResponseDTO>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(user).not.toHaveProperty('password');
+      expect(user).not.toHaveProperty('createdAt');
+      expect(user).not.toHaveProperty('updatedAt');
+    });
   });
 
-  describe('PUT /api/user', () => {
+  describe.skip('PUT /api/user', () => {
     it('should update user profile successfully', async () => {
       const updatedData = {
         email: 'updated@example.com',
@@ -178,6 +193,7 @@ describe.skip('User Integration Tests', () => {
       expect(response.statusCode).toBe(401);
     });
 
+    // TODO: Review for removal; token subject resolution should be covered by authMiddleware tests.
     it('should fail with non-existent user ID', async () => {
       const fakeToken = server.jwt.sign(
         {
@@ -220,11 +236,13 @@ describe.skip('User Integration Tests', () => {
     it.todo('should handle concurrent update requests');
     it.todo('should preserve user ID during update');
     it.todo('should update timestamps correctly');
+    // TODO: Review for removal; token variants should be covered by authMiddleware tests.
     it.todo('should fail with invalid auth token');
+    // TODO: Review for removal; token variants should be covered by authMiddleware tests.
     it.todo('should fail with expired auth token');
   });
 
-  describe('DELETE /api/user', () => {
+  describe.skip('DELETE /api/user', () => {
     it('should delete user profile successfully', async () => {
       const response = await server.inject({
         headers: {
@@ -258,6 +276,7 @@ describe.skip('User Integration Tests', () => {
       expect(response.statusCode).toBe(401);
     });
 
+    // TODO: Review for removal; token subject resolution should be covered by authMiddleware tests.
     it('should fail with non-existent user ID', async () => {
       const fakeToken = server.jwt.sign(
         {
@@ -283,7 +302,9 @@ describe.skip('User Integration Tests', () => {
     it.todo(
       'should cascade delete related data (accounts, transactions, etc.)',
     );
+    // TODO: Review for removal; token variants should be covered by authMiddleware tests.
     it.todo('should fail with invalid auth token');
+    // TODO: Review for removal; token variants should be covered by authMiddleware tests.
     it.todo('should fail with expired auth token');
     it.todo('should return consistent response format');
     it.todo('should handle database transaction rollback on errors');
@@ -293,7 +314,7 @@ describe.skip('User Integration Tests', () => {
     it.todo('should handle soft delete vs hard delete scenarios');
   });
 
-  describe('PUT /password - Change Password', () => {
+  describe.skip('PUT /password - Change Password', () => {
     it('should change password successfully', async () => {
       const response = await server.inject({
         headers: {
@@ -380,6 +401,7 @@ describe.skip('User Integration Tests', () => {
       expect(response.statusCode).toBe(401);
     });
 
+    // TODO: Review for removal; token subject resolution should be covered by authMiddleware tests.
     it('should fail with non-existent user ID', async () => {
       const fakeToken = server.jwt.sign(
         {
@@ -418,7 +440,9 @@ describe.skip('User Integration Tests', () => {
     it.todo('should return 400 when extra unexpected fields provided');
     it.todo('should handle Content-Type validation');
     it.todo('should handle malformed JSON in request body');
+    // TODO: Review for removal; token variants should be covered by authMiddleware tests.
     it.todo('should fail with invalid auth token');
+    // TODO: Review for removal; token variants should be covered by authMiddleware tests.
     it.todo('should fail with expired auth token');
     it.todo('should handle database errors during password update');
     it.todo('should invalidate existing sessions after password change');

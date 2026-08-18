@@ -35,8 +35,36 @@ export const createHttpTestClient = (
     return await injectWithToken(getAuthToken(), options);
   };
 
+  const injectUnauthenticated = async (options: HttpTestInjectOptions) => {
+    return await server.inject(options);
+  };
+
+  const parseResponse = <TResponse>(response: { body: string }) => {
+    return JSON.parse(response.body) as TResponse;
+  };
+
   return {
     injectAuthorized,
+    injectUnauthenticated,
     injectWithToken,
+    parseResponse,
   };
 };
+
+export type InjectAuthorized = ReturnType<
+  typeof createHttpTestClient
+>['injectAuthorized'];
+
+export type HttpTestClient = ReturnType<typeof createHttpTestClient>;
+
+export type InjectWithToken = ReturnType<
+  typeof createHttpTestClient
+>['injectWithToken'];
+
+export type InjectUnauthenticated = ReturnType<
+  typeof createHttpTestClient
+>['injectUnauthenticated'];
+
+export type ParseResponse = ReturnType<
+  typeof createHttpTestClient
+>['parseResponse'];
