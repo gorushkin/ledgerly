@@ -9,7 +9,8 @@
 `UserRepositoryInterface` exposed `UserDbRow` from `src/db/schema` through
 application-level methods used by login and authentication middleware. That made
 application and presentation code depend on persistence shape even though
-`UserMapper` already owned user DB/domain/API transformations.
+User application and infrastructure mappers already owned user DB/domain/API
+transformations.
 
 Password validation still needs access to the stored password hash, but that
 need should not require leaking DB schema types across the application boundary.
@@ -21,7 +22,7 @@ Password-bearing user repository methods return the domain `User` entity:
 1. `getByIdWithPassword(...)` returns `User | undefined`.
 2. `getByEmailWithPassword(...)` returns `User | undefined`.
 3. `UserRepository` keeps DB rows inside the infrastructure layer and maps them
-   through `UserMapper.toDomain(...)` before returning.
+   through the infrastructure user persistence mapper before returning.
 4. Login use cases and authentication middleware validate passwords through
    domain behavior such as `User.validatePassword(...)`.
 5. `UserDbRow` remains valid inside persistence schema, infrastructure
@@ -52,7 +53,8 @@ Password-bearing user repository methods return the domain `User` entity:
 Positive:
 
 - DB schema types stay behind the infrastructure boundary.
-- `UserMapper` remains the single place for user DB/domain/API transformations.
+- User boundary mappers remain the single place for user DB/domain/API
+  transformations.
 - Authentication flow uses domain behavior instead of persistence row fields.
 
 Neutral/cost:

@@ -4,6 +4,6 @@ import { User } from 'src/domain/';
 
 export class GetCurrentUserUseCase {
   execute(user: User): UserResponseDTO {
-    return UserMapper.toResponseDTO(user);
+    return UserMapper.toResponseDTOFromSnapshot(user.toSnapshot());
   }
 }

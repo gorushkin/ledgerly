@@ -1,4 +1,3 @@
-import { User } from 'src/domain';
 import { UserSnapshot } from 'src/domain/users/types';
 import { describe, expect, it } from 'vitest';
 
@@ -13,19 +12,6 @@ describe('UserMapper', () => {
     password: 'hashed-password',
     updatedAt: '2026-06-25T10:00:00.000Z' as UserSnapshot['updatedAt'],
   };
-
-  const user = User.restore(snapshot);
-  it('maps a domain user to a response DTO without password', () => {
-    const dto = UserMapper.toResponseDTO(user);
-
-    expect(dto).toEqual({
-      email: snapshot.email,
-      id: snapshot.id,
-      name: snapshot.name,
-    });
-
-    expect(dto).not.toHaveProperty('password');
-  });
 
   it('maps a user snapshot to a response DTO without password', () => {
     const dto = UserMapper.toResponseDTOFromSnapshot(snapshot);

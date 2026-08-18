@@ -37,10 +37,10 @@ describe('UserPersistenceMapper', () => {
     });
   });
 
-  it('maps a domain user to a persistence row', () => {
-    const user = UserPersistenceMapper.toDomain(row);
+  it('maps a user snapshot to a persistence row', () => {
+    const snapshot = UserPersistenceMapper.toSnapshot(row);
 
-    expect(UserPersistenceMapper.toDBRow(user)).toEqual({
+    expect(UserPersistenceMapper.toDBRowFromSnapshot(snapshot)).toEqual({
       createdAt: row.createdAt,
       email: row.email,
       id: row.id,

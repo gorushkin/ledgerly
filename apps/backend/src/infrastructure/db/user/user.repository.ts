@@ -96,7 +96,7 @@ export class UserRepository
   }
 
   async create(user: User): Promise<void> {
-    const data = UserPersistenceMapper.toDBRow(user);
+    const data = UserPersistenceMapper.toDBRowFromSnapshot(user.toSnapshot());
 
     return this.executeDatabaseOperation(
       async () =>
