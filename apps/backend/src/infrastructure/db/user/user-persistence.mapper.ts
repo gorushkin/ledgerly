@@ -1,6 +1,6 @@
 import { UserDbInsert, UserDbRow } from 'src/db/schemas';
 import { User } from 'src/domain';
-import { UserSnapshot, UserProfileSnapshot } from 'src/domain/users/';
+import { UserSnapshot } from 'src/domain/users/';
 
 export class UserPersistenceMapper {
   static toDomain(row: UserDbRow): User {
@@ -15,14 +15,6 @@ export class UserPersistenceMapper {
       name: row.name,
       password: row.password,
       updatedAt: row.updatedAt,
-    };
-  }
-
-  static toProfileSnapshot(row: UserDbRow): UserProfileSnapshot {
-    return {
-      email: row.email,
-      id: row.id,
-      name: row.name,
     };
   }
 
