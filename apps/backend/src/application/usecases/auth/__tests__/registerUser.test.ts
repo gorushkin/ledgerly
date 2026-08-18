@@ -1,10 +1,10 @@
-import { apiErrorCodes, UserCreateDTO } from '@ledgerly/shared/types';
+import { apiErrorCodes } from '@ledgerly/shared/types';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
 import { User } from 'src/domain/users/user.entity';
 import { RecordAlreadyExistsError } from 'src/infrastructure/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RegisterUserUseCase } from '../registerUser';
+import { RegisterUserInput, RegisterUserUseCase } from '../registerUser';
 
 describe('RegisterUserUseCase', () => {
   const email = 'test@example.com';
@@ -24,7 +24,7 @@ describe('RegisterUserUseCase', () => {
   });
 
   describe('execute', () => {
-    const validRequest: UserCreateDTO = {
+    const validRequest: RegisterUserInput = {
       email,
       name,
       password,

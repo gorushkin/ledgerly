@@ -252,6 +252,58 @@ See [ADR 0016](./architecture/adr/0016-backend-request-flow.md) for the full
 decision, validation/JWT/transaction-boundary guidance and follow-up migration
 tasks.
 
+## Backend Type Boundary Map
+
+Backend entity-shaped types intentionally exist in several boundary-specific
+locations. These locations are not interchangeable; each one describes the same
+business concepts from a different layer boundary.
+
+```text
+HTTP/API contract
+  packages/shared/src/types/*.ts
+    UserResponseDTO, AccountCreateDTO, TransactionResponseDTO, ...
+    Re-exported through packages/shared/src/types/index.ts
+    Used by clients and presentation-facing response/request contracts
+
+Application read boundary
+  apps/backend/src/application/read-models/*.ts
+    TransactionReadModel, OperationReadModel, ...
+    Returned by application/query repository contracts when a domain entity or
+    public API DTO would leak the wrong boundary
+
+Domain boundary
+  apps/backend/src/domain/<module>/types.ts
+    UserSnapshot, AccountSnapshot, TransactionSnapshot, CreateAccountProps, ...
+    Plain domain state used by entity restore/toSnapshot and domain-safe
+    repository contracts
+
+Persistence boundary
+  apps/backend/src/db/schemas/*.ts
+    UserDbRow, UserDbInsert, AccountDbRow, TransactionWithRelations, ...
+    DB row/insert/relation shapes derived from Drizzle schema definitions
+```
+
+Rules of thumb:
+
+1. Domain entities and domain snapshots must not import DB row types or public
+   request/response DTOs.
+2. Repository interfaces should return domain snapshots, domain entities, or
+   application read models; they must not return DB rows or public API response
+   DTOs.
+3. Public API DTOs belong at the HTTP/shared contract boundary. Use cases may
+   return application-safe read models and should not force repositories to know
+   public response shapes.
+4. `packages/shared/src/types/index.ts` is only the public re-export surface for
+   shared type modules. It is not a separate type layer.
+5. Mappers own conversion between persistence rows, domain snapshots,
+   application read models and public response DTOs.
+
+See [ADR 0001](./architecture/adr/0001-transaction-repository-boundaries.md) for
+transaction read models, [ADR 0016](./architecture/adr/0016-backend-request-flow.md)
+for request-flow responsibilities, and
+[ADR 0024](./architecture/adr/0024-user-repository-snapshot-contract.md) for the
+current user repository snapshot contract.
+
 ## Business Rules
 
 ### Double-Entry Bookkeeping
@@ -474,10 +526,10 @@ Settings
    - Domain validation (business rules, double-entry balance)
    - Database constraints (foreign keys, unique constraints)
 4. **Data layer separation**:
-   - DbRow (database representation)
-   - Repository DTOs (data transfer)
-   - Domain entities (business logic)
-   - Service DTOs (application layer)
+   - DB row/insert types (persistence representation)
+   - Domain entities and snapshots (business logic and plain domain state)
+   - Application read models (application/query read boundary)
+   - Public request/response DTOs (HTTP/shared API contract)
 5. **Repository patterns**:
    - Minimal business logic in repositories
    - Idempotent operations (return `undefined` instead of throwing errors)
