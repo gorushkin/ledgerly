@@ -4,7 +4,7 @@ import { UserRepositoryInterface } from 'src/application';
 import type { UserRepositoryUpdateProfileInput } from 'src/application';
 import { usersTable } from 'src/db/schemas';
 import { User } from 'src/domain/users/';
-import { UserSnapshot } from 'src/domain/users/types';
+import { UserSnapshot } from 'src/domain/users/';
 import { RepositoryInvariantError } from 'src/infrastructure/errors';
 
 import { BaseRepository } from '../BaseRepository';
