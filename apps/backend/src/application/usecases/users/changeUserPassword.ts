@@ -1,6 +1,5 @@
-import { UserChangePasswordDTO, UserResponseDTO } from '@ledgerly/shared/types';
+import { UserChangePasswordDTO } from '@ledgerly/shared/types';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
-import { UserMapper } from 'src/application/mappers';
 import { User } from 'src/domain';
 import { Password } from 'src/domain/domain-core/value-objects';
 
@@ -10,7 +9,7 @@ export class ChangeUserPasswordUseCase {
   async execute(
     user: User,
     changeUserPasswordInput: UserChangePasswordDTO,
-  ): Promise<UserResponseDTO> {
+  ): Promise<void> {
     const { currentPassword, newPassword } = changeUserPasswordInput;
 
     await user.validatePassword(currentPassword);
@@ -25,7 +24,5 @@ export class ChangeUserPasswordUseCase {
       password: snapshot.password,
       updatedAt: snapshot.updatedAt,
     });
-
-    return UserMapper.toResponseDTOFromSnapshot(snapshot);
   }
 }

@@ -135,11 +135,7 @@ describe('UserController', () => {
         newPassword: 'newPassword123',
       };
 
-      mockChangeUserPasswordUseCase.execute.mockResolvedValue({
-        email: user.email.valueOf(),
-        id: user.getId().valueOf(),
-        name: user.name.valueOf(),
-      });
+      mockChangeUserPasswordUseCase.execute.mockResolvedValue(undefined);
 
       const result = await controller.changePassword(user, passwordChangeDTO);
 
@@ -148,11 +144,7 @@ describe('UserController', () => {
         passwordChangeDTO,
       );
 
-      expect(result).toEqual({
-        email: user.email.valueOf(),
-        id: user.getId().valueOf(),
-        name: user.name.valueOf(),
-      });
+      expect(result).toBeUndefined();
     });
 
     const invalidPasswordChangeRequestBodies = [

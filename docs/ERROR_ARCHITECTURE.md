@@ -53,7 +53,7 @@ Examples include:
 - `EntityAlreadyExistsError`
 - `UnauthorizedAccessError`
 - `UserNotFoundError`
-- `InvalidPasswordError`
+- `InvalidCredentialsError`
 - `VersionConflictError`
 - `CommodityClosedError`
 

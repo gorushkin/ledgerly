@@ -31,13 +31,10 @@ export class UserController {
     return this.updateCurrentUserUseCase.execute(user, updatedProfileDTO);
   }
 
-  async changePassword(
-    user: User,
-    requestBody: unknown,
-  ): Promise<UserResponseDTO> {
+  async changePassword(user: User, requestBody: unknown): Promise<void> {
     const passwordChangeDTO = passwordChangeSchema.parse(requestBody);
 
-    return this.changeUserPasswordUseCase.execute(user, passwordChangeDTO);
+    await this.changeUserPasswordUseCase.execute(user, passwordChangeDTO);
   }
 
   delete(_user: User): Promise<never> {

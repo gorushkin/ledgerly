@@ -28,7 +28,7 @@ describe('ChangeUserPasswordUseCase', () => {
   });
 
   describe('execute', () => {
-    it('should change the user password and return the updated user response', async () => {
+    it('should change the user password', async () => {
       const newPassword = 'newPassword123';
 
       const dto = {
@@ -36,7 +36,9 @@ describe('ChangeUserPasswordUseCase', () => {
         newPassword,
       };
 
-      const result = await changeUserPasswordUseCase.execute(user, dto);
+      await expect(
+        changeUserPasswordUseCase.execute(user, dto),
+      ).resolves.toBeUndefined();
 
       const userSnapshot = user.toSnapshot();
       const password = userSnapshot.password.valueOf();
@@ -45,14 +47,6 @@ describe('ChangeUserPasswordUseCase', () => {
         user.getId().valueOf(),
         expect.objectContaining({
           password,
-        }),
-      );
-
-      expect(result).toEqual(
-        expect.objectContaining({
-          email: userSnapshot.email.valueOf(),
-          id: userSnapshot.id.valueOf(),
-          name: userSnapshot.name.valueOf(),
         }),
       );
     });
@@ -117,17 +111,6 @@ describe('ChangeUserPasswordUseCase', () => {
 
       const afterChange = user.toSnapshot().updatedAt;
       expect(afterChange).not.toEqual(beforeChange);
-    });
-
-    it('should return a response without the password hash', async () => {
-      const newPassword = 'newPassword123';
-
-      const result = await changeUserPasswordUseCase.execute(user, {
-        currentPassword,
-        newPassword,
-      });
-
-      expect(result).not.toHaveProperty('password');
     });
 
     it('should propagate repository errors when password persistence fails', async () => {
