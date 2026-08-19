@@ -18,9 +18,7 @@ export class UserPersistenceMapper {
     };
   }
 
-  static toDBRow(user: User): UserDbInsert {
-    const snapshot = user.toSnapshot();
-
+  static toDBRowFromSnapshot(snapshot: UserSnapshot): UserDbInsert {
     return {
       createdAt: snapshot.createdAt,
       email: snapshot.email,

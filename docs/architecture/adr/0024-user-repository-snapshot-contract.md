@@ -31,6 +31,10 @@ User repository methods should expose persistence-safe application contracts:
    the public contract.
 6. API response DTOs are produced in application mappers and use cases, not in
    the repository.
+7. User response and persistence output mappers consume `UserSnapshot` values
+   (`UserMapper.toResponseDTOFromSnapshot(snapshot)` and
+   `UserPersistenceMapper.toDBRowFromSnapshot(snapshot)`) instead of domain
+   `User` entities.
 
 ## Alternatives Considered
 
@@ -59,6 +63,8 @@ Positive:
   patterns.
 - Registration returns API DTOs from the local domain snapshot after persistence
   succeeds.
+- User mapper APIs follow the same snapshot-first output convention as account
+  and commodity mapper APIs.
 - Authentication no longer depends on a password-specific id lookup.
 - Removed methods cannot be used accidentally by new use cases.
 
