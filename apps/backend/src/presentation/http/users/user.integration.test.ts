@@ -14,8 +14,6 @@ import {
 } from 'src/presentation/http/test-utils';
 import { describe, it, expect, beforeEach } from 'vitest';
 
-const url = `/api${ROUTES.user}`;
-
 describe('User Integration Tests', () => {
   let testDB: TestDB;
   let server: ReturnType<typeof createServer>;
@@ -49,7 +47,7 @@ describe('User Integration Tests', () => {
     it('should get user profile successfully', async () => {
       const response = await httpClient.injectAuthorized({
         method: 'GET',
-        url,
+        url: ROUTES.api.user.root,
       });
 
       const user = httpClient.parseResponse<UserResponseDTO>(response);
@@ -64,7 +62,7 @@ describe('User Integration Tests', () => {
     it('should fail without auth token', async () => {
       const response = await httpClient.injectUnauthenticated({
         method: 'GET',
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(401);
@@ -78,7 +76,7 @@ describe('User Integration Tests', () => {
 
       const response = await httpClient.injectWithToken(token, {
         method: 'GET',
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(401);
@@ -89,7 +87,7 @@ describe('User Integration Tests', () => {
 
       const response = await httpClient.injectAuthorized({
         method: 'GET',
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(500);
@@ -98,7 +96,7 @@ describe('User Integration Tests', () => {
     it('should return consistent response format', async () => {
       const response = await httpClient.injectAuthorized({
         method: 'GET',
-        url,
+        url: ROUTES.api.user.root,
       });
 
       const user = httpClient.parseResponse<UserResponseDTO>(response);
@@ -113,7 +111,7 @@ describe('User Integration Tests', () => {
     it('should not return sensitive information', async () => {
       const response = await httpClient.injectAuthorized({
         method: 'GET',
-        url,
+        url: ROUTES.api.user.root,
       });
 
       const user = httpClient.parseResponse<UserResponseDTO>(response);
@@ -135,7 +133,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(200);
@@ -155,7 +153,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(200);
@@ -178,7 +176,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: invalidData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(400);
@@ -192,7 +190,7 @@ describe('User Integration Tests', () => {
           name: 'Test',
           password: 'Password123!',
         },
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(401);
@@ -206,7 +204,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(200);
@@ -225,7 +223,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(200);
@@ -244,7 +242,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(400);
@@ -258,7 +256,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(400);
@@ -272,7 +270,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(400);
@@ -286,7 +284,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(200);
@@ -305,7 +303,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(400);
@@ -319,7 +317,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(400);
@@ -341,7 +339,7 @@ describe('User Integration Tests', () => {
       const response = await httpClient.injectAuthorized({
         method: 'PUT',
         payload: updatedData,
-        url,
+        url: ROUTES.api.user.root,
       });
 
       expect(response.statusCode).toBe(409);
@@ -349,8 +347,6 @@ describe('User Integration Tests', () => {
   });
 
   describe('PUT /api/user/password', () => {
-    const changePasswordUrl = `/api${ROUTES.user}/password`;
-
     it('should change the current user password successfully', async () => {
       const retrievedUserSnapshot = await testDB.getUserById(
         Id.restore(userId).valueOf(),
@@ -362,7 +358,7 @@ describe('User Integration Tests', () => {
           currentPassword: testUser.password,
           newPassword: 'newPassword123',
         },
-        url: changePasswordUrl,
+        url: ROUTES.api.user.password,
       });
 
       const updatedUserSnapshot = await testDB.getUserById(
@@ -381,7 +377,7 @@ describe('User Integration Tests', () => {
           currentPassword: testUser.password,
           newPassword: 'NewPassword123!',
         },
-        url: changePasswordUrl,
+        url: ROUTES.api.user.password,
       });
 
       expect(response.statusCode).toBe(200);
@@ -396,9 +392,54 @@ describe('User Integration Tests', () => {
       });
     });
 
-    it.todo('should allow login with the new password after password change');
+    it('should allow login with the new password after password change', async () => {
+      const newPassword = 'newPassword123';
+      await httpClient.injectAuthorized({
+        method: 'PUT',
+        payload: {
+          currentPassword: testUser.password,
+          newPassword,
+        },
+        url: ROUTES.api.user.password,
+      });
 
-    it.todo('should reject login with the old password after password change');
+      const response = await httpClient.injectAuthorized({
+        method: 'POST',
+        payload: {
+          email: testUser.email,
+          password: newPassword,
+        },
+        url: ROUTES.api.auth.login,
+      });
+
+      const body = httpClient.parseResponse<{ token: string }>(response);
+
+      expect(response.statusCode).toBe(200);
+      expect(body).toHaveProperty('token');
+    });
+
+    it('should reject login with the old password after password change', async () => {
+      const newPassword = 'newPassword123';
+      await httpClient.injectAuthorized({
+        method: 'PUT',
+        payload: {
+          currentPassword: testUser.password,
+          newPassword,
+        },
+        url: ROUTES.api.user.password,
+      });
+
+      const response = await httpClient.injectAuthorized({
+        method: 'POST',
+        payload: {
+          email: testUser.email,
+          password: testUser.password,
+        },
+        url: ROUTES.api.auth.login,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
 
     it('should return 401 when currentPassword is incorrect', async () => {
       const response = await httpClient.injectAuthorized({
@@ -407,7 +448,7 @@ describe('User Integration Tests', () => {
           currentPassword: 'incorrectPassword',
           newPassword: 'NewPassword123!',
         },
-        url: changePasswordUrl,
+        url: ROUTES.api.user.password,
       });
 
       expect(response.statusCode).toBe(401);
@@ -424,7 +465,7 @@ describe('User Integration Tests', () => {
           currentPassword: 'incorrectPassword',
           newPassword: 'newPassword123',
         },
-        url: changePasswordUrl,
+        url: ROUTES.api.user.password,
       });
 
       const updatedUserSnapshot = await testDB.getUserById(
@@ -443,7 +484,7 @@ describe('User Integration Tests', () => {
           currentPassword: testUser.password,
           newPassword: 'short',
         },
-        url: changePasswordUrl,
+        url: ROUTES.api.user.password,
       });
 
       expect(response.statusCode).toBe(400);
@@ -457,7 +498,7 @@ describe('User Integration Tests', () => {
           newPassword: 'NewPassword123!',
           unexpectedField: 'unexpectedValue',
         },
-        url: changePasswordUrl,
+        url: ROUTES.api.user.password,
       });
 
       expect(response.statusCode).toBe(400);
@@ -470,7 +511,7 @@ describe('User Integration Tests', () => {
           currentPassword: testUser.password,
           newPassword: 'NewPassword123!',
         },
-        url: changePasswordUrl,
+        url: ROUTES.api.user.password,
       });
 
       expect(response.statusCode).toBe(401);
@@ -483,7 +524,7 @@ describe('User Integration Tests', () => {
           currentPassword: testUser.password,
           newPassword: 'NewPassword123!',
         },
-        url: changePasswordUrl,
+        url: ROUTES.api.user.password,
       });
 
       const body = httpClient.parseResponse(response);

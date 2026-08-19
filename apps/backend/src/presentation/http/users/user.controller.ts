@@ -16,7 +16,7 @@ export class UserController {
   constructor(
     private readonly getCurrentUserUseCase: GetCurrentUserUseCase,
     private readonly updateCurrentUserUseCase: UpdateCurrentUserUseCase,
-    private readonly changeUserPasswordUseCase: ChangeUserPasswordUseCase, // ChangeUserPasswordUseCase,
+    private readonly changeUserPasswordUseCase: ChangeUserPasswordUseCase,
   ) {}
   getCurrentUser(user: User): UserResponseDTO {
     return this.getCurrentUserUseCase.execute(user);

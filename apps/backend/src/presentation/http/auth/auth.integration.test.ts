@@ -1,3 +1,4 @@
+import { ROUTES } from '@ledgerly/shared/routes';
 import { apiErrorCodes, type ApiErrorResponse } from '@ledgerly/shared/types';
 import { TestDB } from 'src/db/test-db';
 import { createServer } from 'src/presentation/http';
@@ -30,7 +31,7 @@ describe('Auth Integration Tests', () => {
       const response = await server.inject({
         method: 'POST',
         payload: testUser,
-        url: '/api/auth/register',
+        url: ROUTES.api.auth.register,
       });
 
       expect(response.statusCode).toBe(200);
@@ -43,13 +44,13 @@ describe('Auth Integration Tests', () => {
       await server.inject({
         method: 'POST',
         payload: testUser,
-        url: '/api/auth/register',
+        url: ROUTES.api.auth.register,
       });
 
       const response = await server.inject({
         method: 'POST',
         payload: testUser,
-        url: '/api/auth/register',
+        url: ROUTES.api.auth.register,
       });
 
       expect(response.statusCode).toBe(409);
@@ -188,7 +189,7 @@ describe('Auth Integration Tests', () => {
       await server.inject({
         method: 'POST',
         payload: testUser,
-        url: '/api/auth/register',
+        url: ROUTES.api.auth.register,
       });
     });
 
@@ -199,7 +200,7 @@ describe('Auth Integration Tests', () => {
           email: testUser.email,
           password: testUser.password,
         },
-        url: '/api/auth/login',
+        url: ROUTES.api.auth.login,
       });
 
       expect(response.statusCode).toBe(200);
@@ -215,7 +216,7 @@ describe('Auth Integration Tests', () => {
           email: testUser.email,
           password: 'wrongpassword',
         },
-        url: '/api/auth/login',
+        url: ROUTES.api.auth.login,
       });
 
       const unknownUserResponse = await server.inject({
@@ -224,7 +225,7 @@ describe('Auth Integration Tests', () => {
           email: 'nonexistent@example.com',
           password: testUser.password,
         },
-        url: '/api/auth/login',
+        url: ROUTES.api.auth.login,
       });
 
       expect(invalidPasswordResponse.statusCode).toBe(401);

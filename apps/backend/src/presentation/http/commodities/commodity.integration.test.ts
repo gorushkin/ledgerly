@@ -14,7 +14,7 @@ import { CommodityCode, Id } from 'src/domain/domain-core';
 import { createServer } from 'src/presentation/http';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-const url = `/api${ROUTES.commodities}`;
+const url = ROUTES.api.commodities.root;
 
 const testUser = {
   email: 'test@example.com',

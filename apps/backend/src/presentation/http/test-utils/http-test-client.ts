@@ -1,5 +1,6 @@
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'node:http';
 
+import { ROUTES } from '@ledgerly/shared/routes';
 import { UUID } from '@ledgerly/shared/types';
 import type { createServer } from 'src/presentation/http/server';
 
@@ -54,7 +55,7 @@ export const createHttpTestClient = (
     const response = await server.inject({
       method: 'POST',
       payload,
-      url: '/api/auth/register',
+      url: ROUTES.api.auth.register,
     });
 
     return parseResponse<{ token: string }>(response);
