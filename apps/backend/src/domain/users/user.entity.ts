@@ -1,5 +1,8 @@
 import { UUID } from '@ledgerly/shared/types';
-import { UserOwnershipError } from 'src/domain/domain.errors';
+import {
+  PasswordMismatchError,
+  UserOwnershipError,
+} from 'src/domain/domain.errors';
 
 import {
   EntityIdentity,
@@ -87,8 +90,21 @@ export class User {
     this.timestamps = this.timestamps.touch();
   }
 
-  validatePassword(password: string): Promise<boolean> {
+  changePassword(newPassword: Password): void {
+    this._password = newPassword;
+    this.timestamps = this.timestamps.touch();
+  }
+
+  verifyPassword(password: string): Promise<boolean> {
     return this._password.compare(password);
+  }
+
+  async validatePassword(password: string): Promise<void> {
+    const isPasswordValid = await this.verifyPassword(password);
+
+    if (!isPasswordValid) {
+      throw new PasswordMismatchError();
+    }
   }
 
   verifyOwnership(userId: UUID): boolean {

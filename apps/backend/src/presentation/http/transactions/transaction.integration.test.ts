@@ -34,7 +34,7 @@ const testUser = {
   password: 'Password123!',
 };
 
-const url = `/api${ROUTES.transactions}`;
+const url = ROUTES.api.transactions.root;
 
 describe('Transactions Integration Tests', () => {
   let testDB: TestDB;

@@ -1,6 +1,10 @@
 import { UserResponseDTO } from '@ledgerly/shared/types';
-import { usersUpdateSchema } from '@ledgerly/shared/validation';
 import {
+  passwordChangeSchema,
+  usersUpdateSchema,
+} from '@ledgerly/shared/validation';
+import {
+  ChangeUserPasswordUseCase,
   GetCurrentUserUseCase,
   UpdateCurrentUserUseCase,
 } from 'src/application/';
@@ -12,6 +16,7 @@ export class UserController {
   constructor(
     private readonly getCurrentUserUseCase: GetCurrentUserUseCase,
     private readonly updateCurrentUserUseCase: UpdateCurrentUserUseCase,
+    private readonly changeUserPasswordUseCase: ChangeUserPasswordUseCase,
   ) {}
   getCurrentUser(user: User): UserResponseDTO {
     return this.getCurrentUserUseCase.execute(user);
@@ -22,13 +27,14 @@ export class UserController {
     requestBody: unknown,
   ): Promise<UserResponseDTO> {
     const updatedProfileDTO = usersUpdateSchema.parse(requestBody);
+
     return this.updateCurrentUserUseCase.execute(user, updatedProfileDTO);
   }
 
-  changePassword(_user: User, _requestBody: unknown): Promise<never> {
-    // const passwordChangeDTO = passwordChangeSchema.parse(requestBody);
-    // return this.changeUserPasswordUseCase.execute(user, passwordChangeDTO);
-    return notImplemented();
+  async changePassword(user: User, requestBody: unknown): Promise<void> {
+    const passwordChangeDTO = passwordChangeSchema.parse(requestBody);
+
+    await this.changeUserPasswordUseCase.execute(user, passwordChangeDTO);
   }
 
   delete(_user: User): Promise<never> {

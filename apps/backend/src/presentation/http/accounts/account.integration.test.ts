@@ -21,7 +21,7 @@ import {
 } from 'src/presentation/http/test-utils';
 import { describe, beforeEach, it, expect } from 'vitest';
 
-const url = `/api${ROUTES.accounts}`;
+const url = ROUTES.api.accounts.root;
 
 const getWithQueryParamsUrl = (status: AccountStatusFilterValue) =>
   `${url}?status=${status}`;

@@ -1,9 +1,17 @@
-import { UUID } from '@ledgerly/shared/types';
+import { IsoDatetimeString, UUID } from '@ledgerly/shared/types';
 import { User } from 'src/domain';
 import { UserSnapshot } from 'src/domain/users';
 
-export type UserRepositoryUpdateProfileInput = Pick<UserSnapshot, 'updatedAt'> &
-  Partial<Pick<UserSnapshot, 'name' | 'email'>>;
+export type UserRepositoryUpdateProfileInput = {
+  email?: string;
+  name?: string;
+  updatedAt: IsoDatetimeString;
+};
+
+export type UserRepositoryUpdatePasswordInput = {
+  password: string;
+  updatedAt: IsoDatetimeString;
+};
 
 export type UserRepositoryInterface = {
   create(user: User): Promise<void>;
@@ -12,7 +20,10 @@ export type UserRepositoryInterface = {
   updateUserProfile(
     id: UUID,
     data: UserRepositoryUpdateProfileInput,
-  ): Promise<UserSnapshot>;
+  ): Promise<void>;
   delete(id: UUID): Promise<void>;
-  updateUserPassword(id: UUID, hashedPassword: string): Promise<void>;
+  updateUserPassword(
+    id: UUID,
+    data: UserRepositoryUpdatePasswordInput,
+  ): Promise<void>;
 };

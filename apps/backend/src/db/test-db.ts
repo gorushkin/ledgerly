@@ -214,6 +214,9 @@ export class TestDB {
     return user;
   };
 
+  getUserById = async (userId: UUID): Promise<UserDbRow | undefined> =>
+    this.db.select().from(usersTable).where(eq(usersTable.id, userId)).get();
+
   createTransaction = async (
     userId: UUID,
     commodityId: UUID,

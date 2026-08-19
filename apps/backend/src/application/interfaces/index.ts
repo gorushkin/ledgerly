@@ -7,6 +7,7 @@ export type {
 } from './AccountRepository.interface';
 export type {
   UserRepositoryInterface,
+  UserRepositoryUpdatePasswordInput,
   UserRepositoryUpdateProfileInput,
 } from './userRepository.interface';
 export type {

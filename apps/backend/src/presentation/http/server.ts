@@ -1,4 +1,5 @@
 import fastifyJwt from '@fastify/jwt';
+import { ROUTES } from '@ledgerly/shared/routes';
 import Fastify from 'fastify';
 import { config } from 'src/config/config';
 import { createContainer } from 'src/di/container';
@@ -28,7 +29,7 @@ export function createServer(db = defaultDb) {
 
   fastify.decorate('container', createContainer(db));
 
-  fastify.register(registerRoutes, { prefix: '/api' });
+  fastify.register(registerRoutes, { prefix: ROUTES.api.root });
 
   return fastify;
 }

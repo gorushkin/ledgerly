@@ -1,5 +1,5 @@
 import {
-  InvalidPasswordError,
+  InvalidCredentialsError,
   UserNotFoundError,
 } from 'src/application/application.errors';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
@@ -64,7 +64,7 @@ describe('LoginUserUseCase', () => {
       ).rejects.toThrow(UserNotFoundError);
     });
 
-    it('should throw InvalidPasswordError if password is invalid', async () => {
+    it('should throw InvalidCredentialsError if password is invalid', async () => {
       mockUserRepository.getByEmailWithPassword.mockResolvedValue(
         User.restore({
           createdAt,
@@ -78,7 +78,7 @@ describe('LoginUserUseCase', () => {
 
       await expect(
         loginUserUseCase.execute(email, 'wrong-password'),
-      ).rejects.toThrowError(InvalidPasswordError);
+      ).rejects.toThrowError(InvalidCredentialsError);
     });
   });
 

@@ -34,7 +34,9 @@ export const usersUpdateSchema = z
     message: "At least one field must be provided for update",
   });
 
-export const passwordChangeSchema = z.object({
-  currentPassword: requiredText,
-  newPassword: password,
-});
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: requiredText,
+    newPassword: password,
+  })
+  .strict();

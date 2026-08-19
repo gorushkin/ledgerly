@@ -1,7 +1,10 @@
 import { UUID } from '@ledgerly/shared/types';
 import { eq } from 'drizzle-orm';
-import { UserRepositoryInterface } from 'src/application';
-import type { UserRepositoryUpdateProfileInput } from 'src/application';
+import {
+  type UserRepositoryInterface,
+  type UserRepositoryUpdatePasswordInput,
+  type UserRepositoryUpdateProfileInput,
+} from 'src/application';
 import { usersTable } from 'src/db/schemas';
 import { User } from 'src/domain/users/';
 import { UserSnapshot } from 'src/domain/users/';
@@ -48,25 +51,22 @@ export class UserRepository
   async updateUserProfile(
     id: UUID,
     data: UserRepositoryUpdateProfileInput,
-  ): Promise<UserSnapshot> {
+  ): Promise<void> {
     const safeData = this.getSafeUpdate(data, ['email', 'name', 'updatedAt']);
 
     return this.executeDatabaseOperation(
       async () => {
-        const updatedUserProfile = await this.db
+        const { rowsAffected } = await this.db
           .update(usersTable)
           .set(safeData)
           .where(eq(usersTable.id, id))
-          .returning()
-          .get();
+          .run();
 
         this.ensureEntityExists(
-          updatedUserProfile,
+          rowsAffected > 0 ? true : null,
           `User with ID ${id} not found`,
           this.entityNotFoundContext('user', id),
         );
-
-        return UserPersistenceMapper.toSnapshot(updatedUserProfile);
       },
       `Failed to update user profile with ID ${id}`,
       {
@@ -79,11 +79,16 @@ export class UserRepository
     );
   }
 
-  async updateUserPassword(id: UUID, hashedPassword: string): Promise<void> {
+  async updateUserPassword(
+    id: UUID,
+    data: UserRepositoryUpdatePasswordInput,
+  ): Promise<void> {
     return this.executeDatabaseOperation(async () => {
+      const safeData = this.getSafeUpdate(data, ['password', 'updatedAt']);
+
       const { rowsAffected } = await this.db
         .update(usersTable)
-        .set({ password: hashedPassword })
+        .set(safeData)
         .where(eq(usersTable.id, id))
         .run();
 

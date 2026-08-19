@@ -29,10 +29,15 @@ presentation layer needs a uniform, safe response format.
    and application errors do not carry HTTP-specific status information.
 6. Public error context is an explicit allowlist. Internal diagnostic details
    that are unsafe or unnecessary for a client are kept out of it.
-7. Presentation adapters translate external validation errors, including
+7. Successful command responses that need a semantic payload expose stable
+   machine-readable `code` values instead of user-facing `message` text. UI copy
+   and localization belong to clients. Resource updates should usually return
+   the updated resource DTO or an empty transport response instead of a success
+   message.
+8. Presentation adapters translate external validation errors, including
    `ZodError`, into the same contract. The API exposes `VALIDATION_FAILED` and
    normalized field codes, not Zod issue details or messages.
-8. Authentication failures use one `AUTHENTICATION_FAILED` response with an
+9. Authentication failures use one `AUTHENTICATION_FAILED` response with an
    empty context and HTTP 401 whether the account is absent or the password is
    invalid. Internal error messages may retain the cause for diagnostics, but
    are never serialized. Registration conflicts originally used

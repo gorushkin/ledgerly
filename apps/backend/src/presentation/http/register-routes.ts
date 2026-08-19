@@ -14,26 +14,26 @@ export const registerRoutes = (fastify: FastifyInstance) => {
     reply.send({ message: 'Welcome to the Money Manager API!' });
   });
 
-  fastify.register(authRoutes, { prefix: ROUTES.auth });
+  fastify.register(authRoutes, { prefix: ROUTES.app.auth.root });
 
   // Protected routes
   fastify.register((protectedApp) => {
     protectedApp.addHook('onRequest', authMiddleware);
 
     protectedApp.register(transactionsRoutes, {
-      prefix: ROUTES.transactions,
+      prefix: ROUTES.app.transactions,
     });
 
     protectedApp.register(accountsRoutes, {
-      prefix: ROUTES.accounts,
+      prefix: ROUTES.app.accounts,
     });
 
     protectedApp.register(registerUserRoutes, {
-      prefix: ROUTES.user,
+      prefix: ROUTES.app.user.root,
     });
 
     protectedApp.register(commodityRoutes, {
-      prefix: ROUTES.commodities,
+      prefix: ROUTES.app.commodities,
     });
   });
 };

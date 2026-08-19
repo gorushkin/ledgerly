@@ -1,5 +1,8 @@
 import { apiErrorCodes } from '@ledgerly/shared/types';
-import { UserOwnershipError } from 'src/domain/domain.errors';
+import {
+  PasswordMismatchError,
+  UserOwnershipError,
+} from 'src/domain/domain.errors';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Email, Name, Password } from '../domain-core';
@@ -72,7 +75,7 @@ describe('User Domain Entity', () => {
       const restoredUser = User.restore(snapshot);
 
       expect(restoredUser.toSnapshot()).toEqual(snapshot);
-      await expect(restoredUser.validatePassword('password123')).resolves.toBe(
+      await expect(restoredUser.verifyPassword('password123')).resolves.toBe(
         true,
       );
     });
@@ -91,6 +94,25 @@ describe('User Domain Entity', () => {
 
       expect(restoredSnapshot.createdAt).toBe(snapshot.createdAt);
       expect(restoredSnapshot.updatedAt).toBe(snapshot.updatedAt);
+    });
+
+    it('should validate a matching password', async () => {
+      await expect(user.validatePassword('password123')).resolves.toBe(
+        undefined,
+      );
+    });
+
+    it('should throw PasswordMismatchError for a mismatched password', async () => {
+      await expect(
+        user.validatePassword('wrong-password'),
+      ).rejects.toMatchObject({
+        code: apiErrorCodes.authenticationFailed,
+        context: {},
+      });
+
+      await expect(
+        user.validatePassword('wrong-password'),
+      ).rejects.toThrowError(PasswordMismatchError);
     });
 
     it('returns UNAUTHORIZED_ACCESS for a different user ID', () => {
