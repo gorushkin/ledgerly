@@ -2,10 +2,11 @@ import {
   UserRepositoryInterface,
   UserRepositoryUpdateProfileInput,
 } from 'src/application';
-import { Email, Id, Name, Password } from 'src/domain/domain-core';
+import { Email, Id, Name, Password, Timestamp } from 'src/domain/domain-core';
 import { User } from 'src/domain/users/user.entity';
 import { TransactionManager } from 'src/infrastructure/db';
 import {
+  DatabaseOperationError,
   RecordAlreadyExistsError,
   RepositoryNotFoundError,
 } from 'src/infrastructure/errors';
@@ -81,7 +82,7 @@ describe('UsersRepository', () => {
       expect(foundUser?.email.valueOf()).toBe(email);
       expect(foundUser?.name.valueOf()).toBe(name);
 
-      const compareResult = await foundUser?.validatePassword(password);
+      const compareResult = await foundUser?.verifyPassword(password);
 
       expect(compareResult).toBe(true);
     });
@@ -105,14 +106,16 @@ describe('UsersRepository', () => {
         updatedAt: user.updatedAt,
       };
 
-      const updatedUser = await userRepository.updateUserProfile(
+      const result = await userRepository.updateUserProfile(
         user.id,
         updateData,
       );
+      const persistedUser = await testDB.getUserById(user.id);
 
-      expect(updatedUser.name).toBe(updateData.name);
-      expect(updatedUser.email).toBe(updateData.email);
-      expect(updatedUser.id).toBe(user.id);
+      expect(result).toBeUndefined();
+      expect(persistedUser?.name).toBe(updateData.name);
+      expect(persistedUser?.email).toBe(updateData.email);
+      expect(persistedUser?.id).toBe(user.id);
     });
 
     it('should update only provided fields', async () => {
@@ -123,13 +126,11 @@ describe('UsersRepository', () => {
         updatedAt: user.updatedAt,
       };
 
-      const updatedUser = await userRepository.updateUserProfile(
-        user.id,
-        updateData,
-      );
+      await userRepository.updateUserProfile(user.id, updateData);
+      const persistedUser = await testDB.getUserById(user.id);
 
-      expect(updatedUser.name).toBe(updateData.name);
-      expect(updatedUser.email).toBe(email);
+      expect(persistedUser?.name).toBe(updateData.name);
+      expect(persistedUser?.email).toBe(email);
     });
   });
 
@@ -212,20 +213,46 @@ describe('UsersRepository', () => {
       const newPassword = 'newpassword123';
       const newHashedPassword = (await Password.create(newPassword)).valueOf();
 
-      await userRepository.updateUserPassword(user.id, newHashedPassword);
+      await userRepository.updateUserPassword(user.id, {
+        password: newHashedPassword,
+        updatedAt: user.updatedAt,
+      });
 
       const updatedUserSnapshot = await userRepository.getById(user.id);
       const updatedUser = User.restore(updatedUserSnapshot);
 
       expect(updatedUser).toBeDefined();
 
-      await expect(updatedUser.validatePassword(newPassword)).resolves.toBe(
-        true,
-      );
+      await expect(updatedUser.verifyPassword(newPassword)).resolves.toBe(true);
     });
 
-    it.todo('should handle database errors when updating user password');
-    it.todo('should handle updating password for non-existent user');
+    it('should throw RepositoryNotFoundError for non-existent user', async () => {
+      const nonExistentUserId = Id.create().valueOf();
+      const newPassword = 'newpassword123';
+      const newHashedPassword = (await Password.create(newPassword)).valueOf();
+
+      await expect(
+        userRepository.updateUserPassword(nonExistentUserId, {
+          password: newHashedPassword,
+          updatedAt: Timestamp.create().valueOf(),
+        }),
+      ).rejects.toThrowError(RepositoryNotFoundError);
+    });
+
+    it('should handle database errors when updating user password', async () => {
+      const user = await testDB.createUser({ email, name, password });
+      const newPassword = 'newpassword123';
+      const newHashedPassword = (await Password.create(newPassword)).valueOf();
+
+      testDB.close();
+
+      await expect(
+        userRepository.updateUserPassword(user.id, {
+          password: newHashedPassword,
+          updatedAt: user.updatedAt,
+        }),
+      ).rejects.toThrowError(DatabaseOperationError);
+    });
   });
 
   describe('getAll', () => {

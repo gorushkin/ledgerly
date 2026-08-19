@@ -1,3 +1,4 @@
+import { apiSuccessCodes } from '@ledgerly/shared/types';
 import type { FastifyInstance } from 'fastify';
 
 export const registerUserRoutes = (app: FastifyInstance) => {
@@ -26,7 +27,7 @@ export const registerUserRoutes = (app: FastifyInstance) => {
     await userController.changePassword(user, request.body);
 
     reply.status(200).send({
-      message: 'Password successfully changed',
+      code: apiSuccessCodes.userPasswordChanged,
     });
   });
 

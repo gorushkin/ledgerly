@@ -22,6 +22,7 @@ import {
   OpenCommodityUseCase,
   GetCurrentUserUseCase,
   UpdateCurrentUserUseCase,
+  ChangeUserPasswordUseCase,
 } from 'src/application';
 import type {
   AccountRepositoryInterface,
@@ -88,6 +89,7 @@ type CommodityUseCases = {
 };
 
 type UserUseCases = {
+  changeUserPassword: ChangeUserPasswordUseCase;
   getCurrentUser: GetCurrentUserUseCase;
   updateCurrentUser: UpdateCurrentUserUseCase;
 };

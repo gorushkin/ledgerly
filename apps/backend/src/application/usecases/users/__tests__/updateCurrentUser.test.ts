@@ -11,7 +11,6 @@ describe('UpdateCurrentUserUseCase', () => {
   let user: User;
 
   const userRepository = {
-    getById: vi.fn(),
     updateUserProfile: vi.fn(),
   };
 
@@ -25,7 +24,6 @@ describe('UpdateCurrentUserUseCase', () => {
 
   beforeEach(() => {
     userRepository.updateUserProfile.mockReset();
-    userRepository.getById.mockReset();
   });
 
   describe('execute', () => {
@@ -34,8 +32,6 @@ describe('UpdateCurrentUserUseCase', () => {
         email: 'updated@example.com',
         name: 'Updated Name',
       };
-
-      userRepository.getById.mockResolvedValue(user.toSnapshot());
 
       const result = await updateCurrentUserUseCase.execute(
         user,

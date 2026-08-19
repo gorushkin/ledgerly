@@ -181,6 +181,12 @@ export class InvalidPasswordError extends CodedDomainError<'INVALID_PASSWORD'> {
   }
 }
 
+export class PasswordMismatchError extends CodedDomainError<'AUTHENTICATION_FAILED'> {
+  constructor() {
+    super('password does not match', apiErrorCodes.authenticationFailed, {});
+  }
+}
+
 export class InvalidAccountTypeError extends CodedDomainError<'INVALID_ACCOUNT_TYPE'> {
   constructor(public readonly receivedType: string) {
     super(

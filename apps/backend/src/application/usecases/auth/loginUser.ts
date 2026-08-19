@@ -1,6 +1,6 @@
 import { UserResponseDTO } from '@ledgerly/shared/types';
 import {
-  InvalidPasswordError,
+  InvalidCredentialsError,
   UserNotFoundError,
 } from 'src/application/application.errors';
 import type { UserRepositoryInterface } from 'src/application/interfaces';
@@ -16,10 +16,10 @@ export class LoginUserUseCase {
       throw new UserNotFoundError();
     }
 
-    const isPasswordValid = await user.validatePassword(password);
+    const isPasswordValid = await user.verifyPassword(password);
 
     if (!isPasswordValid) {
-      throw new InvalidPasswordError();
+      throw new InvalidCredentialsError();
     }
 
     return UserMapper.toResponseDTOFromSnapshot(user.toSnapshot());

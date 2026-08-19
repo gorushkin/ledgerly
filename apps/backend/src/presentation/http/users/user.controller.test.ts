@@ -1,5 +1,6 @@
 import { UserUpdateDTO } from '@ledgerly/shared/types';
 import type {
+  ChangeUserPasswordUseCase,
   GetCurrentUserUseCase,
   UpdateCurrentUserUseCase,
 } from 'src/application/usecases/users/';
@@ -21,9 +22,14 @@ describe('UserController', () => {
     execute: vi.fn(),
   };
 
+  const mockChangeUserPasswordUseCase = {
+    execute: vi.fn(),
+  };
+
   const controller = new UserController(
     mockGetCurrentUserUseCase as unknown as GetCurrentUserUseCase,
     mockUpdateCurrentUserUseCase as unknown as UpdateCurrentUserUseCase,
+    mockChangeUserPasswordUseCase as unknown as ChangeUserPasswordUseCase,
   );
 
   beforeAll(async () => {
@@ -120,5 +126,94 @@ describe('UserController', () => {
         expect(mockUpdateCurrentUserUseCase.execute).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('changePassword', () => {
+    it('should call changeUserPasswordUseCase.execute with the correct parameters', async () => {
+      const passwordChangeDTO = {
+        currentPassword: 'currentPassword123',
+        newPassword: 'newPassword123',
+      };
+
+      mockChangeUserPasswordUseCase.execute.mockResolvedValue({
+        email: user.email.valueOf(),
+        id: user.getId().valueOf(),
+        name: user.name.valueOf(),
+      });
+
+      const result = await controller.changePassword(user, passwordChangeDTO);
+
+      expect(mockChangeUserPasswordUseCase.execute).toHaveBeenCalledWith(
+        user,
+        passwordChangeDTO,
+      );
+
+      expect(result).toEqual({
+        email: user.email.valueOf(),
+        id: user.getId().valueOf(),
+        name: user.name.valueOf(),
+      });
+    });
+
+    const invalidPasswordChangeRequestBodies = [
+      [
+        'empty current password',
+        { currentPassword: '', newPassword: 'Password123!' },
+      ],
+      [
+        'short new password',
+        { currentPassword: 'Password123!', newPassword: 'short' },
+      ],
+      [
+        'new password too long',
+        {
+          currentPassword: 'Password123!',
+          newPassword: 'a'.repeat(256),
+        },
+      ],
+      ['missing current password', { newPassword: 'Password123!' }],
+      ['missing new password', { currentPassword: 'Password123!' }],
+      [
+        'current password as number',
+        { currentPassword: 123, newPassword: 'Password123!' },
+      ],
+      [
+        'new password as number',
+        { currentPassword: 'Password123!', newPassword: 123 },
+      ],
+      ['null body', null],
+      ['undefined body', undefined],
+      [
+        'unexpected field',
+        {
+          currentPassword: 'Password123!',
+          newPassword: 'NewPassword123!',
+          unexpectedField: 'should not be here',
+        },
+      ],
+    ] as const;
+
+    it.each(invalidPasswordChangeRequestBodies)(
+      'should throw ZodError for %s',
+      async (_, invalidData) => {
+        await expect(
+          controller.changePassword(user, invalidData),
+        ).rejects.toThrow(ZodError);
+
+        expect(mockChangeUserPasswordUseCase.execute).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should propagate errors from changeUserPasswordUseCase', async () => {
+      const error = new Error('Test error');
+      mockChangeUserPasswordUseCase.execute.mockRejectedValue(error);
+
+      await expect(
+        controller.changePassword(user, {
+          currentPassword: 'currentPassword123',
+          newPassword: 'newPassword123',
+        }),
+      ).rejects.toThrow(error);
+    });
   });
 });

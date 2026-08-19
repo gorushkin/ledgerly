@@ -56,3 +56,4 @@
 - [ADR 0022: Remove system flags from account and operation contracts](./0022-remove-system-flags-from-account-and-operation-contracts.md)
 - [ADR 0023: Entity already exists error contract](./0023-entity-already-exists-error-contract.md)
 - [ADR 0024: User repository snapshot contract](./0024-user-repository-snapshot-contract.md)
+- [ADR 0025: Defer authenticated user context refetch decision](./0025-defer-authenticated-user-context-refetch-decision.md)

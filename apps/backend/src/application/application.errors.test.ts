@@ -5,7 +5,7 @@ import {
   CommodityClosedError,
   CommodityHasActiveReferencesError,
   EntityAlreadyExistsError,
-  InvalidPasswordError,
+  InvalidCredentialsError,
   ApplicationError,
   EntityNotFoundError,
   UserNotFoundError,
@@ -25,7 +25,11 @@ describe('coded application errors', () => {
 
   it.each([
     ['a missing user', new UserNotFoundError(), 'User not found'],
-    ['an invalid password', new InvalidPasswordError(), 'Invalid password'],
+    [
+      'invalid credentials',
+      new InvalidCredentialsError(),
+      'Invalid credentials',
+    ],
   ])(
     'keeps %s diagnostics out of the public auth contract',
     (_caseName, error, message) => {

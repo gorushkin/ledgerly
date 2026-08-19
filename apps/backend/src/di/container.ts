@@ -22,6 +22,7 @@ import {
   OpenCommodityUseCase,
   GetCurrentUserUseCase,
   UpdateCurrentUserUseCase,
+  ChangeUserPasswordUseCase,
 } from 'src/application';
 import {
   AccountOperationPolicy,
@@ -140,6 +141,9 @@ export const createContainer = (db: DataBase): AppContainer => {
 
   const getCurrentUserUseCase = new GetCurrentUserUseCase();
   const updateCurrentUserUseCase = new UpdateCurrentUserUseCase(userRepository);
+  const changeUserPasswordUseCase = new ChangeUserPasswordUseCase(
+    userRepository,
+  );
 
   const createTransactionUseCase = new CreateTransactionUseCase(
     transactionManager,
@@ -247,6 +251,7 @@ export const createContainer = (db: DataBase): AppContainer => {
       updateTransaction: updateTransactionUseCase,
     },
     user: {
+      changeUserPassword: changeUserPasswordUseCase,
       getCurrentUser: getCurrentUserUseCase,
       updateCurrentUser: updateCurrentUserUseCase,
     },
@@ -265,6 +270,7 @@ export const createContainer = (db: DataBase): AppContainer => {
   const userController = new UserController(
     getCurrentUserUseCase,
     updateCurrentUserUseCase,
+    changeUserPasswordUseCase,
   );
 
   const authController = new AuthController(

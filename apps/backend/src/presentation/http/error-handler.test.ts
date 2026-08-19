@@ -7,7 +7,7 @@ import {
   AccountHasActiveOperationsError,
   CommodityHasActiveReferencesError,
   EntityAlreadyExistsError,
-  InvalidPasswordError,
+  InvalidCredentialsError,
   UserNotFoundError,
 } from 'src/application';
 import { Id } from 'src/domain/domain-core';
@@ -124,8 +124,8 @@ describe('errorHandler', () => {
       {},
     ],
     [
-      'an invalid password',
-      new InvalidPasswordError(),
+      'invalid credentials',
+      new InvalidCredentialsError(),
       401,
       apiErrorCodes.authenticationFailed,
       {},

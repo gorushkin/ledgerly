@@ -135,11 +135,11 @@ export class UserNotFoundError extends AuthenticationFailedError {
 }
 
 /**
- * Retained to preserve an internal diagnostic for an invalid password. Its
+ * Retained to preserve an internal diagnostic for invalid credentials. Its
  * public contract is intentionally identical to a missing user.
  */
-export class InvalidPasswordError extends AuthenticationFailedError {
-  constructor(message = 'Invalid password') {
+export class InvalidCredentialsError extends AuthenticationFailedError {
+  constructor(message = 'Invalid credentials') {
     super(message);
   }
 }

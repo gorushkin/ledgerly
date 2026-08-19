@@ -1,3 +1,7 @@
+import { z } from "zod";
+
+import { passwordChangeSchema, usersUpdateSchema } from "../validation";
+
 import { UUID } from "./types";
 
 export type UserResponseDTO = {
@@ -6,12 +10,6 @@ export type UserResponseDTO = {
   name: string;
 };
 
-export type UserUpdateDTO = {
-  email?: string;
-  name?: string;
-};
+export type UserUpdateDTO = z.infer<typeof usersUpdateSchema>;
 
-export type UserChangePasswordDTO = {
-  currentPassword: string;
-  newPassword: string;
-};
+export type UserChangePasswordDTO = z.infer<typeof passwordChangeSchema>;
